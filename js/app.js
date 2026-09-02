@@ -1108,6 +1108,9 @@
         const withPresence = pool.filter(i => { const day = (DB.recs[liveCid] || {})[liveDate]; return day && day[i] && day[i].a === 0; });
         if (withPresence.length) pool = withPresence;
       }
+      // دورة مشاركة: استبعد من شارك في هذه الحصة حتى يشارك الجميع، ثم ابدأ دورة جديدة
+      const fresh = pool.filter(i => !liveTurns.done.has(i));
+      if (fresh.length) pool = fresh; else liveTurns.done.clear();
       box.querySelector("#wh-act").innerHTML = "";
       let ticks = 0, max = 22 + Math.floor(Math.random() * 10);
       const iv = setInterval(() => {
@@ -1117,11 +1120,12 @@
         ticks++;
         if (ticks >= max) {
           clearInterval(iv);
-          const win = pool[Math.floor(Math.random() * pool.length)];
+          const win = pool[Math.floor(Math.random() * pool.length)]; liveTurns.done.add(win); liveTurns.cur = win;
           nameEl.textContent = "🎉 " + c.students[win].n;
           nameEl.style.transform = "scale(1.15)";
           confetti();
-          box.querySelector("#wh-act").innerHTML = `<button class="btn-gold" id="wh-eval" style="font-size:16px">⭐ قيّم ${esc(c.students[win].n.split(" ")[0])}</button>`;
+          const pres = pool.length; const doneN = c.students.filter((s, i) => liveTurns.done.has(i)).length;
+          box.querySelector("#wh-act").innerHTML = `<button class="btn-gold" id="wh-eval" style="font-size:16px">⭐ قيّم ${esc(c.students[win].n.split(" ")[0])}</button><div class="btip" style="margin-top:8px">شارك ${doneN} من ${c.students.length} — لن يتكرر اسم حتى يشارك الجميع</div>`;
           box.querySelector("#wh-eval").onclick = () => liveActions(win);
         }
       }, 70 + ticks * 4);
