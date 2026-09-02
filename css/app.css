@@ -454,3 +454,15 @@ button{font-family:inherit}
 .tm-team.on{opacity:1; border-color:#fff; transform:scale(1.04); box-shadow:0 8px 24px rgba(0,0,0,.4)}
 .tm-vs{color:#c9d5e3; font-weight:800}
 @media (max-width:700px){ .od-grid{grid-template-columns:repeat(2,1fr)} .mm-grid{grid-template-columns:repeat(3,1fr)} }
+
+/* 🎡 من يجيب؟ + تقدّم الطالب */
+.gm-pickwrap{display:flex; gap:10px; align-items:center; justify-content:center; flex-wrap:wrap}
+.gm-prog{color:#9fb0c4; font-size:13px; background:rgba(255,255,255,.08); border-radius:10px; padding:4px 10px}
+.gm-award{display:flex; gap:6px; flex-wrap:wrap; justify-content:center; width:100%}
+.gm-aw{border:0; border-radius:12px; padding:8px 14px; font-family:inherit; font-weight:800; font-size:14px; color:#fff; cursor:pointer}
+.gm-aw.g{background:#2e9e5b} .gm-aw.r{background:#a83232} .gm-aw.y{background:var(--gold); color:#0E2033} .gm-aw[disabled]{opacity:.6; cursor:default}
+.gm-choose{max-height:50vh; overflow:auto}
+.pg-bars{display:flex; gap:4px; align-items:flex-end; height:110px; padding:6px 4px 20px; background:#fbf8f1; border:1px solid var(--line); border-radius:11px; position:relative}
+.pg-bar{flex:1; height:100%; display:flex; flex-direction:column; justify-content:flex-end; position:relative}
+.pg-bar > div{border-radius:4px 4px 0 0; min-height:3px}
+.pg-bar small{position:absolute; bottom:-18px; left:0; right:0; text-align:center; font-size:9px; color:var(--muted); direction:ltr}

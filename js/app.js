@@ -99,9 +99,9 @@
   const myClasses = () => (TE.classes || []).map(classById).filter(Boolean);
 
   /* ═══ النقاط والدرجات ═══ */
-  function calcStudent(cid, si) {
+  function calcStudent(cid, si, recsOverride) {
     const out = { pts: 0, days: 0, st: STATES.map(() => 0), part: 0, hwY: 0, hwN: 0, sh: 0, behP: 0, behN: 0, notes: [] };
-    const cd = DB.recs[cid] || {};
+    const cd = recsOverride || DB.recs[cid] || {};
     for (const date of Object.keys(cd)) {
       const e = cd[date][si]; if (!e) continue;
       out.days++;
@@ -123,8 +123,8 @@
     rows.forEach(r => r.rank = sorted.findIndex(x => x.i === r.i) + 1);
     return rows;
   }
-  function gradeTotal(cid, si) {
-    const g = (DB.grades[cid] || {})[si] || {};
+  function gradeTotal(cid, si, gOverride) {
+    const g = (gOverride || DB.grades[cid] || {})[si] || {};
     let sum = 0;
     ASSESS.forEach(a => { const v = +g[a.k]; if (!isNaN(v)) sum += Math.min(v, a.max); });
     return Math.round(sum * 10) / 10;
@@ -446,6 +446,7 @@
       <div class="sheet-actions" style="flex-wrap:wrap">
         <button class="btn-plain" style="flex:1 1 46%" id="sc-report">📄 تقرير للطباعة</button>
         <button class="btn-plain" style="flex:1 1 46%" id="sc-letter">✉️ إشعار ولي الأمر</button>
+        <button class="btn-gold" style="flex:1 1 100%" id="sc-prog">📈 تقدّم الطالب في كل المواد</button>
         <button class="btn-gold" style="flex:1 1 100%" id="sc-cert">🎓 شهادة تميّز (طباعة فاخرة)</button>
         <button class="btn-primary" style="flex:1 1 100%" onclick="window._sheetClose()">إغلاق</button></div>`,
       (o) => {
@@ -453,6 +454,7 @@
         o.querySelector("#sc-report").onclick = () => printReport(cid, i);
         o.querySelector("#sc-letter").onclick = () => printLetter(cid, i);
         o.querySelector("#sc-cert").onclick = () => printCertificate(cid, i);
+        o.querySelector("#sc-prog").onclick = () => studentProgress(cid, i);
       });
   }
   function commSheet(cid, i) {
@@ -561,6 +563,7 @@
         ${top.map((r, k) => `<tr><td style="font-size:16px">${k < 3 ? MED[k] : k + 1}</td><td class="nm">${esc(r.s.n)}</td><td><b>${r.t.pts}</b></td></tr>`).join("")}</table></div>`
         : '<div class="empty-note">ابدأ الرصد وستظهر أسماء المتميزين هنا 🌟</div>'}`;
     box.appendChild(honor);
+    parentReportsCard(box);
     box.querySelectorAll(".chip").forEach(ch => ch.onclick = () => { repClass = ch.dataset.c; renderRep(); });
     $("#rep-print").onclick = () => window.print();
     const hp = $("#hon-print"); if (hp) hp.onclick = () => printHonor(c, top, MED);
@@ -581,6 +584,7 @@
     let adminHtml = "";
     if (TE.admin && CLOUD && fdb) adminHtml = '<div class="card" id="adm-card"><h3><span class="dot"></span>لوحة المدير — رصد المعلمين لحظياً</h3><div class="empty-note">جارِ التحميل…</div></div>';
     else if (TE.admin) adminHtml = `<div class="card"><h3><span class="dot"></span>لوحة المدير</h3>${D.teachers.filter(t => (t.classes || []).length).map(t => `<div class="admin-row"><span>${esc(t.name)}<div class="cls">${esc(t.subject)}</div></span><span class="cls">${(t.classes || []).length} فصول</span></div>`).join("")}</div>`;
+    if (TE.admin) adminHtml += `<div class="card"><h3><span class="dot"></span>📊 مستويات الطلاب</h3><div style="display:grid;grid-template-columns:1fr 1fr;gap:8px"><button class="btn-gold" id="adm-levels">📊 حسب الفصل وكل المواد</button><button class="btn-gold" id="adm-school">🏫 ملخص المدرسة حسب المادة</button></div></div>`;
     box.innerHTML = `
       <div class="card"><h3><span class="dot"></span>🧰 أدوات المعلم</h3>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
@@ -602,6 +606,8 @@
         <div class="countchips">${BEH.map(b => `<span class="cc" style="background:${b.pts >= 0 ? "var(--ok)" : "var(--bad)"}">${esc(b.name)} ${b.pts >= 0 ? "+" : ""}${b.pts}</span>`).join("")}</div></div>
       <div class="card"><h3><span class="dot"></span>عن البرنامج</h3><div style="font-size:13.5px;line-height:2;color:var(--muted)">سجل المتابعة الرقمي — ${CLOUD ? "النسخة السحابية المشتركة ☁️" : "نسخة تجريبية محلية"}.<br>يعمل على أي جهاز: جوال، تابلت، وكمبيوتر.<br><b>المطوّر:</b> أ. ضيف الله أحمد محمد مشني</div></div>`;
     // أدوات المعلم
+    const al = $("#adm-levels"); if (al) al.onclick = adminLevels;
+    const as = $("#adm-school"); if (as) as.onclick = schoolSummary;
     $("#tl-curr").onclick = toolCurriculum;
     $("#tl-sessions").onclick = toolSessions;
     $("#tl-plans").onclick = toolPlans;
@@ -793,6 +799,7 @@
     return k;
   };
   let liveCid = null, livePrevTop = null, liveDate = null;
+  let liveTurns = { done: new Set(), cur: null };   // من شارك في هذه الحصة (لضمان مشاركة الجميع)
   function pickClassThen(cb) {
     const cls = myClasses();
     if (!cls.length) { alert("لا فصول مسندة"); return; }
@@ -801,7 +808,7 @@
       (o) => o.querySelectorAll("[data-c]").forEach(b => b.onclick = () => { closeSheet(); cb(b.dataset.c); }));
   }
   function liveSession(cid, initialView) {
-    liveCid = cid; liveDate = new Date().toISOString().slice(0, 10); livePrevTop = null;
+    liveCid = cid; liveDate = new Date().toISOString().slice(0, 10); livePrevTop = null; liveTurns = { done: new Set(), cur: null };
     const c = classById(cid);
     $("#view-app").classList.add("hidden");
     const V = $("#view-live"); V.classList.remove("hidden");
@@ -1405,10 +1412,38 @@
     const bar = (title, extra) => `<div class="stage-bar"><button class="live-btn" id="gm-back">◀ الألعاب</button><span style="color:#fff;font-weight:800">${title}</span>${extra || ""}</div>`;
     // 🎡 اختيار طالب عشوائي (الحاضرون أولاً) للإجابة
     const roster = () => { let pool = c.students.map((s, i) => i); const day = (DB.recs[liveCid] || {})[liveDate]; const pres = pool.filter(i => day && day[i] && day[i].a === 0); return (pres.length ? pres : pool).map(i => c.students[i].n); };
-    const pickBtn = `<button class="live-btn gm-pick" id="gm-pick">🎡 من يجيب؟</button><span class="gm-who" id="gm-who"></span>`;
+    const pickBtn = `<div class="gm-pickwrap"><button class="live-btn gm-pick" id="gm-pick">🎡 من يجيب؟</button><span class="gm-who" id="gm-who"></span><span class="gm-prog" id="gm-prog"></span><div class="gm-award" id="gm-award"></div></div>`;
     function wirePick() {
-      const b = box.querySelector("#gm-pick"), w = box.querySelector("#gm-who"); if (!b || !w) return;
-      b.onclick = () => { const names = roster(); if (!names.length) return; let n = 0; w.classList.remove("pop"); if (gameIv2) clearInterval(gameIv2); gameIv2 = setInterval(() => { w.textContent = names[Math.floor(Math.random() * names.length)]; if (++n > 16) { clearInterval(gameIv2); gameIv2 = null; w.classList.add("pop"); } }, 80); };
+      const b = box.querySelector("#gm-pick"), w = box.querySelector("#gm-who"), pr = box.querySelector("#gm-prog"), aw = box.querySelector("#gm-award"); if (!b || !w) return;
+      const T = liveTurns;
+      const present = () => { const day = (DB.recs[liveCid] || {})[liveDate]; const pool = c.students.map((s, i) => i); const pres = pool.filter(i => day && day[i] && day[i].a === 0); return pres.length ? pres : pool; };
+      const prog = () => { const p = present(); pr.textContent = `شارك ${p.filter(i => T.done.has(i)).length}/${p.length}`; };
+      const land = (i) => {
+        T.cur = i; T.done.add(i); w.textContent = c.students[i].n; w.classList.add("pop"); prog();
+        aw.innerHTML = `<button class="gm-aw g" data-k="part">✅ أجاب +${W.part}</button><button class="gm-aw g" data-k="star">🌟 تميّز</button><button class="gm-aw r" data-k="none">😕 لم يُجب</button><button class="gm-aw y" data-k="next">👉 يختار زميلاً</button>`;
+        aw.querySelectorAll(".gm-aw").forEach(x => x.onclick = () => {
+          const k = x.dataset.k;
+          if (k === "part" || k === "star") { applyLive(i, k); x.textContent = "✔ سُجّلت في سجله"; x.disabled = true; confetti(); }
+          else if (k === "none") { x.textContent = "سنعود إليه"; x.disabled = true; }
+          else chooseNext();
+        });
+      };
+      const chooseNext = () => {
+        const p = present().filter(i => !T.done.has(i));
+        if (!p.length) { T.done.clear(); prog(); aw.innerHTML = `<span class="gm-fb ok">🎉 شارك الجميع! تبدأ دورة جديدة</span>`; return; }
+        openLiveBox(`<h4>👉 ${esc(c.students[T.cur].n)} يختار زميلاً لم يشارك بعد</h4><div class="grid gm-choose">${p.map(i => `<button class="act b" data-i="${i}">${esc(c.students[i].n)}</button>`).join("")}</div><button class="act close" data-k="x" style="width:100%;margin-top:8px">إغلاق</button>`,
+          (o) => { o.querySelectorAll("[data-i]").forEach(bt => bt.onclick = () => { closeLiveBox(); land(+bt.dataset.i); }); o.querySelector("[data-k=x]").onclick = closeLiveBox; });
+      };
+      prog();
+      b.onclick = () => {
+        let p = present().filter(i => !T.done.has(i));
+        if (!p.length) { T.done.clear(); p = present(); }
+        // انحياز لطيف للأقل نقاطاً حتى يشاركوا ويحسّنوا وضعهم
+        const calc = classCalc(liveCid); const sorted = p.slice().sort((a, b2) => calc[a].t.pts - calc[b2].t.pts); const low = sorted.slice(0, Math.max(1, Math.ceil(sorted.length / 2)));
+        const pool = Math.random() < 0.6 ? low : p;
+        let n = 0; w.classList.remove("pop"); aw.innerHTML = ""; if (gameIv2) clearInterval(gameIv2);
+        gameIv2 = setInterval(() => { w.textContent = c.students[p[Math.floor(Math.random() * p.length)]].n; if (++n > 16) { clearInterval(gameIv2); gameIv2 = null; land(pool[Math.floor(Math.random() * pool.length)]); } }, 80);
+      };
     }
     function menu() {
       stopGame();
@@ -1603,6 +1638,145 @@
       draw();
     }
     menu();
+  }
+
+  /* ═══════════ 📈 تقدّم الطالب عبر المواد + لوحة مستويات المدير + تقارير أولياء الأمور ═══════════ */
+  // نقاط كل يوم رصد مرتبة زمنياً (لأي سجل: مادتي أو مادة زميل)
+  function daySeries(recsCid, i) {
+    const out = [];
+    Object.keys(recsCid || {}).sort().forEach(date => {
+      const e = recsCid[date][i]; if (!e) return; let p = 0;
+      if (e.a != null && STATES[e.a]) p += +STATES[e.a].pts || 0;
+      if (e.part) p += e.part * W.part; if (e.hw === 1) p += W.hw; if (e.sh) p += e.sh * W.sheets;
+      (e.beh || []).forEach(bi => { if (BEH[bi]) p += +BEH[bi].pts || 0; });
+      out.push({ date, p: Math.round(p * 10) / 10 });
+    });
+    return out;
+  }
+  const trendOf = (ser) => { if (ser.length < 4) return ""; const h = Math.ceil(ser.length / 2); const a = ser.slice(0, h).reduce((x, y) => x + y.p, 0) / h, b = ser.slice(h).reduce((x, y) => x + y.p, 0) / (ser.length - h); return b > a + 0.5 ? "📈 في تحسّن" : b < a - 0.5 ? "📉 يحتاج متابعة" : "➡️ مستقر"; };
+  const attPct = (t) => { const n = t.st.reduce((x, y) => x + y, 0); return n ? Math.round(t.st[0] / n * 100) : null; };
+  // كل مواد الفصل من السحابة: [{tid, subject, tname, recs, grades}] — وفي المحلي مادتي فقط
+  async function classDocs(cid) {
+    const out = [];
+    if (CLOUD && fdb) {
+      try {
+        const [rs, gs] = await Promise.all([fdb.collection("recs").get(), fdb.collection("grades").get()]);
+        const byT = {}; const suf = "_" + cid;
+        rs.forEach(x => { if (x.id.endsWith(suf)) { const tid = x.id.slice(0, -suf.length); byT[tid] = byT[tid] || {}; byT[tid].recs = (x.data() || {}).d || {}; } });
+        gs.forEach(x => { if (x.id.endsWith(suf)) { const tid = x.id.slice(0, -suf.length); byT[tid] = byT[tid] || {}; byT[tid].grades = (x.data() || {}).g || {}; } });
+        Object.keys(byT).forEach(tid => { const t = D.teachers.find(z => z.id === tid); out.push({ tid, subject: t ? t.subject : tid, tname: t ? t.name : "", recs: byT[tid].recs || {}, grades: byT[tid].grades || {} }); });
+      } catch (e) { }
+    }
+    if (!out.length && TE && !TE.admin) out.push({ tid: TE.id, subject: TE.subject, tname: TE.name, recs: DB.recs[cid] || {}, grades: DB.grades[cid] || {} });
+    return out;
+  }
+  const maxTotal = () => ASSESS.reduce((a, b) => a + b.max, 0);
+  const pctCell = (p) => p == null ? '<td style="color:#bbb">—</td>' : `<td style="background:${p >= 90 ? "#dff5e3" : p >= 75 ? "#eef7dd" : p >= 60 ? "#fff6d6" : p >= 50 ? "#ffe9d6" : "#ffd9d9"}"><b>${Math.round(p)}</b></td>`;
+  async function studentProgress(cid, i) {
+    const c = classById(cid), s = c.students[i];
+    openSheet(`<h4>📈 تقدّم الطالب: ${esc(s.n)}</h4><div style="color:var(--muted);font-size:13px;text-align:center;margin-bottom:8px">${esc(c.name)} — ${esc(META.school.name)}</div><div id="pg-body"><div class="empty-note">جارِ جمع البيانات من كل المواد…</div></div>
+      <div class="sheet-actions"><button class="btn-plain" onclick="print()">🖨️ طباعة</button><button class="btn-primary" onclick="window._sheetClose()">إغلاق</button></div>`, async (o) => {
+      const docs = await classDocs(cid), maxTot = maxTotal();
+      const rows = docs.map(dc => { const t = calcStudent(cid, i, dc.recs); const hasG = Object.keys(dc.grades[i] || {}).length > 0; const gt = hasG ? gradeTotal(cid, i, dc.grades) : null; return { ...dc, t, hasG, gt, pct: hasG ? gt / maxTot * 100 : null, att: attPct(t), series: daySeries(dc.recs, i) }; });
+      const mine = rows.find(r => TE && r.tid === TE.id) || rows[0];
+      const ps = rows.filter(r => r.pct != null).map(r => r.pct); const overall = ps.length ? Math.round(ps.reduce((a, b) => a + b, 0) / ps.length) : null;
+      const bars = (ser) => { const last = ser.slice(-14); const mx = Math.max(5, ...last.map(x => Math.abs(x.p))); return `<div class="pg-bars">${last.map(x => `<div class="pg-bar" title="${x.date}: ${x.p}"><div style="height:${Math.round(Math.abs(x.p) / mx * 100)}%;background:${x.p >= 0 ? "var(--ok)" : "var(--bad)"}"></div><small>${x.date.slice(5).replace("-", "/")}</small></div>`).join("")}</div>`; };
+      const b = o.querySelector("#pg-body"); if (!b) return;
+      b.innerHTML = `
+        <div class="statrow"><div class="stat"><div class="v">${overall != null ? overall + "%" : "—"}</div><div class="l">المعدل العام</div></div><div class="stat"><div class="v" style="font-size:14px">${overall != null ? esc(levelOf(overall).t) : "—"}</div><div class="l">المستوى العام</div></div><div class="stat"><div class="v">${rows.length}</div><div class="l">مواد مرصودة</div></div><div class="stat"><div class="v">${mine && mine.att != null ? mine.att + "%" : "—"}</div><div class="l">حضور ${esc(mine ? mine.subject : "")}</div></div></div>
+        ${mine ? `<div style="font-weight:800;color:var(--navy);margin:8px 0 4px">نقاط ${esc(mine.subject)} في الحصص الأخيرة — ${trendOf(mine.series) || "بداية الرصد"}</div>${mine.series.length ? bars(mine.series) : '<div class="empty-note">لا رصد بعد</div>'}` : ""}
+        <div class="table-scroll" style="margin-top:10px"><table class="report-table"><tr><th style="min-width:110px">المادة</th><th>النقاط</th><th>الحضور</th><th>الدرجة</th><th>المستوى</th><th>الاتجاه</th></tr>
+        ${rows.map(r => `<tr><td class="nm">${esc(r.subject)}<br><small style="color:var(--muted)">${esc(r.tname)}</small></td><td><b>${r.t.pts}</b></td><td>${r.att != null ? r.att + "%" : "—"}</td><td>${r.hasG ? r.gt + "/" + maxTot : "—"}</td>${r.pct != null ? `<td>${esc(levelOf(r.pct).t)}</td>` : "<td>—</td>"}<td>${trendOf(r.series) || "—"}</td></tr>`).join("")}</table></div>
+        ${!CLOUD ? '<div class="empty-note" style="padding:8px">في النسخة السحابية تظهر كل مواد الطالب من جميع معلميه</div>' : ""}`;
+    });
+  }
+  // 📊 لوحة المدير: مستويات الطلاب حسب المادة وكل المواد
+  async function adminLevels() {
+    const cls = D.classes.slice().sort((a, b) => (a.gc - b.gc) || a.name.localeCompare(b.name)); let cur = cls[0].id;
+    openSheet(`<h4>📊 مستويات الطلاب — كل المواد</h4><div class="class-chips" id="al-chips">${cls.map(x => `<button class="chip ${x.id === cur ? "on" : ""}" data-c="${x.id}">${esc(x.name)}</button>`).join("")}</div><div id="al-body"></div>
+      <div class="sheet-actions" style="flex-wrap:wrap"><button class="btn-gold" id="al-school" style="flex:1 1 100%">🏫 ملخص المدرسة حسب المادة</button><button class="btn-plain" onclick="print()">🖨️ طباعة</button><button class="btn-primary" onclick="window._sheetClose()">إغلاق</button></div>`, (o) => {
+      const body = o.querySelector("#al-body");
+      async function build() {
+        body.innerHTML = '<div class="empty-note">جارِ التحليل…</div>';
+        const c = classById(cur), docs = await classDocs(cur), maxTot = maxTotal();
+        if (!docs.length) { body.innerHTML = '<div class="empty-note">لا رصد لهذا الفصل بعد</div>'; return; }
+        const rows = c.students.map((s, i) => { const per = docs.map(dc => { const has = Object.keys(dc.grades[i] || {}).length > 0; const pct = has ? gradeTotal(cur, i, dc.grades) / maxTot * 100 : null; const t = calcStudent(cur, i, dc.recs); return { pct, pts: t.pts }; }); const ps = per.filter(x => x.pct != null).map(x => x.pct); const avg = ps.length ? ps.reduce((a, b) => a + b, 0) / ps.length : null; const pts = Math.round(per.reduce((a, x) => a + x.pts, 0) * 10) / 10; return { s, i, per, avg, pts }; }).sort((a, b) => ((b.avg == null ? -1 : b.avg) - (a.avg == null ? -1 : a.avg)) || b.pts - a.pts);
+        body.innerHTML = `<div class="table-scroll"><table class="report-table"><tr><th>م</th><th style="min-width:140px">الطالب</th>${docs.map(dc => `<th>${esc(dc.subject)}</th>`).join("")}<th>المعدل</th><th>المستوى</th><th>النقاط</th></tr>
+          ${rows.map((r, k) => `<tr class="al-row" data-i="${r.i}" style="cursor:pointer"><td>${k + 1}</td><td class="nm">${esc(r.s.n)}</td>${r.per.map(x => pctCell(x.pct)).join("")}${pctCell(r.avg)}<td>${r.avg != null ? esc(levelOf(r.avg).t) : "—"}</td><td>${r.pts}</td></tr>`).join("")}
+          <tr class="tot"><td></td><td class="nm">متوسط الفصل</td>${docs.map((dc, j) => { const v = rows.map(r => r.per[j].pct).filter(x => x != null); return pctCell(v.length ? v.reduce((a, b) => a + b, 0) / v.length : null); }).join("")}<td></td><td></td><td></td></tr></table></div>
+          <div class="empty-note" style="padding:6px">الدرجات نسبة مئوية من ${maxTot} — انقر اسم الطالب لتقدّمه التفصيلي في كل المواد</div>`;
+        body.querySelectorAll(".al-row").forEach(tr => tr.onclick = () => studentProgress(cur, +tr.dataset.i));
+      }
+      o.querySelectorAll("#al-chips .chip").forEach(ch => ch.onclick = () => { cur = ch.dataset.c; o.querySelectorAll("#al-chips .chip").forEach(x => x.classList.toggle("on", x === ch)); build(); });
+      o.querySelector("#al-school").onclick = schoolSummary;
+      build();
+    });
+  }
+  async function schoolSummary() {
+    openSheet(`<h4>🏫 ملخص المدرسة حسب المادة</h4><div id="ss-body"><div class="empty-note">جارِ التحليل…</div></div><div class="sheet-actions"><button class="btn-plain" onclick="print()">🖨️ طباعة</button><button class="btn-primary" onclick="window._sheetClose()">إغلاق</button></div>`, async (o) => {
+      const body = o.querySelector("#ss-body"); const maxTot = maxTotal(), bySub = {};
+      let rs, gs; try { if (!CLOUD || !fdb) throw 0; [rs, gs] = await Promise.all([fdb.collection("recs").get(), fdb.collection("grades").get()]); } catch (e) { body.innerHTML = '<div class="empty-note">يتطلب النسخة السحابية المشتركة</div>'; return; }
+      const gmap = {}; gs.forEach(x => gmap[x.id] = (x.data() || {}).g || {});
+      rs.forEach(x => {
+        const k = x.id.indexOf("_"); const tid = x.id.slice(0, k), cid = x.id.slice(k + 1); const t = D.teachers.find(z => z.id === tid); const c = classById(cid); if (!t || !c) return;
+        const sub = t.subject; bySub[sub] = bySub[sub] || { n: 0, lv: [0, 0, 0, 0, 0], att: [], cls: {} };
+        const recs = (x.data() || {}).d || {}; const g = gmap[x.id] || {};
+        c.students.forEach((s, i) => { const tt = calcStudent(cid, i, recs); const a = attPct(tt); if (a != null) bySub[sub].att.push(a); if (Object.keys(g[i] || {}).length) { const p = gradeTotal(cid, i, g) / maxTot * 100; bySub[sub].n++; bySub[sub].lv[levelOf(p).i]++; (bySub[sub].cls[c.name] = bySub[sub].cls[c.name] || []).push(p); } });
+      });
+      const LV = ["ممتاز", "جيد جداً", "جيد", "مقبول", "دون المطلوب"];
+      body.innerHTML = Object.keys(bySub).length ? `<div class="table-scroll"><table class="report-table"><tr><th style="min-width:110px">المادة</th><th>بدرجات</th>${LV.map(l => `<th>${l}</th>`).join("")}<th>الحضور</th><th>أعلى فصل</th><th>أدنى فصل</th></tr>${Object.entries(bySub).map(([sub, v]) => { const ca = Object.entries(v.cls).map(([n, arr]) => ({ n, a: arr.reduce((a, b) => a + b, 0) / arr.length })).sort((a, b) => b.a - a.a); const att = v.att.length ? Math.round(v.att.reduce((a, b) => a + b, 0) / v.att.length) + "%" : "—"; return `<tr><td class="nm">${esc(sub)}</td><td>${v.n}</td>${v.lv.map(x => `<td>${x || ""}</td>`).join("")}<td>${att}</td><td>${ca.length ? esc(ca[0].n) + " " + Math.round(ca[0].a) + "%" : "—"}</td><td>${ca.length ? esc(ca[ca.length - 1].n) + " " + Math.round(ca[ca.length - 1].a) + "%" : "—"}</td></tr>`; }).join("")}</table></div>` : '<div class="empty-note">لا رصد بعد</div>';
+    });
+  }
+  // 📤 تقارير الفترة لأولياء الأمور (قروب الواتس أو رسالة لكل ولي أمر)
+  const recsInRange = (cid, from, to) => { const src = DB.recs[cid] || {}, out = {}; Object.keys(src).forEach(dt => { if ((!from || dt >= from) && (!to || dt <= to)) out[dt] = src[dt]; }); return out; };
+  const waLink = (phone, text) => "https://wa.me/" + (phone ? phone : "") + "?text=" + encodeURIComponent(text);
+  const phoneOf = (s) => (s.p || "").replace(/\D/g, "").replace(/^0/, "966");
+  const hLabelShort = (iso) => { try { return new Intl.DateTimeFormat("ar-SA-u-ca-islamic-umalqura", { day: "numeric", month: "long" }).format(new Date(iso + "T12:00:00")); } catch (e) { return iso; } };
+  function periodText(cid, from, to) {
+    const c = classById(cid), recs = recsInRange(cid, from, to), maxTot = maxTotal();
+    const rows = c.students.map((s, i) => ({ s, i, t: calcStudent(cid, i, recs) }));
+    const days = Object.keys(recs).length; const rated = rows.filter(r => r.t.days);
+    const attN = rows.reduce((a, r) => a + r.t.st.reduce((x, y) => x + y, 0), 0); const att = attN ? Math.round(rows.reduce((a, r) => a + (r.t.st[0] || 0), 0) / attN * 100) : null;
+    const part = rows.reduce((a, r) => a + r.t.part, 0), hw = rows.reduce((a, r) => a + r.t.hwY, 0);
+    const top = rows.filter(r => r.t.pts > 0).sort((a, b) => b.t.pts - a.t.pts).slice(0, 5);
+    const need = rows.filter(r => r.t.st[1] > 0 || r.t.hwN > 0 || r.t.behN > 0).slice(0, 8);
+    return `📊 *تقرير ${TE.subject} — ${c.name}*\n🏫 ${META.school.name}\n🗓️ الفترة: ${hLabelShort(from)} → ${hLabelShort(to)} (${days} حصة مرصودة)\n\n` +
+      `✅ نسبة الحضور: ${att != null ? att + "%" : "لم يُرصد بعد"}\n🙋 المشاركات: ${part} | 📚 الواجبات المنجزة: ${hw}\n\n` +
+      (top.length ? `🏆 *الأوائل في النقاط:*\n${top.map((r, k) => `${["🥇", "🥈", "🥉", "4.", "5."][k]} ${r.s.n} (${r.t.pts})`).join("\n")}\n\n` : "") +
+      (need.length ? `🔔 *يحتاجون متابعة الأسرة:*\n${need.map(r => `• ${r.s.n}: ${[r.t.st[1] ? "غياب " + r.t.st[1] : "", r.t.hwN ? "واجب ناقص " + r.t.hwN : "", r.t.behN ? "ملاحظة سلوك" : ""].filter(Boolean).join("، ")}`).join("\n")}\n\n` : "") +
+      `💡 نشكر تعاونكم، ومتابعتكم اليومية تصنع الفرق.\n👨‍🏫 معلم المادة: ${TE.name}`;
+  }
+  function studentText(cid, i, from, to) {
+    const c = classById(cid), s = c.students[i], recs = recsInRange(cid, from, to), t = calcStudent(cid, i, recs), maxTot = maxTotal();
+    const all = c.students.map((x, k) => calcStudent(cid, k, recs).pts).sort((a, b) => b - a); const rank = all.indexOf(t.pts) + 1;
+    const hasG = Object.keys((DB.grades[cid] || {})[i] || {}).length > 0, gt = gradeTotal(cid, i); const a = attPct(t);
+    const tip = t.st[1] > 0 ? "نرجو متابعة الحضور." : t.hwN > 0 ? "نرجو متابعة إنجاز الواجبات." : t.pts >= 10 ? "أداء مميز، بارك الله فيه." : "نأمل مزيداً من المشاركة.";
+    return `السلام عليكم ورحمة الله\nولي أمر الطالب: *${s.n}* — ${c.name}\n📊 تقرير ${TE.subject} للفترة ${hLabelShort(from)} → ${hLabelShort(to)}\n` +
+      `⭐ النقاط: ${t.pts} | الترتيب: ${rank} من ${c.students.length}\n✅ الحضور: ${a != null ? a + "%" : "—"} (${STATES.map((st, k) => t.st[k] ? `${st.name} ${t.st[k]}` : "").filter(Boolean).join("، ") || "لا رصد"})\n🙋 المشاركة: ${t.part} | 📚 الواجبات: ${t.hwY}${t.hwN ? ` (ناقص ${t.hwN})` : ""}${hasG ? `\n📝 الدرجة: ${gt}/${maxTot} — ${levelOf(gt / maxTot * 100).t}` : ""}\n💡 ${tip}\n${META.school.name} — ${TE.name}`;
+  }
+  function parentReportsCard(box) {
+    const cls = myClasses(); if (!cls.length) return;
+    const today = new Date().toISOString().slice(0, 10), ago = new Date(Date.now() - 6 * 864e5).toISOString().slice(0, 10);
+    const wa = document.createElement("div"); wa.className = "card no-print";
+    wa.innerHTML = `<h3><span class="dot"></span>📤 تقارير أولياء الأمور — ${esc(classById(repClass).name)}</h3>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px"><div class="field" style="margin:0"><label>من تاريخ</label><input type="date" id="wa-from" value="${ago}"></div><div class="field" style="margin:0"><label>إلى تاريخ</label><input type="date" id="wa-to" value="${today}"></div></div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px"><button class="btn-gold" id="wa-group" style="flex:1">💬 تقرير الفصل لقروب الواتس</button><button class="btn-gold" id="wa-each" style="flex:1">👨‍👩‍👦 رسالة لكل ولي أمر</button></div>
+      <textarea class="note" id="wa-text" rows="9" style="margin-top:8px;display:none;direction:rtl"></textarea>
+      <div id="wa-act" style="display:none;gap:8px;margin-top:6px"><button class="btn-plain" id="wa-copy" style="flex:1">📋 نسخ النص</button><a class="wa-btn" id="wa-share" target="_blank" rel="noopener" style="flex:2;margin:0">💬 مشاركة في واتساب (اختر القروب)</a></div>`;
+    box.appendChild(wa);
+    const rng = () => [wa.querySelector("#wa-from").value || ago, wa.querySelector("#wa-to").value || today];
+    wa.querySelector("#wa-group").onclick = () => {
+      const [f, t] = rng(); const txt = periodText(repClass, f, t);
+      const ta = wa.querySelector("#wa-text"); ta.style.display = "block"; ta.value = txt;
+      const act = wa.querySelector("#wa-act"); act.style.display = "flex"; wa.querySelector("#wa-share").href = waLink("", txt);
+      wa.querySelector("#wa-copy").onclick = () => { try { navigator.clipboard.writeText(ta.value); wa.querySelector("#wa-copy").textContent = "✔ نُسخ"; } catch (e) { ta.select(); document.execCommand("copy"); } };
+    };
+    wa.querySelector("#wa-each").onclick = () => {
+      const [f, t] = rng(); const c = classById(repClass);
+      openSheet(`<h4>👨‍👩‍👦 رسالة لكل ولي أمر — ${esc(c.name)}</h4><div style="color:var(--muted);font-size:13px;margin-bottom:8px">الفترة ${hLabelShort(f)} → ${hLabelShort(t)} — كل زر يفتح واتساب برسالة جاهزة لولي أمر الطالب</div>
+        <div id="pe-list">${c.students.map((s, i) => { const ph = phoneOf(s); return `<div class="stu"><span class="nm">${esc(s.n)}<small>${calcStudent(repClass, i, recsInRange(repClass, f, t)).pts} نقطة في الفترة</small></span><div style="display:flex;gap:6px"><button class="btn-soft" data-pg="${i}">📈</button><a class="wa-btn ${ph ? "" : "off"}" style="margin:0;padding:6px 10px;font-size:13px" target="_blank" rel="noopener" href="${waLink(ph, studentText(repClass, i, f, t))}">💬 إرسال</a></div></div>`; }).join("")}</div>
+        <div class="sheet-actions"><button class="btn-primary" onclick="window._sheetClose()">إغلاق</button></div>`, (o) => o.querySelectorAll("[data-pg]").forEach(b => b.onclick = () => studentProgress(repClass, +b.dataset.pg)));
+    };
   }
   function confetti() {
     const em = ["🎉", "⭐", "🏆", "✨", "🎊"];
