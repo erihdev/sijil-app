@@ -745,23 +745,45 @@
         html += `<div style="font-weight:800;color:var(--navy);margin:8px 0 4px">الصف ${GNAME[g]}</div>`;
         rows.sort((a, b) => a.w - b.w).forEach(r => {
           const q = encodeURIComponent(r.lesson + " " + TE.subject);
-          html += `<div class="comm-item"><b>أسبوع ${r.w}: ${esc(r.lesson)}</b><div style="display:flex;gap:6px;margin-top:6px;flex-wrap:wrap"><button class="btn-soft" data-ws="${esc(r.lesson)}">🖨️ ورقة عمل</button><a class="btn-soft" style="text-decoration:none" href="https://wordwall.net/ar/community?query=${q}" target="_blank" rel="noopener">🎮 أنشطة</a></div></div>`;
+          html += `<div class="comm-item"><b>أسبوع ${r.w}: ${esc(r.lesson)}</b><div style="display:flex;gap:6px;margin-top:6px;flex-wrap:wrap"><button class="btn-soft" data-ws="${esc(r.lesson)}" data-code="${code}" data-wk="${r.w}">🖨️ ورقة عمل</button><a class="btn-soft" style="text-decoration:none" href="https://wordwall.net/ar/community?query=${q}" target="_blank" rel="noopener">🎮 أنشطة</a></div></div>`;
         });
       }
       const body = o.querySelector("#sh-body"); if (!body) return;
       body.innerHTML = html || '<div class="empty-note">لا دروس متاحة حول هذا الأسبوع</div>';
-      body.querySelectorAll("[data-ws]").forEach(b => b.onclick = () => printWorksheet(b.dataset.ws));
+      body.querySelectorAll("[data-ws]").forEach(b => b.onclick = async () => printWorksheet(b.dataset.ws, await lessonData(b.dataset.code, +b.dataset.wk)));
     });
   }
-  function printWorksheet(lesson) {
-    printDoc("ورقة عمل — " + lesson, `
+  function printWorksheet(lesson, d) {
+    const qs = d && d.questions && d.questions.length ? d.questions : ((d && d.checks) || []);
+    const hero = d && (d.story || []).find(s => s.img);
+    const vocab = (d && d.vocab) || [];
+    const head = `
       <div class="h"><div class="bar">${esc(META.school.name)}</div><div class="m">${esc(TE.subject)} — ${esc(hijriLabel())}</div></div>
       <div class="tt">ورقة عمل: ${esc(lesson)}</div>
-      <p>اسم الطالب: ............................................ الفصل: ............ التاريخ: ............</p>
+      <p>اسم الطالب: ............................................ الفصل: ............ التاريخ: ............</p>`;
+    if (!qs.length) {
+      printDoc("ورقة عمل — " + lesson, head + `
       <p><b>السؤال الأول:</b> اكتب أهم ما تعلّمته عن (${esc(lesson)}):</p><p>....................................................................................................................</p><p>....................................................................................................................</p>
       <p><b>السؤال الثاني:</b> أكمل الفراغات المناسبة:</p><p>....................................................................................................................</p>
       <p><b>السؤال الثالث:</b> ارسم أو مثّل ما فهمته:</p><div style="border:1px dashed #aaa;height:150px;border-radius:8px"></div>
       <div class="sig"><span>المعلم: ${esc(TE.name)}</span><span>الدرجة: ......</span></div>`);
+      return;
+    }
+    const L = ["أ", "ب", "ج", "د"];
+    const qHtml = qs.map((q, n) => {
+      if (q.t === "fill") return `<p><b>${n + 1}.</b> ${esc(q.q)}</p>`;
+      return `<p><b>${n + 1}.</b> ${esc(q.q)}</p><p style="padding-inline-start:18px">${(q.opts || []).map((o, k) => o ? `☐ ${q.t === "tf" ? "" : L[k] + ") "}${esc(o)}` : "").filter(Boolean).join(" &nbsp;&nbsp;&nbsp; ")}</p>`;
+    }).join("");
+    const shuf = vocab.map((v, i) => ({ i, d: v.d })).sort(() => Math.random() - .5);
+    const vHtml = vocab.length ? `<p><b>ثانياً — صِل كل مصطلح بتعريفه:</b></p><table style="width:100%;border-collapse:collapse"><tr><td style="width:35%;vertical-align:top">${vocab.map((v, i) => `<div style="padding:5px 0">${i + 1}. ${esc(v.t)} ○</div>`).join("")}</td><td style="vertical-align:top">${shuf.map(x => `<div style="padding:5px 0">○ ${esc(x.d)}</div>`).join("")}</td></tr></table>` : "";
+    const key = qs.map((q, n) => `${n + 1}: ${q.t === "fill" ? esc(q.ans || "—") : (q.t === "tf" ? esc(q.opts[q.correct]) : L[q.correct])}`).join(" · ") + (vocab.length ? " · المطابقة: " + vocab.map((v, i) => `${i + 1}←${shuf.findIndex(x => x.i === i) + 1}`).join(" ") : "");
+    const objHtml = d.objectives && d.objectives.length ? `<div style="border:1px solid #ccc;border-radius:8px;padding:8px 12px;margin-bottom:10px;font-size:13px"><b>🎯 أهداف الدرس:</b> ${d.objectives.map(esc).join(" — ")}</div>` : "";
+    printDoc("ورقة عمل — " + lesson, head +
+      (hero ? `<div style="text-align:center;margin:6px 0 10px"><img src="${hero.img}" style="max-height:150px;max-width:70%;border-radius:10px;border:1px solid #ccc"></div>` : "") +
+      objHtml + `<p><b>أولاً — أجب عن الأسئلة التالية:</b></p>` + qHtml + vHtml +
+      `<p style="margin-top:14px"><b>ثالثاً —</b> اكتب بأسلوبك أهم ما تعلّمته في هذا الدرس:</p><p>....................................................................................................................</p>
+      <div class="sig"><span>المعلم: ${esc(TE.name)}</span><span>الدرجة: ......</span></div>
+      <div style="font-size:9px;color:#888;margin-top:8px;transform:rotate(180deg)">مفتاح الإجابة (للمعلم): ${key}</div>`);
   }
 
   /* ═══════════ وضع الحصة الحية (العرض) ═══════════ */
@@ -803,13 +825,14 @@
             <button data-v="timer">⏱️ مؤقّت</button>
             <button data-v="lesson">▶️ الدرس</button>
             <button data-v="story">🎬 قصة الدرس</button>
+            <button data-v="games">🎮 ألعاب</button>
             <button data-v="yt">📺 يوتيوب</button>
           </div>
           <div class="live-main" id="live-main"></div>
         </div>
         <div class="live-board" id="live-board"></div>
       </div>`;
-    $("#live-exit").onclick = () => { if (timerIv) { clearInterval(timerIv); timerIv = null; } stopStory(); try { if (document.fullscreenElement) document.exitFullscreen(); } catch (e) { } V.classList.add("hidden"); $("#view-app").classList.remove("hidden"); renderReg(); renderToday(); renderGrades(); };
+    $("#live-exit").onclick = () => { if (timerIv) { clearInterval(timerIv); timerIv = null; } stopStory(); stopGame(); try { if (document.fullscreenElement) document.exitFullscreen(); } catch (e) { } V.classList.add("hidden"); $("#view-app").classList.remove("hidden"); renderReg(); renderToday(); renderGrades(); };
     $("#live-fs").onclick = () => {
       const d = document, el = V;
       const isFS = d.fullscreenElement || d.webkitFullscreenElement || d.mozFullScreenElement || d.msFullscreenElement;
@@ -840,7 +863,7 @@
   async function liveView(v) {
     liveMainView = v;
     if (timerIv) { clearInterval(timerIv); timerIv = null; }
-    stopStory();
+    stopStory(); stopGame();
     const box = $("#live-main"); if (!box) return;
     const c = classById(liveCid), sc = subjCode(TE.subject), wk = curWeek(), code = sc + c.gc + TERM;
     if (v === "roster") { drawLiveRoster(); return; }
@@ -861,6 +884,7 @@
     if (v === "quiz") { stageQuiz(box, code, wk); return; }
     if (v === "iws") { stageWorksheet(box, code, wk); return; }
     if (v === "timer") { stageTimer(box); return; }
+    if (v === "games") { stageGames(box, code, wk, c); return; }
   }
   // ▶️ درس تفاعلي غنيّ (محتوانا الخاص)
   function renderRichLesson(box, d) {
@@ -876,6 +900,7 @@
     box.innerHTML = `<div class="live-stage"><div class="stage-bar"><span style="color:#fff;font-weight:800">▶️ ${esc(d.title || "")}</span><span style="color:#c9d5e3;font-size:13px;margin-inline-start:auto">${esc(d.unit || "")}</span></div>
       <div class="rl-scroll"><div class="rl-wrap">
         <div class="rl-title">${esc(d.title || "")}</div>
+        ${(d.story || []).some(s => s.img) ? `<img class="rl-hero" src="${(d.story || []).find(s => s.img).img}" alt="">` : ""}
         ${d.objectives && d.objectives.length ? `<div class="rl-obj"><div class="rl-obj-h">🎯 أهداف الدرس</div><ul>${d.objectives.map(o => `<li>${esc(o)}</li>`).join("")}</ul></div>` : ""}
         ${d.intro ? `<div class="rl-intro">${esc(d.intro)}</div>` : ""}
         ${secs}${vocab}${checks}
@@ -1096,12 +1121,27 @@
     };
   }
   // بنك أسئلة الدرس (من صلب محتوى الدرس)
+  const lessonCache = {};
+  async function lessonData(code, wk) {
+    const key = code + "w" + wk;
+    if (lessonCache[key] !== undefined) return lessonCache[key];
+    let d = null; try { const r = await fetch("data/lessons/" + key + ".json"); if (r.ok) d = await r.json(); } catch (e) { }
+    lessonCache[key] = d; return d;
+  }
+  // اختيار صورة من قصة الدرس تناسب نصاً (سؤال/عبارة) بتقاطع الكلمات
+  const kwords = (t) => String(t || "").replace(/[^\u0600-\u06FF\w ]/g, " ").split(/\s+/).map(w => w.replace(/^(ال|لل|و|ب|ل|ف)/, "")).filter(w => w.length >= 3);
+  function pickImg(d, text) {
+    const scenes = ((d && d.story) || []).filter(sc => sc.img);
+    if (!scenes.length) return "";
+    const ws = kwords(text); let best = null, bs = 0;
+    scenes.forEach(sc => { const sw = kwords(sc.t); const n = ws.filter(w => sw.some(x => x.includes(w) || w.includes(x))).length; if (n > bs) { bs = n; best = sc; } });
+    return best ? best.img : "";
+  }
   async function lessonQuestions(code, wk) {
     try {
-      const r = await fetch("data/lessons/" + code + "w" + wk + ".json"); if (!r.ok) return [];
-      const d = await r.json();
-      if (d.questions && d.questions.length) return d.questions.map(q => ({ t: q.t || "mcq", q: q.q, opts: q.opts || [], correct: q.correct || 0, ans: q.ans || "" }));
-      if (d.checks && d.checks.length) return d.checks.map(c => ({ t: "mcq", q: c.q, opts: c.opts, correct: c.correct }));
+      const d = await lessonData(code, wk); if (!d) return [];
+      if (d.questions && d.questions.length) return d.questions.map(q => ({ t: q.t || "mcq", q: q.q, opts: q.opts || [], correct: q.correct || 0, ans: q.ans || "", img: pickImg(d, q.q) }));
+      if (d.checks && d.checks.length) return d.checks.map(c => ({ t: "mcq", q: c.q, opts: c.opts, correct: c.correct, img: pickImg(d, c.q) }));
       return [];
     } catch (e) { return []; }
   }
@@ -1123,6 +1163,7 @@
       const it = bank[bi];
       body.innerHTML = `<div style="max-width:780px;margin:0 auto;text-align:center;color:#fff">
         <div style="color:#9fb0c4;margin-bottom:8px">سؤال ${bi + 1} من ${bank.length}</div>
+        ${it.img ? `<img class="q-img" src="${it.img}" alt="">` : ""}
         <div style="font-size:min(5vw,32px);font-weight:800;margin-bottom:22px">${esc(it.q)}</div>
         ${qCardHTML(it)}
         <div style="display:flex;gap:8px;justify-content:center;margin-top:22px;flex-wrap:wrap">
@@ -1180,10 +1221,11 @@
     // حمّل أسئلة الدرس تلقائياً أول مرة (ما لم يبنِ المعلم ورقته الخاصة)
     if (wsLoadedFor !== key && (!wsItems.length || wsItems._auto)) {
       const bank = await lessonQuestions(code, wk);
-      if (bank.length) { wsItems = bank.map(q => ({ t: q.t, q: q.q, opts: q.opts || [], correct: q.correct || 0, ans: q.ans || "" })); wsItems._auto = true; wsLoadedFor = key; wsIdx = 0; }
+      if (bank.length) { wsItems = bank.map(q => ({ t: q.t, q: q.q, opts: q.opts || [], correct: q.correct || 0, ans: q.ans || "", img: q.img || "" })); wsItems._auto = true; wsLoadedFor = key; wsIdx = 0; }
     }
     box.innerHTML = `<div class="live-stage"><div class="stage-bar"><span style="color:#fff;font-weight:800">📝 ورقة الدرس التفاعلية</span>
-      <button class="live-btn" id="iws-build" style="margin-inline-start:auto">🛠️ بناء</button>
+      <button class="live-btn" id="iws-print" style="margin-inline-start:auto">🖨️ طباعة</button>
+      <button class="live-btn" id="iws-build">🛠️ بناء</button>
       ${wsItems.length ? `<button class="btn-primary" id="iws-present" style="padding:8px 14px">▶️ ابدأ العرض</button>` : ""}</div>
       <div id="iws-body" style="flex:1;overflow:auto;padding:16px"></div></div>`;
     const body = box.querySelector("#iws-body");
@@ -1224,6 +1266,7 @@
       const it = wsItems[wsIdx]; if (!it) { builder(); return; }
       body.innerHTML = `<div style="max-width:760px;margin:0 auto;text-align:center;color:#fff">
         <div style="color:#9fb0c4;margin-bottom:8px">سؤال ${wsIdx + 1} من ${wsItems.length}</div>
+        ${it.img ? `<img class="q-img" src="${it.img}" alt="">` : ""}
         <div style="font-size:min(5vw,32px);font-weight:800;margin-bottom:22px">${esc(it.q || "—")}</div>
         <div id="q-area"></div>
         <div style="display:flex;gap:8px;justify-content:center;margin-top:22px">
@@ -1245,6 +1288,7 @@
       const dn = body.querySelector("#q-done"); if (dn) dn.onclick = builder;
     }
     const bb = box.querySelector("#iws-build"); if (bb) bb.onclick = builder;
+    const pb = box.querySelector("#iws-print"); if (pb) pb.onclick = async () => { const d = await lessonData(code, wk); printWorksheet((d && d.title) || "درس الأسبوع", d && wsItems._auto ? d : { title: "ورقة المعلم", questions: wsItems }); };
     const pp = box.querySelector("#iws-present"); if (pp) pp.onclick = () => { wsIdx = 0; present(); };
     if (wsItems.length) { wsIdx = 0; present(); } else builder();
   }
@@ -1342,6 +1386,117 @@
     f.style.top = (r.top + 8) + "px";
     document.body.appendChild(f);
     setTimeout(() => f.remove(), 1100);
+  }
+
+  // 🎮 استوديو ألعاب الدرس — من مصطلحات الدرس وبنك أسئلته (لوحة الشرف تبقى للتقييم اللحظي)
+  let gameIv = null;
+  function stopGame() { if (gameIv) { clearInterval(gameIv); gameIv = null; } }
+  const shuffle = (a) => { a = a.slice(); for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
+  async function stageGames(box, code, wk, c) {
+    stopGame();
+    const d = await lessonData(code, wk);
+    const vocab = (d && d.vocab) || [], bank = await lessonQuestions(code, wk);
+    const hero = d && (d.story || []).find(s => s.img);
+    const L = ["أ", "ب", "ج", "د"];
+    const bar = (title, extra) => `<div class="stage-bar"><button class="live-btn" id="gm-back">◀ الألعاب</button><span style="color:#fff;font-weight:800">${title}</span>${extra || ""}</div>`;
+    function menu() {
+      stopGame();
+      box.innerHTML = `<div class="live-stage"><div class="stage-bar"><span style="color:#fff;font-weight:800">🎮 ألعاب الدرس${d ? ": " + esc(d.title) : ""}</span><span style="color:#9fb0c4;font-size:12px;margin-inline-start:auto">من صلب محتوى الدرس</span></div>
+        <div class="gm-menu" ${hero ? `style="background-image:linear-gradient(rgba(10,20,32,.78),rgba(10,20,32,.96)),url('${hero.img}')"` : ""}>
+          <button class="gm-card" data-g="match" ${vocab.length < 3 ? "disabled" : ""}><span class="gm-ic">🧩</span><b>مطابقة المصطلحات</b><small>${vocab.length} مصطلحات — صِل كل مصطلح بتعريفه ضد الساعة</small></button>
+          <button class="gm-card" data-g="race" ${bank.length < 3 ? "disabled" : ""}><span class="gm-ic">⚡</span><b>سباق صح / خطأ</b><small>${bank.length} أسئلة — 10 ثوانٍ لكل عبارة ومكافأة للسلسلة</small></button>
+          <button class="gm-card" data-g="ladder" ${bank.length < 3 ? "disabled" : ""}><span class="gm-ic">🪜</span><b>سلّم المليون</b><small>اصعد بالإجابات الصحيحة — الخطأ يعيدك للبداية، ومعك مساعدة 50:50</small></button>
+        </div>${!d ? '<div class="empty-note" style="color:#c9d5e3">لا محتوى لهذا الدرس بعد</div>' : ""}</div>`;
+      box.querySelectorAll(".gm-card").forEach(b => b.onclick = () => ({ match, race, ladder })[b.dataset.g]());
+    }
+    function finish(title, msg) {
+      stopGame();
+      box.innerHTML = `<div class="live-stage">${bar(title)}
+        <div class="gm-body gm-center"><div class="gm-ic" style="font-size:96px">🏆</div><div class="gm-stmt">${msg}</div><div style="color:#c9d5e3;margin-top:6px">امنح المتميزين نقاطهم بالنقر على أسمائهم في لوحة الشرف 🏆</div>
+        <button class="btn-primary" id="gm-again" style="margin-top:18px;font-size:17px">🎮 لعبة أخرى</button></div></div>`;
+      box.querySelector("#gm-back").onclick = menu; box.querySelector("#gm-again").onclick = menu;
+    }
+    // 🧩 مطابقة المصطلحات
+    function match() {
+      const pairs = shuffle(vocab).slice(0, 8);
+      const defs = shuffle(pairs.map((p, i) => ({ i, d: p.d })));
+      let selT = null, done = 0, score = 0; const t0 = Date.now();
+      box.innerHTML = `<div class="live-stage">${bar("🧩 مطابقة المصطلحات", `<span class="gm-hud" id="gm-hud" style="margin-inline-start:auto"></span>`)}
+        <div class="gm-body"><div class="btip">انقر المصطلح ثم تعريفه</div><div class="gm-cols"><div class="gm-col">${pairs.map((p, i) => `<button class="gm-tile" data-t="${i}">${esc(p.t)}</button>`).join("")}</div>
+        <div class="gm-col">${defs.map(x => `<button class="gm-tile gm-def" data-d="${x.i}">${esc(x.d)}</button>`).join("")}</div></div></div></div>`;
+      const hud = box.querySelector("#gm-hud");
+      const tick = () => { hud.textContent = `⏱ ${fmtT((Date.now() - t0) / 1000)} · ⭐ ${score} · ${done}/${pairs.length}`; };
+      tick(); gameIv = setInterval(tick, 500);
+      box.querySelector("#gm-back").onclick = menu;
+      box.querySelectorAll("[data-t]").forEach(b => b.onclick = () => { if (b.classList.contains("done")) return; box.querySelectorAll("[data-t]").forEach(x => x.classList.remove("sel")); b.classList.add("sel"); selT = +b.dataset.t; });
+      box.querySelectorAll("[data-d]").forEach(b => b.onclick = () => {
+        if (selT === null || b.classList.contains("done")) return;
+        const tb = box.querySelector(`[data-t="${selT}"]`);
+        if (+b.dataset.d === selT) { b.classList.add("done"); tb.classList.add("done"); tb.classList.remove("sel"); score += 10; done++; selT = null; }
+        else { b.classList.add("bad"); tb.classList.add("bad"); score = Math.max(0, score - 2); setTimeout(() => { b.classList.remove("bad"); tb.classList.remove("bad"); }, 450); }
+        tick();
+        if (done === pairs.length) { stopGame(); confetti(); const tt = fmtT((Date.now() - t0) / 1000); setTimeout(() => finish("🧩 مطابقة المصطلحات", `أنهيتم ${pairs.length} مطابقات في ${tt} — النقاط ${score}`), 600); }
+      });
+    }
+    // ⚡ سباق صح / خطأ — عبارات مشتقة من بنك الأسئلة
+    function race() {
+      const items = shuffle(bank.filter(q => q.t !== "fill")).slice(0, 10).map(q => {
+        if (q.t === "tf") return { s: q.q, ok: q.correct === 0, img: q.img };
+        const wrong = q.opts.filter((o, k) => k !== q.correct && o);
+        const truth = !wrong.length || Math.random() < 0.5;
+        const o = truth ? q.opts[q.correct] : wrong[Math.floor(Math.random() * wrong.length)];
+        return { s: q.q.replace(/[؟?…]+\s*$/, "") + " ← " + o, ok: truth, img: q.img };
+      });
+      let i = 0, score = 0, streak = 0, best = 0, left = 10;
+      function show() {
+        stopGame();
+        const it = items[i];
+        if (!it) { finish("⚡ سباق صح / خطأ", `النتيجة ${score} نقطة — أطول سلسلة صحيحة ${best}`); return; }
+        left = 10;
+        box.innerHTML = `<div class="live-stage">${bar("⚡ سباق صح / خطأ", `<span class="gm-hud" style="margin-inline-start:auto">⭐ ${score} · 🔥 ${streak}</span>`)}
+          <div class="gm-body gm-center"><div class="gm-timer"><div id="gm-tf" style="width:100%"></div></div><div class="gm-q">${i + 1} / ${items.length}</div>
+          ${it.img ? `<img class="q-img" src="${it.img}" alt="">` : ""}<div class="gm-stmt" id="gm-stmt">${esc(it.s)}</div>
+          <div class="gm-tf"><button class="gm-big ok" data-a="1">✔ صح</button><button class="gm-big no" data-a="0">✖ خطأ</button></div></div></div>`;
+        box.querySelector("#gm-back").onclick = () => { stopGame(); menu(); };
+        const fill = box.querySelector("#gm-tf");
+        const answer = (a) => {
+          stopGame();
+          const right = a === it.ok;
+          if (right) { score += 10 + Math.min(5, streak); streak++; best = Math.max(best, streak); confetti(); } else streak = 0;
+          box.querySelector("#gm-stmt").insertAdjacentHTML("beforeend", `<div class="gm-fb ${right ? "ok" : "no"}">${right ? "✅ صحيح!" : (a === null ? "⏰ انتهى الوقت — " : "❌ خطأ — ") + "العبارة " + (it.ok ? "صحيحة" : "خاطئة")}</div>`);
+          box.querySelectorAll(".gm-big").forEach(b => b.disabled = true);
+          setTimeout(() => { i++; show(); }, 1400);
+        };
+        gameIv = setInterval(() => { left -= 0.1; fill.style.width = Math.max(0, left / 10 * 100) + "%"; if (left <= 0) answer(null); }, 100);
+        box.querySelectorAll(".gm-big").forEach(b => b.onclick = () => answer(b.dataset.a === "1"));
+      }
+      show();
+    }
+    // 🪜 سلّم المليون
+    function ladder() {
+      const LV = [100, 200, 500, 1000, 5000, 10000, 50000, 1000000];
+      let qs = shuffle(bank.filter(q => q.t === "mcq" && q.opts.filter(Boolean).length >= 3)); if (qs.length < 3) qs = shuffle(bank.filter(q => q.t !== "fill"));
+      const n = Math.min(LV.length, qs.length);
+      let lvl = 0, qi = 0, half = true;
+      function draw() {
+        if (lvl >= n) { confetti(); finish("🪜 سلّم المليون", `🏆 وصلتم إلى القمة: ${LV[n - 1].toLocaleString("en-US")} نقطة!`); return; }
+        const it = qs[qi % qs.length];
+        box.innerHTML = `<div class="live-stage">${bar("🪜 سلّم المليون", `<button class="live-btn" id="gm-half" ${half ? "" : "disabled"} style="margin-inline-start:auto">✂ 50:50</button>`)}
+          <div class="gm-body gm-ladder"><div class="gm-steps">${LV.slice(0, n).map((v, k) => `<div class="gm-step ${k === lvl ? "cur" : k < lvl ? "won" : ""}">${k + 1}. ${v.toLocaleString("en-US")}</div>`).reverse().join("")}</div>
+          <div class="gm-center" style="flex:1;display:flex;flex-direction:column"><div class="gm-q">السؤال ${lvl + 1} — من أجل ${LV[lvl].toLocaleString("en-US")} نقطة</div>${it.img ? `<img class="q-img" src="${it.img}" alt="">` : ""}<div class="gm-stmt" id="gm-stmt">${esc(it.q)}</div>
+          <div class="qz-grid" style="width:100%">${it.opts.map((o, k) => o ? `<button class="qz-opt-card" data-k="${k}">${it.t === "tf" ? "" : L[k] + ". "}${esc(o)}</button>` : "").join("")}</div></div></div></div>`;
+        box.querySelector("#gm-back").onclick = menu;
+        box.querySelector("#gm-half").onclick = () => { if (!half) return; half = false; box.querySelector("#gm-half").disabled = true; shuffle([...box.querySelectorAll(".qz-opt-card")].filter(b => +b.dataset.k !== it.correct)).slice(0, 2).forEach(b => { b.style.visibility = "hidden"; }); };
+        box.querySelectorAll(".qz-opt-card").forEach(b => b.onclick = () => {
+          const ok = +b.dataset.k === it.correct; b.classList.add(ok ? "ok" : "no");
+          box.querySelectorAll(".qz-opt-card").forEach(x => x.onclick = null);
+          if (ok) { confetti(); lvl++; qi++; setTimeout(draw, 1100); }
+          else { const r = box.querySelector(`.qz-opt-card[data-k="${it.correct}"]`); if (r) r.classList.add("ok"); box.querySelector("#gm-stmt").insertAdjacentHTML("beforeend", `<div class="gm-fb no">❌ للأسف… نعود إلى أول السلّم</div>`); setTimeout(() => { lvl = 0; qi++; qs = shuffle(qs); draw(); }, 1800); }
+        });
+      }
+      draw();
+    }
+    menu();
   }
   function confetti() {
     const em = ["🎉", "⭐", "🏆", "✨", "🎊"];
