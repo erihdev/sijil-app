@@ -281,7 +281,7 @@
         <div class="kpi"><div class="v">${myClasses().length}</div><div class="l">فصولي</div></div>
         <div class="kpi"><div class="v">${all.length}</div><div class="l">طلابي</div></div>
         <div class="kpi"><div class="v">${mine.length}</div><div class="l">حصص اليوم</div></div></div>
-      ${myClasses().length ? `<button class="btn-primary" id="today-live" style="margin-bottom:12px;font-size:17px">🎬 ابدأ حصة تفاعلية (عرض على البروجكتر)</button>` : ""}
+      ${myClasses().length ? `<button class="btn-primary" id="today-live" style="margin-bottom:12px;font-size:17px">🎬 ابدأ حصة تفاعلية</button>` : ""}
       <div class="card"><h3><span class="dot"></span>حصص اليوم (${esc(today)})</h3><div class="periods">${per.join("")}</div></div>
       <div class="card" id="today-lesson"><h3><span class="dot"></span>درس هذا الأسبوع</h3><span class="weekpill">الأسبوع ${wk}</span><div class="empty-note" style="padding:8px">جارِ التحميل…</div></div>
       <div class="card"><h3><span class="dot"></span>🏆 لوحة الشرف — الأوائل</h3>
@@ -297,9 +297,13 @@
       const code = sc + g + TERM, rows = (await loadCurr(code)).filter(r => r.w === wk);
       const main = rows.find(r => r.lesson && !String(r.lesson).includes("تابع")) || rows[0];
       const nm = main ? main.lesson : "—", off = !main || String(nm).includes("إجازة");
-      html += `<div class="lesson-line" style="margin-top:9px"><span class="nm">الصف ${GNAME[g]}: ${esc(nm)}</span>${off ? "" : `<a class="btn-gold" target="_blank" rel="noopener" href="${lessonURL(code, wk)}">🚀 افتح الدرس التفاعلي</a>`}</div>`;
+      html += `<div class="lesson-line" style="margin-top:9px"><span class="nm">الصف ${GNAME[g]}: ${esc(nm)}</span>${off ? "" : `<button class="btn-gold" data-g="${g}">🚀 افتح الدرس التفاعلي</button>`}</div>`;
     }
     LB.innerHTML = `<h3><span class="dot"></span>درس هذا الأسبوع</h3>` + html;
+    LB.querySelectorAll("[data-g]").forEach(b => b.onclick = () => {
+      const cl = myClasses().find(c => c.gc === +b.dataset.g);
+      if (cl) liveSession(cl.id, "lesson");
+    });
   }
 
   /* ═══ التحضير ═══ */
@@ -774,7 +778,7 @@
     openSheet(`<h4>اختر الفصل</h4><div class="stategrid">${cls.map(c => `<button style="background:var(--navy)" data-c="${c.id}">${esc(c.name)}</button>`).join("")}</div>`,
       (o) => o.querySelectorAll("[data-c]").forEach(b => b.onclick = () => { closeSheet(); cb(b.dataset.c); }));
   }
-  function liveSession(cid) {
+  function liveSession(cid, initialView) {
     liveCid = cid; liveDate = new Date().toISOString().slice(0, 10); livePrevTop = null;
     const c = classById(cid);
     $("#view-app").classList.add("hidden");
@@ -827,7 +831,10 @@
       if (sc) { const rows = (await loadCurr(sc + c.gc + TERM)).filter(r => r.w === wk); const m = rows.find(r => r.lesson && !String(r.lesson).includes("تابع")) || rows[0]; les = m ? m.lesson : ""; }
       const sub = $("#live-sub"); if (sub) sub.textContent = "· الأسبوع " + wk + (les ? " · " + les : "");
     })();
-    liveView("roster"); drawLiveBoard(true);
+    const startView = initialView || "roster";
+    const tb = V.querySelector('.live-tools button[data-v="' + startView + '"]');
+    if (tb) { V.querySelectorAll(".live-tools button").forEach(x => x.classList.toggle("on", x === tb)); }
+    liveView(startView); drawLiveBoard(true);
   }
   let liveMainView = "roster";
   async function liveView(v) {
