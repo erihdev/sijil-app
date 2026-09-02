@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>سجل المتابعة الرقمي</title>
+<meta name="theme-color" content="#0E2033">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/app.css">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='46' fill='%230E2033'/><text x='50' y='68' font-size='52' text-anchor='middle' fill='%23D7A93F'>س</text></svg>">
+</head>
+<body>
+
+<!-- ═══════════ الدخول ═══════════ -->
+<section id="view-login">
+  <div class="login-card">
+    <div class="login-seal">🏆</div>
+    <div class="login-title">سجل المتابعة الرقمي</div>
+    <div class="login-sub" id="lg-school">مدرسة الإمام علي بن أبي طالب الابتدائية</div>
+    <div class="field">
+      <label>اسم المعلم</label>
+      <select id="lg-teacher"></select>
+    </div>
+    <div class="field">
+      <label>رقم الدخول</label>
+      <input id="lg-pin" type="password" inputmode="numeric" placeholder="••••" autocomplete="off">
+    </div>
+    <button class="btn-primary" id="lg-btn">دخــول</button>
+    <div class="login-err" id="lg-err"></div>
+    <div class="demo-note" id="lg-demo">
+      نسخة تجريبية للاستعراض — الطلاب بأسماء وهمية والبيانات تُحفظ على جهازك فقط.<br>
+      <b>رقم الدخول التجريبي لأي معلم: 1234</b>
+    </div>
+    <div class="login-foot">تم برمجته بواسطة <a href="https://erihdev.com">ERIHDEV.COM</a> — أ. ضيف الله أحمد مشني</div>
+  </div>
+</section>
+
+<!-- ═══════════ التطبيق ═══════════ -->
+<section id="view-app" class="hidden">
+  <div class="demo-strip" id="demo-strip">نسخة تجريبية — طلاب بأسماء وهمية، والبيانات على هذا الجهاز فقط</div>
+  <header class="appbar">
+    <div class="row1">
+      <div>
+        <div class="t" id="ab-title">سجل المتابعة الرقمي</div>
+        <div class="who" id="ab-who"></div>
+      </div>
+      <button class="btn-ghost" id="ab-logout">خروج</button>
+    </div>
+  </header>
+
+  <nav class="tabs" id="tabs">
+    <button data-tab="today" class="on"><span class="ic">📌</span>اليوم</button>
+    <button data-tab="reg"><span class="ic">🗒️</span>التحضير</button>
+    <button data-tab="rep"><span class="ic">📄</span>التقارير</button>
+    <button data-tab="more"><span class="ic">⚙️</span>المزيد</button>
+  </nav>
+
+  <div class="wrap">
+    <div id="tab-today"></div>
+    <div id="tab-reg" class="hidden"></div>
+    <div id="tab-rep" class="hidden"></div>
+    <div id="tab-more" class="hidden"></div>
+    <div class="footer-sig">سجل المتابعة الرقمي — <a href="https://erihdev.com">ERIHDEV.COM</a></div>
+  </div>
+</section>
+
+<div id="overlay-root"></div>
+
+<script src="js/demo-data.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>

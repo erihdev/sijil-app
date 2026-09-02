@@ -1,0 +1,197 @@
+/* سجل المتابعة الرقمي — هوية كحلي/ذهبي */
+:root{
+  --navy:#0E2033; --navy2:#142A44; --gold:#D7A93F; --goldl:#F0D99A;
+  --cream:#F8F5EF; --card:#FFFFFF; --ink:#1B2A3A; --muted:#7c8794;
+  --line:#e8e2d5; --ok:#2e9e5b; --bad:#d64545;
+  --st0:#2e9e5b; --st1:#d64545; --st2:#e8a23d; --st3:#7a8ca3;
+  --st4:#58a6d8; --st5:#8e6fc9; --st6:#b3541e;
+}
+*{box-sizing:border-box; -webkit-tap-highlight-color:transparent}
+html,body{margin:0; padding:0; background:var(--cream); color:var(--ink);
+  font-family:'Tajawal',system-ui,sans-serif; font-size:16px}
+button{font-family:inherit}
+.hidden{display:none!important}
+
+/* ═══ الدخول ═══ */
+#view-login{min-height:100vh; display:flex; flex-direction:column; align-items:center;
+  justify-content:center; padding:20px;
+  background:linear-gradient(160deg,var(--navy) 0%,var(--navy2) 60%,#1d3a5f 100%)}
+.login-card{width:100%; max-width:420px; background:var(--card); border-radius:18px;
+  padding:28px 24px; box-shadow:0 20px 60px rgba(0,0,0,.35)}
+.login-seal{width:64px; height:64px; margin:-60px auto 10px; background:var(--gold);
+  border:4px solid var(--goldl); border-radius:50%; display:flex; align-items:center;
+  justify-content:center; font-size:30px; box-shadow:0 6px 18px rgba(0,0,0,.3)}
+.login-title{text-align:center; font-size:24px; font-weight:800; color:var(--navy); margin:4px 0 2px}
+.login-sub{text-align:center; color:var(--muted); font-size:13.5px; margin-bottom:18px}
+.field{margin-bottom:14px}
+.field label{display:block; font-size:13px; font-weight:700; color:var(--navy); margin-bottom:6px}
+.field select,.field input{width:100%; padding:12px 14px; border:1.5px solid var(--line);
+  border-radius:12px; font-size:16px; font-family:inherit; background:#fbf9f4; color:var(--ink)}
+.field select:focus,.field input:focus{outline:none; border-color:var(--gold)}
+.btn-primary{width:100%; padding:14px; background:linear-gradient(135deg,var(--gold),#c2942e);
+  color:var(--navy); font-size:18px; font-weight:800; border:none; border-radius:12px;
+  cursor:pointer; box-shadow:0 4px 14px rgba(215,169,63,.4)}
+.btn-primary:active{transform:scale(.98)}
+.demo-note{margin-top:14px; background:#fdf6e3; border:1px dashed var(--gold); border-radius:10px;
+  padding:10px 12px; font-size:12.5px; color:#7a6520; text-align:center; line-height:1.7}
+.login-err{color:var(--bad); font-size:13px; text-align:center; margin-top:10px; min-height:18px; font-weight:700}
+.login-foot{margin-top:16px; text-align:center; color:#cbd6e4; font-size:12px}
+.login-foot a{color:var(--goldl); text-decoration:none}
+
+/* ═══ الهيكل ═══ */
+#view-app{padding-bottom:76px}
+.appbar{background:linear-gradient(135deg,var(--navy),var(--navy2)); color:#fff;
+  padding:14px 16px 12px; position:sticky; top:0; z-index:30;
+  box-shadow:0 2px 12px rgba(14,32,51,.25); border-bottom:2px solid var(--gold)}
+.appbar .row1{display:flex; align-items:center; justify-content:space-between; gap:8px}
+.appbar .t{font-size:17px; font-weight:800; color:var(--goldl)}
+.appbar .who{font-size:12.5px; color:#c9d5e3; margin-top:2px}
+.btn-ghost{background:rgba(255,255,255,.12); color:#fff; border:1px solid rgba(255,255,255,.25);
+  border-radius:10px; padding:7px 12px; font-size:13px; font-weight:700; cursor:pointer}
+.demo-strip{background:var(--gold); color:var(--navy); text-align:center; font-size:12.5px;
+  font-weight:800; padding:4px 8px}
+
+.tabs{position:fixed; bottom:0; right:0; left:0; background:#fff; display:flex;
+  border-top:1px solid var(--line); z-index:40; box-shadow:0 -4px 16px rgba(0,0,0,.07);
+  padding-bottom:env(safe-area-inset-bottom)}
+.tabs button{flex:1; padding:9px 2px 8px; background:none; border:none; cursor:pointer;
+  font-size:11.5px; font-weight:700; color:var(--muted); display:flex; flex-direction:column;
+  align-items:center; gap:2px}
+.tabs button .ic{font-size:21px; line-height:1}
+.tabs button.on{color:var(--navy)}
+.tabs button.on .ic{transform:scale(1.12)}
+.tabs button.on::after{content:''; width:22px; height:3px; background:var(--gold);
+  border-radius:2px; margin-top:2px}
+
+.wrap{padding:14px; max-width:860px; margin:0 auto}
+.card{background:var(--card); border-radius:14px; padding:14px 16px; margin-bottom:12px;
+  box-shadow:0 2px 10px rgba(27,42,58,.06); border:1px solid #f0ead9}
+.card h3{margin:0 0 10px; font-size:15px; font-weight:800; color:var(--navy);
+  display:flex; align-items:center; gap:8px}
+.card h3 .dot{width:8px; height:8px; border-radius:50%; background:var(--gold)}
+.kpis{display:grid; grid-template-columns:repeat(3,1fr); gap:10px; margin-bottom:12px}
+.kpi{background:linear-gradient(150deg,var(--navy),var(--navy2)); border-radius:14px;
+  padding:12px 8px; text-align:center; color:#fff}
+.kpi .v{font-size:22px; font-weight:800; color:var(--goldl)}
+.kpi .l{font-size:11.5px; color:#c9d5e3; margin-top:2px}
+
+/* حصص اليوم */
+.periods{display:flex; gap:8px; overflow-x:auto; padding-bottom:4px}
+.period{min-width:86px; background:#fbf8f1; border:1.5px solid var(--line); border-radius:12px;
+  padding:8px 6px; text-align:center; flex-shrink:0}
+.period .p{font-size:11px; font-weight:800; color:#fff; background:var(--navy);
+  border-radius:8px; padding:2px 8px; display:inline-block}
+.period .c{font-size:14px; font-weight:800; color:var(--navy); margin-top:6px}
+.period.empty{opacity:.45}
+.lesson-line{display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap}
+.lesson-line .nm{font-weight:800; font-size:15px}
+.btn-gold{background:var(--navy); color:var(--goldl); border:1.5px solid var(--gold);
+  border-radius:10px; padding:8px 14px; font-size:13.5px; font-weight:800; cursor:pointer;
+  text-decoration:none; display:inline-block}
+.weekpill{background:var(--goldl); color:var(--navy); font-weight:800; font-size:12.5px;
+  border-radius:20px; padding:3px 12px; display:inline-block; margin-bottom:6px}
+
+.alert-list .al{display:flex; justify-content:space-between; align-items:center;
+  padding:8px 4px; border-bottom:1px dashed var(--line); font-size:14px}
+.alert-list .al:last-child{border-bottom:none}
+.alert-list .pts{font-weight:800; color:var(--bad)}
+
+/* الفصول */
+.class-chips{display:flex; gap:8px; overflow-x:auto; padding:2px 0 10px}
+.chip{border:1.5px solid var(--line); background:#fff; color:var(--navy); border-radius:22px;
+  padding:8px 16px; font-size:14px; font-weight:800; cursor:pointer; white-space:nowrap; flex-shrink:0}
+.chip.on{background:var(--navy); color:var(--goldl); border-color:var(--navy)}
+.reg-tools{display:flex; gap:8px; align-items:center; margin-bottom:10px; flex-wrap:wrap}
+.reg-tools input[type=date]{padding:9px 10px; border:1.5px solid var(--line); border-radius:10px;
+  font-family:inherit; font-size:14px; background:#fff; color:var(--ink)}
+.btn-soft{background:#eef5ee; color:var(--ok); border:1.5px solid #cfe6cf; border-radius:10px;
+  padding:9px 12px; font-size:13px; font-weight:800; cursor:pointer}
+
+.stu{display:flex; align-items:center; gap:8px; padding:9px 2px; border-bottom:1px solid #f3eee1}
+.stu:last-child{border-bottom:none}
+.stu .num{width:22px; text-align:center; color:var(--muted); font-size:12px; font-weight:700}
+.stu .nm{flex:1; font-size:14.5px; font-weight:700; cursor:pointer; line-height:1.3}
+.stu .nm small{display:block; color:var(--muted); font-weight:400; font-size:11px}
+.statepill{min-width:64px; text-align:center; border-radius:10px; padding:7px 8px; font-size:12.5px;
+  font-weight:800; color:#fff; background:#c9cfd6; border:none; cursor:pointer}
+.mini{width:38px; height:38px; border-radius:10px; border:1.5px solid var(--line); background:#fff;
+  font-size:16px; cursor:pointer; display:flex; align-items:center; justify-content:center; position:relative}
+.mini.on{border-color:var(--gold); background:#fdf6e3}
+.mini .b{position:absolute; top:-6px; left:-6px; background:var(--navy); color:var(--goldl);
+  font-size:10px; font-weight:800; border-radius:9px; min-width:17px; height:17px;
+  display:flex; align-items:center; justify-content:center; padding:0 3px}
+.stu .pts{min-width:40px; text-align:center; font-weight:800; font-size:14px; color:var(--navy)}
+.stu .pts.neg{color:var(--bad)}
+
+/* منبثقات */
+.overlay{position:fixed; inset:0; background:rgba(10,20,32,.55); z-index:60; display:flex;
+  align-items:flex-end; justify-content:center}
+.sheet{background:#fff; width:100%; max-width:560px; border-radius:18px 18px 0 0;
+  max-height:86vh; overflow-y:auto; padding:18px 16px 26px; animation:up .18s ease}
+@keyframes up{from{transform:translateY(40px); opacity:.6} to{transform:none; opacity:1}}
+.sheet h4{margin:0 0 12px; font-size:16px; font-weight:800; color:var(--navy); text-align:center}
+.stategrid{display:grid; grid-template-columns:repeat(2,1fr); gap:9px}
+.stategrid button{padding:13px 8px; border-radius:12px; border:none; color:#fff; font-size:14.5px;
+  font-weight:800; cursor:pointer}
+.behgrid{display:grid; grid-template-columns:repeat(2,1fr); gap:8px}
+.behgrid button{padding:11px 8px; border-radius:11px; border:1.5px solid var(--line); background:#fbf9f4;
+  font-size:13.5px; font-weight:700; cursor:pointer; color:var(--ink);
+  display:flex; justify-content:space-between; align-items:center; gap:6px}
+.behgrid button .p{font-weight:800}
+.behgrid button .p.pos{color:var(--ok)} .behgrid button .p.neg{color:var(--bad)}
+.behgrid button.sel{border-color:var(--gold); background:#fdf6e3}
+.sheet .note{width:100%; border:1.5px solid var(--line); border-radius:10px; padding:10px;
+  font-family:inherit; font-size:14px; margin-top:10px; background:#fbf9f4}
+.sheet-actions{display:flex; gap:8px; margin-top:14px}
+.sheet-actions .btn-primary{flex:1; padding:12px}
+.btn-plain{flex:1; padding:12px; background:#eef0f3; border:none; border-radius:12px;
+  font-size:15px; font-weight:800; color:var(--muted); cursor:pointer}
+
+/* بطاقة طالب */
+.stu-head{text-align:center; margin-bottom:12px}
+.stu-head .big{font-size:19px; font-weight:800; color:var(--navy)}
+.stu-head .sub{color:var(--muted); font-size:13px}
+.statrow{display:grid; grid-template-columns:repeat(4,1fr); gap:8px; margin:10px 0}
+.stat{background:#fbf8f1; border:1px solid var(--line); border-radius:11px; padding:8px 4px; text-align:center}
+.stat .v{font-weight:800; font-size:17px; color:var(--navy)}
+.stat .l{font-size:10.5px; color:var(--muted)}
+.countchips{display:flex; flex-wrap:wrap; gap:6px; margin:8px 0}
+.cc{border-radius:16px; padding:4px 11px; font-size:12px; font-weight:800; color:#fff}
+.wa-btn{display:block; text-align:center; background:#25d366; color:#fff; font-weight:800;
+  border-radius:12px; padding:12px; text-decoration:none; font-size:15px; margin-top:10px}
+.wa-btn.off{background:#c8cdd3; pointer-events:none}
+
+/* تقارير */
+.report-table{width:100%; border-collapse:collapse; font-size:11.5px; background:#fff}
+.report-table th{background:var(--navy); color:var(--goldl); padding:6px 3px; font-size:10.5px;
+  border:1px solid #2a466b; white-space:nowrap}
+.report-table td{border:1px solid var(--line); padding:5px 4px; text-align:center}
+.report-table td.nm{text-align:right; font-weight:700; white-space:nowrap}
+.report-table tr:nth-child(even) td{background:#fbf8f1}
+.report-table .tot td{background:var(--goldl); font-weight:800}
+.rep-head{display:none}
+.table-scroll{overflow-x:auto; border-radius:10px; border:1px solid var(--line)}
+
+/* إدارة */
+.admin-row{display:flex; justify-content:space-between; align-items:center; padding:9px 2px;
+  border-bottom:1px solid #f3eee1; font-size:14px}
+.admin-row .cls{color:var(--muted); font-size:12px}
+
+.empty-note{text-align:center; color:var(--muted); padding:26px 10px; font-size:14px; line-height:1.8}
+.footer-sig{text-align:center; color:var(--muted); font-size:11.5px; padding:16px 0 8px}
+.footer-sig a{color:var(--navy); font-weight:700; text-decoration:none}
+
+@media (min-width:760px){
+  .tabs{position:sticky; top:0; bottom:auto; border-top:none; border-bottom:1px solid var(--line)}
+  #view-app{padding-bottom:20px}
+}
+@media print{
+  .appbar,.tabs,.reg-tools,.class-chips,.no-print,.demo-strip{display:none!important}
+  #view-app{padding:0}
+  .wrap{max-width:none; padding:0}
+  .card{box-shadow:none; border:none}
+  .rep-head{display:block; text-align:center; margin-bottom:8px}
+  .rep-head .rt{font-size:18px; font-weight:800; color:var(--navy)}
+  .rep-head .rs{font-size:12px; color:#444}
+  body{background:#fff}
+}
