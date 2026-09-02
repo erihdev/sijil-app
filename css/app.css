@@ -181,15 +181,78 @@ button{font-family:inherit}
 .footer-sig{text-align:center; color:var(--muted); font-size:11.5px; padding:16px 0 8px}
 .footer-sig a{color:var(--navy); font-weight:700; text-decoration:none}
 
+/* ═══ الدرجات ═══ */
+.grade-table{width:100%; border-collapse:collapse; font-size:12.5px; background:#fff}
+.grade-table th{background:var(--navy); color:var(--goldl); padding:7px 4px; font-size:11px;
+  border:1px solid #2a466b; white-space:nowrap; position:sticky; top:0}
+.grade-table td{border:1px solid var(--line); padding:3px; text-align:center}
+.grade-table td.nm{text-align:right; font-weight:700; white-space:nowrap; padding:4px 8px; min-width:120px}
+.grade-table tr:nth-child(even) td{background:#fbf8f1}
+.grade-table input{width:46px; padding:6px 2px; border:1.5px solid var(--line); border-radius:8px;
+  font-family:inherit; font-size:13px; text-align:center; background:#fff; color:var(--ink)}
+.grade-table input:focus{outline:none; border-color:var(--gold); background:#fdf6e3}
+.grade-table .tot{font-weight:800; font-size:14px; color:var(--navy)}
+.lvl{border-radius:14px; padding:3px 8px; font-size:11px; font-weight:800; color:#fff; white-space:nowrap}
+.lvl0{background:#2e9e5b}.lvl1{background:#58a6d8}.lvl2{background:#e8a23d}.lvl3{background:#b3541e}.lvl4{background:#d64545}
+
+/* ═══ تحليل النتائج ═══ */
+.ana-grid{display:grid; grid-template-columns:repeat(2,1fr); gap:10px; margin-bottom:12px}
+.ana{background:#fbf8f1; border:1px solid var(--line); border-radius:12px; padding:12px; text-align:center}
+.ana .v{font-size:24px; font-weight:800; color:var(--navy)}
+.ana .l{font-size:12px; color:var(--muted); margin-top:2px}
+.bar-row{display:flex; align-items:center; gap:8px; margin:7px 0; font-size:13px}
+.bar-row .lb{min-width:74px; font-weight:700}
+.bar-track{flex:1; height:20px; background:#eef0f3; border-radius:10px; overflow:hidden}
+.bar-fill{height:100%; border-radius:10px; display:flex; align-items:center; justify-content:flex-end;
+  padding-inline-end:6px; color:#fff; font-size:11px; font-weight:800; min-width:22px}
+
+/* ═══ بحث ═══ */
+.search-box{width:100%; padding:12px 14px; border:1.5px solid var(--line); border-radius:12px;
+  font-size:15px; font-family:inherit; background:#fff; color:var(--ink); margin-bottom:10px}
+.search-box:focus{outline:none; border-color:var(--gold)}
+.search-res .stu{cursor:pointer}
+
+/* ═══ سجل التواصل ═══ */
+.comm-item{border-bottom:1px dashed var(--line); padding:8px 2px; font-size:13px}
+.comm-item:last-child{border-bottom:none}
+.comm-item .meta{color:var(--muted); font-size:11.5px; margin-top:2px}
+.comm-item .tag{background:var(--goldl); color:var(--navy); border-radius:10px; padding:1px 8px; font-size:11px; font-weight:800}
+
+/* ═══ الطالب ═══ */
+#view-student{padding-bottom:30px; background:var(--cream); min-height:100vh}
+.st-hero{background:linear-gradient(150deg,var(--navy),var(--navy2) 70%,#1d3a5f); color:#fff;
+  padding:22px 16px 26px; text-align:center; border-bottom:3px solid var(--gold)}
+.st-hero .medal{font-size:46px}
+.st-hero .nm{font-size:21px; font-weight:800; color:var(--goldl); margin-top:4px}
+.st-hero .cl{font-size:13px; color:#c9d5e3}
+.st-hero .out{position:absolute; top:14px; left:14px}
+.seg{display:flex; gap:6px; background:#fff; padding:6px; margin:12px; border-radius:14px;
+  box-shadow:0 2px 10px rgba(27,42,58,.06); position:sticky; top:6px; z-index:20}
+.seg button{flex:1; padding:9px 4px; border:none; background:none; border-radius:10px; font-family:inherit;
+  font-size:13.5px; font-weight:800; color:var(--muted); cursor:pointer}
+.seg button.on{background:var(--navy); color:var(--goldl)}
+.cert{background:#fff; border:3px solid var(--gold); border-radius:16px; margin:12px; padding:24px 18px;
+  text-align:center; position:relative; box-shadow:0 6px 24px rgba(27,42,58,.1)}
+.cert .seal{font-size:44px}
+.cert .t{font-size:22px; font-weight:800; color:var(--navy); margin:6px 0}
+.cert .who{font-size:24px; font-weight:800; color:var(--gold); margin:10px 0; border-bottom:2px dotted var(--gold); display:inline-block; padding:0 20px 6px}
+.cert .body{font-size:14px; line-height:2; color:var(--ink)}
+.cert .stars{font-size:24px; letter-spacing:4px; margin:8px 0}
+.cert .foot{display:flex; justify-content:space-between; font-size:12px; color:var(--muted); margin-top:16px}
+.lesson-card{background:#fff; border:1px solid #f0ead9; border-radius:14px; margin:0 12px 10px; padding:14px;
+  box-shadow:0 2px 10px rgba(27,42,58,.06)}
+.lesson-card .sj{font-weight:800; color:var(--navy); font-size:15px}
+.lesson-card .ls{color:var(--muted); font-size:13px; margin:3px 0 8px}
+
 @media (min-width:760px){
   .tabs{position:sticky; top:0; bottom:auto; border-top:none; border-bottom:1px solid var(--line)}
   #view-app{padding-bottom:20px}
 }
 @media print{
-  .appbar,.tabs,.reg-tools,.class-chips,.no-print,.demo-strip{display:none!important}
-  #view-app{padding:0}
+  .appbar,.tabs,.reg-tools,.class-chips,.no-print,.demo-strip,.seg,.st-hero .out{display:none!important}
+  #view-app,#view-student{padding:0}
   .wrap{max-width:none; padding:0}
-  .card{box-shadow:none; border:none}
+  .card,.cert{box-shadow:none}
   .rep-head{display:block; text-align:center; margin-bottom:8px}
   .rep-head .rt{font-size:18px; font-weight:800; color:var(--navy)}
   .rep-head .rs{font-size:12px; color:#444}
