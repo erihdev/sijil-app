@@ -795,6 +795,7 @@
             <button data-v="timer">⏱️ مؤقّت</button>
             <button data-v="lesson">▶️ الدرس</button>
             <button data-v="story">🎬 قصة الدرس</button>
+            <button data-v="yt">📺 يوتيوب</button>
           </div>
           <div class="live-main" id="live-main"></div>
         </div>
@@ -803,6 +804,7 @@
     $("#live-exit").onclick = () => { if (timerIv) { clearInterval(timerIv); timerIv = null; } stopStory(); try { if (document.fullscreenElement) document.exitFullscreen(); } catch (e) { } V.classList.add("hidden"); $("#view-app").classList.remove("hidden"); renderReg(); renderToday(); renderGrades(); };
     $("#live-fs").onclick = () => { try { document.fullscreenElement ? document.exitFullscreen() : V.requestFullscreen(); } catch (e) { } };
     V.querySelectorAll(".live-tools button").forEach(b => b.onclick = () => {
+      if (b.dataset.v === "yt") { openLessonYouTube(); return; }   // فتح فيديوهات درس الحصة مباشرة (لا يغيّر العرض)
       V.querySelectorAll(".live-tools button").forEach(x => x.classList.toggle("on", x === b));
       liveView(b.dataset.v);
     });
@@ -885,6 +887,14 @@
         if (ok) confetti();
       });
     }
+  }
+  // 📺 يوتيوب: فتح فيديوهات درس هذه الحصة بالضبط (حسب توزيع المنهج للأسبوع وصفّه)
+  async function openLessonYouTube() {
+    const c = classById(liveCid), sc = subjCode(TE.subject), wk = curWeek(), code = sc + c.gc + TERM;
+    let les = "";
+    try { const rows = (await loadCurr(code)).filter(r => r.w === wk); const m = rows.find(r => r.lesson && !String(r.lesson).includes("تابع")) || rows[0]; les = m ? m.lesson : ""; } catch (e) { }
+    const q = encodeURIComponent((les ? les + " " : "") + TE.subject + " " + GNAME[c.gc] + " ابتدائي شرح");
+    try { window.open("https://www.youtube.com/results?search_query=" + q, "_blank", "noopener"); } catch (e) { }
   }
   // 🎬 قصة الدرس (عرض مرئي متحرّك + سرد صوتي سعودي — صوت عصبي مُسجّل مسبقاً، ويعود لصوت المتصفح عند غيابه)
   let storyTimer = null, storyActive = false, storyAudio = null;
