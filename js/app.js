@@ -794,7 +794,6 @@
             <button data-v="iws">📝 ورقة تفاعلية</button>
             <button data-v="timer">⏱️ مؤقّت</button>
             <button data-v="lesson">▶️ الدرس</button>
-            <button data-v="yt">📺 يوتيوب</button>
           </div>
           <div class="live-main" id="live-main"></div>
         </div>
@@ -825,8 +824,11 @@
       box.innerHTML = `<div class="empty-note" style="color:#c9d5e3">جارِ تحميل الدرس…</div>`;
       const rows = (await loadCurr(code)).filter(r => r.w === wk);
       const m = rows.find(r => r.lesson && !String(r.lesson).includes("تابع")) || rows[0];
-      if (!sc || !m || String(m.lesson).includes("إجازة")) { box.innerHTML = `<div class="empty-note" style="color:#c9d5e3">لا درس تفاعلي متاح لهذا الأسبوع</div>`; return; }
-      box.innerHTML = `<div class="live-stage"><div class="stage-bar"><span style="color:#fff;font-weight:800">▶️ ${esc(m.lesson)}</span><a class="live-btn" style="margin-inline-start:auto;text-decoration:none" href="${lessonURL(code, wk)}" target="_blank" rel="noopener">↗ فتح في نافذة</a></div><iframe src="${lessonURL(code, wk)}" allowfullscreen></iframe></div>`;
+      if (!sc || !m || String(m.lesson).includes("إجازة")) { box.innerHTML = `<div class="empty-note" style="color:#c9d5e3">لا درس متاح لهذا الأسبوع</div>`; return; }
+      let data = null;
+      try { const r = await fetch("data/lessons/" + code + "w" + wk + ".json"); if (r.ok) data = await r.json(); } catch (e) { }
+      if (data) renderRichLesson(box, data);
+      else box.innerHTML = `<div class="live-stage"><div class="stage-bar"><span style="color:#fff;font-weight:800">▶️ ${esc(m.lesson)}</span></div><div class="rl-scroll"><div class="rl-wrap"><div class="rl-title">${esc(m.lesson)}</div><div style="color:#c9d5e3;text-align:center;margin-top:20px">درس هذا الأسبوع من وحدة «${esc(m.unit || "")}».<br>الدرس التفاعلي الغني لهذا الدرس قيد الإعداد — استخدم «سؤال» و«ورقة تفاعلية» و«العجلة» لتفعيل الحصة.</div></div></div></div>`;
       return;
     }
     if (v === "yt") {
@@ -849,6 +851,37 @@
     if (v === "quiz") { stageQuiz(box); return; }
     if (v === "iws") { stageWorksheet(box); return; }
     if (v === "timer") { stageTimer(box); return; }
+  }
+  // ▶️ درس تفاعلي غنيّ (محتوانا الخاص)
+  function renderRichLesson(box, d) {
+    const secs = (d.sections || []).map((s, n) => `
+      <div class="rl-sec">
+        <div class="rl-h"><span class="rl-n">${n + 1}</span>${esc(s.h || "")}</div>
+        ${s.body ? `<div class="rl-body">${esc(s.body)}</div>` : ""}
+        ${s.points ? `<ul class="rl-points">${s.points.map(p => `<li>${esc(p)}</li>`).join("")}</ul>` : ""}
+        ${s.tip ? `<div class="rl-tip">💡 ${esc(s.tip)}</div>` : ""}
+      </div>`).join("");
+    const vocab = (d.vocab && d.vocab.length) ? `<div class="rl-sec"><div class="rl-h"><span class="rl-n">📖</span>مصطلحات الدرس</div><div class="rl-vocab">${d.vocab.map(v => `<div class="rl-term"><b>${esc(v.t)}</b><span>${esc(v.d)}</span></div>`).join("")}</div></div>` : "";
+    const checks = (d.checks && d.checks.length) ? `<div class="rl-sec"><div class="rl-h"><span class="rl-n">✅</span>تحقّق من فهمك</div><div id="rl-checks"></div></div>` : "";
+    box.innerHTML = `<div class="live-stage"><div class="stage-bar"><span style="color:#fff;font-weight:800">▶️ ${esc(d.title || "")}</span><span style="color:#c9d5e3;font-size:13px;margin-inline-start:auto">${esc(d.unit || "")}</span></div>
+      <div class="rl-scroll"><div class="rl-wrap">
+        <div class="rl-title">${esc(d.title || "")}</div>
+        ${d.objectives && d.objectives.length ? `<div class="rl-obj"><div class="rl-obj-h">🎯 أهداف الدرس</div><ul>${d.objectives.map(o => `<li>${esc(o)}</li>`).join("")}</ul></div>` : ""}
+        ${d.intro ? `<div class="rl-intro">${esc(d.intro)}</div>` : ""}
+        ${secs}${vocab}${checks}
+        ${d.activity ? `<div class="rl-sec rl-act"><div class="rl-h"><span class="rl-n">✏️</span>نشاط تطبيقي</div><div class="rl-body">${esc(d.activity)}</div></div>` : ""}
+        ${d.summary ? `<div class="rl-summary">🧾 ${esc(d.summary)}</div>` : ""}
+      </div></div></div>`;
+    // أسئلة التحقق التفاعلية
+    if (d.checks && d.checks.length) {
+      const cbox = box.querySelector("#rl-checks");
+      cbox.innerHTML = d.checks.map((q, qi) => `<div style="margin-bottom:18px"><div class="rl-q">${qi + 1}. ${esc(q.q)}</div><div class="qz-grid">${q.opts.map((o, k) => `<button class="qz-opt-card" data-q="${qi}" data-k="${k}">${["أ", "ب", "ج", "د"][k]}. ${esc(o)}</button>`).join("")}</div></div>`).join("");
+      cbox.querySelectorAll(".qz-opt-card").forEach(b => b.onclick = () => {
+        const q = d.checks[+b.dataset.q], ok = +b.dataset.k === q.correct;
+        b.classList.add(ok ? "ok" : "no");
+        if (ok) confetti();
+      });
+    }
   }
   // 🎡 عجلة اختيار الطلاب
   function stageWheel(box, c) {
