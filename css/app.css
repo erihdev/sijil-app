@@ -285,7 +285,7 @@ button{font-family:inherit}
 .story-seek{width:min(680px,92%); height:12px; background:rgba(255,255,255,.18); border-radius:8px; cursor:pointer; overflow:hidden}
 .story-seek-fill{height:100%; width:0; background:linear-gradient(90deg,var(--gold),var(--goldl)); border-radius:8px; transition:width .2s linear}
 .story-ctrl{display:flex; gap:10px; align-items:center; flex-wrap:wrap; justify-content:center}
-.story-time{color:#c9d5e3; font-size:13px; font-variant-numeric:tabular-nums; min-width:92px; text-align:center}
+.story-time{color:#c9d5e3; font-size:13px; font-variant-numeric:tabular-nums; min-width:92px; text-align:center; direction:ltr; unicode-bidi:isolate}
 
 /* درس تفاعلي غنيّ */
 .rl-scroll{flex:1; overflow-y:auto; background:#0a1420; border-radius:0 0 14px 14px}

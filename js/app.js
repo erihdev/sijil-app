@@ -995,7 +995,7 @@
         <div class="story-player">
           <div class="story-seek" id="st-seek"><div class="story-seek-fill" id="st-fill"></div></div>
           <div class="story-ctrl">
-            <span class="story-time" id="st-time">0:00 / 0:00</span>
+            <span class="story-time" id="st-time" dir="ltr">0:00 / 0:00</span>
             <button class="live-btn" id="st-back">⏪ 10</button>
             <button class="btn-primary" id="st-play" style="min-width:120px">▶️ تشغيل</button>
             <button class="live-btn" id="st-fwd">10 ⏩</button>
@@ -1034,7 +1034,6 @@
       box.querySelector("#st-back").onclick = () => { storyAudio.currentTime = Math.max(0, storyAudio.currentTime - 10); };
       box.querySelector("#st-fwd").onclick = () => { storyAudio.currentTime = Math.min((storyAudio.duration || 0), storyAudio.currentTime + 10); };
       box.querySelector("#st-seek").onclick = (e) => { const r = e.currentTarget.getBoundingClientRect(); const p = (e.clientX - r.left) / r.width; if (storyAudio.duration) storyAudio.currentTime = Math.min(1, Math.max(0, p)) * storyAudio.duration; };
-      box.querySelector("#st-vhint").textContent = "🎙️ سرد سعودي متواصل";
       showScene(0);
     } else {
       // احتياط: قراءة القصة كاملة بصوت المتصفح كمقطع واحد متصل (بلا توقف بين الجمل)
