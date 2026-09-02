@@ -974,100 +974,93 @@
       return ar.slice().sort((a, b) => score(b) - score(a))[0];
     } catch (e) { return null; }
   }
+  const fmtT = (s) => { s = Math.max(0, Math.floor(s || 0)); return Math.floor(s / 60) + ":" + String(s % 60).padStart(2, "0"); };
   async function stageStory(box, code, wk) {
     let d = null;
     try { const r = await fetch("data/lessons/" + code + "w" + wk + ".json"); if (r.ok) d = await r.json(); } catch (e) { }
     if (!d) { box.innerHTML = `<div class="empty-note" style="color:#c9d5e3">قصة هذا الدرس قيد الإعداد</div>`; return; }
     const scenes = buildStory(d);
-    let idx = 0; storyActive = true;
-    // هل تتوفّر ملفات صوت سعودي مُسجّلة مسبقاً لهذا الدرس؟
-    let audioBase = null;
-    try { const h = await fetch("data/lessons/audio/" + code + "w" + wk + "/s0.mp3", { method: "HEAD" }); if (h.ok) audioBase = "data/lessons/audio/" + code + "w" + wk + "/"; } catch (e) { }
-    if (!storyAudio) { storyAudio = new Audio(); storyAudio.preload = "auto"; }
-    box.innerHTML = `<div class="live-stage"><div class="stage-bar"><span style="color:#fff;font-weight:800">🎬 ${esc(d.title || "")}</span><span id="st-vhint" style="color:#9fb0c4;font-size:12px;margin-inline-start:auto"></span><label style="color:#c9d5e3;font-size:13px;margin-inline-start:10px"><input type="checkbox" id="st-voice" checked> سرد صوتي</label></div>
+    storyActive = true;
+    // مقطع صوتي واحد متواصل لهذا الدرس؟
+    const url = "data/lessons/audio/" + code + "w" + wk + ".mp3";
+    let hasAudio = false;
+    try { const h = await fetch(url, { method: "HEAD" }); hasAudio = h.ok; } catch (e) { }
+    if (!storyAudio) { storyAudio = new Audio(); }
+    storyAudio.preload = "auto";
+    box.innerHTML = `<div class="live-stage">
+      <div class="stage-bar"><span style="color:#fff;font-weight:800">🎬 قصة الدرس: ${esc(d.title || "")}</span><span id="st-vhint" style="color:#9fb0c4;font-size:12px;margin-inline-start:auto"></span></div>
       <div class="story" id="story-stage">
-        <div class="story-dots" id="story-dots"></div>
         <div class="story-visual" id="story-v">🎬</div>
-        <div class="story-text" id="story-t">اضغط ▶️ لبدء القصة</div>
-        <div class="story-ctrl">
-          <button class="live-btn" id="st-prev">⏮ السابق</button>
-          <button class="btn-primary" id="st-play" style="min-width:120px">▶️ تشغيل</button>
-          <button class="live-btn" id="st-next">التالي ⏭</button>
-          <button class="live-btn" id="st-replay">↺ إعادة</button>
+        <div class="story-text" id="story-t">اضغط ▶️ لتشغيل القصة</div>
+        <div class="story-player">
+          <div class="story-seek" id="st-seek"><div class="story-seek-fill" id="st-fill"></div></div>
+          <div class="story-ctrl">
+            <span class="story-time" id="st-time">0:00 / 0:00</span>
+            <button class="live-btn" id="st-back">⏪ 10</button>
+            <button class="btn-primary" id="st-play" style="min-width:120px">▶️ تشغيل</button>
+            <button class="live-btn" id="st-fwd">10 ⏩</button>
+          </div>
         </div>
       </div></div>`;
-    const vEl = box.querySelector("#story-v"), tEl = box.querySelector("#story-t"), dotsEl = box.querySelector("#story-dots");
-    dotsEl.innerHTML = scenes.map((_, k) => `<span class="story-dot" data-k="${k}"></span>`).join("");
-    let playing = false;
-    function paint() {
-      const sc = scenes[idx];
+    const vEl = box.querySelector("#story-v"), tEl = box.querySelector("#story-t");
+    const fillEl = box.querySelector("#st-fill"), timeEl = box.querySelector("#st-time"), playBtn = box.querySelector("#st-play");
+    // حدود المشاهد بحسب طول النص (لمزامنة الصورة مع الصوت الواحد)
+    const lens = scenes.map(s => Math.max(6, (s.t || "").length));
+    const totalLen = lens.reduce((a, b) => a + b, 0);
+    const bounds = []; let acc = 0; for (const l of lens) { bounds.push(acc / totalLen); acc += l; } bounds.push(1);
+    let curScene = -1;
+    function showScene(i) {
+      if (i === curScene) return; curScene = i; const sc = scenes[i]; if (!sc) return;
       vEl.textContent = sc.v || "📘"; vEl.style.animation = "none"; void vEl.offsetWidth; vEl.style.animation = "";
       tEl.textContent = sc.t; tEl.style.animation = "none"; void tEl.offsetWidth; tEl.style.animation = "";
-      dotsEl.querySelectorAll(".story-dot").forEach((x, k) => x.classList.toggle("on", k === idx));
     }
-    function speakThen(text, cb) {
-      const useVoice = box.querySelector("#st-voice") && box.querySelector("#st-voice").checked;
-      let done = false;
-      const go = () => { if (done) return; done = true; if (storyTimer) { clearTimeout(storyTimer); storyTimer = null; } cb(); };
-      try { window.speechSynthesis.cancel(); } catch (e) { }
-      if (useVoice && window.speechSynthesis) {
-        const u = new SpeechSynthesisUtterance(text);
-        u.lang = "ar-SA"; const v = arVoice(); if (v) u.voice = v;
-        u.rate = STORY_RATE; u.pitch = 1;
-        let started = false;
-        u.onstart = () => { started = true; };
-        u.onend = go; u.onerror = go;
-        try { window.speechSynthesis.speak(u); } catch (e) { }
-        // إن لم يبدأ النطق (لا صوت عربي بالجهاز) تابع بصرياً؛ وإلا ننتظر انتهاء الصوت (سرد متواصل)
-        storyTimer = setTimeout(() => { if (!started) go(); }, 1300);
-      } else {
-        storyTimer = setTimeout(go, Math.max(2400, text.length * 65));
-      }
-    }
-    function narrate(text, sceneIdx, cb) {
-      const useVoice = box.querySelector("#st-voice") && box.querySelector("#st-voice").checked;
-      if (!useVoice) { storyTimer = setTimeout(cb, Math.max(2200, text.length * 60)); return; }
-      if (audioBase) {
-        let done = false; const go = () => { if (!done) { done = true; cb(); } };
-        try { window.speechSynthesis && window.speechSynthesis.cancel(); } catch (e) { }
-        storyAudio.onended = go;
-        storyAudio.onerror = () => { audioBase = null; speakThen(text, cb); }; // سقوط لصوت المتصفح
-        storyAudio.src = audioBase + "s" + sceneIdx + ".mp3";
-        const p = storyAudio.play();
-        if (p && p.catch) p.catch(() => { audioBase = null; speakThen(text, cb); });
-        // تحميل مسبق للمشهد التالي
-        if (sceneIdx + 1 < scenes.length) { try { new Audio(audioBase + "s" + (sceneIdx + 1) + ".mp3"); } catch (e) { } }
-      } else speakThen(text, cb);
-    }
-    function step() {
-      if (!storyActive || !playing) return;
-      paint();
-      narrate(scenes[idx].t, idx, () => {
-        if (!playing) return;
-        if (idx < scenes.length - 1) { idx++; step(); }
-        else { playing = false; box.querySelector("#st-play").textContent = "▶️ تشغيل"; confetti(); }
-      });
-    }
-    function setPlay(p) {
-      playing = p; box.querySelector("#st-play").textContent = p ? "⏸ إيقاف" : "▶️ تشغيل";
-      if (p) step(); else haltNarr();
-    }
-    const restart = () => { if (playing) { haltNarr(); step(); } };
-    box.querySelector("#st-play").onclick = () => setPlay(!playing);
-    box.querySelector("#st-next").onclick = () => { if (idx < scenes.length - 1) { idx++; paint(); restart(); } };
-    box.querySelector("#st-prev").onclick = () => { if (idx > 0) { idx--; paint(); restart(); } };
-    box.querySelector("#st-replay").onclick = () => { idx = 0; paint(); setPlay(true); };
-    dotsEl.querySelectorAll(".story-dot").forEach(x => x.onclick = () => { idx = +x.dataset.k; paint(); restart(); });
-    // تلميح مصدر الصوت
-    setTimeout(() => {
-      const hint = box.querySelector("#st-vhint"); if (!hint) return;
-      if (audioBase) { hint.textContent = "🎙️ صوت سعودي احترافي"; return; }
+    function sceneAt(frac) { for (let i = 0; i < scenes.length; i++) { if (frac >= bounds[i] && frac < bounds[i + 1]) return i; } return scenes.length - 1; }
+
+    if (hasAudio) {
+      storyAudio.src = url;
+      const sync = () => {
+        const dur = storyAudio.duration || 0, cur = storyAudio.currentTime || 0;
+        const frac = dur ? cur / dur : 0;
+        showScene(sceneAt(frac));
+        fillEl.style.width = (frac * 100) + "%";
+        timeEl.textContent = fmtT(cur) + " / " + fmtT(dur);
+      };
+      storyAudio.ontimeupdate = sync;
+      storyAudio.onloadedmetadata = sync;
+      storyAudio.onplay = () => { playBtn.textContent = "⏸ إيقاف"; };
+      storyAudio.onpause = () => { playBtn.textContent = "▶️ تشغيل"; };
+      storyAudio.onended = () => { playBtn.textContent = "↺ إعادة"; confetti(); };
+      playBtn.onclick = () => { if (storyAudio.ended || storyAudio.currentTime === 0 && storyAudio.paused) { } if (storyAudio.paused) { if (storyAudio.ended) storyAudio.currentTime = 0; storyAudio.play().catch(() => { }); } else storyAudio.pause(); };
+      box.querySelector("#st-back").onclick = () => { storyAudio.currentTime = Math.max(0, storyAudio.currentTime - 10); };
+      box.querySelector("#st-fwd").onclick = () => { storyAudio.currentTime = Math.min((storyAudio.duration || 0), storyAudio.currentTime + 10); };
+      box.querySelector("#st-seek").onclick = (e) => { const r = e.currentTarget.getBoundingClientRect(); const p = (e.clientX - r.left) / r.width; if (storyAudio.duration) storyAudio.currentTime = Math.min(1, Math.max(0, p)) * storyAudio.duration; };
+      box.querySelector("#st-vhint").textContent = "🎙️ سرد سعودي متواصل";
+      showScene(0);
+    } else {
+      // احتياط: قراءة القصة كاملة بصوت المتصفح كمقطع واحد متصل (بلا توقف بين الجمل)
+      box.querySelector("#st-seek").style.display = "none";
+      box.querySelector("#st-back").style.display = "none";
+      box.querySelector("#st-fwd").style.display = "none";
+      const fullText = scenes.map(s => s.t).join(" ");
+      let playing = false;
+      const vhint = box.querySelector("#st-vhint");
       const v = arVoice();
-      if (!v) hint.textContent = "لأفضل نطق عربي افتح الموقع في متصفح Edge";
-      else if (/online|natural/i.test(v.name || "")) hint.textContent = "🎙️ صوت طبيعي: " + v.name.replace(/microsoft/i, "").trim();
-      else hint.textContent = "الصوت: " + v.name + " — للأنقى استخدم Edge";
-    }, 600);
-    paint();
+      vhint.textContent = v ? ((/online|natural/i.test(v.name || "") ? "🎙️ صوت طبيعي" : "الصوت: " + v.name)) : "لأنقى صوت افتح في Edge";
+      const speakAll = () => {
+        try { window.speechSynthesis.cancel(); } catch (e) { }
+        const u = new SpeechSynthesisUtterance(fullText);
+        u.lang = "ar-SA"; if (v) u.voice = v; u.rate = 1.0; u.pitch = 1;
+        // مزامنة الصورة عبر onboundary إن توفّر
+        u.onboundary = (ev) => { const frac = fullText.length ? (ev.charIndex || 0) / fullText.length : 0; showScene(sceneAt(frac)); fillEl.style.width = (frac * 100) + "%"; };
+        u.onend = () => { playing = false; playBtn.textContent = "↺ إعادة"; fillEl.style.width = "100%"; confetti(); };
+        try { window.speechSynthesis.speak(u); } catch (e) { }
+      };
+      playBtn.onclick = () => {
+        if (!playing) { playing = true; playBtn.textContent = "⏸ إيقاف"; showScene(0); speakAll(); }
+        else { playing = false; playBtn.textContent = "▶️ تشغيل"; try { window.speechSynthesis.cancel(); } catch (e) { } }
+      };
+      showScene(0);
+    }
   }
   // 🎡 عجلة اختيار الطلاب
   function stageWheel(box, c) {
