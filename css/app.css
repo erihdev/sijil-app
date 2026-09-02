@@ -244,6 +244,62 @@ button{font-family:inherit}
 .lesson-card .sj{font-weight:800; color:var(--navy); font-size:15px}
 .lesson-card .ls{color:var(--muted); font-size:13px; margin:3px 0 8px}
 
+/* ═══ وضع الحصة الحية (العرض على البروجكتر) ═══ */
+#view-live{position:fixed; inset:0; z-index:80; display:flex; flex-direction:column; color:#fff;
+  background:radial-gradient(1200px 600px at 70% -10%,#1d3a5f 0%,#142A44 45%,#0E2033 100%)}
+.live-top{display:flex; align-items:center; justify-content:space-between; gap:10px;
+  padding:10px 16px; border-bottom:2px solid var(--gold); background:rgba(0,0,0,.15)}
+.live-title{font-size:22px; font-weight:800; color:var(--goldl)}
+.live-title small{color:#c9d5e3; font-weight:400; font-size:13px}
+.live-btn{background:rgba(255,255,255,.12); color:#fff; border:1px solid rgba(255,255,255,.3);
+  border-radius:10px; padding:8px 14px; font-size:14px; font-weight:800; cursor:pointer; font-family:inherit}
+.live-wrap{flex:1; display:flex; gap:12px; padding:12px; overflow:hidden}
+.live-roster{flex:1; overflow-y:auto; display:grid; grid-template-columns:repeat(auto-fill,minmax(140px,1fr));
+  gap:10px; align-content:start; padding-bottom:20px}
+.rcard{background:rgba(255,255,255,.09); border:1.5px solid rgba(255,255,255,.16); border-radius:14px;
+  padding:12px 8px; text-align:center; cursor:pointer; transition:transform .1s, box-shadow .2s; position:relative}
+.rcard:hover{box-shadow:0 0 0 2px var(--gold)}
+.rcard:active{transform:scale(.94)}
+.rcard .rn{font-size:14.5px; font-weight:700; line-height:1.3}
+.rcard .rp{font-size:22px; font-weight:800; color:var(--goldl); margin-top:5px}
+.rcard .rp.neg{color:#ff8a8a}
+.rcard .rrk{position:absolute; top:6px; inset-inline-start:8px; font-size:12px; color:#9fb0c4; font-weight:800}
+.live-board{width:34%; min-width:270px; max-width:420px; background:rgba(255,255,255,.06);
+  border:2px solid var(--gold); border-radius:16px; padding:12px 10px; overflow-y:auto; display:flex; flex-direction:column}
+.bhead{font-size:21px; font-weight:800; color:var(--goldl); text-align:center; margin-bottom:12px}
+.brow{display:flex; align-items:center; gap:10px; padding:9px 10px; border-radius:12px; margin-bottom:7px;
+  background:rgba(255,255,255,.06); transition:background .3s}
+.brow .rk{font-size:19px; width:30px; text-align:center; flex-shrink:0}
+.brow .bn{flex:1; font-weight:700; font-size:15px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+.brow .bp{font-weight:800; font-size:19px; color:var(--goldl); flex-shrink:0}
+.brow.t1{background:linear-gradient(135deg,#D7A93F,#c2942e); color:#0E2033}
+.brow.t1 .bp{color:#0E2033}
+.brow.t2{background:linear-gradient(135deg,#c7cfda,#9aa7b8); color:#0E2033}
+.brow.t2 .bp{color:#0E2033}
+.brow.t3{background:linear-gradient(135deg,#d8a06a,#b3541e); color:#fff}
+.brow.t3 .bp{color:#fff}
+.brow.pulse{animation:brpulse .7s}
+@keyframes brpulse{0%{transform:scale(1.06); box-shadow:0 0 22px var(--gold)}100%{transform:none; box-shadow:none}}
+.floatpt{position:fixed; font-size:34px; font-weight:800; pointer-events:none; z-index:92;
+  text-shadow:0 2px 8px rgba(0,0,0,.5); animation:floatup 1.1s ease-out forwards}
+.floatpt.pos{color:#3ad07a} .floatpt.neg{color:#ff6b6b}
+@keyframes floatup{0%{opacity:0; transform:translateY(6px) scale(.6)}20%{opacity:1}100%{opacity:0; transform:translateY(-80px) scale(1.6)}}
+.conf{position:fixed; top:8%; font-size:26px; pointer-events:none; z-index:95; animation:conf 1.6s ease-out forwards}
+@keyframes conf{0%{opacity:1; transform:translateY(0) rotate(0)}100%{opacity:0; transform:translateY(320px) rotate(420deg)}}
+.live-act{position:fixed; inset:0; background:rgba(8,16,26,.72); z-index:88; display:flex; align-items:center; justify-content:center; padding:16px}
+.live-act .box{background:#142A44; border:2px solid var(--gold); border-radius:20px; padding:20px; width:100%; max-width:480px; animation:up .18s ease}
+.live-act h4{color:var(--goldl); text-align:center; font-size:21px; margin:0 0 4px}
+.live-act .cur{text-align:center; color:#c9d5e3; font-size:14px; margin-bottom:14px}
+.live-act .grid{display:grid; grid-template-columns:repeat(2,1fr); gap:10px}
+.act{padding:16px 8px; border:none; border-radius:14px; font-size:16px; font-weight:800; cursor:pointer; color:#fff; font-family:inherit; transition:transform .1s}
+.act:active{transform:scale(.95)}
+.act.g{background:linear-gradient(135deg,#2e9e5b,#227a45)} .act.r{background:linear-gradient(135deg,#d64545,#a83232)}
+.act.b{background:linear-gradient(135deg,#3f7fd7,#2a5aa0)} .act.close{background:#33415a; grid-column:1/3}
+@media (max-width:720px){
+  .live-wrap{flex-direction:column} .live-board{width:auto; max-width:none; max-height:40vh}
+  .live-roster{grid-template-columns:repeat(auto-fill,minmax(110px,1fr))}
+}
+
 @media (min-width:760px){
   .tabs{position:sticky; top:0; bottom:auto; border-top:none; border-bottom:1px solid var(--line)}
   #view-app{padding-bottom:20px}

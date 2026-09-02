@@ -8,7 +8,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/app.css?v=8">
+<link rel="stylesheet" href="css/app.css?v=9">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='46' fill='%230E2033'/><text x='50' y='68' font-size='52' text-anchor='middle' fill='%23D7A93F'>س</text></svg>">
 </head>
 <body>
@@ -33,23 +33,7 @@
       <button class="btn-primary" id="lg-btn">دخــول</button>
     </div>
 
-    <!-- نموذج الطالب -->
-    <div id="lg-student-form" class="hidden">
-      <div class="field">
-        <label>الصف</label>
-        <select id="ls-class"></select>
-      </div>
-      <div class="field">
-        <label>اسمك</label>
-        <select id="ls-name"></select>
-      </div>
-      <button class="btn-primary" id="ls-btn">دخول الطالب</button>
-    </div>
-
     <div class="login-err" id="lg-err"></div>
-    <div style="text-align:center;margin-top:14px">
-      <button class="btn-ghost" id="lg-switch" style="background:#eef0f3;color:var(--navy);border:none">👦 أنا طالب — دخول الطلاب</button>
-    </div>
     <div class="demo-note" id="lg-demo">
       نسخة تجريبية للاستعراض — الطلاب بأسماء وهمية والبيانات تُحفظ على جهازك فقط.<br>
       <b>رقم الدخول التجريبي لأي معلم: 1234</b>
@@ -92,13 +76,16 @@
 <!-- ═══════════ بوابة الطالب ═══════════ -->
 <section id="view-student" class="hidden"></section>
 
+<!-- ═══════════ وضع الحصة الحية ═══════════ -->
+<section id="view-live" class="hidden"></section>
+
 <div id="overlay-root"></div>
 
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
-<script src="js/fb.js?v=8"></script>
-<script src="js/demo-data.js?v=8"></script>
-<script src="js/app.js?v=8"></script>
+<script src="js/fb.js?v=9"></script>
+<script src="js/demo-data.js?v=9"></script>
+<script src="js/app.js?v=9"></script>
 </body>
 </html>

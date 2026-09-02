@@ -199,8 +199,8 @@
     ASSESS = (META.assess && META.assess.length) ? META.assess : DEFAULT_ASSESS;
     TERM = (META.school.term_lbl || "").includes("الثاني") ? "t2" : "t1";
     initLogin();
+    if (DB.session && DB.srole === "student") { DB.session = null; DB.srole = null; save(); }
     if (DB.session) {
-      if (DB.srole === "student") { renderStudent(DB.session); return; }
       const t = D.teachers.find(x => x.id === DB.session);
       if (t) await enter(t);
     }
@@ -212,22 +212,6 @@
     const sel = $("#lg-teacher");
     sel.innerHTML = '<option value="">— اختر اسمك —</option>' +
       D.teachers.filter(t => (t.classes || []).length || t.admin).map(t => `<option value="${t.id}">${esc(t.name)}${t.admin ? " (المدير)" : ""}</option>`).join("");
-    // منتقيات الطالب
-    const csel = $("#ls-class");
-    csel.innerHTML = '<option value="">— اختر صفك —</option>' + D.classes.map(c => `<option value="${c.id}">${esc(c.name)}</option>`).join("");
-    csel.onchange = () => {
-      const c = classById(csel.value);
-      const ns = $("#ls-name");
-      ns.innerHTML = c ? '<option value="">— اختر اسمك —</option>' + c.students.map((s, i) => `<option value="${i}">${esc(s.n)}</option>`).join("") : "";
-    };
-    let mode = "teacher";
-    $("#lg-switch").onclick = () => {
-      mode = mode === "teacher" ? "student" : "teacher";
-      $("#lg-teacher-form").classList.toggle("hidden", mode !== "teacher");
-      $("#lg-student-form").classList.toggle("hidden", mode !== "student");
-      $("#lg-switch").textContent = mode === "teacher" ? "👦 أنا طالب — دخول الطلاب" : "👨‍🏫 أنا معلم — دخول المعلمين";
-      $("#lg-err").textContent = "";
-    };
     $("#lg-btn").onclick = async () => {
       const t = D.teachers.find(x => x.id === sel.value);
       const pin = $("#lg-pin").value.trim();
@@ -239,12 +223,6 @@
       } else if (pin !== "1234") { $("#lg-err").textContent = "رقم الدخول غير صحيح (التجريبي: 1234)"; return; }
       $("#lg-err").textContent = ""; DB.session = t.id; DB.srole = "teacher"; save();
       enter(t);
-    };
-    $("#ls-btn").onclick = () => {
-      const cid = $("#ls-class").value, si = $("#ls-name").value;
-      if (!cid || si === "") { $("#lg-err").textContent = "اختر صفك واسمك"; return; }
-      $("#lg-err").textContent = ""; DB.session = cid + ":" + si; DB.srole = "student"; save();
-      renderStudent(cid + ":" + si);
     };
   }
   async function enter(t) {
@@ -303,12 +281,14 @@
         <div class="kpi"><div class="v">${myClasses().length}</div><div class="l">فصولي</div></div>
         <div class="kpi"><div class="v">${all.length}</div><div class="l">طلابي</div></div>
         <div class="kpi"><div class="v">${mine.length}</div><div class="l">حصص اليوم</div></div></div>
+      ${myClasses().length ? `<button class="btn-primary" id="today-live" style="margin-bottom:12px;font-size:17px">🎬 ابدأ حصة تفاعلية (عرض على البروجكتر)</button>` : ""}
       <div class="card"><h3><span class="dot"></span>حصص اليوم (${esc(today)})</h3><div class="periods">${per.join("")}</div></div>
       <div class="card" id="today-lesson"><h3><span class="dot"></span>درس هذا الأسبوع</h3><span class="weekpill">الأسبوع ${wk}</span><div class="empty-note" style="padding:8px">جارِ التحميل…</div></div>
       <div class="card"><h3><span class="dot"></span>🏆 لوحة الشرف — الأوائل</h3>
         <div class="alert-list">${high.length ? high.map((x, k) => `<div class="al"><span><b style="font-size:16px">${MED[k]}</b> ${esc(x.r.s.n)} <small style="color:var(--muted)">— ${esc(x.c.name)}</small></span><span class="pts" style="color:var(--ok)">${x.r.t.pts}</span></div>`).join("") : '<div class="empty-note">ابدأ الرصد وستظهر أسماء المتميزين هنا 🌟</div>'}</div></div>
       <div class="card"><h3><span class="dot"></span>طلاب يحتاجون التفاتة (الأدنى نقاطاً)</h3>
         <div class="alert-list">${low.length ? low.map(x => `<div class="al"><span>${esc(x.r.s.n)} <small style="color:var(--muted)">— ${esc(x.c.name)}</small></span><span class="pts">${x.r.t.pts}</span></div>`).join("") : '<div class="empty-note">ابدأ التحضير أولاً وستظهر القائمة هنا</div>'}</div></div>`;
+    const tl = $("#today-live"); if (tl) tl.onclick = () => pickClassThen(liveSession);
     const sc = subjCode(TE.subject), grades = [...new Set(myClasses().map(c => c.gc))].sort();
     const LB = $("#today-lesson");
     if (!sc || !grades.length) { LB.querySelector(".empty-note").textContent = TE.admin ? "لوحة المدير في تبويب «المزيد»" : "لا مادة مسندة"; return; }
@@ -329,11 +309,12 @@
     if (!cls.length) { box.innerHTML = '<div class="empty-note">لا فصول مسندة لك' + (TE.admin ? " — لوحة المدير في «المزيد»" : "") + "</div>"; return; }
     if (!regClass || !cls.find(c => c.id === regClass)) regClass = cls[0].id;
     box.innerHTML = `<div class="class-chips">${cls.map(c => `<button class="chip ${c.id === regClass ? "on" : ""}" data-c="${c.id}">${esc(c.name)}</button>`).join("")}</div>
-      <div class="reg-tools"><input type="date" id="reg-date" value="${regDate}"><button class="btn-soft" id="reg-all">✓ الكل حاضر</button><span style="font-size:12px;color:var(--muted)">اضغط اسم الطالب لبطاقته</span></div>
+      <div class="reg-tools"><input type="date" id="reg-date" value="${regDate}"><button class="btn-soft" id="reg-all">✓ الكل حاضر</button><button class="btn-gold" id="reg-live">🎬 وضع العرض</button></div>
       <div class="card" id="reg-list" style="padding:6px 10px"></div>`;
     box.querySelectorAll(".chip").forEach(ch => ch.onclick = () => { regClass = ch.dataset.c; renderReg(); });
     $("#reg-date").onchange = (e) => { regDate = e.target.value; drawRows(); };
     $("#reg-all").onclick = () => { const c = classById(regClass); c.students.forEach((s, i) => { const e = rec(regClass, regDate, i, true); if (e.a == null) e.a = 0; }); save("recs:" + regClass); drawRows(); };
+    $("#reg-live").onclick = () => liveSession(regClass);
     drawRows();
   }
   function drawRows() {
@@ -777,6 +758,128 @@
       <p><b>السؤال الثاني:</b> أكمل الفراغات المناسبة:</p><p>....................................................................................................................</p>
       <p><b>السؤال الثالث:</b> ارسم أو مثّل ما فهمته:</p><div style="border:1px dashed #aaa;height:150px;border-radius:8px"></div>
       <div class="sig"><span>المعلم: ${esc(TE.name)}</span><span>الدرجة: ......</span></div>`);
+  }
+
+  /* ═══════════ وضع الحصة الحية (العرض) ═══════════ */
+  const behIndex = (sub, positive) => {
+    let k = BEH.findIndex(b => b.name.includes(sub));
+    if (k < 0) k = BEH.findIndex(b => positive ? (+b.pts > 0) : (+b.pts < 0));
+    return k;
+  };
+  let liveCid = null, livePrevTop = null, liveDate = null;
+  function pickClassThen(cb) {
+    const cls = myClasses();
+    if (!cls.length) { alert("لا فصول مسندة"); return; }
+    if (cls.length === 1) { cb(cls[0].id); return; }
+    openSheet(`<h4>اختر الفصل</h4><div class="stategrid">${cls.map(c => `<button style="background:var(--navy)" data-c="${c.id}">${esc(c.name)}</button>`).join("")}</div>`,
+      (o) => o.querySelectorAll("[data-c]").forEach(b => b.onclick = () => { closeSheet(); cb(b.dataset.c); }));
+  }
+  function liveSession(cid) {
+    liveCid = cid; liveDate = new Date().toISOString().slice(0, 10); livePrevTop = null;
+    const c = classById(cid);
+    $("#view-app").classList.add("hidden");
+    const V = $("#view-live"); V.classList.remove("hidden");
+    V.innerHTML = `
+      <div class="live-top">
+        <button class="live-btn" id="live-exit">✕ إنهاء</button>
+        <div class="live-title">🎬 ${esc(c.name)} <small id="live-sub"></small></div>
+        <button class="live-btn" id="live-fs">⛶ ملء الشاشة</button>
+      </div>
+      <div class="live-wrap">
+        <div class="live-roster" id="live-roster"></div>
+        <div class="live-board" id="live-board"></div>
+      </div>`;
+    $("#live-exit").onclick = () => { try { if (document.fullscreenElement) document.exitFullscreen(); } catch (e) { } V.classList.add("hidden"); $("#view-app").classList.remove("hidden"); renderReg(); renderToday(); renderGrades(); };
+    $("#live-fs").onclick = () => { try { document.fullscreenElement ? document.exitFullscreen() : V.requestFullscreen(); } catch (e) { } };
+    // عنوان الأسبوع/الدرس
+    (async () => {
+      const sc = subjCode(TE.subject), wk = curWeek();
+      let les = "";
+      if (sc) { const rows = (await loadCurr(sc + c.gc + TERM)).filter(r => r.w === wk); const m = rows.find(r => r.lesson && !String(r.lesson).includes("تابع")) || rows[0]; les = m ? m.lesson : ""; }
+      const sub = $("#live-sub"); if (sub) sub.textContent = "· الأسبوع " + wk + (les ? " · " + les : "");
+    })();
+    drawLiveRoster(); drawLiveBoard(true);
+  }
+  function drawLiveRoster() {
+    const c = classById(liveCid), calc = classCalc(liveCid), box = $("#live-roster"); if (!box) return;
+    box.innerHTML = c.students.map((s, i) => {
+      const p = calc[i].t.pts;
+      return `<div class="rcard" data-i="${i}"><div class="rrk">#${calc[i].rank}</div><div class="rn">${esc(s.n)}</div><div class="rp ${p < 0 ? "neg" : ""}">${p}</div></div>`;
+    }).join("");
+    box.querySelectorAll(".rcard").forEach(el2 => el2.onclick = (ev) => liveActions(+el2.dataset.i, ev));
+  }
+  function drawLiveBoard(silent) {
+    const c = classById(liveCid), calc = classCalc(liveCid), box = $("#live-board"); if (!box) return;
+    const rows = calc.slice().sort((a, b) => b.t.pts - a.t.pts || a.i - b.i);
+    box.innerHTML = `<div class="bhead">🏆 لوحة الشرف</div>` + rows.map((r, k) => {
+      const cls = k === 0 ? "t1" : k === 1 ? "t2" : k === 2 ? "t3" : "";
+      const rk = k < 3 ? ["🥇", "🥈", "🥉"][k] : (k + 1);
+      return `<div class="brow ${cls}" data-i="${r.i}"><span class="rk">${rk}</span><span class="bn">${esc(r.s.n)}</span><span class="bp">${r.t.pts}</span></div>`;
+    }).join("");
+    const topId = rows.length ? rows[0].i : null;
+    if (!silent && topId != null && topId !== livePrevTop && rows[0].t.pts > 0) confetti();
+    livePrevTop = topId;
+  }
+  function liveActions(i, ev) {
+    const c = classById(liveCid), calc = classCalc(liveCid);
+    const pos = behIndex("مميز", true), neg = behIndex("مخالف", false);
+    openLiveBox(`<h4>${esc(c.students[i].n)}</h4><div class="cur">النقاط الحالية: ${calc[i].t.pts} · الترتيب ${calc[i].rank}</div>
+      <div class="grid">
+        <button class="act g" data-k="part">🙋 مشاركة <small>+${W.part}</small></button>
+        <button class="act g" data-k="star">⭐ تميّز <small>${pos >= 0 ? "+" + BEH[pos].pts : ""}</small></button>
+        <button class="act b" data-k="present">✅ حاضر</button>
+        <button class="act b" data-k="hw">📚 واجب ✓ <small>+${W.hw}</small></button>
+        <button class="act r" data-k="bad">⚠ مخالفة <small>${neg >= 0 ? BEH[neg].pts : ""}</small></button>
+        <button class="act r" data-k="absent">❌ غياب</button>
+        <button class="act close" data-k="x">إغلاق</button>
+      </div>`, (o) => o.querySelectorAll("[data-k]").forEach(b => b.onclick = () => { applyLive(i, b.dataset.k); closeLiveBox(); }));
+  }
+  function openLiveBox(html, mount) {
+    const d = document.createElement("div"); d.className = "live-act"; d.id = "live-act";
+    d.innerHTML = `<div class="box">${html}</div>`;
+    d.addEventListener("click", (e) => { if (e.target === d) closeLiveBox(); });
+    document.body.appendChild(d); if (mount) mount(d);
+  }
+  function closeLiveBox() { const d = $("#live-act"); if (d) d.remove(); }
+  function applyLive(i, k) {
+    const e = rec(liveCid, liveDate, i, true);
+    const pos = behIndex("مميز", true), neg = behIndex("مخالف", false);
+    let delta = 0;
+    if (k === "part") { e.part++; delta = W.part; }
+    else if (k === "star" && pos >= 0) { e.beh = e.beh || []; e.beh.push(pos); delta = +BEH[pos].pts; }
+    else if (k === "present") { const had = e.a; e.a = 0; delta = (STATES[0].pts || 0) - (had != null && STATES[had] ? STATES[had].pts : 0); }
+    else if (k === "hw") { if (e.hw !== 1) { e.hw = 1; delta = W.hw; } }
+    else if (k === "bad" && neg >= 0) { e.beh = e.beh || []; e.beh.push(neg); delta = +BEH[neg].pts; }
+    else if (k === "absent") { const had = e.a; e.a = 1; delta = (STATES[1].pts || 0) - (had != null && STATES[had] ? STATES[had].pts : 0); }
+    save("recs:" + liveCid);
+    // تأثير النقاط الطائر على بطاقة الطالب
+    const card = document.querySelector(`.rcard[data-i="${i}"]`);
+    if (card && delta) floatPoints(card, delta);
+    drawLiveRoster();
+    drawLiveBoard(false);
+    const brow = document.querySelector(`.brow[data-i="${i}"]`);
+    if (brow) { brow.classList.add("pulse"); setTimeout(() => brow.classList.remove("pulse"), 700); if (delta) floatPoints(brow, delta); }
+  }
+  function floatPoints(el2, delta) {
+    const r = el2.getBoundingClientRect();
+    const f = document.createElement("div");
+    f.className = "floatpt " + (delta >= 0 ? "pos" : "neg");
+    f.textContent = (delta >= 0 ? "+" : "") + (Math.round(delta * 10) / 10);
+    f.style.left = (r.left + r.width / 2 - 16) + "px";
+    f.style.top = (r.top + 8) + "px";
+    document.body.appendChild(f);
+    setTimeout(() => f.remove(), 1100);
+  }
+  function confetti() {
+    const em = ["🎉", "⭐", "🏆", "✨", "🎊"];
+    for (let n = 0; n < 14; n++) {
+      const c = document.createElement("div");
+      c.className = "conf"; c.textContent = em[n % em.length];
+      c.style.left = (Math.random() * 90 + 3) + "%";
+      c.style.animationDelay = (Math.random() * 0.3) + "s";
+      document.body.appendChild(c);
+      setTimeout(() => c.remove(), 2000);
+    }
   }
 
   /* ═══════════ بوابة الطالب ═══════════ */
