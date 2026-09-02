@@ -784,8 +784,8 @@
         <button class="live-btn" id="live-exit">✕ إنهاء</button>
         <div class="live-title">🎬 ${esc(c.name)} <small id="live-sub"></small></div>
         <div style="display:flex;gap:6px">
-          <button class="live-btn" id="live-tools-t" title="إخفاء/إظهار الأدوات">🎛️ الأدوات</button>
-          <button class="live-btn" id="live-board-t" title="إخفاء/إظهار لوحة الشرف">🏆 اللوحة</button>
+          <button class="live-btn" id="live-tools-t" title="إخفاء/إظهار الأدوات">🎛️ إخفاء الأدوات</button>
+          <button class="live-btn" id="live-board-t" title="إخفاء/إظهار لوحة الشرف">🏆 إخفاء اللوحة</button>
           <button class="live-btn" id="live-fs">⛶ ملء الشاشة</button>
         </div>
       </div>
@@ -806,9 +806,17 @@
         <div class="live-board" id="live-board"></div>
       </div>`;
     $("#live-exit").onclick = () => { if (timerIv) { clearInterval(timerIv); timerIv = null; } stopStory(); try { if (document.fullscreenElement) document.exitFullscreen(); } catch (e) { } V.classList.add("hidden"); $("#view-app").classList.remove("hidden"); renderReg(); renderToday(); renderGrades(); };
-    $("#live-fs").onclick = () => { try { document.fullscreenElement ? document.exitFullscreen() : V.requestFullscreen(); } catch (e) { } };
-    $("#live-board-t").onclick = () => { const h = V.classList.toggle("board-hidden"); $("#live-board-t").classList.toggle("off", h); $("#live-board-t").innerHTML = h ? "🏆 إظهار اللوحة" : "🏆 اللوحة"; };
-    $("#live-tools-t").onclick = () => { const h = V.classList.toggle("tools-hidden"); $("#live-tools-t").classList.toggle("off", h); $("#live-tools-t").innerHTML = h ? "🎛️ إظهار الأدوات" : "🎛️ الأدوات"; };
+    $("#live-fs").onclick = () => {
+      const d = document, el = V;
+      const isFS = d.fullscreenElement || d.webkitFullscreenElement || d.mozFullScreenElement || d.msFullscreenElement;
+      try {
+        if (isFS) { (d.exitFullscreen || d.webkitExitFullscreen || d.mozCancelFullScreen || d.msExitFullscreen).call(d); }
+        else { const req = el.requestFullscreen || el.webkitRequestFullscreen || el.mozRequestFullScreen || el.msRequestFullscreen; const p = req && req.call(el); if (p && p.catch) p.catch(() => { try { (document.documentElement.requestFullscreen || document.documentElement.webkitRequestFullscreen).call(document.documentElement); } catch (e) { } }); }
+      } catch (e) { try { (document.documentElement.requestFullscreen || document.documentElement.webkitRequestFullscreen).call(document.documentElement); } catch (e2) { } }
+      setTimeout(() => { const on = document.fullscreenElement || document.webkitFullscreenElement; const b = $("#live-fs"); if (b) b.innerHTML = on ? "⛶ إنهاء الملء" : "⛶ ملء الشاشة"; }, 350);
+    };
+    $("#live-board-t").onclick = () => { const h = V.classList.toggle("board-hidden"); $("#live-board-t").classList.toggle("off", h); $("#live-board-t").innerHTML = h ? "🏆 إظهار اللوحة" : "🏆 إخفاء اللوحة"; };
+    $("#live-tools-t").onclick = () => { const h = V.classList.toggle("tools-hidden"); $("#live-tools-t").classList.toggle("off", h); $("#live-tools-t").innerHTML = h ? "🎛️ إظهار الأدوات" : "🎛️ إخفاء الأدوات"; };
     V.querySelectorAll(".live-tools button").forEach(b => b.onclick = () => {
       V.querySelectorAll(".live-tools button").forEach(x => x.classList.toggle("on", x === b));
       liveView(b.dataset.v);
