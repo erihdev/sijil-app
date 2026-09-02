@@ -804,7 +804,6 @@
     $("#live-exit").onclick = () => { if (timerIv) { clearInterval(timerIv); timerIv = null; } stopStory(); try { if (document.fullscreenElement) document.exitFullscreen(); } catch (e) { } V.classList.add("hidden"); $("#view-app").classList.remove("hidden"); renderReg(); renderToday(); renderGrades(); };
     $("#live-fs").onclick = () => { try { document.fullscreenElement ? document.exitFullscreen() : V.requestFullscreen(); } catch (e) { } };
     V.querySelectorAll(".live-tools button").forEach(b => b.onclick = () => {
-      if (b.dataset.v === "yt") { openLessonYouTube(); return; }   // فتح فيديوهات درس الحصة مباشرة (لا يغيّر العرض)
       V.querySelectorAll(".live-tools button").forEach(x => x.classList.toggle("on", x === b));
       liveView(b.dataset.v);
     });
@@ -835,26 +834,11 @@
       else box.innerHTML = `<div class="live-stage"><div class="stage-bar"><span style="color:#fff;font-weight:800">▶️ ${esc(m.lesson)}</span></div><div class="rl-scroll"><div class="rl-wrap"><div class="rl-title">${esc(m.lesson)}</div><div style="color:#c9d5e3;text-align:center;margin-top:20px">درس هذا الأسبوع من وحدة «${esc(m.unit || "")}».<br>الدرس التفاعلي الغني لهذا الدرس قيد الإعداد — استخدم «سؤال» و«ورقة تفاعلية» و«العجلة» لتفعيل الحصة.</div></div></div></div>`;
       return;
     }
-    if (v === "yt") {
-      const rows = (await loadCurr(code)).filter(r => r.w === wk);
-      const m = rows.find(r => r.lesson && !String(r.lesson).includes("تابع")) || rows[0];
-      const q = encodeURIComponent(((m && m.lesson) || "") + " " + TE.subject + " " + GNAME[c.gc] + " ابتدائي شرح");
-      box.innerHTML = `<div class="live-stage"><div class="stage-bar"><input id="yt-url" placeholder="الصق رابط فيديو يوتيوب هنا…"><button class="live-btn" id="yt-go">عرض</button><a class="live-btn" style="text-decoration:none" href="https://www.youtube.com/results?search_query=${q}" target="_blank" rel="noopener">🔎 بحث</a></div><div id="yt-frame" style="flex:1;display:flex;align-items:center;justify-content:center;color:#c9d5e3">الصق رابط فيديو واضغط «عرض» — أو «بحث» لإيجاد شرح الدرس</div></div>`;
-      const show = () => {
-        const u = box.querySelector("#yt-url").value.trim();
-        const m2 = u.match(/(?:v=|youtu\.be\/|embed\/|shorts\/)([\w-]{11})/) || (u.length === 11 ? [0, u] : null);
-        const fr = box.querySelector("#yt-frame");
-        if (!m2) { fr.textContent = "رابط غير صحيح — انسخ رابط الفيديو من يوتيوب"; return; }
-        fr.outerHTML = `<iframe id="yt-frame" src="https://www.youtube.com/embed/${m2[1]}?rel=0" allow="autoplay; fullscreen" allowfullscreen style="flex:1;width:100%;border:0"></iframe>`;
-      };
-      box.querySelector("#yt-go").onclick = show;
-      box.querySelector("#yt-url").addEventListener("keydown", (e) => { if (e.key === "Enter") show(); });
-      return;
-    }
+    if (v === "yt") { stageYouTube(box, code, wk, c); return; }
     if (v === "story") { stageStory(box, code, wk); return; }
     if (v === "wheel") { stageWheel(box, c); return; }
-    if (v === "quiz") { stageQuiz(box); return; }
-    if (v === "iws") { stageWorksheet(box); return; }
+    if (v === "quiz") { stageQuiz(box, code, wk); return; }
+    if (v === "iws") { stageWorksheet(box, code, wk); return; }
     if (v === "timer") { stageTimer(box); return; }
   }
   // ▶️ درس تفاعلي غنيّ (محتوانا الخاص)
@@ -888,13 +872,34 @@
       });
     }
   }
-  // 📺 يوتيوب: فتح فيديوهات درس هذه الحصة بالضبط (حسب توزيع المنهج للأسبوع وصفّه)
-  async function openLessonYouTube() {
-    const c = classById(liveCid), sc = subjCode(TE.subject), wk = curWeek(), code = sc + c.gc + TERM;
-    let les = "";
-    try { const rows = (await loadCurr(code)).filter(r => r.w === wk); const m = rows.find(r => r.lesson && !String(r.lesson).includes("تابع")) || rows[0]; les = m ? m.lesson : ""; } catch (e) { }
+  // 📺 يوتيوب: فيديو درس الحصة مضمّناً في الوسط (لوحة الشرف تبقى ثابتة)
+  const ytId = (u) => { const m = String(u || "").match(/(?:v=|youtu\.be\/|embed\/|shorts\/)([\w-]{11})/) || (String(u).length === 11 ? [0, u] : null); return m ? m[1] : ""; };
+  async function stageYouTube(box, code, wk, c) {
+    let d = null;
+    try { const r = await fetch("data/lessons/" + code + "w" + wk + ".json"); if (r.ok) d = await r.json(); } catch (e) { }
+    let les = d && d.title ? d.title : "";
+    if (!les) { try { const rows = (await loadCurr(code)).filter(r => r.w === wk); const m = rows.find(x => x.lesson && !String(x.lesson).includes("تابع")) || rows[0]; les = m ? m.lesson : ""; } catch (e) { } }
+    const ids = d && d.yt ? (Array.isArray(d.yt) ? d.yt : [d.yt]).map(ytId).filter(Boolean) : [];
     const q = encodeURIComponent((les ? les + " " : "") + TE.subject + " " + GNAME[c.gc] + " ابتدائي شرح");
-    try { window.open("https://www.youtube.com/results?search_query=" + q, "_blank", "noopener"); } catch (e) { }
+    const frame = (id) => `<iframe id="yt-frame" src="https://www.youtube.com/embed/${id}?rel=0&modestbranding=1" allow="autoplay; fullscreen" allowfullscreen style="flex:1;width:100%;border:0"></iframe>`;
+    const placeholder = `<div id="yt-frame" style="flex:1;display:flex;align-items:center;justify-content:center;color:#c9d5e3;text-align:center;padding:20px">اضغط «🔎 بحث» لإيجاد شرح «${esc(les)}» في يوتيوب، ثم انسخ رابط الفيديو والصقه هنا ليظهر بجانب لوحة الشرف.</div>`;
+    box.innerHTML = `<div class="live-stage">
+      <div class="stage-bar">
+        <span style="color:#fff;font-weight:800">📺 ${esc(les || "فيديو الدرس")}</span>
+        <input id="yt-url" placeholder="الصق رابط فيديو…" style="margin-inline-start:auto">
+        <button class="live-btn" id="yt-go">عرض</button>
+        <a class="live-btn" style="text-decoration:none" href="https://www.youtube.com/results?search_query=${q}" target="_blank" rel="noopener">🔎 بحث</a>
+      </div>
+      ${ids.length ? frame(ids[0]) : placeholder}
+    </div>`;
+    const show = () => {
+      const id = ytId(box.querySelector("#yt-url").value.trim());
+      const fr = box.querySelector("#yt-frame");
+      if (!id) { fr.textContent = "رابط غير صحيح — انسخ رابط الفيديو من يوتيوب"; return; }
+      fr.outerHTML = frame(id);
+    };
+    box.querySelector("#yt-go").onclick = show;
+    box.querySelector("#yt-url").addEventListener("keydown", (e) => { if (e.key === "Enter") show(); });
   }
   // 🎬 قصة الدرس (عرض مرئي متحرّك + سرد صوتي سعودي — صوت عصبي مُسجّل مسبقاً، ويعود لصوت المتصفح عند غيابه)
   let storyTimer = null, storyActive = false, storyAudio = null;
@@ -1063,13 +1068,51 @@
       }, 70 + ticks * 4);
     };
   }
-  // ❓ سؤال تفاعلي مفرد
+  // بنك أسئلة الدرس (من صلب محتوى الدرس)
+  async function lessonQuestions(code, wk) {
+    try {
+      const r = await fetch("data/lessons/" + code + "w" + wk + ".json"); if (!r.ok) return [];
+      const d = await r.json();
+      if (d.questions && d.questions.length) return d.questions.map(q => ({ t: q.t || "mcq", q: q.q, opts: q.opts || [], correct: q.correct || 0, ans: q.ans || "" }));
+      if (d.checks && d.checks.length) return d.checks.map(c => ({ t: "mcq", q: c.q, opts: c.opts, correct: c.correct }));
+      return [];
+    } catch (e) { return []; }
+  }
+  function qCardHTML(it) {
+    if (it.t === "fill") return `<div id="q-area"><div style="font-size:22px;color:var(--goldl)" id="q-fill">✍️ اكتب أو ناقش الإجابة</div></div>`;
+    return `<div id="q-area"><div class="qz-grid">${(it.opts || []).map((o, k) => o ? `<button class="qz-opt-card" data-k="${k}">${it.t === "tf" ? "" : (["أ", "ب", "ج", "د"][k] + ". ")}${esc(o)}</button>` : "").join("")}</div></div>`;
+  }
+  // ❓ سؤال تفاعلي — يحمّل بنك أسئلة الدرس تلقائياً
   let quizState = { q: "", opts: ["", "", "", ""], correct: 0 };
-  function stageQuiz(box) {
-    box.innerHTML = `<div class="live-stage"><div class="stage-bar"><span style="color:#fff;font-weight:800">❓ سؤال تفاعلي</span>
-      <button class="live-btn" id="qz-edit" style="margin-inline-start:auto">✏️ تعديل</button></div>
+  async function stageQuiz(box, code, wk) {
+    const bank = await lessonQuestions(code, wk);
+    box.innerHTML = `<div class="live-stage"><div class="stage-bar"><span style="color:#fff;font-weight:800">❓ أسئلة الدرس</span>
+      ${bank.length ? `<span style="color:#9fb0c4;font-size:12px;margin-inline-start:auto">${bank.length} سؤال من صلب الدرس</span>` : ""}
+      <button class="live-btn" id="qz-edit" style="margin-inline-start:${bank.length ? "10px" : "auto"}">✏️ سؤال خاص</button></div>
       <div id="qz-body" style="flex:1;overflow:auto;padding:16px"></div></div>`;
     const body = box.querySelector("#qz-body");
+    let bi = 0;
+    function showBank() {
+      const it = bank[bi];
+      body.innerHTML = `<div style="max-width:780px;margin:0 auto;text-align:center;color:#fff">
+        <div style="color:#9fb0c4;margin-bottom:8px">سؤال ${bi + 1} من ${bank.length}</div>
+        <div style="font-size:min(5vw,32px);font-weight:800;margin-bottom:22px">${esc(it.q)}</div>
+        ${qCardHTML(it)}
+        <div style="display:flex;gap:8px;justify-content:center;margin-top:22px;flex-wrap:wrap">
+          ${bi > 0 ? `<button class="live-btn" id="qb-prev">◀ السابق</button>` : ""}
+          <button class="btn-gold" id="qb-reveal">✅ الإجابة</button>
+          ${bi < bank.length - 1 ? `<button class="btn-primary" id="qb-next">التالي ▶</button>` : ""}
+        </div></div>`;
+      const area = body.querySelector("#q-area");
+      area.querySelectorAll(".qz-opt-card").forEach(b => b.onclick = () => { const ok = +b.dataset.k === it.correct; b.classList.add(ok ? "ok" : "no"); if (ok) confetti(); });
+      body.querySelector("#qb-reveal").onclick = () => {
+        if (it.t === "fill") { const f = body.querySelector("#q-fill"); if (f) { f.textContent = "✅ " + (it.ans || "—"); f.style.color = "#3ad07a"; } }
+        else area.querySelectorAll(".qz-opt-card").forEach(b => b.classList.add(+b.dataset.k === it.correct ? "ok" : "no"));
+        confetti();
+      };
+      const pv = body.querySelector("#qb-prev"); if (pv) pv.onclick = () => { bi--; showBank(); };
+      const nx = body.querySelector("#qb-next"); if (nx) nx.onclick = () => { bi++; showBank(); };
+    }
     function showEditor() {
       body.innerHTML = `<div style="max-width:640px;margin:0 auto;color:#fff">
         <label style="font-weight:800;color:var(--goldl)">نص السؤال</label>
@@ -1101,14 +1144,20 @@
       });
     }
     box.querySelector("#qz-edit").onclick = showEditor;
-    if (quizState.q) showQuestion(); else showEditor();
+    if (bank.length) showBank(); else showEditor();
   }
-  // 📝 ورقة عمل تفاعلية (عدة أسئلة)
-  let wsItems = [], wsIdx = 0;
-  function stageWorksheet(box) {
-    box.innerHTML = `<div class="live-stage"><div class="stage-bar"><span style="color:#fff;font-weight:800">📝 ورقة عمل تفاعلية</span>
+  // 📝 ورقة عمل تفاعلية (تُحمَّل من صلب الدرس تلقائياً)
+  let wsItems = [], wsIdx = 0, wsLoadedFor = "";
+  async function stageWorksheet(box, code, wk) {
+    const key = code + "w" + wk;
+    // حمّل أسئلة الدرس تلقائياً أول مرة (ما لم يبنِ المعلم ورقته الخاصة)
+    if (wsLoadedFor !== key && (!wsItems.length || wsItems._auto)) {
+      const bank = await lessonQuestions(code, wk);
+      if (bank.length) { wsItems = bank.map(q => ({ t: q.t, q: q.q, opts: q.opts || [], correct: q.correct || 0, ans: q.ans || "" })); wsItems._auto = true; wsLoadedFor = key; wsIdx = 0; }
+    }
+    box.innerHTML = `<div class="live-stage"><div class="stage-bar"><span style="color:#fff;font-weight:800">📝 ورقة الدرس التفاعلية</span>
       <button class="live-btn" id="iws-build" style="margin-inline-start:auto">🛠️ بناء</button>
-      ${wsItems.length ? `<button class="live-btn" id="iws-present">▶️ عرض</button>` : ""}</div>
+      ${wsItems.length ? `<button class="btn-primary" id="iws-present" style="padding:8px 14px">▶️ ابدأ العرض</button>` : ""}</div>
       <div id="iws-body" style="flex:1;overflow:auto;padding:16px"></div></div>`;
     const body = box.querySelector("#iws-body");
     function builder() {
