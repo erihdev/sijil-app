@@ -794,12 +794,13 @@
             <button data-v="iws">📝 ورقة تفاعلية</button>
             <button data-v="timer">⏱️ مؤقّت</button>
             <button data-v="lesson">▶️ الدرس</button>
+            <button data-v="story">🎬 قصة الدرس</button>
           </div>
           <div class="live-main" id="live-main"></div>
         </div>
         <div class="live-board" id="live-board"></div>
       </div>`;
-    $("#live-exit").onclick = () => { if (timerIv) { clearInterval(timerIv); timerIv = null; } try { if (document.fullscreenElement) document.exitFullscreen(); } catch (e) { } V.classList.add("hidden"); $("#view-app").classList.remove("hidden"); renderReg(); renderToday(); renderGrades(); };
+    $("#live-exit").onclick = () => { if (timerIv) { clearInterval(timerIv); timerIv = null; } stopStory(); try { if (document.fullscreenElement) document.exitFullscreen(); } catch (e) { } V.classList.add("hidden"); $("#view-app").classList.remove("hidden"); renderReg(); renderToday(); renderGrades(); };
     $("#live-fs").onclick = () => { try { document.fullscreenElement ? document.exitFullscreen() : V.requestFullscreen(); } catch (e) { } };
     V.querySelectorAll(".live-tools button").forEach(b => b.onclick = () => {
       V.querySelectorAll(".live-tools button").forEach(x => x.classList.toggle("on", x === b));
@@ -817,6 +818,7 @@
   async function liveView(v) {
     liveMainView = v;
     if (timerIv) { clearInterval(timerIv); timerIv = null; }
+    stopStory();
     const box = $("#live-main"); if (!box) return;
     const c = classById(liveCid), sc = subjCode(TE.subject), wk = curWeek(), code = sc + c.gc + TERM;
     if (v === "roster") { drawLiveRoster(); return; }
@@ -847,6 +849,7 @@
       box.querySelector("#yt-url").addEventListener("keydown", (e) => { if (e.key === "Enter") show(); });
       return;
     }
+    if (v === "story") { stageStory(box, code, wk); return; }
     if (v === "wheel") { stageWheel(box, c); return; }
     if (v === "quiz") { stageQuiz(box); return; }
     if (v === "iws") { stageWorksheet(box); return; }
@@ -882,6 +885,89 @@
         if (ok) confetti();
       });
     }
+  }
+  // 🎬 قصة الدرس (عرض مرئي متحرّك + سرد صوتي عربي — بلا منصة خارجية)
+  let storyTimer = null, storyActive = false;
+  function stopStory() {
+    storyActive = false;
+    if (storyTimer) { clearTimeout(storyTimer); storyTimer = null; }
+    try { window.speechSynthesis && window.speechSynthesis.cancel(); } catch (e) { }
+  }
+  function buildStory(d) {
+    if (d.story && d.story.length) return d.story;
+    const s = [{ v: "📘", t: d.title || "درسنا اليوم" }];
+    if (d.intro) s.push({ v: "💡", t: d.intro });
+    (d.sections || []).forEach(sec => {
+      s.push({ v: sec.v || "📌", t: sec.h + (sec.body ? "؛ " + sec.body : "") });
+      if (sec.points && sec.points.length) s.push({ v: "✨", t: sec.points.join(" ، ") });
+    });
+    if (d.summary) s.push({ v: "🌟", t: d.summary });
+    return s;
+  }
+  function arVoice() {
+    try { return (window.speechSynthesis.getVoices() || []).find(v => (v.lang || "").toLowerCase().startsWith("ar")) || null; } catch (e) { return null; }
+  }
+  async function stageStory(box, code, wk) {
+    let d = null;
+    try { const r = await fetch("data/lessons/" + code + "w" + wk + ".json"); if (r.ok) d = await r.json(); } catch (e) { }
+    if (!d) { box.innerHTML = `<div class="empty-note" style="color:#c9d5e3">قصة هذا الدرس قيد الإعداد</div>`; return; }
+    const scenes = buildStory(d);
+    let idx = 0; storyActive = true;
+    box.innerHTML = `<div class="live-stage"><div class="stage-bar"><span style="color:#fff;font-weight:800">🎬 ${esc(d.title || "")}</span><label style="color:#c9d5e3;font-size:13px;margin-inline-start:auto"><input type="checkbox" id="st-voice" checked> سرد صوتي</label></div>
+      <div class="story" id="story-stage">
+        <div class="story-dots" id="story-dots"></div>
+        <div class="story-visual" id="story-v">🎬</div>
+        <div class="story-text" id="story-t">اضغط ▶️ لبدء القصة</div>
+        <div class="story-ctrl">
+          <button class="live-btn" id="st-prev">⏮ السابق</button>
+          <button class="btn-primary" id="st-play" style="min-width:120px">▶️ تشغيل</button>
+          <button class="live-btn" id="st-next">التالي ⏭</button>
+          <button class="live-btn" id="st-replay">↺ إعادة</button>
+        </div>
+      </div></div>`;
+    const vEl = box.querySelector("#story-v"), tEl = box.querySelector("#story-t"), dotsEl = box.querySelector("#story-dots");
+    dotsEl.innerHTML = scenes.map((_, k) => `<span class="story-dot" data-k="${k}"></span>`).join("");
+    let playing = false;
+    function paint() {
+      const sc = scenes[idx];
+      vEl.textContent = sc.v || "📘"; vEl.style.animation = "none"; void vEl.offsetWidth; vEl.style.animation = "";
+      tEl.textContent = sc.t; tEl.style.animation = "none"; void tEl.offsetWidth; tEl.style.animation = "";
+      dotsEl.querySelectorAll(".story-dot").forEach((x, k) => x.classList.toggle("on", k === idx));
+    }
+    function speakThen(text, cb) {
+      const useVoice = box.querySelector("#st-voice") && box.querySelector("#st-voice").checked;
+      let done = false; const go = () => { if (!done) { done = true; cb(); } };
+      try { window.speechSynthesis.cancel(); } catch (e) { }
+      if (useVoice && window.speechSynthesis) {
+        const u = new SpeechSynthesisUtterance(text);
+        u.lang = "ar-SA"; const v = arVoice(); if (v) u.voice = v; u.rate = 0.95;
+        u.onend = go; u.onerror = go;
+        try { window.speechSynthesis.speak(u); } catch (e) { }
+        // احتياط إن لم يعمل الصوت: تقدّم بالوقت
+        storyTimer = setTimeout(go, Math.max(3500, text.length * 90));
+      } else {
+        storyTimer = setTimeout(go, Math.max(3200, text.length * 85));
+      }
+    }
+    function step() {
+      if (!storyActive || !playing) return;
+      paint();
+      speakThen(scenes[idx].t, () => {
+        if (!playing) return;
+        if (idx < scenes.length - 1) { idx++; step(); }
+        else { playing = false; box.querySelector("#st-play").textContent = "▶️ تشغيل"; confetti(); }
+      });
+    }
+    function setPlay(p) {
+      playing = p; box.querySelector("#st-play").textContent = p ? "⏸ إيقاف" : "▶️ تشغيل";
+      if (p) step(); else { if (storyTimer) clearTimeout(storyTimer); try { window.speechSynthesis.cancel(); } catch (e) { } }
+    }
+    box.querySelector("#st-play").onclick = () => setPlay(!playing);
+    box.querySelector("#st-next").onclick = () => { if (idx < scenes.length - 1) { idx++; paint(); if (playing) { if (storyTimer) clearTimeout(storyTimer); try { window.speechSynthesis.cancel(); } catch (e) { } step(); } } };
+    box.querySelector("#st-prev").onclick = () => { if (idx > 0) { idx--; paint(); if (playing) { if (storyTimer) clearTimeout(storyTimer); try { window.speechSynthesis.cancel(); } catch (e) { } step(); } } };
+    box.querySelector("#st-replay").onclick = () => { idx = 0; paint(); setPlay(true); };
+    dotsEl.querySelectorAll(".story-dot").forEach(x => x.onclick = () => { idx = +x.dataset.k; paint(); if (playing) { if (storyTimer) clearTimeout(storyTimer); try { window.speechSynthesis.cancel(); } catch (e) { } step(); } });
+    paint();
   }
   // 🎡 عجلة اختيار الطلاب
   function stageWheel(box, c) {
