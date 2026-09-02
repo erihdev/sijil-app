@@ -136,9 +136,22 @@
   const currCache = {};
   async function loadCurr(code) {
     if (currCache[code]) return currCache[code];
-    try { const r = await fetch("data/curr/" + code + ".json"); currCache[code] = r.ok ? await r.json() : []; }
-    catch (e) { currCache[code] = []; }
-    return currCache[code];
+    let rows = [];
+    try { const r = await fetch("data/curr/" + code + ".json"); rows = r.ok ? await r.json() : []; }
+    catch (e) { rows = []; }
+    if (CLOUD && fdb) {
+      try {
+        const ov = await fdb.doc("curredits/" + code).get();
+        if (ov.exists) { const o = (ov.data() || {}).rows || {}; Object.keys(o).forEach(idx => { if (rows[idx]) rows[idx] = Object.assign({}, rows[idx], o[idx]); }); }
+      } catch (e) { }
+    }
+    currCache[code] = rows;
+    return rows;
+  }
+  async function saveCurrEdit(code, idx, patch) {
+    const rows = currCache[code]; if (rows && rows[idx]) rows[idx] = Object.assign({}, rows[idx], patch);
+    if (CLOUD && fdb) { try { await fdb.doc("curredits/" + code).set({ rows: { [idx]: patch }, ts: Date.now(), tn: TE.name }, { merge: true }); return true; } catch (e) { return false; } }
+    return true;
   }
   const lessonURL = (code, w) => META.lessonsBase + code + "w" + w + ".html";
 
@@ -448,11 +461,13 @@
       <div class="sheet-actions" style="flex-wrap:wrap">
         <button class="btn-plain" style="flex:1 1 46%" id="sc-report">📄 تقرير للطباعة</button>
         <button class="btn-plain" style="flex:1 1 46%" id="sc-letter">✉️ إشعار ولي الأمر</button>
+        <button class="btn-gold" style="flex:1 1 100%" id="sc-cert">🎓 شهادة تميّز (طباعة فاخرة)</button>
         <button class="btn-primary" style="flex:1 1 100%" onclick="window._sheetClose()">إغلاق</button></div>`,
       (o) => {
         o.querySelector("#sc-addcomm").onclick = () => commSheet(cid, i);
         o.querySelector("#sc-report").onclick = () => printReport(cid, i);
         o.querySelector("#sc-letter").onclick = () => printLetter(cid, i);
+        o.querySelector("#sc-cert").onclick = () => printCertificate(cid, i);
       });
   }
   function commSheet(cid, i) {
@@ -468,23 +483,47 @@
         save("comms:" + cid); closeSheet(); studentCard(cid, i);
       });
   }
-  function printDoc(title, bodyHtml) {
+  const PRINT_CSS = `@import url('https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800&display=swap');
+    *{box-sizing:border-box}body{font-family:'Tajawal',Arial,sans-serif;color:#1B2A3A;margin:0;padding:26px;background:#fff}
+    .frame{border:3px solid #D7A93F;border-radius:14px;padding:26px 30px;position:relative}
+    .frame::before{content:'';position:absolute;inset:6px;border:1px solid #D7A93F;border-radius:9px;pointer-events:none}
+    .h{text-align:center;margin-bottom:18px}
+    .h .bar{background:linear-gradient(135deg,#0E2033,#142A44);color:#F0D99A;border-radius:10px;padding:12px;font-size:20px;font-weight:800}
+    .h .m{color:#555;font-size:13px;margin-top:8px}
+    table{width:100%;border-collapse:collapse;margin:14px 0}td,th{border:1px solid #d8cfae;padding:7px 10px;font-size:14px;text-align:center}
+    th{background:#0E2033;color:#F0D99A}tr:nth-child(even) td{background:#fbf6ea}
+    .tt{font-size:22px;font-weight:800;color:#0E2033;text-align:center;margin:12px 0}
+    .sig{display:flex;justify-content:space-between;margin-top:48px;font-size:14px;color:#333}
+    p{line-height:2;font-size:15px}
+    .seal{width:70px;height:70px;margin:0 auto 6px;background:#D7A93F;border:3px solid #0E2033;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:34px}
+    .stars{color:#D7A93F;font-size:30px;letter-spacing:8px;text-align:center;margin:12px 0}
+    .who{font-size:30px;font-weight:800;color:#b8860b;text-align:center;margin:14px auto;border-bottom:3px dotted #D7A93F;display:table;padding:0 34px 8px}
+    .ctr{text-align:center;font-size:15px;line-height:2.1}`;
+  function printDoc(title, bodyHtml, opts) {
     const w = window.open("", "_blank");
-    w.document.write(`<!DOCTYPE html><html dir="rtl" lang="ar"><head><meta charset="utf-8"><title>${esc(title)}</title>
-      <style>body{font-family:'Tajawal',Arial,sans-serif;padding:36px;color:#1B2A3A}
-      .h{text-align:center;border-bottom:3px solid #D7A93F;padding-bottom:12px;margin-bottom:20px}
-      .h .s{font-size:20px;font-weight:800;color:#0E2033}.h .m{color:#666;font-size:13px}
-      table{width:100%;border-collapse:collapse;margin:14px 0}td,th{border:1px solid #ccc;padding:7px 10px;font-size:14px}
-      th{background:#0E2033;color:#F0D99A}.tt{font-size:22px;font-weight:800;color:#0E2033;text-align:center;margin:10px 0}
-      .sig{display:flex;justify-content:space-between;margin-top:50px;font-size:14px;color:#444}p{line-height:2;font-size:15px}</style></head>
-      <body>${bodyHtml}<script>onload=()=>{print()}<\/script></body></html>`);
+    w.document.write(`<!DOCTYPE html><html dir="rtl" lang="ar"><head><meta charset="utf-8"><title>${esc(title)}</title><style>${PRINT_CSS}${opts && opts.land ? "@page{size:landscape}" : ""}</style></head><body><div class="frame">${bodyHtml}</div><script>onload=()=>{setTimeout(()=>print(),350)}<\/script></body></html>`);
     w.document.close();
+  }
+  function printCertificate(cid, i, aggPts) {
+    const c = classById(cid), s = c.students[i];
+    const pts = aggPts != null ? aggPts : calcStudent(cid, i).pts;
+    const nStars = Math.max(1, Math.min(5, Math.round(pts > 0 ? pts / 12 + 1 : 1)));
+    const stars = "★".repeat(nStars) + "☆".repeat(5 - nStars);
+    printDoc("شهادة تميّز — " + s.n, `
+      <div class="seal">🏆</div>
+      <div class="tt" style="color:#b8860b;font-size:28px">شهادة تميّز وإنجاز</div>
+      <div class="ctr">تتقدّم ${esc(META.school.name)} بخالص التقدير للطالب المتميّز</div>
+      <div class="who">${esc(s.n)}</div>
+      <div class="ctr">من ${esc(c.name)}، تقديراً لتميّزه وحرصه وتفاعله المستمر،<br>حيث جمع <b>${pts}</b> نقطة. فله منّا كل الفخر، ونسأل الله له دوام التوفّق والعلا.</div>
+      <div class="stars">${stars}</div>
+      <div class="sig"><span>معلم المادة: ${esc(TE ? TE.name : "")}</span><span>مدير المدرسة: ..............</span></div>
+      <div class="ctr" style="color:#888;font-size:12px;margin-top:14px">${esc(hijriLabel())}</div>`, { land: true });
   }
   function printReport(cid, i) {
     const c = classById(cid), s = c.students[i], calc = classCalc(cid), t = calc[i].t, rank = calc[i].rank;
     const maxTot = ASSESS.reduce((a, b) => a + b.max, 0), g = (DB.grades[cid] || {})[i] || {}, gtot = gradeTotal(cid, i);
     printDoc("تقرير الطالب " + s.n, `
-      <div class="h"><div class="s">${esc(META.school.name)}</div><div class="m">تقرير متابعة الطالب — مادة ${esc(TE.subject)} — ${esc(hijriLabel())}</div></div>
+      <div class="h"><div class="bar">${esc(META.school.name)}</div><div class="m">تقرير متابعة الطالب — مادة ${esc(TE.subject)} — ${esc(hijriLabel())}</div></div>
       <div class="tt">${esc(s.n)}</div>
       <table><tr><th>الفصل</th><td>${esc(c.name)}</td><th>الترتيب</th><td>${rank} من ${c.students.length}</td></tr>
       <tr><th>مجموع النقاط</th><td>${t.pts}</td><th>الدرجة</th><td>${gtot} / ${maxTot}</td></tr></table>
@@ -498,7 +537,7 @@
     const c = classById(cid), s = c.students[i], t = calcStudent(cid, i);
     const weak = t.pts < 0 || t.st[1] > 1 || t.hwN > 1;
     printDoc("إشعار ولي أمر " + s.n, `
-      <div class="h"><div class="s">${esc(META.school.name)}</div><div class="m">إشعار ولي الأمر — ${esc(hijriLabel())}</div></div>
+      <div class="h"><div class="bar">${esc(META.school.name)}</div><div class="m">إشعار ولي الأمر — ${esc(hijriLabel())}</div></div>
       <div class="tt">${weak ? "إشعار متابعة" : "إشعار تميّز"}</div>
       <p>المكرّم ولي أمر الطالب / <b>${esc(s.n)}</b> — الصف ${esc(c.name)} &nbsp;&nbsp; حفظه الله</p>
       <p>السلام عليكم ورحمة الله وبركاته،</p>
@@ -543,7 +582,7 @@
   }
   function printHonor(c, top, MED) {
     printDoc("لوحة شرف " + c.name, `
-      <div class="h"><div class="s">${esc(META.school.name)}</div><div class="m">${esc(TE.subject)} — ${esc(hijriLabel())}</div></div>
+      <div class="h"><div class="bar">${esc(META.school.name)}</div><div class="m">${esc(TE.subject)} — ${esc(hijriLabel())}</div></div>
       <div class="tt">🏆 لوحة الشرف — ${esc(c.name)}</div>
       <table><tr><th>الترتيب</th><th>الطالب المتميّز</th><th>النقاط</th></tr>
       ${top.map((r, k) => `<tr><td style="font-size:20px">${k < 3 ? MED[k] : k + 1}</td><td style="font-weight:800">${esc(r.s.n)}</td><td><b>${r.t.pts}</b></td></tr>`).join("")}</table>
@@ -624,17 +663,39 @@
   }
 
   /* ═══ أدوات المعلم (بديل الإكسل) ═══ */
+  let curEdit = false;
   async function toolCurriculum() {
     const grades = [...new Set(myClasses().map(c => c.gc))].sort(), sc = subjCode(TE.subject);
-    openSheet(`<h4>📚 مناهجي — ${esc(TE.subject)}</h4><div id="cur-body"><div class="empty-note">جارِ التحميل…</div></div><div class="sheet-actions"><button class="btn-plain" onclick="print()">🖨️ طباعة</button><button class="btn-primary" onclick="window._sheetClose()">إغلاق</button></div>`, async () => {
-      let html = "";
-      for (const g of grades) {
-        const code = sc + g + TERM, rows = await loadCurr(code);
-        if (!rows.length) continue;
-        html += `<div style="font-weight:800;color:var(--navy);margin:10px 0 4px">الصف ${GNAME[g]}</div><div class="table-scroll"><table class="report-table"><tr><th>الأسبوع</th><th>الوحدة</th><th>الدرس</th><th>تفاعلي</th></tr>` +
-          rows.sort((a, b) => a.w - b.w).map(r => `<tr><td>${r.w}</td><td class="nm">${esc(r.unit || "")}</td><td class="nm">${esc(r.lesson || "")}</td><td>${String(r.lesson || "").includes("إجازة") ? "—" : `<a href="${lessonURL(code, r.w)}" target="_blank" rel="noopener" style="color:var(--gold);font-weight:800">🚀</a>`}</td></tr>`).join("") + `</table></div>`;
+    openSheet(`<h4>📚 مناهجي — ${esc(TE.subject)}</h4>
+      <div style="display:flex;gap:8px;margin-bottom:8px"><button class="btn-soft" id="cur-edit">✏️ تعديل التوزيع</button><button class="btn-plain" style="flex:0 0 auto;padding:9px 14px" onclick="print()">🖨️ طباعة</button></div>
+      <div id="cur-body"><div class="empty-note">جارِ التحميل…</div></div>
+      <div class="sheet-actions"><button class="btn-primary" onclick="window._sheetClose()">إغلاق</button></div>`, async (o) => {
+      async function build() {
+        let html = "";
+        for (const g of grades) {
+          const code = sc + g + TERM, rows = await loadCurr(code);
+          if (!rows.length) continue;
+          const idxRows = rows.map((r, idx) => ({ r, idx })).sort((a, b) => a.r.w - b.r.w);
+          html += `<div style="font-weight:800;color:var(--navy);margin:10px 0 4px">الصف ${GNAME[g]}</div><div class="table-scroll"><table class="report-table"><tr><th>أ</th><th style="min-width:90px">الوحدة</th><th style="min-width:120px">الدرس</th><th>${curEdit ? "" : "تفاعلي"}</th></tr>` +
+            idxRows.map(({ r, idx }) => curEdit
+              ? `<tr><td>${r.w}</td><td><input class="gr-in cur-in" style="width:88px" data-code="${code}" data-idx="${idx}" data-f="unit" value="${esc(r.unit || "")}"></td><td><input class="gr-in cur-in" style="width:120px" data-code="${code}" data-idx="${idx}" data-f="lesson" value="${esc(r.lesson || "")}"></td><td></td></tr>`
+              : `<tr><td>${r.w}</td><td class="nm">${esc(r.unit || "")}</td><td class="nm">${esc(r.lesson || "")}</td><td>${String(r.lesson || "").includes("إجازة") ? "—" : `<a href="${lessonURL(code, r.w)}" target="_blank" rel="noopener" style="color:var(--gold);font-weight:800">🚀</a>`}</td></tr>`).join("") + `</table></div>`;
+        }
+        const b = o.querySelector("#cur-body"); if (!b) return;
+        b.innerHTML = html || '<div class="empty-note">لا مناهج مسندة</div>';
+        if (curEdit) b.querySelectorAll(".cur-in").forEach(inp => inp.onchange = () => {
+          const patch = {}; patch[inp.dataset.f] = inp.value.trim();
+          saveCurrEdit(inp.dataset.code, +inp.dataset.idx, patch);
+          inp.style.borderColor = "var(--ok)";
+        });
       }
-      const b = document.querySelector("#cur-body"); if (b) b.innerHTML = html || '<div class="empty-note">لا مناهج مسندة</div>';
+      o.querySelector("#cur-edit").onclick = (e) => {
+        curEdit = !curEdit;
+        e.target.textContent = curEdit ? "✅ تم — عرض" : "✏️ تعديل التوزيع";
+        e.target.style.background = curEdit ? "#dff0df" : "";
+        build();
+      };
+      build();
     });
   }
   function toolSessions() {
@@ -709,7 +770,7 @@
   }
   function printWorksheet(lesson) {
     printDoc("ورقة عمل — " + lesson, `
-      <div class="h"><div class="s">${esc(META.school.name)}</div><div class="m">${esc(TE.subject)} — ${esc(hijriLabel())}</div></div>
+      <div class="h"><div class="bar">${esc(META.school.name)}</div><div class="m">${esc(TE.subject)} — ${esc(hijriLabel())}</div></div>
       <div class="tt">ورقة عمل: ${esc(lesson)}</div>
       <p>اسم الطالب: ............................................ الفصل: ............ التاريخ: ............</p>
       <p><b>السؤال الأول:</b> اكتب أهم ما تعلّمته عن (${esc(lesson)}):</p><p>....................................................................................................................</p><p>....................................................................................................................</p>
@@ -802,7 +863,8 @@
           <div class="body">من ${esc(c.name)} قد أظهر تفاعلاً وحرصاً في دروسه،<br>وجمع <b>${agg.pts}</b> نقطة. نسأل الله له دوام التوفّق والتميّز.</div>
           <div class="stars" style="color:var(--gold)">${stars}</div>
           <div class="foot"><span>${esc(hijriLabel())}</span><span>إدارة المدرسة</span></div>
-          <button class="btn-gold no-print" style="margin-top:14px" onclick="print()">🖨️ طباعة الشهادة</button></div>`;
+          <button class="btn-gold no-print" style="margin-top:14px" id="st-cert-print">🖨️ طباعة الشهادة (تصميم فاخر)</button></div>`;
+        const pb = body.querySelector("#st-cert-print"); if (pb) pb.onclick = () => printCertificate(cid, i, agg.pts);
       }
     }
     stSection("card");
