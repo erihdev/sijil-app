@@ -886,13 +886,14 @@
       });
     }
   }
-  // 🎬 قصة الدرس (عرض مرئي متحرّك + سرد صوتي عربي — بلا منصة خارجية)
-  let storyTimer = null, storyActive = false;
-  function stopStory() {
-    storyActive = false;
+  // 🎬 قصة الدرس (عرض مرئي متحرّك + سرد صوتي سعودي — صوت عصبي مُسجّل مسبقاً، ويعود لصوت المتصفح عند غيابه)
+  let storyTimer = null, storyActive = false, storyAudio = null;
+  function haltNarr() {
     if (storyTimer) { clearTimeout(storyTimer); storyTimer = null; }
     try { window.speechSynthesis && window.speechSynthesis.cancel(); } catch (e) { }
+    if (storyAudio) { try { storyAudio.pause(); storyAudio.onended = null; storyAudio.onerror = null; } catch (e) { } }
   }
+  function stopStory() { storyActive = false; haltNarr(); }
   function buildStory(d) {
     if (d.story && d.story.length) return d.story;
     const s = [{ v: "📘", t: d.title || "درسنا اليوم" }];
@@ -927,6 +928,10 @@
     if (!d) { box.innerHTML = `<div class="empty-note" style="color:#c9d5e3">قصة هذا الدرس قيد الإعداد</div>`; return; }
     const scenes = buildStory(d);
     let idx = 0; storyActive = true;
+    // هل تتوفّر ملفات صوت سعودي مُسجّلة مسبقاً لهذا الدرس؟
+    let audioBase = null;
+    try { const h = await fetch("data/lessons/audio/" + code + "w" + wk + "/s0.mp3", { method: "HEAD" }); if (h.ok) audioBase = "data/lessons/audio/" + code + "w" + wk + "/"; } catch (e) { }
+    if (!storyAudio) { storyAudio = new Audio(); storyAudio.preload = "auto"; }
     box.innerHTML = `<div class="live-stage"><div class="stage-bar"><span style="color:#fff;font-weight:800">🎬 ${esc(d.title || "")}</span><span id="st-vhint" style="color:#9fb0c4;font-size:12px;margin-inline-start:auto"></span><label style="color:#c9d5e3;font-size:13px;margin-inline-start:10px"><input type="checkbox" id="st-voice" checked> سرد صوتي</label></div>
       <div class="story" id="story-stage">
         <div class="story-dots" id="story-dots"></div>
@@ -967,10 +972,25 @@
         storyTimer = setTimeout(go, Math.max(2400, text.length * 65));
       }
     }
+    function narrate(text, sceneIdx, cb) {
+      const useVoice = box.querySelector("#st-voice") && box.querySelector("#st-voice").checked;
+      if (!useVoice) { storyTimer = setTimeout(cb, Math.max(2200, text.length * 60)); return; }
+      if (audioBase) {
+        let done = false; const go = () => { if (!done) { done = true; cb(); } };
+        try { window.speechSynthesis && window.speechSynthesis.cancel(); } catch (e) { }
+        storyAudio.onended = go;
+        storyAudio.onerror = () => { audioBase = null; speakThen(text, cb); }; // سقوط لصوت المتصفح
+        storyAudio.src = audioBase + "s" + sceneIdx + ".mp3";
+        const p = storyAudio.play();
+        if (p && p.catch) p.catch(() => { audioBase = null; speakThen(text, cb); });
+        // تحميل مسبق للمشهد التالي
+        if (sceneIdx + 1 < scenes.length) { try { new Audio(audioBase + "s" + (sceneIdx + 1) + ".mp3"); } catch (e) { } }
+      } else speakThen(text, cb);
+    }
     function step() {
       if (!storyActive || !playing) return;
       paint();
-      speakThen(scenes[idx].t, () => {
+      narrate(scenes[idx].t, idx, () => {
         if (!playing) return;
         if (idx < scenes.length - 1) { idx++; step(); }
         else { playing = false; box.querySelector("#st-play").textContent = "▶️ تشغيل"; confetti(); }
@@ -978,16 +998,18 @@
     }
     function setPlay(p) {
       playing = p; box.querySelector("#st-play").textContent = p ? "⏸ إيقاف" : "▶️ تشغيل";
-      if (p) step(); else { if (storyTimer) clearTimeout(storyTimer); try { window.speechSynthesis.cancel(); } catch (e) { } }
+      if (p) step(); else haltNarr();
     }
+    const restart = () => { if (playing) { haltNarr(); step(); } };
     box.querySelector("#st-play").onclick = () => setPlay(!playing);
-    box.querySelector("#st-next").onclick = () => { if (idx < scenes.length - 1) { idx++; paint(); if (playing) { if (storyTimer) clearTimeout(storyTimer); try { window.speechSynthesis.cancel(); } catch (e) { } step(); } } };
-    box.querySelector("#st-prev").onclick = () => { if (idx > 0) { idx--; paint(); if (playing) { if (storyTimer) clearTimeout(storyTimer); try { window.speechSynthesis.cancel(); } catch (e) { } step(); } } };
+    box.querySelector("#st-next").onclick = () => { if (idx < scenes.length - 1) { idx++; paint(); restart(); } };
+    box.querySelector("#st-prev").onclick = () => { if (idx > 0) { idx--; paint(); restart(); } };
     box.querySelector("#st-replay").onclick = () => { idx = 0; paint(); setPlay(true); };
-    dotsEl.querySelectorAll(".story-dot").forEach(x => x.onclick = () => { idx = +x.dataset.k; paint(); if (playing) { if (storyTimer) clearTimeout(storyTimer); try { window.speechSynthesis.cancel(); } catch (e) { } step(); } });
-    // تلميح جودة الصوت
+    dotsEl.querySelectorAll(".story-dot").forEach(x => x.onclick = () => { idx = +x.dataset.k; paint(); restart(); });
+    // تلميح مصدر الصوت
     setTimeout(() => {
       const hint = box.querySelector("#st-vhint"); if (!hint) return;
+      if (audioBase) { hint.textContent = "🎙️ صوت سعودي احترافي"; return; }
       const v = arVoice();
       if (!v) hint.textContent = "لأفضل نطق عربي افتح الموقع في متصفح Edge";
       else if (/online|natural/i.test(v.name || "")) hint.textContent = "🎙️ صوت طبيعي: " + v.name.replace(/microsoft/i, "").trim();
