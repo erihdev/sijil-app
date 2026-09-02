@@ -254,6 +254,19 @@ button{font-family:inherit}
 .live-btn{background:rgba(255,255,255,.12); color:#fff; border:1px solid rgba(255,255,255,.3);
   border-radius:10px; padding:8px 14px; font-size:14px; font-weight:800; cursor:pointer; font-family:inherit}
 .live-wrap{flex:1; display:flex; gap:12px; padding:12px; overflow:hidden}
+.live-center{flex:1; display:flex; flex-direction:column; min-width:0}
+.live-tools{display:flex; gap:6px; margin-bottom:10px; flex-wrap:wrap}
+.live-tools button{background:rgba(255,255,255,.1); color:#fff; border:1px solid rgba(255,255,255,.28);
+  border-radius:10px; padding:8px 14px; font-weight:800; font-size:14px; cursor:pointer; font-family:inherit}
+.live-tools button.on{background:var(--gold); color:#0E2033; border-color:var(--gold)}
+.live-main{flex:1; overflow:auto; min-height:0; display:flex; flex-direction:column}
+.live-stage{flex:1; background:#0a1420; border-radius:14px; overflow:hidden; display:flex; flex-direction:column; min-height:0}
+.live-stage iframe{flex:1; width:100%; border:0; background:#fff}
+.stage-bar{background:rgba(255,255,255,.08); padding:8px 10px; display:flex; gap:8px; align-items:center; flex-wrap:wrap}
+.stage-bar input{flex:1; min-width:140px; padding:9px 12px; border-radius:8px; border:1px solid rgba(255,255,255,.3);
+  background:rgba(255,255,255,.12); color:#fff; font-family:inherit; font-size:14px}
+.stage-ws{background:#fff; color:#1B2A3A; padding:22px 26px; overflow:auto; flex:1; line-height:1.9}
+.btip{text-align:center; color:#9fb0c4; font-size:11.5px; margin-bottom:8px}
 .live-roster{flex:1; overflow-y:auto; display:grid; grid-template-columns:repeat(auto-fill,minmax(140px,1fr));
   gap:10px; align-content:start; padding-bottom:20px}
 .rcard{background:rgba(255,255,255,.09); border:1.5px solid rgba(255,255,255,.16); border-radius:14px;
@@ -278,6 +291,8 @@ button{font-family:inherit}
 .brow.t2 .bp{color:#0E2033}
 .brow.t3{background:linear-gradient(135deg,#d8a06a,#b3541e); color:#fff}
 .brow.t3 .bp{color:#fff}
+.brow{cursor:pointer}
+.brow:hover{outline:2px solid var(--gold)}
 .brow.pulse{animation:brpulse .7s}
 @keyframes brpulse{0%{transform:scale(1.06); box-shadow:0 0 22px var(--gold)}100%{transform:none; box-shadow:none}}
 .floatpt{position:fixed; font-size:34px; font-weight:800; pointer-events:none; z-index:92;

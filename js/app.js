@@ -786,36 +786,93 @@
         <button class="live-btn" id="live-fs">⛶ ملء الشاشة</button>
       </div>
       <div class="live-wrap">
-        <div class="live-roster" id="live-roster"></div>
+        <div class="live-center">
+          <div class="live-tools">
+            <button data-v="roster" class="on">👥 الطلاب</button>
+            <button data-v="lesson">▶️ الدرس التفاعلي</button>
+            <button data-v="yt">📺 يوتيوب</button>
+            <button data-v="ws">📝 ورقة عمل</button>
+          </div>
+          <div class="live-main" id="live-main"></div>
+        </div>
         <div class="live-board" id="live-board"></div>
       </div>`;
     $("#live-exit").onclick = () => { try { if (document.fullscreenElement) document.exitFullscreen(); } catch (e) { } V.classList.add("hidden"); $("#view-app").classList.remove("hidden"); renderReg(); renderToday(); renderGrades(); };
     $("#live-fs").onclick = () => { try { document.fullscreenElement ? document.exitFullscreen() : V.requestFullscreen(); } catch (e) { } };
-    // عنوان الأسبوع/الدرس
+    V.querySelectorAll(".live-tools button").forEach(b => b.onclick = () => {
+      V.querySelectorAll(".live-tools button").forEach(x => x.classList.toggle("on", x === b));
+      liveView(b.dataset.v);
+    });
     (async () => {
       const sc = subjCode(TE.subject), wk = curWeek();
       let les = "";
       if (sc) { const rows = (await loadCurr(sc + c.gc + TERM)).filter(r => r.w === wk); const m = rows.find(r => r.lesson && !String(r.lesson).includes("تابع")) || rows[0]; les = m ? m.lesson : ""; }
       const sub = $("#live-sub"); if (sub) sub.textContent = "· الأسبوع " + wk + (les ? " · " + les : "");
     })();
-    drawLiveRoster(); drawLiveBoard(true);
+    liveView("roster"); drawLiveBoard(true);
+  }
+  let liveMainView = "roster";
+  async function liveView(v) {
+    liveMainView = v;
+    const box = $("#live-main"); if (!box) return;
+    const c = classById(liveCid), sc = subjCode(TE.subject), wk = curWeek(), code = sc + c.gc + TERM;
+    if (v === "roster") { drawLiveRoster(); return; }
+    if (v === "lesson") {
+      box.innerHTML = `<div class="empty-note" style="color:#c9d5e3">جارِ تحميل الدرس…</div>`;
+      const rows = (await loadCurr(code)).filter(r => r.w === wk);
+      const m = rows.find(r => r.lesson && !String(r.lesson).includes("تابع")) || rows[0];
+      if (!sc || !m || String(m.lesson).includes("إجازة")) { box.innerHTML = `<div class="empty-note" style="color:#c9d5e3">لا درس تفاعلي متاح لهذا الأسبوع</div>`; return; }
+      box.innerHTML = `<div class="live-stage"><div class="stage-bar"><span style="color:#fff;font-weight:800">▶️ ${esc(m.lesson)}</span><a class="live-btn" style="margin-inline-start:auto;text-decoration:none" href="${lessonURL(code, wk)}" target="_blank" rel="noopener">↗ فتح في نافذة</a></div><iframe src="${lessonURL(code, wk)}" allowfullscreen></iframe></div>`;
+      return;
+    }
+    if (v === "yt") {
+      const rows = (await loadCurr(code)).filter(r => r.w === wk);
+      const m = rows.find(r => r.lesson && !String(r.lesson).includes("تابع")) || rows[0];
+      const q = encodeURIComponent(((m && m.lesson) || "") + " " + TE.subject + " " + GNAME[c.gc] + " ابتدائي شرح");
+      box.innerHTML = `<div class="live-stage"><div class="stage-bar"><input id="yt-url" placeholder="الصق رابط فيديو يوتيوب هنا…"><button class="live-btn" id="yt-go">عرض</button><a class="live-btn" style="text-decoration:none" href="https://www.youtube.com/results?search_query=${q}" target="_blank" rel="noopener">🔎 بحث</a></div><div id="yt-frame" style="flex:1;display:flex;align-items:center;justify-content:center;color:#c9d5e3">الصق رابط فيديو واضغط «عرض» — أو «بحث» لإيجاد شرح الدرس</div></div>`;
+      const show = () => {
+        const u = box.querySelector("#yt-url").value.trim();
+        const m2 = u.match(/(?:v=|youtu\.be\/|embed\/|shorts\/)([\w-]{11})/) || (u.length === 11 ? [0, u] : null);
+        const fr = box.querySelector("#yt-frame");
+        if (!m2) { fr.textContent = "رابط غير صحيح — انسخ رابط الفيديو من يوتيوب"; return; }
+        fr.outerHTML = `<iframe id="yt-frame" src="https://www.youtube.com/embed/${m2[1]}?rel=0" allow="autoplay; fullscreen" allowfullscreen style="flex:1;width:100%;border:0"></iframe>`;
+      };
+      box.querySelector("#yt-go").onclick = show;
+      box.querySelector("#yt-url").addEventListener("keydown", (e) => { if (e.key === "Enter") show(); });
+      return;
+    }
+    if (v === "ws") {
+      const rows = (await loadCurr(code)).filter(r => r.w === wk);
+      const m = rows.find(r => r.lesson && !String(r.lesson).includes("تابع")) || rows[0];
+      const les = (m && m.lesson) || "الدرس";
+      box.innerHTML = `<div class="live-stage"><div class="stage-bar"><span style="color:#fff;font-weight:800">📝 ورقة عمل</span><button class="live-btn" style="margin-inline-start:auto" id="ws-print">🖨️ طباعة</button></div>
+        <div class="stage-ws"><h2 style="text-align:center;color:#0E2033">ورقة عمل: ${esc(les)}</h2>
+        <p style="font-size:16px">اسم الطالب: ........................................ الفصل: ${esc(c.name)} &nbsp; التاريخ: ..............</p>
+        <p style="font-size:17px"><b>السؤال الأول:</b> اكتب أهم ما تعلّمته عن (${esc(les)}):</p><p style="border-bottom:1px solid #bbb;height:26px"></p><p style="border-bottom:1px solid #bbb;height:26px"></p>
+        <p style="font-size:17px"><b>السؤال الثاني:</b> أكمل الفراغات المناسبة:</p><p style="border-bottom:1px solid #bbb;height:26px"></p>
+        <p style="font-size:17px"><b>السؤال الثالث:</b> ارسم أو مثّل ما فهمته:</p><div style="border:1px dashed #999;height:160px;border-radius:8px"></div></div></div>`;
+      box.querySelector("#ws-print").onclick = () => printWorksheet(les);
+      return;
+    }
   }
   function drawLiveRoster() {
-    const c = classById(liveCid), calc = classCalc(liveCid), box = $("#live-roster"); if (!box) return;
-    box.innerHTML = c.students.map((s, i) => {
+    if (liveMainView !== "roster") return;
+    const c = classById(liveCid), calc = classCalc(liveCid), box = $("#live-main"); if (!box) return;
+    box.innerHTML = `<div class="live-roster">` + c.students.map((s, i) => {
       const p = calc[i].t.pts;
       return `<div class="rcard" data-i="${i}"><div class="rrk">#${calc[i].rank}</div><div class="rn">${esc(s.n)}</div><div class="rp ${p < 0 ? "neg" : ""}">${p}</div></div>`;
-    }).join("");
-    box.querySelectorAll(".rcard").forEach(el2 => el2.onclick = (ev) => liveActions(+el2.dataset.i, ev));
+    }).join("") + `</div>`;
+    box.querySelectorAll(".rcard").forEach(el2 => el2.onclick = () => liveActions(+el2.dataset.i));
   }
   function drawLiveBoard(silent) {
     const c = classById(liveCid), calc = classCalc(liveCid), box = $("#live-board"); if (!box) return;
     const rows = calc.slice().sort((a, b) => b.t.pts - a.t.pts || a.i - b.i);
-    box.innerHTML = `<div class="bhead">🏆 لوحة الشرف</div>` + rows.map((r, k) => {
+    box.innerHTML = `<div class="bhead">🏆 لوحة الشرف</div><div class="btip">اضغط اسم الطالب للتقييم اللحظي</div>` + rows.map((r, k) => {
       const cls = k === 0 ? "t1" : k === 1 ? "t2" : k === 2 ? "t3" : "";
       const rk = k < 3 ? ["🥇", "🥈", "🥉"][k] : (k + 1);
       return `<div class="brow ${cls}" data-i="${r.i}"><span class="rk">${rk}</span><span class="bn">${esc(r.s.n)}</span><span class="bp">${r.t.pts}</span></div>`;
     }).join("");
+    box.querySelectorAll(".brow").forEach(el2 => el2.onclick = () => liveActions(+el2.dataset.i));
     const topId = rows.length ? rows[0].i : null;
     if (!silent && topId != null && topId !== livePrevTop && rows[0].t.pts > 0) confetti();
     livePrevTop = topId;
@@ -852,10 +909,9 @@
     else if (k === "bad" && neg >= 0) { e.beh = e.beh || []; e.beh.push(neg); delta = +BEH[neg].pts; }
     else if (k === "absent") { const had = e.a; e.a = 1; delta = (STATES[1].pts || 0) - (had != null && STATES[had] ? STATES[had].pts : 0); }
     save("recs:" + liveCid);
-    // تأثير النقاط الطائر على بطاقة الطالب
     const card = document.querySelector(`.rcard[data-i="${i}"]`);
     if (card && delta) floatPoints(card, delta);
-    drawLiveRoster();
+    if (liveMainView === "roster") drawLiveRoster();
     drawLiveBoard(false);
     const brow = document.querySelector(`.brow[data-i="${i}"]`);
     if (brow) { brow.classList.add("pulse"); setTimeout(() => brow.classList.remove("pulse"), 700); if (delta) floatPoints(brow, delta); }
