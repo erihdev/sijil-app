@@ -1388,46 +1388,186 @@
     setTimeout(() => f.remove(), 1100);
   }
 
-  // 🎮 استوديو ألعاب الدرس — من مصطلحات الدرس وبنك أسئلته (لوحة الشرف تبقى للتقييم اللحظي)
-  let gameIv = null;
-  function stopGame() { if (gameIv) { clearInterval(gameIv); gameIv = null; } }
+  // 🎮 استوديو ألعاب الدرس — تخمين وصور وفرق (لوحة الشرف تبقى للتقييم اللحظي)
+  let gameIv = null, gameIv2 = null;
+  function stopGame() { if (gameIv) { clearInterval(gameIv); gameIv = null; } if (gameIv2) { clearInterval(gameIv2); gameIv2 = null; } }
   const shuffle = (a) => { a = a.slice(); for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
+  const GEN_CAPS = ["لوحة المفاتيح", "فأرة الحاسب", "طابعة", "شاشة الحاسب", "الإنترنت", "روبوت", "ميكروفون", "كتب", "مخطط بياني", "جدول بيانات", "جهاز لوحي", "ساعة ذكية", "كاميرا", "محرك البحث"];
   async function stageGames(box, code, wk, c) {
     stopGame();
     const d = await lessonData(code, wk);
     const vocab = (d && d.vocab) || [], bank = await lessonQuestions(code, wk);
-    const hero = d && (d.story || []).find(s => s.img);
+    const scenes = (d && d.story) || [];
+    const imgs = []; const seenCap = new Set();
+    scenes.forEach(s => { if (s.img && s.cap && !seenCap.has(s.cap)) { seenCap.add(s.cap); imgs.push({ img: s.img, cap: s.cap, t: s.t }); } });
+    const hero = imgs[0];
     const L = ["أ", "ب", "ج", "د"];
     const bar = (title, extra) => `<div class="stage-bar"><button class="live-btn" id="gm-back">◀ الألعاب</button><span style="color:#fff;font-weight:800">${title}</span>${extra || ""}</div>`;
+    // 🎡 اختيار طالب عشوائي (الحاضرون أولاً) للإجابة
+    const roster = () => { let pool = c.students.map((s, i) => i); const day = (DB.recs[liveCid] || {})[liveDate]; const pres = pool.filter(i => day && day[i] && day[i].a === 0); return (pres.length ? pres : pool).map(i => c.students[i].n); };
+    const pickBtn = `<button class="live-btn gm-pick" id="gm-pick">🎡 من يجيب؟</button><span class="gm-who" id="gm-who"></span>`;
+    function wirePick() {
+      const b = box.querySelector("#gm-pick"), w = box.querySelector("#gm-who"); if (!b || !w) return;
+      b.onclick = () => { const names = roster(); if (!names.length) return; let n = 0; w.classList.remove("pop"); if (gameIv2) clearInterval(gameIv2); gameIv2 = setInterval(() => { w.textContent = names[Math.floor(Math.random() * names.length)]; if (++n > 16) { clearInterval(gameIv2); gameIv2 = null; w.classList.add("pop"); } }, 80); };
+    }
     function menu() {
       stopGame();
-      box.innerHTML = `<div class="live-stage"><div class="stage-bar"><span style="color:#fff;font-weight:800">🎮 ألعاب الدرس${d ? ": " + esc(d.title) : ""}</span><span style="color:#9fb0c4;font-size:12px;margin-inline-start:auto">من صلب محتوى الدرس</span></div>
-        <div class="gm-menu" ${hero ? `style="background-image:linear-gradient(rgba(10,20,32,.78),rgba(10,20,32,.96)),url('${hero.img}')"` : ""}>
-          <button class="gm-card" data-g="match" ${vocab.length < 3 ? "disabled" : ""}><span class="gm-ic">🧩</span><b>مطابقة المصطلحات</b><small>${vocab.length} مصطلحات — صِل كل مصطلح بتعريفه ضد الساعة</small></button>
-          <button class="gm-card" data-g="race" ${bank.length < 3 ? "disabled" : ""}><span class="gm-ic">⚡</span><b>سباق صح / خطأ</b><small>${bank.length} أسئلة — 10 ثوانٍ لكل عبارة ومكافأة للسلسلة</small></button>
-          <button class="gm-card" data-g="ladder" ${bank.length < 3 ? "disabled" : ""}><span class="gm-ic">🪜</span><b>سلّم المليون</b><small>اصعد بالإجابات الصحيحة — الخطأ يعيدك للبداية، ومعك مساعدة 50:50</small></button>
+      const card = (g, ic, t, sub, on) => `<button class="gm-card" data-g="${g}" ${on ? "" : "disabled"}><span class="gm-ic">${ic}</span><b>${t}</b><small>${sub}</small></button>`;
+      box.innerHTML = `<div class="live-stage"><div class="stage-bar"><span style="color:#fff;font-weight:800">🎮 ألعاب الدرس${d ? ": " + esc(d.title) : ""}</span><span style="color:#9fb0c4;font-size:12px;margin-inline-start:auto">من صور الدرس ومصطلحاته وقصته</span></div>
+        <div class="gm-menu" ${hero ? `style="background-image:linear-gradient(rgba(10,20,32,.8),rgba(10,20,32,.96)),url('${hero.img}')"` : ""}>
+          ${card("guess", "🖼️", "خمّن الصورة", "تنكشف الصورة قطعة قطعة… من يعرفها أولاً يفوز بأكثر النقاط", imgs.length >= 2)}
+          ${card("memory", "🧠", "الذاكرة المصوّرة", "اقلب البطاقات وطابق الصورة باسمها قبل نفاد المحاولات", imgs.length >= 3 || vocab.length >= 3)}
+          ${card("riddle", "🔤", "من أنا؟", "لغز المصطلح: تعريف وحروف مخفية… خمّن قبل أن تُكشف الحروف", vocab.length >= 3)}
+          ${card("order", "🧩", "رتّب القصة", "مشاهد قصة الدرس مبعثرة… أعدها إلى ترتيبها الصحيح", scenes.length >= 4)}
+          ${card("teams", "⚔️", "تحدّي الفرق", "الفريق الأخضر ضد الذهبي: مؤقّت، سرقة السؤال، وعجلة تختار المجيب", bank.length >= 4)}
+          ${card("match", "🔗", "مطابقة المصطلحات", "صِل كل مصطلح بتعريفه ضد الساعة", vocab.length >= 3)}
+          ${card("ladder", "🪜", "سلّم المليون", "اصعد بالإجابات الصحيحة ومعك مساعدة 50:50", bank.length >= 3)}
         </div>${!d ? '<div class="empty-note" style="color:#c9d5e3">لا محتوى لهذا الدرس بعد</div>' : ""}</div>`;
-      box.querySelectorAll(".gm-card").forEach(b => b.onclick = () => ({ match, race, ladder })[b.dataset.g]());
+      box.querySelectorAll(".gm-card").forEach(b => b.onclick = () => ({ guess, memory, riddle, order, teams, match, ladder })[b.dataset.g]());
     }
-    function finish(title, msg) {
+    function finish(title, msg, sub) {
       stopGame();
       box.innerHTML = `<div class="live-stage">${bar(title)}
-        <div class="gm-body gm-center"><div class="gm-ic" style="font-size:96px">🏆</div><div class="gm-stmt">${msg}</div><div style="color:#c9d5e3;margin-top:6px">امنح المتميزين نقاطهم بالنقر على أسمائهم في لوحة الشرف 🏆</div>
+        <div class="gm-body gm-center"><div class="gm-ic" style="font-size:96px">🏆</div><div class="gm-stmt">${msg}</div>${sub ? `<div class="gm-sub">${sub}</div>` : ""}<div style="color:#c9d5e3;margin-top:6px">امنح المتميزين نقاطهم بالنقر على أسمائهم في لوحة الشرف 🏆</div>
         <button class="btn-primary" id="gm-again" style="margin-top:18px;font-size:17px">🎮 لعبة أخرى</button></div></div>`;
       box.querySelector("#gm-back").onclick = menu; box.querySelector("#gm-again").onclick = menu;
     }
-    // 🧩 مطابقة المصطلحات
+    // 🖼️ خمّن الصورة — كشف تدريجي بقطع
+    function guess() {
+      const rounds = shuffle(imgs).slice(0, 6); let ri = 0, total = 0;
+      const caps = [...new Set([...imgs.map(x => x.cap), ...GEN_CAPS])];
+      function round() {
+        stopGame();
+        const it = rounds[ri]; if (!it) { finish("🖼️ خمّن الصورة", `مجموع النقاط ${total} من ${rounds.length * 100}`); return; }
+        const opts = shuffle([it.cap, ...shuffle(caps.filter(x => x !== it.cap)).slice(0, 3)]);
+        const TILES = 20; let left = TILES; let locked = false;
+        box.innerHTML = `<div class="live-stage">${bar("🖼️ خمّن الصورة", `<span class="gm-hud" style="margin-inline-start:auto">جولة ${ri + 1}/${rounds.length} · ⭐ ${total}</span>`)}
+          <div class="gm-body gm-center"><div class="gm-pickrow">${pickBtn}</div>
+          <div class="gs-wrap"><img class="gs-img" src="${it.img}" alt=""><div class="gs-grid" id="gs-grid">${Array.from({ length: TILES }, (_, k) => `<div class="gs-tile" data-k="${k}"></div>`).join("")}</div></div>
+          <div class="gm-q" id="gs-pts">النقاط الآن: 100</div>
+          <div class="qz-grid" style="width:100%;max-width:760px">${opts.map((o, k) => `<button class="qz-opt-card" data-k="${k}">${esc(o)}</button>`).join("")}</div>
+          <div style="display:flex;gap:8px;margin-top:14px"><button class="live-btn" id="gs-more">👁️ اكشف قطعتين</button></div></div></div>`;
+        box.querySelector("#gm-back").onclick = menu; wirePick();
+        const grid = box.querySelector("#gs-grid"), pts = box.querySelector("#gs-pts");
+        const reveal = (n) => { const tiles = shuffle([...grid.querySelectorAll(".gs-tile:not(.off)")]).slice(0, n); tiles.forEach(t => t.classList.add("off")); left = grid.querySelectorAll(".gs-tile:not(.off)").length; pts.textContent = "النقاط الآن: " + Math.max(10, left * 5); if (!left && !locked) settle(false, true); };
+        gameIv = setInterval(() => reveal(1), 1600);
+        box.querySelector("#gs-more").onclick = () => reveal(2);
+        function settle(ok, timeout) {
+          locked = true; stopGame(); grid.querySelectorAll(".gs-tile").forEach(t => t.classList.add("off"));
+          const gain = ok ? Math.max(10, left * 5) : 0; total += gain;
+          box.querySelectorAll(".qz-opt-card").forEach(b => { b.onclick = null; if (opts[+b.dataset.k] === it.cap) b.classList.add("ok"); });
+          pts.innerHTML = ok ? `<span class="gm-fb ok">✅ ${esc(it.cap)} — +${gain}</span>` : `<span class="gm-fb no">${timeout ? "⏰ انكشفت الصورة" : "❌ ليست هذه"} — الجواب: ${esc(it.cap)}</span>`;
+          if (ok) confetti();
+          setTimeout(() => { ri++; round(); }, 1700);
+        }
+        box.querySelectorAll(".qz-opt-card").forEach(b => b.onclick = () => { if (locked) return; if (opts[+b.dataset.k] === it.cap) settle(true); else { b.classList.add("no"); b.onclick = null; left = Math.max(0, left - 2); reveal(2); } });
+      }
+      round();
+    }
+    // 🧠 الذاكرة المصوّرة — صورة ↔ اسمها (أو مصطلح ↔ تعريف)
+    function memory() {
+      let pairs;
+      if (imgs.length >= 3) pairs = shuffle(imgs).slice(0, 6).map((x, i) => ({ id: i, a: `<img src="${x.img}" alt="">`, b: esc(x.cap) }));
+      else pairs = shuffle(vocab).slice(0, 6).map((v, i) => ({ id: i, a: `<b>${esc(v.t)}</b>`, b: `<small>${esc(v.d)}</small>` }));
+      const cards = shuffle(pairs.flatMap(p => [{ id: p.id, h: p.a, k: "a" }, { id: p.id, h: p.b, k: "b" }]));
+      let open = [], found = 0, moves = 0; const t0 = Date.now(); let lock = false;
+      box.innerHTML = `<div class="live-stage">${bar("🧠 الذاكرة المصوّرة", `<span class="gm-hud" id="gm-hud" style="margin-inline-start:auto"></span>`)}
+        <div class="gm-body"><div class="gm-pickrow">${pickBtn}<span class="btip" style="margin:0">اقلب بطاقتين: الصورة واسمها</span></div>
+        <div class="mm-grid" style="--n:${cards.length <= 8 ? 4 : 4}">${cards.map((cd, i) => `<button class="mm-card" data-i="${i}"><div class="mm-in"><div class="mm-face mm-back">?</div><div class="mm-face mm-front">${cd.h}</div></div></button>`).join("")}</div></div></div>`;
+      box.querySelector("#gm-back").onclick = menu; wirePick();
+      const hud = box.querySelector("#gm-hud"); const tick = () => { hud.textContent = `⏱ ${fmtT((Date.now() - t0) / 1000)} · محاولات ${moves} · ${found}/${pairs.length}`; }; tick(); gameIv = setInterval(tick, 500);
+      box.querySelectorAll(".mm-card").forEach(b => b.onclick = () => {
+        if (lock || b.classList.contains("flip") || b.classList.contains("done")) return;
+        b.classList.add("flip"); open.push(b);
+        if (open.length === 2) {
+          moves++; lock = true; const [x, y] = open; const same = cards[+x.dataset.i].id === cards[+y.dataset.i].id;
+          setTimeout(() => { if (same) { x.classList.add("done"); y.classList.add("done"); found++; confetti(); } else { x.classList.remove("flip"); y.classList.remove("flip"); } open = []; lock = false; tick(); if (found === pairs.length) { stopGame(); setTimeout(() => finish("🧠 الذاكرة المصوّرة", `أنهيتم ${pairs.length} أزواج في ${fmtT((Date.now() - t0) / 1000)} بـ${moves} محاولة`), 500); } }, same ? 350 : 900);
+        }
+      });
+    }
+    // 🔤 من أنا؟ — لغز المصطلح بكشف الحروف
+    function riddle() {
+      const items = shuffle(vocab).slice(0, 6); let i = 0, total = 0;
+      function show() {
+        stopGame();
+        const v = items[i]; if (!v) { finish("🔤 من أنا؟", `مجموع النقاط ${total}`); return; }
+        const term = v.t.trim(); const chars = [...term]; const hidden = new Set(chars.map((ch, k) => ch === " " ? -1 : k).filter(k => k >= 0)); let solved = false;
+        const draw = () => `<div class="rd-word" dir="rtl">${chars.map((ch, k) => ch === " " ? `<span class="rd-sp"></span>` : `<span class="rd-box ${hidden.has(k) ? "" : "on"}">${hidden.has(k) ? "" : esc(ch)}</span>`).join("")}</div>`;
+        box.innerHTML = `<div class="live-stage">${bar("🔤 من أنا؟", `<span class="gm-hud" style="margin-inline-start:auto">لغز ${i + 1}/${items.length} · ⭐ ${total}</span>`)}
+          <div class="gm-body gm-center"><div class="gm-pickrow">${pickBtn}</div>
+          <div class="gm-q">التعريف</div><div class="gm-stmt">${esc(v.d)}</div>
+          <div id="rd-w">${draw()}</div><div class="gm-q" id="rd-pts">النقاط الآن: ${10 + hidden.size * 5}</div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:center"><button class="live-btn" id="rd-letter">🔡 اكشف حرفاً</button><button class="btn-primary" id="rd-got" style="padding:10px 22px">✅ عرفناها!</button><button class="live-btn" id="rd-skip">⏭ تخطٍّ</button></div></div></div>`;
+        box.querySelector("#gm-back").onclick = menu; wirePick();
+        const w = box.querySelector("#rd-w"), pts = box.querySelector("#rd-pts");
+        box.querySelector("#rd-letter").onclick = () => { if (solved || !hidden.size) return; const arr = [...hidden]; hidden.delete(arr[Math.floor(Math.random() * arr.length)]); w.innerHTML = draw(); pts.textContent = "النقاط الآن: " + (10 + hidden.size * 5); if (!hidden.size) { pts.innerHTML = `<span class="gm-fb no">انكشفت كلها — الجواب: ${esc(term)}</span>`; solved = true; setTimeout(() => { i++; show(); }, 1500); } };
+        box.querySelector("#rd-got").onclick = () => { if (solved) return; solved = true; const gain = 10 + hidden.size * 5; total += gain; hidden.clear(); w.innerHTML = draw(); pts.innerHTML = `<span class="gm-fb ok">✅ ${esc(term)} — +${gain}</span>`; confetti(); setTimeout(() => { i++; show(); }, 1500); };
+        box.querySelector("#rd-skip").onclick = () => { i++; show(); };
+      }
+      show();
+    }
+    // 🧩 رتّب القصة — مشاهد مبعثرة
+    function order() {
+      const src = scenes.map((s, k) => ({ k, s })).slice(0, 6); const disp = shuffle(src); let picked = [];
+      box.innerHTML = `<div class="live-stage">${bar("🧩 رتّب القصة", `<span class="gm-hud" id="gm-hud" style="margin-inline-start:auto">انقر المشاهد بترتيب حدوثها</span>`)}
+        <div class="gm-body"><div class="gm-pickrow">${pickBtn}<button class="live-btn" id="od-reset">↺ إعادة</button><button class="btn-primary" id="od-check" style="padding:8px 18px" disabled>✅ تحقّق</button></div>
+        <div class="od-grid">${disp.map((x, i) => `<button class="od-card" data-i="${i}"><span class="od-n"></span>${x.s.img ? `<img src="${x.s.img}" alt="">` : `<div class="od-emo">${x.s.v || "📘"}</div>`}<div class="od-t">${esc(x.s.t)}</div></button>`).join("")}</div></div></div>`;
+      box.querySelector("#gm-back").onclick = menu; wirePick();
+      const cards = [...box.querySelectorAll(".od-card")], chk = box.querySelector("#od-check");
+      const paint = () => { cards.forEach(cd => { const p = picked.indexOf(+cd.dataset.i); cd.querySelector(".od-n").textContent = p >= 0 ? (p + 1) : ""; cd.classList.toggle("sel", p >= 0); }); chk.disabled = picked.length !== disp.length; };
+      cards.forEach(cd => cd.onclick = () => { const i = +cd.dataset.i; const p = picked.indexOf(i); if (p >= 0) picked.splice(p, 1); else picked.push(i); paint(); });
+      box.querySelector("#od-reset").onclick = () => { picked = []; cards.forEach(cd => cd.classList.remove("ok", "no")); paint(); };
+      chk.onclick = () => {
+        let ok = 0; picked.forEach((di, pos) => { const right = disp[di].k === src[pos].k; cards[di].classList.add(right ? "ok" : "no"); if (right) ok++; });
+        box.querySelector("#gm-hud").textContent = `${ok}/${disp.length} في مكانها الصحيح`;
+        if (ok === disp.length) { confetti(); setTimeout(() => finish("🧩 رتّب القصة", "ترتيب صحيح بالكامل — القصة اكتملت!"), 900); }
+      };
+    }
+    // ⚔️ تحدّي الفرق — الأخضر ضد الذهبي
+    function teams() {
+      const qs = shuffle(bank.filter(q => q.t !== "fill")).slice(0, 10);
+      const T = [{ n: "الفريق الأخضر", cl: "g", s: 0 }, { n: "الفريق الذهبي", cl: "y", s: 0 }];
+      let qi = 0, turn = 0, left = 15, steal = false, t0 = 0;
+      function show() {
+        stopGame();
+        const it = qs[qi];
+        if (!it) { const w = T[0].s === T[1].s ? null : (T[0].s > T[1].s ? T[0] : T[1]); confetti(); finish("⚔️ تحدّي الفرق", w ? `🏆 الفائز: ${w.n}` : "🤝 تعادل!", `${T[0].n} ${T[0].s} — ${T[1].n} ${T[1].s}`); return; }
+        left = 15; steal = false; t0 = Date.now();
+        const head = () => `<div class="tm-board"><div class="tm-team g ${turn === 0 ? "on" : ""}"><b>${T[0].n}</b><span>${T[0].s}</span></div><div class="tm-vs">${steal ? "🕵️ فرصة سرقة" : "دور"}</div><div class="tm-team y ${turn === 1 ? "on" : ""}"><b>${T[1].n}</b><span>${T[1].s}</span></div></div>`;
+        box.innerHTML = `<div class="live-stage">${bar("⚔️ تحدّي الفرق", `<span class="gm-hud" style="margin-inline-start:auto">سؤال ${qi + 1}/${qs.length}</span>`)}
+          <div class="gm-body gm-center"><div id="tm-head">${head()}</div><div class="gm-pickrow">${pickBtn}</div>
+          <div class="gm-timer"><div id="gm-tf" style="width:100%"></div></div>
+          ${it.img ? `<img class="q-img" src="${it.img}" alt="">` : ""}<div class="gm-stmt" id="gm-stmt">${esc(it.q)}</div>
+          <div class="qz-grid" style="width:100%">${it.opts.map((o, k) => o ? `<button class="qz-opt-card" data-k="${k}">${it.t === "tf" ? "" : L[k] + ". "}${esc(o)}</button>` : "").join("")}</div></div></div>`;
+        box.querySelector("#gm-back").onclick = menu; wirePick();
+        const fill = box.querySelector("#gm-tf"), headEl = box.querySelector("#tm-head");
+        const startTimer = (secs) => { stopGame(); left = secs; fill.style.width = "100%"; gameIv = setInterval(() => { left -= 0.1; fill.style.width = Math.max(0, left / secs * 100) + "%"; if (left <= 0) timeout(); }, 100); };
+        const next = () => setTimeout(() => { qi++; turn = 1 - turn; show(); }, 1500);
+        function timeout() { stopGame(); box.querySelectorAll(".qz-opt-card").forEach(b => { b.onclick = null; if (+b.dataset.k === it.correct) b.classList.add("ok"); }); box.querySelector("#gm-stmt").insertAdjacentHTML("beforeend", `<div class="gm-fb no">⏰ انتهى الوقت</div>`); next(); }
+        function wire() {
+          box.querySelectorAll(".qz-opt-card").forEach(b => b.onclick = () => {
+            const ok = +b.dataset.k === it.correct; b.classList.add(ok ? "ok" : "no"); stopGame();
+            if (ok) { const fast = (Date.now() - t0) < 5000 && !steal; const gain = steal ? 5 : (10 + (fast ? 5 : 0)); T[turn].s += gain; confetti(); box.querySelector("#gm-stmt").insertAdjacentHTML("beforeend", `<div class="gm-fb ok">✅ +${gain} لصالح ${T[turn].n}${fast ? " (سرعة!)" : ""}</div>`); headEl.innerHTML = head(); box.querySelectorAll(".qz-opt-card").forEach(x => x.onclick = null); next(); return; }
+            if (!steal) { steal = true; turn = 1 - turn; headEl.innerHTML = head(); b.onclick = null; box.querySelector("#gm-stmt").insertAdjacentHTML("beforeend", `<div class="gm-fb no">❌ خطأ — الفرصة الآن لـ ${T[turn].n} (8 ثوانٍ)</div>`); t0 = Date.now(); startTimer(8); return; }
+            box.querySelectorAll(".qz-opt-card").forEach(x => { x.onclick = null; if (+x.dataset.k === it.correct) x.classList.add("ok"); }); box.querySelector("#gm-stmt").insertAdjacentHTML("beforeend", `<div class="gm-fb no">❌ لا نقاط لأحد</div>`); turn = 1 - turn; next();
+          });
+        }
+        wire(); startTimer(15);
+      }
+      show();
+    }
+    // 🔗 مطابقة المصطلحات
     function match() {
       const pairs = shuffle(vocab).slice(0, 8);
       const defs = shuffle(pairs.map((p, i) => ({ i, d: p.d })));
       let selT = null, done = 0, score = 0; const t0 = Date.now();
-      box.innerHTML = `<div class="live-stage">${bar("🧩 مطابقة المصطلحات", `<span class="gm-hud" id="gm-hud" style="margin-inline-start:auto"></span>`)}
-        <div class="gm-body"><div class="btip">انقر المصطلح ثم تعريفه</div><div class="gm-cols"><div class="gm-col">${pairs.map((p, i) => `<button class="gm-tile" data-t="${i}">${esc(p.t)}</button>`).join("")}</div>
+      box.innerHTML = `<div class="live-stage">${bar("🔗 مطابقة المصطلحات", `<span class="gm-hud" id="gm-hud" style="margin-inline-start:auto"></span>`)}
+        <div class="gm-body"><div class="gm-pickrow">${pickBtn}<span class="btip" style="margin:0">انقر المصطلح ثم تعريفه</span></div><div class="gm-cols"><div class="gm-col">${pairs.map((p, i) => `<button class="gm-tile" data-t="${i}">${esc(p.t)}</button>`).join("")}</div>
         <div class="gm-col">${defs.map(x => `<button class="gm-tile gm-def" data-d="${x.i}">${esc(x.d)}</button>`).join("")}</div></div></div></div>`;
       const hud = box.querySelector("#gm-hud");
       const tick = () => { hud.textContent = `⏱ ${fmtT((Date.now() - t0) / 1000)} · ⭐ ${score} · ${done}/${pairs.length}`; };
       tick(); gameIv = setInterval(tick, 500);
-      box.querySelector("#gm-back").onclick = menu;
+      box.querySelector("#gm-back").onclick = menu; wirePick();
       box.querySelectorAll("[data-t]").forEach(b => b.onclick = () => { if (b.classList.contains("done")) return; box.querySelectorAll("[data-t]").forEach(x => x.classList.remove("sel")); b.classList.add("sel"); selT = +b.dataset.t; });
       box.querySelectorAll("[data-d]").forEach(b => b.onclick = () => {
         if (selT === null || b.classList.contains("done")) return;
@@ -1435,42 +1575,8 @@
         if (+b.dataset.d === selT) { b.classList.add("done"); tb.classList.add("done"); tb.classList.remove("sel"); score += 10; done++; selT = null; }
         else { b.classList.add("bad"); tb.classList.add("bad"); score = Math.max(0, score - 2); setTimeout(() => { b.classList.remove("bad"); tb.classList.remove("bad"); }, 450); }
         tick();
-        if (done === pairs.length) { stopGame(); confetti(); const tt = fmtT((Date.now() - t0) / 1000); setTimeout(() => finish("🧩 مطابقة المصطلحات", `أنهيتم ${pairs.length} مطابقات في ${tt} — النقاط ${score}`), 600); }
+        if (done === pairs.length) { stopGame(); confetti(); const tt = fmtT((Date.now() - t0) / 1000); setTimeout(() => finish("🔗 مطابقة المصطلحات", `أنهيتم ${pairs.length} مطابقات في ${tt} — النقاط ${score}`), 600); }
       });
-    }
-    // ⚡ سباق صح / خطأ — عبارات مشتقة من بنك الأسئلة
-    function race() {
-      const items = shuffle(bank.filter(q => q.t !== "fill")).slice(0, 10).map(q => {
-        if (q.t === "tf") return { s: q.q, ok: q.correct === 0, img: q.img };
-        const wrong = q.opts.filter((o, k) => k !== q.correct && o);
-        const truth = !wrong.length || Math.random() < 0.5;
-        const o = truth ? q.opts[q.correct] : wrong[Math.floor(Math.random() * wrong.length)];
-        return { s: q.q.replace(/[؟?…]+\s*$/, "") + " ← " + o, ok: truth, img: q.img };
-      });
-      let i = 0, score = 0, streak = 0, best = 0, left = 10;
-      function show() {
-        stopGame();
-        const it = items[i];
-        if (!it) { finish("⚡ سباق صح / خطأ", `النتيجة ${score} نقطة — أطول سلسلة صحيحة ${best}`); return; }
-        left = 10;
-        box.innerHTML = `<div class="live-stage">${bar("⚡ سباق صح / خطأ", `<span class="gm-hud" style="margin-inline-start:auto">⭐ ${score} · 🔥 ${streak}</span>`)}
-          <div class="gm-body gm-center"><div class="gm-timer"><div id="gm-tf" style="width:100%"></div></div><div class="gm-q">${i + 1} / ${items.length}</div>
-          ${it.img ? `<img class="q-img" src="${it.img}" alt="">` : ""}<div class="gm-stmt" id="gm-stmt">${esc(it.s)}</div>
-          <div class="gm-tf"><button class="gm-big ok" data-a="1">✔ صح</button><button class="gm-big no" data-a="0">✖ خطأ</button></div></div></div>`;
-        box.querySelector("#gm-back").onclick = () => { stopGame(); menu(); };
-        const fill = box.querySelector("#gm-tf");
-        const answer = (a) => {
-          stopGame();
-          const right = a === it.ok;
-          if (right) { score += 10 + Math.min(5, streak); streak++; best = Math.max(best, streak); confetti(); } else streak = 0;
-          box.querySelector("#gm-stmt").insertAdjacentHTML("beforeend", `<div class="gm-fb ${right ? "ok" : "no"}">${right ? "✅ صحيح!" : (a === null ? "⏰ انتهى الوقت — " : "❌ خطأ — ") + "العبارة " + (it.ok ? "صحيحة" : "خاطئة")}</div>`);
-          box.querySelectorAll(".gm-big").forEach(b => b.disabled = true);
-          setTimeout(() => { i++; show(); }, 1400);
-        };
-        gameIv = setInterval(() => { left -= 0.1; fill.style.width = Math.max(0, left / 10 * 100) + "%"; if (left <= 0) answer(null); }, 100);
-        box.querySelectorAll(".gm-big").forEach(b => b.onclick = () => answer(b.dataset.a === "1"));
-      }
-      show();
     }
     // 🪜 سلّم المليون
     function ladder() {
@@ -1483,9 +1589,9 @@
         const it = qs[qi % qs.length];
         box.innerHTML = `<div class="live-stage">${bar("🪜 سلّم المليون", `<button class="live-btn" id="gm-half" ${half ? "" : "disabled"} style="margin-inline-start:auto">✂ 50:50</button>`)}
           <div class="gm-body gm-ladder"><div class="gm-steps">${LV.slice(0, n).map((v, k) => `<div class="gm-step ${k === lvl ? "cur" : k < lvl ? "won" : ""}">${k + 1}. ${v.toLocaleString("en-US")}</div>`).reverse().join("")}</div>
-          <div class="gm-center" style="flex:1;display:flex;flex-direction:column"><div class="gm-q">السؤال ${lvl + 1} — من أجل ${LV[lvl].toLocaleString("en-US")} نقطة</div>${it.img ? `<img class="q-img" src="${it.img}" alt="">` : ""}<div class="gm-stmt" id="gm-stmt">${esc(it.q)}</div>
+          <div class="gm-center" style="flex:1;display:flex;flex-direction:column"><div class="gm-pickrow">${pickBtn}</div><div class="gm-q">السؤال ${lvl + 1} — من أجل ${LV[lvl].toLocaleString("en-US")} نقطة</div>${it.img ? `<img class="q-img" src="${it.img}" alt="">` : ""}<div class="gm-stmt" id="gm-stmt">${esc(it.q)}</div>
           <div class="qz-grid" style="width:100%">${it.opts.map((o, k) => o ? `<button class="qz-opt-card" data-k="${k}">${it.t === "tf" ? "" : L[k] + ". "}${esc(o)}</button>` : "").join("")}</div></div></div></div>`;
-        box.querySelector("#gm-back").onclick = menu;
+        box.querySelector("#gm-back").onclick = menu; wirePick();
         box.querySelector("#gm-half").onclick = () => { if (!half) return; half = false; box.querySelector("#gm-half").disabled = true; shuffle([...box.querySelectorAll(".qz-opt-card")].filter(b => +b.dataset.k !== it.correct)).slice(0, 2).forEach(b => { b.style.visibility = "hidden"; }); };
         box.querySelectorAll(".qz-opt-card").forEach(b => b.onclick = () => {
           const ok = +b.dataset.k === it.correct; b.classList.add(ok ? "ok" : "no");

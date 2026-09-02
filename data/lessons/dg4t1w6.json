@@ -80,22 +80,26 @@
     {
       "v": "📝",
       "t": "كتبنا نصّاً جميلاً… لكن ماذا لو أردنا تعديله؟ هنا يأتي دور تحرير النص!",
-      "img": "data/lessons/img/dg4t1w6/s0.jpg"
+      "img": "data/lessons/img/dg4t1w6/s0.jpg",
+      "cap": "الكتابة بلوحة المفاتيح"
     },
     {
       "v": "🖍️",
       "t": "أولاً نحدّد النص بالسحب عليه بالفأرة.",
-      "img": "data/lessons/img/dg4t1w6/s1.jpg"
+      "img": "data/lessons/img/dg4t1w6/s1.jpg",
+      "cap": "فأرة الحاسب"
     },
     {
       "v": "📋",
       "t": "أمر النسخ (Ctrl+C) يكرّر النص ويُبقي الأصل.",
-      "img": "data/lessons/img/dg4t1w6/s2.jpg"
+      "img": "data/lessons/img/dg4t1w6/s2.jpg",
+      "cap": "الكتابة بلوحة المفاتيح"
     },
     {
       "v": "✂️",
       "t": "وأمر القص (Ctrl+X) ينقل النص من مكانه.",
-      "img": "data/lessons/img/dg4t1w6/s3.jpg"
+      "img": "data/lessons/img/dg4t1w6/s3.jpg",
+      "cap": "الكتابة بلوحة المفاتيح"
     },
     {
       "v": "📌",

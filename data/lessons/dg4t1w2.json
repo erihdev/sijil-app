@@ -158,17 +158,20 @@
     {
       "v": "🖥️",
       "t": "في كل مرة نشغّل الحاسب، تستقبلنا شاشة جميلة اسمها: سطح المكتب!",
-      "img": "data/lessons/img/dg4t1w2/s0.jpg"
+      "img": "data/lessons/img/dg4t1w2/s0.jpg",
+      "cap": "شاشة الحاسب"
     },
     {
       "v": "🧑‍💻",
       "t": "سطح المكتب مثل مكتبك في البيت؛ عليه أدواتك مرتّبة لتصل إليها بسرعة.",
-      "img": "data/lessons/img/dg4t1w2/s1.jpg"
+      "img": "data/lessons/img/dg4t1w2/s1.jpg",
+      "cap": "شاشة الحاسب"
     },
     {
       "v": "🖼️",
       "t": "أوّل ما نراه هو الخلفية، وهي الصورة التي تملأ الشاشة.",
-      "img": "data/lessons/img/dg4t1w2/s2.jpg"
+      "img": "data/lessons/img/dg4t1w2/s2.jpg",
+      "cap": "شاشة الحاسب"
     },
     {
       "v": "📁",
@@ -189,7 +192,8 @@
     {
       "v": "🖱️",
       "t": "لنفتح أي أيقونة: ننقر عليها نقرتين سريعتين بزر الفأرة.",
-      "img": "data/lessons/img/dg4t1w2/s7.jpg"
+      "img": "data/lessons/img/dg4t1w2/s7.jpg",
+      "cap": "فأرة الحاسب"
     },
     {
       "v": "✋",

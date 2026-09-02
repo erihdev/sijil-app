@@ -86,7 +86,8 @@
     {
       "v": "⚙️",
       "t": "لكل جهاز حاسب إعدادات نتحكّم بها في مظهره وصوته ولغته.",
-      "img": "data/lessons/img/dg4t1w3/s0.jpg"
+      "img": "data/lessons/img/dg4t1w3/s0.jpg",
+      "cap": "حاسب محمول"
     },
     {
       "v": "⊞",
@@ -99,7 +100,8 @@
     {
       "v": "🖼️",
       "t": "منها نغيّر خلفية سطح المكتب لتعجبنا.",
-      "img": "data/lessons/img/dg4t1w3/s3.jpg"
+      "img": "data/lessons/img/dg4t1w3/s3.jpg",
+      "cap": "شاشة الحاسب"
     },
     {
       "v": "🔊",
@@ -108,7 +110,8 @@
     {
       "v": "🔆",
       "t": "ونضبط سطوع الشاشة بما يريح أعيننا.",
-      "img": "data/lessons/img/dg4t1w3/s5.jpg"
+      "img": "data/lessons/img/dg4t1w3/s5.jpg",
+      "cap": "شاشة الحاسب"
     },
     {
       "v": "🕐",

@@ -176,12 +176,14 @@
     {
       "v": "🐱",
       "t": "القط يقول مرحباً… ثم يبثّ رسالة «دورك»، كأنه ينادي في مكبّر صوت.",
-      "img": "data/lessons/img/dg5t1w14/s2.jpg"
+      "img": "data/lessons/img/dg5t1w14/s2.jpg",
+      "cap": "مكبّر صوت"
     },
     {
       "v": "🦋",
       "t": "الفراشة تسمع: «عند تلقّي دورك» فتردّ أهلاً، ثم تبثّ «دور الطائر».",
-      "img": "data/lessons/img/dg5t1w14/s3.jpg"
+      "img": "data/lessons/img/dg5t1w14/s3.jpg",
+      "cap": "فراشة"
     },
     {
       "v": "🐦",

@@ -205,12 +205,14 @@
     {
       "v": "🚌",
       "t": "قرّر الفصل رحلة إلى المتحف… وسأل المعلم: كم تكلّف؟ من يحسب؟",
-      "img": "data/lessons/img/dg6t1w6/s0.jpg"
+      "img": "data/lessons/img/dg6t1w6/s0.jpg",
+      "cap": "سبورة الفصل"
     },
     {
       "v": "📊",
       "t": "فتح ناصر Excel وبنى جدولاً: البند والتكلفة وعدد الطلاب والإجمالي.",
-      "img": "data/lessons/img/dg6t1w6/s1.jpg"
+      "img": "data/lessons/img/dg6t1w6/s1.jpg",
+      "cap": "جدول بيانات"
     },
     {
       "v": "🟰",
@@ -223,12 +225,14 @@
     {
       "v": "🥧",
       "t": "مخطط دائري أظهر نسبة كل بند، وعمودي قارن بين البنود بوضوح.",
-      "img": "data/lessons/img/dg6t1w6/s4.jpg"
+      "img": "data/lessons/img/dg6t1w6/s4.jpg",
+      "cap": "مخطط بياني"
     },
     {
       "v": "💡",
       "t": "استنتاجه: لو خفّضنا الهدايا وفّرنا ثلث المبلغ! وعرض ذلك على المعلم.",
-      "img": "data/lessons/img/dg6t1w6/s5.jpg"
+      "img": "data/lessons/img/dg6t1w6/s5.jpg",
+      "cap": "سبورة الفصل"
     },
     {
       "v": "🌟",

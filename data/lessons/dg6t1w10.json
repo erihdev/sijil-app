@@ -176,12 +176,14 @@
     {
       "v": "♾️",
       "t": "جرّب «كرّر باستمرار»… فلم يتوقف الروبوت أبداً!",
-      "img": "data/lessons/img/dg6t1w10/s2.jpg"
+      "img": "data/lessons/img/dg6t1w10/s2.jpg",
+      "cap": "روبوت"
     },
     {
       "v": "🎯",
       "t": "ثم اكتشف «كرّر حتى يلمس الحافة: تحرّك 10»… فمشى الروبوت وتوقف عند الجدار تماماً!",
-      "img": "data/lessons/img/dg6t1w10/s3.jpg"
+      "img": "data/lessons/img/dg6t1w10/s3.jpg",
+      "cap": "روبوت"
     },
     {
       "v": "🌸",

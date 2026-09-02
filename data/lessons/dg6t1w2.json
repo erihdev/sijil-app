@@ -154,17 +154,20 @@
     {
       "v": "🧊",
       "t": "تخيّل أن ترسم مجسماً حقيقياً على الحاسب تراه من كل جهة! هذه هي النمذجة ثلاثية الأبعاد.",
-      "img": "data/lessons/img/dg6t1w2/s0.jpg"
+      "img": "data/lessons/img/dg6t1w2/s0.jpg",
+      "cap": "نموذج ثلاثي الأبعاد"
     },
     {
       "v": "📄",
       "t": "الورقة شكل ثنائي الأبعاد: لها طول وعرض فقط.",
-      "img": "data/lessons/img/dg6t1w2/s1.jpg"
+      "img": "data/lessons/img/dg6t1w2/s1.jpg",
+      "cap": "قلم وورقة"
     },
     {
       "v": "📦",
       "t": "أمّا الصندوق فمجسم ثلاثي الأبعاد: طول وعرض وارتفاع.",
-      "img": "data/lessons/img/dg6t1w2/s2.jpg"
+      "img": "data/lessons/img/dg6t1w2/s2.jpg",
+      "cap": "نموذج ثلاثي الأبعاد"
     },
     {
       "v": "📐",
@@ -185,7 +188,8 @@
     {
       "v": "🧱",
       "t": "في برامج مثل Tinkercad نبني نماذجنا من أشكال أساسية: مكعب وكرة وأسطوانة.",
-      "img": "data/lessons/img/dg6t1w2/s7.jpg"
+      "img": "data/lessons/img/dg6t1w2/s7.jpg",
+      "cap": "طابعة ثلاثية الأبعاد"
     },
     {
       "v": "🌟",

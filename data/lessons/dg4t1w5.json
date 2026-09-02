@@ -87,7 +87,8 @@
     {
       "v": "⌨️",
       "t": "لكي نكتب على الحاسب نحتاج صديقاً مهماً: لوحة المفاتيح!",
-      "img": "data/lessons/img/dg4t1w5/s0.jpg"
+      "img": "data/lessons/img/dg4t1w5/s0.jpg",
+      "cap": "لوحة المفاتيح"
     },
     {
       "v": "🔤",
@@ -96,7 +97,8 @@
     {
       "v": "🔢",
       "t": "ومفاتيح الأرقام نكتب بها الأعداد.",
-      "img": "data/lessons/img/dg4t1w5/s2.jpg"
+      "img": "data/lessons/img/dg4t1w5/s2.jpg",
+      "cap": "آلة حاسبة وجدول"
     },
     {
       "v": "↵",

@@ -165,32 +165,38 @@
     {
       "v": "🖥️",
       "t": "في غرفة أبي حاسب مكتبي كبير: شاشة ووحدة نظام ولوحة مفاتيح وفأرة… قوي لكنه لا يتحرك من مكانه.",
-      "img": "data/lessons/img/dg5t1w1/s0.jpg"
+      "img": "data/lessons/img/dg5t1w1/s0.jpg",
+      "cap": "حاسب مكتبي"
     },
     {
       "v": "💻",
       "t": "وأختي تحمل لابتوباً يُطوى في الحقيبة ويعمل بالبطارية أينما ذهبت.",
-      "img": "data/lessons/img/dg5t1w1/s1.jpg"
+      "img": "data/lessons/img/dg5t1w1/s1.jpg",
+      "cap": "حاسب محمول"
     },
     {
       "v": "📱",
       "t": "وأمي تقرأ على جهاز لوحي بشاشة لمس، وأبي يتصل بالعالم من هاتفه الذكي… وهو حاسب صغير في الجيب!",
-      "img": "data/lessons/img/dg5t1w1/s2.jpg"
+      "img": "data/lessons/img/dg5t1w1/s2.jpg",
+      "cap": "جهاز لوحي"
     },
     {
       "v": "⌚",
       "t": "حتى ساعة أخي الذكية حاسب صغير يعدّ خطواته ويقيس نبضه.",
-      "img": "data/lessons/img/dg5t1w1/s3.jpg"
+      "img": "data/lessons/img/dg5t1w1/s3.jpg",
+      "cap": "ساعة ذكية"
     },
     {
       "v": "🏢",
       "t": "وفي أماكن بعيدة خوادم ضخمة تخدم ملايين الناس عبر الإنترنت في الوقت نفسه.",
-      "img": "data/lessons/img/dg5t1w1/s4.jpg"
+      "img": "data/lessons/img/dg5t1w1/s4.jpg",
+      "cap": "خادم"
     },
     {
       "v": "🚗",
       "t": "وحواسيب مخفية داخل السيارة والغسالة والتلفاز تسمّى أجهزة مدمجة.",
-      "img": "data/lessons/img/dg5t1w1/s5.jpg"
+      "img": "data/lessons/img/dg5t1w1/s5.jpg",
+      "cap": "سيارة"
     },
     {
       "v": "🌟",

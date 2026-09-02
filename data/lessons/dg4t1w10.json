@@ -168,17 +168,20 @@
     {
       "v": "📚",
       "t": "الإنترنت مكتبة ضخمة فيها ملايين الصفحات… فكيف نجد صفحة واحدة؟",
-      "img": "data/lessons/img/dg4t1w10/s0.jpg"
+      "img": "data/lessons/img/dg4t1w10/s0.jpg",
+      "cap": "الإنترنت"
     },
     {
       "v": "🔍",
       "t": "نستعين بمحرك البحث مثل Google أو Bing، فهو يعرف أين توجد كل صفحة.",
-      "img": "data/lessons/img/dg4t1w10/s1.jpg"
+      "img": "data/lessons/img/dg4t1w10/s1.jpg",
+      "cap": "محرك البحث"
     },
     {
       "v": "🔑",
       "t": "السر في الكلمة المفتاحية: نكتب «أجزاء الحاسب» لا «شيء عن الحاسب».",
-      "img": "data/lessons/img/dg4t1w10/s2.jpg"
+      "img": "data/lessons/img/dg4t1w10/s2.jpg",
+      "cap": "حاسب محمول"
     },
     {
       "v": "📋",

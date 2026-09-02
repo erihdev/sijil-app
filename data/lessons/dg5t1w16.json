@@ -205,12 +205,14 @@
     {
       "v": "📚",
       "t": "قبل الاختبار جلس الفصل يراجع وحدة البرمجة كاملة.",
-      "img": "data/lessons/img/dg5t1w16/s0.jpg"
+      "img": "data/lessons/img/dg5t1w16/s0.jpg",
+      "cap": "شاشة برمجة"
     },
     {
       "v": "🧭",
       "t": "بدؤوا من التخطيط: الخوارزمية والمخطط الانسيابي قبل أي لبنة.",
-      "img": "data/lessons/img/dg5t1w16/s1.jpg"
+      "img": "data/lessons/img/dg5t1w16/s1.jpg",
+      "cap": "مخطط بياني"
     },
     {
       "v": "🐱",
