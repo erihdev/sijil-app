@@ -1016,6 +1016,8 @@
     }
     function sceneAt(frac) { for (let i = 0; i < scenes.length; i++) { if (frac >= bounds[i] && frac < bounds[i + 1]) return i; } return scenes.length - 1; }
 
+    // الصور الحقيقية من Pixabay — إظهار المصدر شرط الاستخدام المجاني
+    if (scenes.some(s => s.img)) { const vh = box.querySelector("#st-vhint"); if (vh) vh.textContent = "الصور: Pixabay"; }
     if (hasAudio) {
       storyAudio.src = url;
       const sync = () => {
