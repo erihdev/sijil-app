@@ -996,9 +996,7 @@
           <div class="story-seek" id="st-seek"><div class="story-seek-fill" id="st-fill"></div></div>
           <div class="story-ctrl">
             <span class="story-time" id="st-time" dir="ltr">0:00 / 0:00</span>
-            <button class="live-btn" id="st-back">⏪ 10</button>
-            <button class="btn-primary" id="st-play" style="min-width:120px">▶️ تشغيل</button>
-            <button class="live-btn" id="st-fwd">10 ⏩</button>
+            <button class="btn-primary" id="st-play" style="min-width:130px">▶️ تشغيل</button>
           </div>
         </div>
       </div></div>`;
@@ -1011,7 +1009,9 @@
     let curScene = -1;
     function showScene(i) {
       if (i === curScene) return; curScene = i; const sc = scenes[i]; if (!sc) return;
-      vEl.textContent = sc.v || "📘"; vEl.style.animation = "none"; void vEl.offsetWidth; vEl.style.animation = "";
+      if (sc.img) vEl.innerHTML = `<img class="story-img" src="${sc.img}" alt="" onerror="this.parentNode.textContent='${sc.v || "📘"}'">`;
+      else vEl.textContent = sc.v || "📘";
+      vEl.style.animation = "none"; void vEl.offsetWidth; vEl.style.animation = "";
       tEl.textContent = sc.t; tEl.style.animation = "none"; void tEl.offsetWidth; tEl.style.animation = "";
     }
     function sceneAt(frac) { for (let i = 0; i < scenes.length; i++) { if (frac >= bounds[i] && frac < bounds[i + 1]) return i; } return scenes.length - 1; }
@@ -1030,16 +1030,12 @@
       storyAudio.onplay = () => { playBtn.textContent = "⏸ إيقاف"; };
       storyAudio.onpause = () => { playBtn.textContent = "▶️ تشغيل"; };
       storyAudio.onended = () => { playBtn.textContent = "↺ إعادة"; confetti(); };
-      playBtn.onclick = () => { if (storyAudio.ended || storyAudio.currentTime === 0 && storyAudio.paused) { } if (storyAudio.paused) { if (storyAudio.ended) storyAudio.currentTime = 0; storyAudio.play().catch(() => { }); } else storyAudio.pause(); };
-      box.querySelector("#st-back").onclick = () => { storyAudio.currentTime = Math.max(0, storyAudio.currentTime - 10); };
-      box.querySelector("#st-fwd").onclick = () => { storyAudio.currentTime = Math.min((storyAudio.duration || 0), storyAudio.currentTime + 10); };
+      playBtn.onclick = () => { if (storyAudio.paused) { if (storyAudio.ended) storyAudio.currentTime = 0; storyAudio.play().catch(() => { }); } else storyAudio.pause(); };
       box.querySelector("#st-seek").onclick = (e) => { const r = e.currentTarget.getBoundingClientRect(); const p = (e.clientX - r.left) / r.width; if (storyAudio.duration) storyAudio.currentTime = Math.min(1, Math.max(0, p)) * storyAudio.duration; };
       showScene(0);
     } else {
       // احتياط: قراءة القصة كاملة بصوت المتصفح كمقطع واحد متصل (بلا توقف بين الجمل)
       box.querySelector("#st-seek").style.display = "none";
-      box.querySelector("#st-back").style.display = "none";
-      box.querySelector("#st-fwd").style.display = "none";
       const fullText = scenes.map(s => s.t).join(" ");
       let playing = false;
       const vhint = box.querySelector("#st-vhint");
