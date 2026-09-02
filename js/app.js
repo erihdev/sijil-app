@@ -872,31 +872,47 @@
       });
     }
   }
-  // 📺 يوتيوب: فيديو درس الحصة مضمّناً في الوسط (لوحة الشرف تبقى ثابتة)
+  // 📺 يوتيوب: فيديو/قائمة درس الحصة مضمّناً في الوسط (لوحة الشرف تبقى ثابتة) — يُحفظ الرابط للدرس تلقائياً
   const ytId = (u) => { const m = String(u || "").match(/(?:v=|youtu\.be\/|embed\/|shorts\/)([\w-]{11})/) || (String(u).length === 11 ? [0, u] : null); return m ? m[1] : ""; };
+  function ytEmbedSrc(url) {
+    const vid = ytId(url); const lm = String(url).match(/[?&]list=([\w-]+)/); const list = lm ? lm[1] : "";
+    if (vid && list) return "https://www.youtube.com/embed/" + vid + "?rel=0&modestbranding=1&list=" + list;
+    if (vid) return "https://www.youtube.com/embed/" + vid + "?rel=0&modestbranding=1";
+    if (list) return "https://www.youtube.com/embed/videoseries?list=" + list;
+    return "";
+  }
   async function stageYouTube(box, code, wk, c) {
+    const key = code + "w" + wk;
     let d = null;
     try { const r = await fetch("data/lessons/" + code + "w" + wk + ".json"); if (r.ok) d = await r.json(); } catch (e) { }
     let les = d && d.title ? d.title : "";
     if (!les) { try { const rows = (await loadCurr(code)).filter(r => r.w === wk); const m = rows.find(x => x.lesson && !String(x.lesson).includes("تابع")) || rows[0]; les = m ? m.lesson : ""; } catch (e) { } }
-    const ids = d && d.yt ? (Array.isArray(d.yt) ? d.yt : [d.yt]).map(ytId).filter(Boolean) : [];
+    // رابط محفوظ سابقاً لهذا الدرس (سحابي مشترك، أو محلي)
+    let saved = "";
+    if (d && d.yt) saved = Array.isArray(d.yt) ? d.yt[0] : d.yt;
+    if (!saved) { try { if (CLOUD && fdb) { const s = await fdb.doc("lessonyt/" + key).get(); if (s.exists) saved = (s.data() || {}).url || ""; } else { saved = localStorage.getItem("yt:" + key) || ""; } } catch (e) { } }
     const q = encodeURIComponent((les ? les + " " : "") + TE.subject + " " + GNAME[c.gc] + " ابتدائي شرح");
-    const frame = (id) => `<iframe id="yt-frame" src="https://www.youtube.com/embed/${id}?rel=0&modestbranding=1" allow="autoplay; fullscreen" allowfullscreen style="flex:1;width:100%;border:0"></iframe>`;
-    const placeholder = `<div id="yt-frame" style="flex:1;display:flex;align-items:center;justify-content:center;color:#c9d5e3;text-align:center;padding:20px">اضغط «🔎 بحث» لإيجاد شرح «${esc(les)}» في يوتيوب، ثم انسخ رابط الفيديو والصقه هنا ليظهر بجانب لوحة الشرف.</div>`;
+    const frame = (src) => `<iframe id="yt-frame" src="${src}" allow="autoplay; fullscreen" allowfullscreen style="flex:1;width:100%;border:0"></iframe>`;
+    const placeholder = `<div id="yt-frame" style="flex:1;display:flex;align-items:center;justify-content:center;color:#c9d5e3;text-align:center;padding:20px">اضغط «🔎 بحث» لإيجاد شرح «${esc(les)}» في يوتيوب، ثم الصق رابط الفيديو هنا — وسيُحفظ للدرس ويظهر تلقائياً في كل مرة.</div>`;
+    const src0 = saved ? ytEmbedSrc(saved) : "";
     box.innerHTML = `<div class="live-stage">
       <div class="stage-bar">
         <span style="color:#fff;font-weight:800">📺 ${esc(les || "فيديو الدرس")}</span>
-        <input id="yt-url" placeholder="الصق رابط فيديو…" style="margin-inline-start:auto">
+        <input id="yt-url" placeholder="الصق رابط فيديو أو قائمة…" style="margin-inline-start:auto" value="${esc(saved || "")}">
         <button class="live-btn" id="yt-go">عرض</button>
         <a class="live-btn" style="text-decoration:none" href="https://www.youtube.com/results?search_query=${q}" target="_blank" rel="noopener">🔎 بحث</a>
       </div>
-      ${ids.length ? frame(ids[0]) : placeholder}
+      ${src0 ? frame(src0) : placeholder}
     </div>`;
     const show = () => {
-      const id = ytId(box.querySelector("#yt-url").value.trim());
+      const url = box.querySelector("#yt-url").value.trim();
+      const src = ytEmbedSrc(url);
       const fr = box.querySelector("#yt-frame");
-      if (!id) { fr.textContent = "رابط غير صحيح — انسخ رابط الفيديو من يوتيوب"; return; }
-      fr.outerHTML = frame(id);
+      if (!src) { if (fr) fr.textContent = "رابط غير صحيح — انسخ رابط الفيديو من يوتيوب"; return; }
+      if (fr) fr.outerHTML = frame(src);
+      // احفظ الرابط للدرس (يظهر تلقائياً لك ولزملائك لاحقاً)
+      try { localStorage.setItem("yt:" + key, url); } catch (e) { }
+      try { if (CLOUD && fdb) fdb.doc("lessonyt/" + key).set({ url: url, tn: TE.name, ts: Date.now() }, { merge: true }); } catch (e) { }
     };
     box.querySelector("#yt-go").onclick = show;
     box.querySelector("#yt-url").addEventListener("keydown", (e) => { if (e.key === "Enter") show(); });
