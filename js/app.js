@@ -915,7 +915,7 @@
         if (/ar-sa/.test((v.lang || "").toLowerCase())) s += 6;              // السعودية أولاً
         if (/hamed|naayf|zariyah|salma|saudi|السعود|العربية/.test(n)) s += 4; // أصوات سعودية معروفة
         if (/ar-xa|gulf|خليج|zeina|hala/.test(n)) s += 2;                    // خليجي
-        if (/online|natural|neural/.test(n)) s += 2;                         // الأحدث أنقى
+        if (/online|natural|neural/.test(n)) s += 5;                         // الأصوات الطبيعية (Edge) أنقى وأقرب للبشر
         return s;
       };
       return ar.slice().sort((a, b) => score(b) - score(a))[0];
@@ -927,7 +927,7 @@
     if (!d) { box.innerHTML = `<div class="empty-note" style="color:#c9d5e3">قصة هذا الدرس قيد الإعداد</div>`; return; }
     const scenes = buildStory(d);
     let idx = 0; storyActive = true;
-    box.innerHTML = `<div class="live-stage"><div class="stage-bar"><span style="color:#fff;font-weight:800">🎬 ${esc(d.title || "")}</span><label style="color:#c9d5e3;font-size:13px;margin-inline-start:auto"><input type="checkbox" id="st-voice" checked> سرد صوتي</label></div>
+    box.innerHTML = `<div class="live-stage"><div class="stage-bar"><span style="color:#fff;font-weight:800">🎬 ${esc(d.title || "")}</span><span id="st-vhint" style="color:#9fb0c4;font-size:12px;margin-inline-start:auto"></span><label style="color:#c9d5e3;font-size:13px;margin-inline-start:10px"><input type="checkbox" id="st-voice" checked> سرد صوتي</label></div>
       <div class="story" id="story-stage">
         <div class="story-dots" id="story-dots"></div>
         <div class="story-visual" id="story-v">🎬</div>
@@ -985,6 +985,14 @@
     box.querySelector("#st-prev").onclick = () => { if (idx > 0) { idx--; paint(); if (playing) { if (storyTimer) clearTimeout(storyTimer); try { window.speechSynthesis.cancel(); } catch (e) { } step(); } } };
     box.querySelector("#st-replay").onclick = () => { idx = 0; paint(); setPlay(true); };
     dotsEl.querySelectorAll(".story-dot").forEach(x => x.onclick = () => { idx = +x.dataset.k; paint(); if (playing) { if (storyTimer) clearTimeout(storyTimer); try { window.speechSynthesis.cancel(); } catch (e) { } step(); } });
+    // تلميح جودة الصوت
+    setTimeout(() => {
+      const hint = box.querySelector("#st-vhint"); if (!hint) return;
+      const v = arVoice();
+      if (!v) hint.textContent = "لأفضل نطق عربي افتح الموقع في متصفح Edge";
+      else if (/online|natural/i.test(v.name || "")) hint.textContent = "🎙️ صوت طبيعي: " + v.name.replace(/microsoft/i, "").trim();
+      else hint.textContent = "الصوت: " + v.name + " — للأنقى استخدم Edge";
+    }, 600);
     paint();
   }
   // 🎡 عجلة اختيار الطلاب
