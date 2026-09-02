@@ -280,6 +280,8 @@
     for (let p = 1; p <= 7; p++) { const s = mine.find(x => x.p === p); per.push(`<div class="period ${s ? "" : "empty"}"><span class="p">ح${p}</span><div class="c">${s ? esc(classById(s.c).name) : "—"}</div></div>`); }
     let all = []; myClasses().forEach(c => classCalc(c.id).forEach(r => all.push({ c, r })));
     const low = all.slice().sort((a, b) => a.r.t.pts - b.r.t.pts).slice(0, 5);
+    const high = all.slice().sort((a, b) => b.r.t.pts - a.r.t.pts).filter(x => x.r.t.pts > 0).slice(0, 5);
+    const MED = ["🥇", "🥈", "🥉", "🎖️", "🎖️"];
     box.innerHTML = `
       <div class="card" style="background:linear-gradient(150deg,var(--navy),var(--navy2));color:#fff;border:none">
         <div style="font-size:13px;color:#c9d5e3">${esc(hijriLabel())}</div>
@@ -290,6 +292,8 @@
         <div class="kpi"><div class="v">${mine.length}</div><div class="l">حصص اليوم</div></div></div>
       <div class="card"><h3><span class="dot"></span>حصص اليوم (${esc(today)})</h3><div class="periods">${per.join("")}</div></div>
       <div class="card" id="today-lesson"><h3><span class="dot"></span>درس هذا الأسبوع</h3><span class="weekpill">الأسبوع ${wk}</span><div class="empty-note" style="padding:8px">جارِ التحميل…</div></div>
+      <div class="card"><h3><span class="dot"></span>🏆 لوحة الشرف — الأوائل</h3>
+        <div class="alert-list">${high.length ? high.map((x, k) => `<div class="al"><span><b style="font-size:16px">${MED[k]}</b> ${esc(x.r.s.n)} <small style="color:var(--muted)">— ${esc(x.c.name)}</small></span><span class="pts" style="color:var(--ok)">${x.r.t.pts}</span></div>`).join("") : '<div class="empty-note">ابدأ الرصد وستظهر أسماء المتميزين هنا 🌟</div>'}</div></div>
       <div class="card"><h3><span class="dot"></span>طلاب يحتاجون التفاتة (الأدنى نقاطاً)</h3>
         <div class="alert-list">${low.length ? low.map(x => `<div class="al"><span>${esc(x.r.s.n)} <small style="color:var(--muted)">— ${esc(x.c.name)}</small></span><span class="pts">${x.r.t.pts}</span></div>`).join("") : '<div class="empty-note">ابدأ التحضير أولاً وستظهر القائمة هنا</div>'}</div></div>`;
     const sc = subjCode(TE.subject), grades = [...new Set(myClasses().map(c => c.gc))].sort();
@@ -522,8 +526,29 @@
           ${rows.map((r, i) => `<tr><td>${i + 1}</td><td class="nm">${esc(r.s.n)}</td>${STATES.map((s, k) => `<td>${r.t.st[k] || ""}</td>`).join("")}<td>${r.t.part || ""}</td><td>${r.t.hwY || ""}</td><td>${r.t.behP || ""}</td><td>${r.t.behN || ""}</td><td><b>${r.t.pts}</b></td><td>${r.rank}</td></tr>`).join("")}
           <tr class="tot"><td></td><td class="nm">المجموع</td>${STATES.map((s, k) => `<td>${tot.st[k] || ""}</td>`).join("")}<td>${tot.part || ""}</td><td>${tot.hwY || ""}</td><td>${tot.behP || ""}</td><td>${tot.behN || ""}</td><td></td><td></td></tr>
         </table></div></div>`;
+    // لوحة شرف الفصل (قابلة للطباعة والتعليق)
+    const top = rows.slice().sort((a, b) => b.t.pts - a.t.pts).filter(r => r.t.pts > 0).slice(0, 10);
+    const MED = ["🥇", "🥈", "🥉"];
+    const honor = document.createElement("div");
+    honor.className = "card";
+    honor.innerHTML = `<div class="rep-head"><div class="rt">🏆 لوحة شرف ${esc(c.name)}</div><div class="rs">${esc(META.school.name)} — ${esc(TE.subject)} — ${esc(hijriLabel())}</div></div>
+      <h3 class="no-print"><span class="dot"></span>🏆 لوحة الشرف — ${esc(c.name)}<button class="btn-gold" style="margin-inline-start:auto" id="hon-print">🖨️ طباعة للتعليق</button></h3>
+      ${top.length ? `<div class="table-scroll"><table class="report-table"><tr><th>الترتيب</th><th style="min-width:150px">الطالب المتميّز</th><th>النقاط</th></tr>
+        ${top.map((r, k) => `<tr><td style="font-size:16px">${k < 3 ? MED[k] : k + 1}</td><td class="nm">${esc(r.s.n)}</td><td><b>${r.t.pts}</b></td></tr>`).join("")}</table></div>`
+        : '<div class="empty-note">ابدأ الرصد وستظهر أسماء المتميزين هنا 🌟</div>'}`;
+    box.appendChild(honor);
     box.querySelectorAll(".chip").forEach(ch => ch.onclick = () => { repClass = ch.dataset.c; renderRep(); });
     $("#rep-print").onclick = () => window.print();
+    const hp = $("#hon-print"); if (hp) hp.onclick = () => printHonor(c, top, MED);
+  }
+  function printHonor(c, top, MED) {
+    printDoc("لوحة شرف " + c.name, `
+      <div class="h"><div class="s">${esc(META.school.name)}</div><div class="m">${esc(TE.subject)} — ${esc(hijriLabel())}</div></div>
+      <div class="tt">🏆 لوحة الشرف — ${esc(c.name)}</div>
+      <table><tr><th>الترتيب</th><th>الطالب المتميّز</th><th>النقاط</th></tr>
+      ${top.map((r, k) => `<tr><td style="font-size:20px">${k < 3 ? MED[k] : k + 1}</td><td style="font-weight:800">${esc(r.s.n)}</td><td><b>${r.t.pts}</b></td></tr>`).join("")}</table>
+      <p style="text-align:center;color:#666;margin-top:20px">نبارك لأبنائنا المتميّزين ونسأل الله لهم دوام التفوّق 🌟</p>
+      <div class="sig"><span>معلم المادة: ${esc(TE.name)}</span><span>مدير المدرسة: ..............</span></div>`);
   }
 
   /* ═══ المزيد (بحث + مدير + نسخة احتياطية) ═══ */
@@ -533,6 +558,14 @@
     if (TE.admin && CLOUD && fdb) adminHtml = '<div class="card" id="adm-card"><h3><span class="dot"></span>لوحة المدير — رصد المعلمين لحظياً</h3><div class="empty-note">جارِ التحميل…</div></div>';
     else if (TE.admin) adminHtml = `<div class="card"><h3><span class="dot"></span>لوحة المدير</h3>${D.teachers.filter(t => (t.classes || []).length).map(t => `<div class="admin-row"><span>${esc(t.name)}<div class="cls">${esc(t.subject)}</div></span><span class="cls">${(t.classes || []).length} فصول</span></div>`).join("")}</div>`;
     box.innerHTML = `
+      <div class="card"><h3><span class="dot"></span>🧰 أدوات المعلم</h3>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+          <button class="btn-gold" id="tl-curr">📚 مناهجي</button>
+          <button class="btn-gold" id="tl-sessions">🗓️ سجل الحصص</button>
+          <button class="btn-gold" id="tl-plans">🩺 الخطط العلاجية والإثرائية</button>
+          <button class="btn-gold" id="tl-calc">🧮 حاسبة المهام الأدائية</button>
+          <button class="btn-gold" id="tl-sheets" style="grid-column:1/3">📝 بنك أوراق العمل</button>
+        </div></div>
       <div class="card"><h3><span class="dot"></span>🔍 بحث عن طالب</h3>
         <input class="search-box" id="mo-search" placeholder="اكتب اسم الطالب…">
         <div class="search-res" id="mo-res"></div></div>
@@ -544,6 +577,12 @@
         <div class="countchips">${STATES.map((s, k) => `<span class="cc" style="background:${STCOLORS[k]}">${esc(s.name)} ${s.pts >= 0 ? "+" : ""}${s.pts}</span>`).join("")}</div>
         <div class="countchips">${BEH.map(b => `<span class="cc" style="background:${b.pts >= 0 ? "var(--ok)" : "var(--bad)"}">${esc(b.name)} ${b.pts >= 0 ? "+" : ""}${b.pts}</span>`).join("")}</div></div>
       <div class="card"><h3><span class="dot"></span>عن البرنامج</h3><div style="font-size:13.5px;line-height:2;color:var(--muted)">سجل المتابعة الرقمي — ${CLOUD ? "النسخة السحابية المشتركة ☁️" : "نسخة تجريبية محلية"}.<br>يعمل على أي جهاز: جوال، تابلت، وكمبيوتر.<br><b>المطوّر:</b> أ. ضيف الله أحمد محمد مشني</div></div>`;
+    // أدوات المعلم
+    $("#tl-curr").onclick = toolCurriculum;
+    $("#tl-sessions").onclick = toolSessions;
+    $("#tl-plans").onclick = toolPlans;
+    $("#tl-calc").onclick = toolCalc;
+    $("#tl-sheets").onclick = toolSheets;
     // بحث
     const res = $("#mo-res");
     $("#mo-search").oninput = (e) => {
@@ -584,6 +623,101 @@
     }
   }
 
+  /* ═══ أدوات المعلم (بديل الإكسل) ═══ */
+  async function toolCurriculum() {
+    const grades = [...new Set(myClasses().map(c => c.gc))].sort(), sc = subjCode(TE.subject);
+    openSheet(`<h4>📚 مناهجي — ${esc(TE.subject)}</h4><div id="cur-body"><div class="empty-note">جارِ التحميل…</div></div><div class="sheet-actions"><button class="btn-plain" onclick="print()">🖨️ طباعة</button><button class="btn-primary" onclick="window._sheetClose()">إغلاق</button></div>`, async () => {
+      let html = "";
+      for (const g of grades) {
+        const code = sc + g + TERM, rows = await loadCurr(code);
+        if (!rows.length) continue;
+        html += `<div style="font-weight:800;color:var(--navy);margin:10px 0 4px">الصف ${GNAME[g]}</div><div class="table-scroll"><table class="report-table"><tr><th>الأسبوع</th><th>الوحدة</th><th>الدرس</th><th>تفاعلي</th></tr>` +
+          rows.sort((a, b) => a.w - b.w).map(r => `<tr><td>${r.w}</td><td class="nm">${esc(r.unit || "")}</td><td class="nm">${esc(r.lesson || "")}</td><td>${String(r.lesson || "").includes("إجازة") ? "—" : `<a href="${lessonURL(code, r.w)}" target="_blank" rel="noopener" style="color:var(--gold);font-weight:800">🚀</a>`}</td></tr>`).join("") + `</table></div>`;
+      }
+      const b = document.querySelector("#cur-body"); if (b) b.innerHTML = html || '<div class="empty-note">لا مناهج مسندة</div>';
+    });
+  }
+  function toolSessions() {
+    const rows = D.schedule.filter(r => r.t === TE.name);
+    const days = ["الأحد", "الإثنين", "الثلاثاء", "الأربعاء", "الخميس"];
+    let html = `<div class="table-scroll"><table class="report-table"><tr><th>اليوم</th>${[1, 2, 3, 4, 5, 6, 7].map(p => `<th>ح${p}</th>`).join("")}</tr>`;
+    days.forEach(d => { html += `<tr><td class="nm">${d}</td>` + [1, 2, 3, 4, 5, 6, 7].map(p => { const s = rows.find(x => x.d === d && x.p === p); return `<td>${s ? esc(classById(s.c).name) : ""}</td>`; }).join("") + `</tr>`; });
+    html += `</table></div>`;
+    openSheet(`<h4>🗓️ سجل الحصص — ${rows.length} حصة أسبوعياً</h4><div class="rep-head"><div class="rt">جدول حصص ${esc(TE.name)}</div><div class="rs">${esc(META.school.name)} — ${esc(TE.subject)}</div></div>${html}<div class="sheet-actions"><button class="btn-plain" onclick="print()">🖨️ طباعة</button><button class="btn-primary" onclick="window._sheetClose()">إغلاق</button></div>`);
+  }
+  function planText(t) {
+    const tips = [];
+    if (t.st[1] > 1) tips.push("متابعة الغياب والتواصل مع ولي الأمر");
+    if (t.hwN > 0) tips.push("متابعة إنجاز الواجبات وتقديم دعم إضافي");
+    if (t.behN > 0) tips.push("تعزيز السلوك الإيجابي والتحفيز");
+    if (!tips.length) tips.push("تحفيز على المشاركة وحصص دعم قصيرة");
+    return tips.join("، ") + ".";
+  }
+  function toolPlans() {
+    const cls = myClasses(); let cid = cls[0].id;
+    function render(o) {
+      const rows = classCalc(cid);
+      const rem = rows.filter(r => r.t.pts < 0 || r.t.st[1] > 1 || r.t.hwN > 0).sort((a, b) => a.t.pts - b.t.pts);
+      const enr = rows.filter(r => r.t.pts >= 5 && r.t.st[1] === 0).sort((a, b) => b.t.pts - a.t.pts).slice(0, 8);
+      const body = o.querySelector("#pl-body");
+      body.innerHTML = `<div style="font-weight:800;color:var(--bad);margin:10px 0 6px">🩺 خطة علاجية (${rem.length})</div>
+        ${rem.length ? rem.map(r => `<div class="comm-item"><b>${esc(r.s.n)}</b> — نقاط ${r.t.pts}${r.t.st[1] ? `، غياب ${r.t.st[1]}` : ""}${r.t.hwN ? `، واجبات ناقصة ${r.t.hwN}` : ""}<div class="meta">التوصية: ${planText(r.t)}</div></div>`).join("") : '<div class="empty-note" style="padding:12px">لا طلاب بحاجة لخطة علاجية 🎉</div>'}
+        <div style="font-weight:800;color:var(--ok);margin:14px 0 6px">🌟 خطة إثرائية (${enr.length})</div>
+        ${enr.length ? enr.map(r => `<div class="comm-item"><b>${esc(r.s.n)}</b> — نقاط ${r.t.pts}<div class="meta">التوصية: تكليفه بمهام قيادية وإثرائية (بحث / مشروع / مساعدة زملائه) لتعزيز تميّزه.</div></div>`).join("") : '<div class="empty-note" style="padding:12px">ابدأ الرصد لتظهر أسماء المتميزين</div>'}`;
+    }
+    openSheet(`<h4>🩺 الخطط العلاجية والإثرائية</h4><div class="class-chips" id="pl-chips">${cls.map((x, k) => `<button class="chip ${k === 0 ? "on" : ""}" data-c="${x.id}">${esc(x.name)}</button>`).join("")}</div><div id="pl-body"></div><div class="sheet-actions"><button class="btn-plain" onclick="print()">🖨️ طباعة</button><button class="btn-primary" onclick="window._sheetClose()">إغلاق</button></div>`, (o) => {
+      o.querySelectorAll("#pl-chips .chip").forEach(ch => ch.onclick = () => { cid = ch.dataset.c; o.querySelectorAll("#pl-chips .chip").forEach(x => x.classList.toggle("on", x === ch)); render(o); });
+      render(o);
+    });
+  }
+  function toolCalc() {
+    openSheet(`<h4>🧮 حاسبة درجة المهمة الأدائية</h4><div style="font-size:13px;color:var(--muted);margin-bottom:8px">أدخل درجة كل معيار ودرجته العظمى، فيُحسب المجموع والنسبة والتقدير تلقائياً.</div><div id="calc-rows"></div><button class="btn-soft" id="calc-add" style="margin:8px 0">+ إضافة معيار</button><div class="ana-grid"><div class="ana"><div class="v" id="calc-tot">0</div><div class="l">المجموع</div></div><div class="ana"><div class="v" id="calc-pct">0%</div><div class="l">النسبة</div></div></div><div style="text-align:center;margin-top:6px" id="calc-lvl"></div><div class="sheet-actions"><button class="btn-primary" onclick="window._sheetClose()">إغلاق</button></div>`, (o) => {
+      const rowsBox = o.querySelector("#calc-rows");
+      function calc() {
+        let sum = 0, max = 0;
+        o.querySelectorAll("#calc-rows>div").forEach(r => { sum += +r.querySelector(".cscore").value || 0; max += +r.querySelector(".cmax").value || 0; });
+        const pct = max ? Math.round(sum / max * 100) : 0, lv = levelOf(pct);
+        o.querySelector("#calc-tot").textContent = (Math.round(sum * 10) / 10) + (max ? " / " + max : "");
+        o.querySelector("#calc-pct").textContent = pct + "%";
+        o.querySelector("#calc-lvl").innerHTML = max ? `<span class="lvl lvl${lv.i}">${lv.t}</span>` : "";
+      }
+      function addRow(name) {
+        rowsBox.insertAdjacentHTML("beforeend", `<div style="display:flex;gap:6px;align-items:center;margin-bottom:6px"><input class="search-box" style="flex:2;margin:0" placeholder="اسم المعيار" value="${esc(name || "")}"><input class="cscore search-box" style="flex:1;margin:0" inputmode="numeric" placeholder="الدرجة"><span style="color:var(--muted)">/</span><input class="cmax search-box" style="flex:1;margin:0" inputmode="numeric" placeholder="من"></div>`);
+        o.querySelectorAll(".cscore,.cmax").forEach(inp => inp.oninput = calc);
+      }
+      ["الأداء والإتقان", "التعاون والمشاركة", "الالتزام بالوقت"].forEach(addRow);
+      o.querySelector("#calc-add").onclick = () => addRow("");
+    });
+  }
+  async function toolSheets() {
+    const grades = [...new Set(myClasses().map(c => c.gc))].sort(), sc = subjCode(TE.subject), wk = curWeek();
+    openSheet(`<h4>📝 بنك أوراق العمل</h4><div style="font-size:13px;color:var(--muted);margin-bottom:8px">لكل درس: ورقة عمل جاهزة للطباعة + بحث عن أنشطة تفاعلية.</div><div id="sh-body"><div class="empty-note">جارِ التحميل…</div></div><div class="sheet-actions"><button class="btn-primary" onclick="window._sheetClose()">إغلاق</button></div>`, async (o) => {
+      let html = "";
+      for (const g of grades) {
+        const code = sc + g + TERM, rows = (await loadCurr(code)).filter(r => r.w >= wk - 1 && r.w <= wk + 2 && r.lesson && !String(r.lesson).includes("إجازة"));
+        if (!rows.length) continue;
+        html += `<div style="font-weight:800;color:var(--navy);margin:8px 0 4px">الصف ${GNAME[g]}</div>`;
+        rows.sort((a, b) => a.w - b.w).forEach(r => {
+          const q = encodeURIComponent(r.lesson + " " + TE.subject);
+          html += `<div class="comm-item"><b>أسبوع ${r.w}: ${esc(r.lesson)}</b><div style="display:flex;gap:6px;margin-top:6px;flex-wrap:wrap"><button class="btn-soft" data-ws="${esc(r.lesson)}">🖨️ ورقة عمل</button><a class="btn-soft" style="text-decoration:none" href="https://wordwall.net/ar/community?query=${q}" target="_blank" rel="noopener">🎮 أنشطة</a></div></div>`;
+        });
+      }
+      const body = o.querySelector("#sh-body"); if (!body) return;
+      body.innerHTML = html || '<div class="empty-note">لا دروس متاحة حول هذا الأسبوع</div>';
+      body.querySelectorAll("[data-ws]").forEach(b => b.onclick = () => printWorksheet(b.dataset.ws));
+    });
+  }
+  function printWorksheet(lesson) {
+    printDoc("ورقة عمل — " + lesson, `
+      <div class="h"><div class="s">${esc(META.school.name)}</div><div class="m">${esc(TE.subject)} — ${esc(hijriLabel())}</div></div>
+      <div class="tt">ورقة عمل: ${esc(lesson)}</div>
+      <p>اسم الطالب: ............................................ الفصل: ............ التاريخ: ............</p>
+      <p><b>السؤال الأول:</b> اكتب أهم ما تعلّمته عن (${esc(lesson)}):</p><p>....................................................................................................................</p><p>....................................................................................................................</p>
+      <p><b>السؤال الثاني:</b> أكمل الفراغات المناسبة:</p><p>....................................................................................................................</p>
+      <p><b>السؤال الثالث:</b> ارسم أو مثّل ما فهمته:</p><div style="border:1px dashed #aaa;height:150px;border-radius:8px"></div>
+      <div class="sig"><span>المعلم: ${esc(TE.name)}</span><span>الدرجة: ......</span></div>`);
+  }
+
   /* ═══════════ بوابة الطالب ═══════════ */
   async function renderStudent(sid) {
     const [cid, si] = sid.split(":"); const i = +si;
@@ -597,8 +731,18 @@
     V.querySelector("#st-out").onclick = () => { DB.session = null; DB.srole = null; save(); setTimeout(() => location.reload(), 200); };
     V.querySelectorAll(".seg button").forEach(b => b.onclick = () => { V.querySelectorAll(".seg button").forEach(x => x.classList.toggle("on", x === b)); stSection(b.dataset.s); });
 
-    // اجمع بيانات الطالب عبر كل معلميه
-    const agg = { pts: 0, st: STATES.map(() => 0), part: 0, hwY: 0, days: 0, beh: {}, grades: [] };
+    // اجمع بيانات الطالب عبر كل معلميه + نقاط كل زملائه للترتيب ولوحة الشرف
+    const agg = { pts: 0, st: STATES.map(() => 0), part: 0, hwY: 0, days: 0, beh: {}, grades: [], rank: 0, board: [] };
+    const classPts = c.students.map(() => 0);
+    function addPts(e) {
+      let p = 0;
+      if (e.a != null && STATES[e.a]) p += (+STATES[e.a].pts || 0);
+      if (e.part) p += e.part * W.part;
+      if (e.hw === 1) p += W.hw;
+      if (e.sh) p += e.sh * W.sheets;
+      (e.beh || []).forEach(bi => { const b = BEH[bi]; if (b) p += (+b.pts || 0); });
+      return p;
+    }
     async function gather() {
       let recDocs = [], grDocs = [];
       if (CLOUD && fdb) {
@@ -613,15 +757,18 @@
       }
       recDocs.forEach(rd => {
         Object.values(rd.d).forEach(day => {
+          Object.keys(day).forEach(idx => { const e = day[idx]; if (e) classPts[idx] += addPts(e); });
           const e = day[i]; if (!e) return; agg.days++;
-          if (e.a != null && STATES[e.a]) { agg.st[e.a]++; agg.pts += (+STATES[e.a].pts || 0); }
-          if (e.part) { agg.part += e.part; agg.pts += e.part * W.part; }
-          if (e.hw === 1) { agg.hwY++; agg.pts += W.hw; }
-          if (e.sh) agg.pts += e.sh * W.sheets;
-          (e.beh || []).forEach(bi => { const b = BEH[bi]; if (b) { agg.pts += (+b.pts || 0); agg.beh[bi] = (agg.beh[bi] || 0) + 1; } });
+          if (e.a != null && STATES[e.a]) agg.st[e.a]++;
+          if (e.part) agg.part += e.part;
+          if (e.hw === 1) agg.hwY++;
+          (e.beh || []).forEach(bi => { if (BEH[bi]) agg.beh[bi] = (agg.beh[bi] || 0) + 1; });
         });
       });
-      agg.pts = Math.round(agg.pts * 10) / 10;
+      classPts.forEach((v, k) => classPts[k] = Math.round(v * 10) / 10);
+      agg.pts = classPts[i];
+      agg.rank = 1 + classPts.filter(v => v > classPts[i]).length;
+      agg.board = c.students.map((st, k) => ({ n: st.n, pts: classPts[k], k })).filter(x => x.pts > 0).sort((a, b) => b.pts - a.pts).slice(0, 5);
       const maxTot = ASSESS.reduce((a, b) => a + b.max, 0);
       grDocs.forEach(gd => {
         const g = gd.g[i]; if (!g || !Object.keys(g).length) return;
@@ -631,6 +778,9 @@
       });
     }
     await gather();
+    // أظهر ترتيب الطالب في الترويسة
+    const cl = V.querySelector(".st-hero .cl");
+    if (cl && agg.rank && classPts.some(v => v > 0)) cl.innerHTML += ` · ترتيبي: <b style="color:var(--goldl)">${agg.rank}</b> من ${c.students.length}`;
 
     function stSection(sec) {
       const body = $("#st-body");
@@ -639,7 +789,8 @@
           <div class="card" style="margin:12px"><h3><span class="dot"></span>حضوري وسلوكي</h3>
             <div class="countchips">${STATES.map((st, k) => agg.st[k] ? `<span class="cc" style="background:${STCOLORS[k]}">${esc(st.name)} ${agg.st[k]}</span>` : "").filter(Boolean).join("") || '<span style="color:var(--muted);font-size:13px">لا رصد بعد</span>'}</div>
             <div class="countchips">${Object.keys(agg.beh).map(bi => `<span class="cc" style="background:${BEH[bi].pts >= 0 ? "var(--ok)" : "var(--bad)"}">${esc(BEH[bi].name)} ×${agg.beh[bi]}</span>`).join("")}</div></div>
-          <div class="card" style="margin:12px"><h3><span class="dot"></span>درجاتي</h3>${agg.grades.length ? `<div class="table-scroll"><table class="report-table"><tr><th>المادة</th><th>الدرجة</th><th>من</th></tr>${agg.grades.map(g => `<tr><td class="nm">${esc(g.subj)}</td><td><b>${g.tot}</b></td><td>${g.max}</td></tr>`).join("")}</table></div>` : '<div class="empty-note">لم تُرصد درجات بعد</div>'}</div>`;
+          <div class="card" style="margin:12px"><h3><span class="dot"></span>درجاتي</h3>${agg.grades.length ? `<div class="table-scroll"><table class="report-table"><tr><th>المادة</th><th>الدرجة</th><th>من</th></tr>${agg.grades.map(g => `<tr><td class="nm">${esc(g.subj)}</td><td><b>${g.tot}</b></td><td>${g.max}</td></tr>`).join("")}</table></div>` : '<div class="empty-note">لم تُرصد درجات بعد</div>'}</div>
+          <div class="card" style="margin:12px"><h3><span class="dot"></span>🏆 لوحة شرف فصلي</h3>${agg.board.length ? agg.board.map((b, k) => `<div class="al" style="${b.k === i ? "background:#fdf6e3;border-radius:10px;padding:6px 8px" : "padding:6px 2px"}"><span><b style="font-size:16px">${["🥇", "🥈", "🥉", "🎖️", "🎖️"][k]}</b> ${esc(b.n)}${b.k === i ? " <b style=\"color:var(--gold)\">(أنت)</b>" : ""}</span><span class="pts" style="color:var(--ok)">${b.pts}</span></div>`).join("") : '<div class="empty-note">كن أول المتميزين في فصلك 🌟</div>'}</div>`;
       } else if (sec === "lessons") {
         body.innerHTML = `<div class="empty-note">جارِ تحميل دروس هذا الأسبوع…</div>`;
         loadStudentLessons(c, body);
