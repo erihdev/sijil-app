@@ -789,15 +789,18 @@
         <div class="live-center">
           <div class="live-tools">
             <button data-v="roster" class="on">👥 الطلاب</button>
-            <button data-v="lesson">▶️ الدرس التفاعلي</button>
+            <button data-v="wheel">🎡 العجلة</button>
+            <button data-v="quiz">❓ سؤال</button>
+            <button data-v="iws">📝 ورقة تفاعلية</button>
+            <button data-v="timer">⏱️ مؤقّت</button>
+            <button data-v="lesson">▶️ الدرس</button>
             <button data-v="yt">📺 يوتيوب</button>
-            <button data-v="ws">📝 ورقة عمل</button>
           </div>
           <div class="live-main" id="live-main"></div>
         </div>
         <div class="live-board" id="live-board"></div>
       </div>`;
-    $("#live-exit").onclick = () => { try { if (document.fullscreenElement) document.exitFullscreen(); } catch (e) { } V.classList.add("hidden"); $("#view-app").classList.remove("hidden"); renderReg(); renderToday(); renderGrades(); };
+    $("#live-exit").onclick = () => { if (timerIv) { clearInterval(timerIv); timerIv = null; } try { if (document.fullscreenElement) document.exitFullscreen(); } catch (e) { } V.classList.add("hidden"); $("#view-app").classList.remove("hidden"); renderReg(); renderToday(); renderGrades(); };
     $("#live-fs").onclick = () => { try { document.fullscreenElement ? document.exitFullscreen() : V.requestFullscreen(); } catch (e) { } };
     V.querySelectorAll(".live-tools button").forEach(b => b.onclick = () => {
       V.querySelectorAll(".live-tools button").forEach(x => x.classList.toggle("on", x === b));
@@ -814,6 +817,7 @@
   let liveMainView = "roster";
   async function liveView(v) {
     liveMainView = v;
+    if (timerIv) { clearInterval(timerIv); timerIv = null; }
     const box = $("#live-main"); if (!box) return;
     const c = classById(liveCid), sc = subjCode(TE.subject), wk = curWeek(), code = sc + c.gc + TERM;
     if (v === "roster") { drawLiveRoster(); return; }
@@ -841,19 +845,179 @@
       box.querySelector("#yt-url").addEventListener("keydown", (e) => { if (e.key === "Enter") show(); });
       return;
     }
-    if (v === "ws") {
-      const rows = (await loadCurr(code)).filter(r => r.w === wk);
-      const m = rows.find(r => r.lesson && !String(r.lesson).includes("تابع")) || rows[0];
-      const les = (m && m.lesson) || "الدرس";
-      box.innerHTML = `<div class="live-stage"><div class="stage-bar"><span style="color:#fff;font-weight:800">📝 ورقة عمل</span><button class="live-btn" style="margin-inline-start:auto" id="ws-print">🖨️ طباعة</button></div>
-        <div class="stage-ws"><h2 style="text-align:center;color:#0E2033">ورقة عمل: ${esc(les)}</h2>
-        <p style="font-size:16px">اسم الطالب: ........................................ الفصل: ${esc(c.name)} &nbsp; التاريخ: ..............</p>
-        <p style="font-size:17px"><b>السؤال الأول:</b> اكتب أهم ما تعلّمته عن (${esc(les)}):</p><p style="border-bottom:1px solid #bbb;height:26px"></p><p style="border-bottom:1px solid #bbb;height:26px"></p>
-        <p style="font-size:17px"><b>السؤال الثاني:</b> أكمل الفراغات المناسبة:</p><p style="border-bottom:1px solid #bbb;height:26px"></p>
-        <p style="font-size:17px"><b>السؤال الثالث:</b> ارسم أو مثّل ما فهمته:</p><div style="border:1px dashed #999;height:160px;border-radius:8px"></div></div></div>`;
-      box.querySelector("#ws-print").onclick = () => printWorksheet(les);
-      return;
+    if (v === "wheel") { stageWheel(box, c); return; }
+    if (v === "quiz") { stageQuiz(box); return; }
+    if (v === "iws") { stageWorksheet(box); return; }
+    if (v === "timer") { stageTimer(box); return; }
+  }
+  // 🎡 عجلة اختيار الطلاب
+  function stageWheel(box, c) {
+    box.innerHTML = `<div class="live-stage"><div class="stage-bar"><span style="color:#fff;font-weight:800">🎡 عجلة اختيار الطلاب</span>
+      <label style="color:#c9d5e3;font-size:13px;margin-inline-start:auto"><input type="checkbox" id="wh-present" checked> الحاضرون فقط</label></div>
+      <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:20px">
+        <div id="wh-name" style="font-size:min(9vw,64px);font-weight:800;color:var(--goldl);text-align:center;min-height:1.2em;padding:0 12px">اضغط «أدر العجلة»</div>
+        <button class="btn-primary" id="wh-spin" style="font-size:20px;max-width:280px">🎡 أدر العجلة</button>
+        <div id="wh-act"></div>
+      </div></div>`;
+    const nameEl = box.querySelector("#wh-name");
+    box.querySelector("#wh-spin").onclick = () => {
+      const calc = classCalc(liveCid);
+      let pool = c.students.map((s, i) => i);
+      if (box.querySelector("#wh-present").checked) {
+        const withPresence = pool.filter(i => { const day = (DB.recs[liveCid] || {})[liveDate]; return day && day[i] && day[i].a === 0; });
+        if (withPresence.length) pool = withPresence;
+      }
+      box.querySelector("#wh-act").innerHTML = "";
+      let ticks = 0, max = 22 + Math.floor(Math.random() * 10);
+      const iv = setInterval(() => {
+        const i = pool[Math.floor(Math.random() * pool.length)];
+        nameEl.textContent = c.students[i].n;
+        nameEl.style.transform = "scale(1.05)";
+        ticks++;
+        if (ticks >= max) {
+          clearInterval(iv);
+          const win = pool[Math.floor(Math.random() * pool.length)];
+          nameEl.textContent = "🎉 " + c.students[win].n;
+          nameEl.style.transform = "scale(1.15)";
+          confetti();
+          box.querySelector("#wh-act").innerHTML = `<button class="btn-gold" id="wh-eval" style="font-size:16px">⭐ قيّم ${esc(c.students[win].n.split(" ")[0])}</button>`;
+          box.querySelector("#wh-eval").onclick = () => liveActions(win);
+        }
+      }, 70 + ticks * 4);
+    };
+  }
+  // ❓ سؤال تفاعلي مفرد
+  let quizState = { q: "", opts: ["", "", "", ""], correct: 0 };
+  function stageQuiz(box) {
+    box.innerHTML = `<div class="live-stage"><div class="stage-bar"><span style="color:#fff;font-weight:800">❓ سؤال تفاعلي</span>
+      <button class="live-btn" id="qz-edit" style="margin-inline-start:auto">✏️ تعديل</button></div>
+      <div id="qz-body" style="flex:1;overflow:auto;padding:16px"></div></div>`;
+    const body = box.querySelector("#qz-body");
+    function showEditor() {
+      body.innerHTML = `<div style="max-width:640px;margin:0 auto;color:#fff">
+        <label style="font-weight:800;color:var(--goldl)">نص السؤال</label>
+        <textarea id="qz-q" class="stage-bar" style="width:100%;min-height:60px;color:#fff;margin:6px 0 12px">${esc(quizState.q)}</textarea>
+        ${quizState.opts.map((o, k) => `<div style="display:flex;gap:8px;align-items:center;margin-bottom:8px"><input type="radio" name="qzc" ${k === quizState.correct ? "checked" : ""} data-c="${k}" style="width:20px;height:20px"><input class="stage-bar qz-opt" data-k="${k}" style="flex:1;color:#fff" placeholder="الخيار ${k + 1}" value="${esc(o)}"></div>`).join("")}
+        <button class="btn-primary" id="qz-show" style="margin-top:8px">▶️ اعرض السؤال</button>
+        <div style="color:#9fb0c4;font-size:12px;margin-top:8px">علّم الدائرة بجانب الإجابة الصحيحة</div></div>`;
+      body.querySelector("#qz-show").onclick = () => {
+        quizState.q = body.querySelector("#qz-q").value.trim();
+        body.querySelectorAll(".qz-opt").forEach(inp => quizState.opts[+inp.dataset.k] = inp.value.trim());
+        const r = body.querySelector("input[name=qzc]:checked"); quizState.correct = r ? +r.dataset.c : 0;
+        showQuestion();
+      };
     }
+    function showQuestion() {
+      const opts = quizState.opts.map((o, k) => ({ o, k })).filter(x => x.o);
+      body.innerHTML = `<div style="max-width:760px;margin:0 auto;text-align:center">
+        <div style="font-size:min(5vw,34px);font-weight:800;color:#fff;margin:10px 0 24px">${esc(quizState.q || "—")}</div>
+        <div class="qz-grid">${opts.map(x => `<button class="qz-opt-card" data-k="${x.k}">${["أ", "ب", "ج", "د"][x.k]}. ${esc(x.o)}</button>`).join("")}</div>
+        <button class="btn-gold" id="qz-reveal" style="margin-top:22px;font-size:17px">✅ أظهر الإجابة</button></div>`;
+      body.querySelector("#qz-reveal").onclick = () => {
+        body.querySelectorAll(".qz-opt-card").forEach(b => { b.classList.add(+b.dataset.k === quizState.correct ? "ok" : "no"); });
+        confetti();
+      };
+      body.querySelectorAll(".qz-opt-card").forEach(b => b.onclick = () => {
+        const ok = +b.dataset.k === quizState.correct;
+        b.classList.add(ok ? "ok" : "no");
+        if (ok) confetti();
+      });
+    }
+    box.querySelector("#qz-edit").onclick = showEditor;
+    if (quizState.q) showQuestion(); else showEditor();
+  }
+  // 📝 ورقة عمل تفاعلية (عدة أسئلة)
+  let wsItems = [], wsIdx = 0;
+  function stageWorksheet(box) {
+    box.innerHTML = `<div class="live-stage"><div class="stage-bar"><span style="color:#fff;font-weight:800">📝 ورقة عمل تفاعلية</span>
+      <button class="live-btn" id="iws-build" style="margin-inline-start:auto">🛠️ بناء</button>
+      ${wsItems.length ? `<button class="live-btn" id="iws-present">▶️ عرض</button>` : ""}</div>
+      <div id="iws-body" style="flex:1;overflow:auto;padding:16px"></div></div>`;
+    const body = box.querySelector("#iws-body");
+    function builder() {
+      body.innerHTML = `<div style="max-width:680px;margin:0 auto;color:#fff">
+        <div id="iws-list"></div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin:12px 0">
+          <button class="live-btn" data-add="mcq">➕ اختيار من متعدد</button>
+          <button class="live-btn" data-add="tf">➕ صح / خطأ</button>
+          <button class="live-btn" data-add="fill">➕ أكمل الفراغ</button>
+        </div>
+        ${wsItems.length ? `<button class="btn-primary" id="iws-start">▶️ ابدأ العرض (${wsItems.length} سؤال)</button>` : '<div style="color:#9fb0c4">أضف أسئلة لتكوين الورقة</div>'}</div>`;
+      const list = body.querySelector("#iws-list");
+      list.innerHTML = wsItems.map((it, n) => `<div class="comm-item" style="color:#fff;border-color:rgba(255,255,255,.15)"><b>${n + 1}. [${it.t === "mcq" ? "اختيار" : it.t === "tf" ? "صح/خطأ" : "أكمل"}]</b> ${esc(it.q || "(بلا نص)")} <button class="live-btn" data-del="${n}" style="float:left;padding:3px 9px">🗑</button></div>`).join("");
+      list.querySelectorAll("[data-del]").forEach(b => b.onclick = () => { wsItems.splice(+b.dataset.del, 1); builder(); });
+      body.querySelectorAll("[data-add]").forEach(b => b.onclick = () => addItemForm(b.dataset.add));
+      const st = body.querySelector("#iws-start"); if (st) st.onclick = () => { wsIdx = 0; present(); };
+    }
+    function addItemForm(t) {
+      const it = { t, q: "", opts: t === "mcq" ? ["", "", "", ""] : (t === "tf" ? ["صح", "خطأ"] : []), correct: 0, ans: "" };
+      body.innerHTML = `<div style="max-width:640px;margin:0 auto;color:#fff">
+        <label style="font-weight:800;color:var(--goldl)">${t === "mcq" ? "سؤال اختيار من متعدد" : t === "tf" ? "عبارة صح/خطأ" : "جملة فيها فراغ"}</label>
+        <textarea id="it-q" class="stage-bar" style="width:100%;min-height:56px;color:#fff;margin:6px 0 12px"></textarea>
+        ${t === "mcq" ? it.opts.map((o, k) => `<div style="display:flex;gap:8px;align-items:center;margin-bottom:6px"><input type="radio" name="itc" ${k === 0 ? "checked" : ""} data-c="${k}" style="width:18px;height:18px"><input class="stage-bar it-opt" data-k="${k}" style="flex:1;color:#fff" placeholder="الخيار ${k + 1}"></div>`).join("") : ""}
+        ${t === "tf" ? `<div style="display:flex;gap:8px"><label style="color:#fff"><input type="radio" name="itc" data-c="0" checked> صح</label><label style="color:#fff"><input type="radio" name="itc" data-c="1"> خطأ</label></div>` : ""}
+        ${t === "fill" ? `<input id="it-ans" class="stage-bar" style="width:100%;color:#fff" placeholder="الإجابة الصحيحة">` : ""}
+        <div style="display:flex;gap:8px;margin-top:14px"><button class="live-btn" id="it-cancel">إلغاء</button><button class="btn-primary" id="it-save" style="flex:1">حفظ السؤال</button></div></div>`;
+      body.querySelector("#it-cancel").onclick = builder;
+      body.querySelector("#it-save").onclick = () => {
+        it.q = body.querySelector("#it-q").value.trim();
+        if (t === "mcq") { body.querySelectorAll(".it-opt").forEach(inp => it.opts[+inp.dataset.k] = inp.value.trim()); }
+        if (t === "mcq" || t === "tf") { const r = body.querySelector("input[name=itc]:checked"); it.correct = r ? +r.dataset.c : 0; }
+        if (t === "fill") it.ans = body.querySelector("#it-ans").value.trim();
+        wsItems.push(it); builder();
+      };
+    }
+    function present() {
+      const it = wsItems[wsIdx]; if (!it) { builder(); return; }
+      body.innerHTML = `<div style="max-width:760px;margin:0 auto;text-align:center;color:#fff">
+        <div style="color:#9fb0c4;margin-bottom:8px">سؤال ${wsIdx + 1} من ${wsItems.length}</div>
+        <div style="font-size:min(5vw,32px);font-weight:800;margin-bottom:22px">${esc(it.q || "—")}</div>
+        <div id="q-area"></div>
+        <div style="display:flex;gap:8px;justify-content:center;margin-top:22px">
+          ${wsIdx > 0 ? `<button class="live-btn" id="q-prev">◀ السابق</button>` : ""}
+          <button class="btn-gold" id="q-reveal">✅ الإجابة</button>
+          ${wsIdx < wsItems.length - 1 ? `<button class="btn-primary" id="q-next">التالي ▶</button>` : `<button class="live-btn" id="q-done">🛠️ إنهاء</button>`}
+        </div></div>`;
+      const area = body.querySelector("#q-area");
+      if (it.t === "fill") area.innerHTML = `<div style="font-size:22px;color:var(--goldl)" id="q-fill">✍️ اكتب/ناقش الإجابة</div>`;
+      else area.innerHTML = `<div class="qz-grid">${it.opts.map((o, k) => o ? `<button class="qz-opt-card" data-k="${k}">${it.t === "tf" ? "" : (["أ", "ب", "ج", "د"][k] + ". ")}${esc(o)}</button>` : "").join("")}</div>`;
+      area.querySelectorAll(".qz-opt-card").forEach(b => b.onclick = () => { const ok = +b.dataset.k === it.correct; b.classList.add(ok ? "ok" : "no"); if (ok) confetti(); });
+      body.querySelector("#q-reveal").onclick = () => {
+        if (it.t === "fill") { const f = body.querySelector("#q-fill"); if (f) { f.textContent = "✅ " + (it.ans || "—"); f.style.color = "#3ad07a"; } }
+        else area.querySelectorAll(".qz-opt-card").forEach(b => b.classList.add(+b.dataset.k === it.correct ? "ok" : "no"));
+        confetti();
+      };
+      const pv = body.querySelector("#q-prev"); if (pv) pv.onclick = () => { wsIdx--; present(); };
+      const nx = body.querySelector("#q-next"); if (nx) nx.onclick = () => { wsIdx++; present(); };
+      const dn = body.querySelector("#q-done"); if (dn) dn.onclick = builder;
+    }
+    const bb = box.querySelector("#iws-build"); if (bb) bb.onclick = builder;
+    const pp = box.querySelector("#iws-present"); if (pp) pp.onclick = () => { wsIdx = 0; present(); };
+    if (wsItems.length) { wsIdx = 0; present(); } else builder();
+  }
+  // ⏱️ مؤقّت النشاط
+  let timerIv = null;
+  function stageTimer(box) {
+    box.innerHTML = `<div class="live-stage"><div class="stage-bar"><span style="color:#fff;font-weight:800">⏱️ مؤقّت النشاط</span></div>
+      <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:24px">
+        <div id="tm-disp" style="font-size:min(22vw,150px);font-weight:800;color:var(--goldl);font-variant-numeric:tabular-nums">00:00</div>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;justify-content:center">
+          ${[30, 60, 120, 180, 300].map(s => `<button class="live-btn" data-s="${s}">${s < 60 ? s + " ث" : (s / 60) + " د"}</button>`).join("")}
+        </div>
+        <div style="display:flex;gap:10px"><button class="btn-primary" id="tm-se" style="min-width:120px">▶️ ابدأ</button><button class="live-btn" id="tm-reset">↺ صفر</button></div>
+      </div></div>`;
+    let left = 0, running = false;
+    const disp = box.querySelector("#tm-disp");
+    const fmt = () => { const m = Math.floor(left / 60), s = left % 60; disp.textContent = String(m).padStart(2, "0") + ":" + String(s).padStart(2, "0"); };
+    const stop = () => { clearInterval(timerIv); timerIv = null; running = false; box.querySelector("#tm-se").textContent = "▶️ ابدأ"; };
+    box.querySelectorAll("[data-s]").forEach(b => b.onclick = () => { left = +b.dataset.s; fmt(); });
+    box.querySelector("#tm-se").onclick = () => {
+      if (running) { stop(); return; }
+      if (left <= 0) return;
+      running = true; box.querySelector("#tm-se").textContent = "⏸ إيقاف";
+      timerIv = setInterval(() => { left--; fmt(); if (left <= 0) { stop(); disp.style.color = "#ff6b6b"; confetti(); } }, 1000);
+    };
+    box.querySelector("#tm-reset").onclick = () => { stop(); left = 0; fmt(); disp.style.color = "var(--goldl)"; };
   }
   function drawLiveRoster() {
     if (liveMainView !== "roster") return;
