@@ -149,6 +149,9 @@
   function switchTab(name) {
     document.querySelectorAll("#tabs button").forEach(b => b.classList.toggle("on", b.dataset.tab === name));
     ["today", "reg", "rep", "more"].forEach(n => $("#tab-" + n).classList.toggle("hidden", n !== name));
+    if (name === "rep") renderRep();
+    if (name === "today") renderToday();
+    if (name === "reg") renderReg();
     window.scrollTo(0, 0);
   }
   document.querySelectorAll("#tabs button").forEach(b => b.onclick = () => switchTab(b.dataset.tab));
