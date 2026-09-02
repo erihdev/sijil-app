@@ -904,8 +904,22 @@
     if (d.summary) s.push({ v: "🌟", t: d.summary });
     return s;
   }
+  const STORY_RATE = 1.12;
   function arVoice() {
-    try { return (window.speechSynthesis.getVoices() || []).find(v => (v.lang || "").toLowerCase().startsWith("ar")) || null; } catch (e) { return null; }
+    try {
+      const vs = window.speechSynthesis.getVoices() || [];
+      const ar = vs.filter(v => (v.lang || "").toLowerCase().startsWith("ar"));
+      if (!ar.length) return null;
+      const score = (v) => {
+        const n = ((v.name || "") + " " + (v.lang || "")).toLowerCase(); let s = 0;
+        if (/ar-sa/.test((v.lang || "").toLowerCase())) s += 6;              // السعودية أولاً
+        if (/hamed|naayf|zariyah|salma|saudi|السعود|العربية/.test(n)) s += 4; // أصوات سعودية معروفة
+        if (/ar-xa|gulf|خليج|zeina|hala/.test(n)) s += 2;                    // خليجي
+        if (/online|natural|neural/.test(n)) s += 2;                         // الأحدث أنقى
+        return s;
+      };
+      return ar.slice().sort((a, b) => score(b) - score(a))[0];
+    } catch (e) { return null; }
   }
   async function stageStory(box, code, wk) {
     let d = null;
@@ -936,17 +950,21 @@
     }
     function speakThen(text, cb) {
       const useVoice = box.querySelector("#st-voice") && box.querySelector("#st-voice").checked;
-      let done = false; const go = () => { if (!done) { done = true; cb(); } };
+      let done = false;
+      const go = () => { if (done) return; done = true; if (storyTimer) { clearTimeout(storyTimer); storyTimer = null; } cb(); };
       try { window.speechSynthesis.cancel(); } catch (e) { }
       if (useVoice && window.speechSynthesis) {
         const u = new SpeechSynthesisUtterance(text);
-        u.lang = "ar-SA"; const v = arVoice(); if (v) u.voice = v; u.rate = 0.95;
+        u.lang = "ar-SA"; const v = arVoice(); if (v) u.voice = v;
+        u.rate = STORY_RATE; u.pitch = 1;
+        let started = false;
+        u.onstart = () => { started = true; };
         u.onend = go; u.onerror = go;
         try { window.speechSynthesis.speak(u); } catch (e) { }
-        // احتياط إن لم يعمل الصوت: تقدّم بالوقت
-        storyTimer = setTimeout(go, Math.max(3500, text.length * 90));
+        // إن لم يبدأ النطق (لا صوت عربي بالجهاز) تابع بصرياً؛ وإلا ننتظر انتهاء الصوت (سرد متواصل)
+        storyTimer = setTimeout(() => { if (!started) go(); }, 1300);
       } else {
-        storyTimer = setTimeout(go, Math.max(3200, text.length * 85));
+        storyTimer = setTimeout(go, Math.max(2400, text.length * 65));
       }
     }
     function step() {
@@ -1330,5 +1348,6 @@
 
   /* ═══ إقلاع ═══ */
   if (!CLOUD) { const ds = $("#demo-strip"); if (ds) ds.textContent = "نسخة تجريبية — طلاب بأسماء وهمية، والبيانات على هذا الجهاز فقط"; }
+  try { if (window.speechSynthesis) { window.speechSynthesis.getVoices(); window.speechSynthesis.onvoiceschanged = () => { try { window.speechSynthesis.getVoices(); } catch (e) { } }; } } catch (e) { }
   boot();
 })();
