@@ -1,26 +1,59 @@
-/* سجل المتابعة الرقمي — تطبيق الويب (نسخة تجريبية محلية + جاهز للربط السحابي) */
+/* سجل المتابعة الرقمي — تطبيق الويب: وضع سحابي مشترك (Firestore) + وضع تجريبي محلي */
 (function () {
   "use strict";
-  const D = window.DEMO;
-  const META = D.meta;
-  const W = META.weights;
-  const STATES = META.states;           // 7 حالات حضور
-  const BEH = META.behaviors;           // مكتبة السلوك
+  const SALT = "sijil1448";
+  const CLOUD = !!(window.FIREBASE_CONFIG && window.firebase && !/[?&]demo/.test(location.search));
+  let D = null;          // {meta, teachers, classes, schedule}
+  let META = null, W = null, STATES = null, BEH = null, TERM = "t1";
+  let fdb = null;        // Firestore
   const STCOLORS = ["var(--st0)", "var(--st1)", "var(--st2)", "var(--st3)",
     "var(--st4)", "var(--st5)", "var(--st6)"];
   const DAYS = ["الأحد", "الإثنين", "الثلاثاء", "الأربعاء", "الخميس", "الجمعة", "السبت"];
   const $ = (s) => document.querySelector(s);
-  const el = (h) => { const t = document.createElement("template"); t.innerHTML = h.trim(); return t.content.firstChild; };
   const esc = (s) => String(s == null ? "" : s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
 
-  /* ═══ التخزين المحلي ═══ */
-  const KEY = "sijil.v1";
+  async function sha256(msg) {
+    const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(msg));
+    return [...new Uint8Array(buf)].map(b => b.toString(16).padStart(2, "0")).join("");
+  }
+
+  /* ═══ التخزين المحلي (كاش دائم في الوضعين) ═══ */
+  const KEY = CLOUD ? "sijil.cloud.v1" : "sijil.v1";
   let DB = { recs: {}, session: null };
   try { const raw = localStorage.getItem(KEY); if (raw) DB = JSON.parse(raw); } catch (e) { }
-  let saveT = null;
-  function save() {
+  const dirty = new Set();
+  let saveT = null, pushT = null;
+  function save(cid) {
+    if (cid) dirty.add(cid);
     clearTimeout(saveT);
     saveT = setTimeout(() => { try { localStorage.setItem(KEY, JSON.stringify(DB)); } catch (e) { } }, 250);
+    if (CLOUD && TE) {
+      clearTimeout(pushT);
+      pushT = setTimeout(pushDirty, 1200);
+    }
+  }
+  async function pushDirty() {
+    if (!fdb || !TE) return;
+    const list = [...dirty];
+    dirty.clear();
+    for (const cid of list) {
+      try {
+        await fdb.doc("recs/" + TE.id + "_" + cid).set({
+          d: JSON.parse(JSON.stringify(DB.recs[cid] || {})),
+          tn: TE.name, ts: Date.now(),
+        });
+        syncBadge(true);
+      } catch (e) { dirty.add(cid); syncBadge(false); }
+    }
+  }
+  window.addEventListener("online", () => { if (dirty.size) pushDirty(); });
+  function syncBadge(ok) {
+    const el2 = $("#demo-strip");
+    if (!el2 || !CLOUD) return;
+    el2.textContent = ok ? "☁️ متصل بقاعدة المدرسة — البيانات تُحفظ سحابياً" :
+      "⚠️ تعذر الرفع الآن — سيُعاد تلقائياً عند عودة الاتصال";
+    el2.style.background = ok ? "#2e9e5b" : "#e8a23d";
+    el2.style.color = "#fff";
   }
   function rec(cid, date, si, make) {
     DB.recs[cid] = DB.recs[cid] || {};
@@ -42,11 +75,10 @@
     return new Intl.DateTimeFormat("ar-SA-u-ca-islamic-umalqura",
       { weekday: "long", day: "numeric", month: "long", year: "numeric" }).format(dt || new Date());
   }
-  const TERM = (META.school.term_lbl || "").includes("الثاني") ? "t2" : "t1";
   function curWeek() {
     const t = hnum(hijriParts());
     let best = 1;
-    for (const wk of (META.weeks[TERM] || [])) {
+    for (const wk of ((META.weeks || {})[TERM] || [])) {
       const a = parseH(wk.from), b = parseH(wk.to);
       if (a && a <= t) best = wk.w;
       if (a && b && a <= t && t <= b) return wk.w;
@@ -55,7 +87,7 @@
   }
 
   /* ═══ جلسة ═══ */
-  let TE = null; // المعلم الحالي
+  let TE = null;
   function classById(id) { return D.classes.find(c => c.id === id); }
   function myClasses() { return (TE.classes || []).map(classById).filter(Boolean); }
 
@@ -112,38 +144,111 @@
   const OV = $("#overlay-root");
   function openSheet(html, onMount) {
     OV.innerHTML = "";
-    const o = el('<div class="overlay"><div class="sheet">' + html + "</div></div>");
+    const t = document.createElement("template");
+    t.innerHTML = '<div class="overlay"><div class="sheet">' + html + "</div></div>";
+    const o = t.content.firstChild;
     o.addEventListener("click", (e) => { if (e.target === o) closeSheet(); });
     OV.appendChild(o);
     if (onMount) onMount(o);
   }
   function closeSheet() { OV.innerHTML = ""; }
 
+  /* ═══ الإقلاع والاتصال ═══ */
+  async function bootCloud() {
+    const app = firebase.initializeApp(window.FIREBASE_CONFIG);
+    await firebase.auth().signInAnonymously();
+    fdb = firebase.firestore();
+    const [metaS, teachS, clsS, schS] = await Promise.all([
+      fdb.doc("meta/app").get(), fdb.collection("teachers").get(),
+      fdb.collection("classes").get(), fdb.doc("schedule/all").get(),
+    ]);
+    const teachers = [];
+    teachS.forEach(d2 => teachers.push({ id: d2.id, ...d2.data() }));
+    teachers.sort((a, b) => a.id.localeCompare(b.id));
+    const classes = [];
+    clsS.forEach(d2 => classes.push({ id: d2.id, ...d2.data() }));
+    D = { meta: metaS.data(), teachers, classes, schedule: (schS.data() || {}).rows || [] };
+    try { localStorage.setItem("sijil.cloudD", JSON.stringify(D)); } catch (e) { }
+  }
+  function bootOffline() {
+    try {
+      const raw = localStorage.getItem("sijil.cloudD");
+      if (raw) { D = JSON.parse(raw); return true; }
+    } catch (e) { }
+    return false;
+  }
+  async function boot() {
+    if (CLOUD) {
+      $("#lg-demo").innerHTML = "جارِ الاتصال بقاعدة المدرسة… ⏳";
+      try {
+        await bootCloud();
+        $("#lg-demo").innerHTML = "☁️ متصل بقاعدة المدرسة<br><b>رقم الدخول: رقم هويتك المسجل في البرنامج</b>";
+        syncBadge(true);
+      } catch (e) {
+        if (bootOffline()) {
+          $("#lg-demo").innerHTML = "⚠️ لا اتصال بالإنترنت — نسخة محفوظة على جهازك، وسيُرفع رصدك عند عودة الاتصال";
+        } else {
+          $("#lg-demo").innerHTML = "❌ تعذر الاتصال بقاعدة المدرسة. تأكد من الإنترنت وأعد تحميل الصفحة.";
+          return;
+        }
+      }
+    } else {
+      D = window.DEMO;
+    }
+    META = D.meta; W = META.weights; STATES = META.states; BEH = META.behaviors;
+    TERM = (META.school.term_lbl || "").includes("الثاني") ? "t2" : "t1";
+    initLogin();
+    if (DB.session) {
+      const t = D.teachers.find(x => x.id === DB.session);
+      if (t) await enter(t);
+    }
+  }
+
   /* ═══ الدخول ═══ */
   function initLogin() {
     $("#lg-school").textContent = META.school.name;
     const sel = $("#lg-teacher");
     sel.innerHTML = '<option value="">— اختر اسمك —</option>' +
-      D.teachers.filter(t => t.classes.length || t.admin)
+      D.teachers.filter(t => (t.classes || []).length || t.admin)
         .map(t => `<option value="${t.id}">${esc(t.name)}${t.admin ? " (المدير)" : ""}</option>`).join("");
-    $("#lg-btn").onclick = () => {
+    $("#lg-btn").onclick = async () => {
       const tid = sel.value, pin = $("#lg-pin").value.trim();
       const t = D.teachers.find(x => x.id === tid);
       if (!t) { $("#lg-err").textContent = "اختر اسمك من القائمة"; return; }
-      if (pin !== "1234") { $("#lg-err").textContent = "رقم الدخول غير صحيح (التجريبي: 1234)"; return; }
+      if (CLOUD) {
+        if (!t.pinHash) { $("#lg-err").textContent = "لم تُسجل هويتك بعد — تواصل مع أ. ضيف الله"; return; }
+        $("#lg-err").textContent = "جارِ التحقق…";
+        const h = await sha256(pin + "|" + t.id + "|" + SALT);
+        if (h !== t.pinHash) { $("#lg-err").textContent = "رقم الهوية غير صحيح"; return; }
+      } else if (pin !== "1234") {
+        $("#lg-err").textContent = "رقم الدخول غير صحيح (التجريبي: 1234)"; return;
+      }
+      $("#lg-err").textContent = "";
       DB.session = tid; save();
       enter(t);
     };
   }
-  function enter(t) {
+  async function enter(t) {
     TE = t;
     $("#view-login").classList.add("hidden");
     $("#view-app").classList.remove("hidden");
     $("#ab-who").textContent = t.name + " — " + (t.admin ? "مدير المدرسة" : t.subject);
+    if (CLOUD) {
+      syncBadge(true);
+      // اسحب رصد فصوله من السحابة (السحابة هي المرجع)
+      try {
+        const gets = (t.classes || []).map(cid => fdb.doc("recs/" + t.id + "_" + cid).get());
+        const snaps = await Promise.all(gets);
+        snaps.forEach((s2, i) => {
+          if (s2.exists) DB.recs[t.classes[i]] = (s2.data() || {}).d || {};
+        });
+        save();
+      } catch (e) { syncBadge(false); }
+    }
     renderToday(); renderReg(); renderRep(); renderMore();
     switchTab("today");
   }
-  $("#ab-logout").onclick = () => { DB.session = null; save(); location.reload(); };
+  $("#ab-logout").onclick = () => { DB.session = null; save(); setTimeout(() => location.reload(), 300); };
 
   /* ═══ التبويبات ═══ */
   function switchTab(name) {
@@ -167,7 +272,6 @@
       const s = mine.find(x => x.p === p);
       per.push(`<div class="period ${s ? "" : "empty"}"><span class="p">ح${p}</span><div class="c">${s ? esc(classById(s.c).name) : "—"}</div></div>`);
     }
-    // إجمالي طلابي وأدناهم نقاطاً
     let all = [];
     myClasses().forEach(c => { classCalc(c.id).forEach(r => all.push({ c, r })); });
     const low = all.slice().sort((a, b) => a.r.t.pts - b.r.t.pts).slice(0, 5);
@@ -190,7 +294,6 @@
           <div class="al"><span>${esc(x.r.s.n)} <small style="color:var(--muted)">— ${esc(x.c.name)}</small></span>
           <span class="pts">${x.r.t.pts}</span></div>`).join("") :
         '<div class="empty-note">ابدأ التحضير أولاً وستظهر القائمة هنا</div>'}</div></div>`;
-    // درس الأسبوع لكل صف من صفوف المعلم
     const sc = subjCode(TE.subject);
     const grades = [...new Set(myClasses().map(c => c.gc))].sort();
     const LB = $("#today-lesson");
@@ -232,7 +335,7 @@
     $("#reg-all").onclick = () => {
       const c = classById(regClass);
       c.students.forEach((s, i) => { const e = rec(regClass, regDate, i, true); if (e.a == null) e.a = 0; });
-      save(); drawRows(); renderToday();
+      save(regClass); drawRows(); renderToday();
     };
     drawRows();
   }
@@ -262,8 +365,8 @@
   }
   function act(what, i) {
     const e = rec(regClass, regDate, i, true);
-    if (what === "part") { e.part = (e.part + 1) % 6; save(); drawRows(); }
-    else if (what === "hw") { e.hw = e.hw === null ? 1 : e.hw === 1 ? 0 : null; save(); drawRows(); }
+    if (what === "part") { e.part = (e.part + 1) % 6; save(regClass); drawRows(); }
+    else if (what === "hw") { e.hw = e.hw === null ? 1 : e.hw === 1 ? 0 : null; save(regClass); drawRows(); }
     else if (what === "state") stateSheet(i, e);
     else if (what === "beh") behSheet(i, e);
     else if (what === "card") studentCard(regClass, i);
@@ -277,7 +380,7 @@
       (o) => o.querySelectorAll("[data-k]").forEach(b => b.onclick = () => {
         const k = +b.dataset.k;
         e.a = k < 0 ? null : k;
-        save(); closeSheet(); drawRows(); renderToday();
+        save(regClass); closeSheet(); drawRows(); renderToday();
       }));
   }
   function behSheet(i, e) {
@@ -299,7 +402,7 @@
         o.querySelector("#bh-x").onclick = closeSheet;
         o.querySelector("#bh-ok").onclick = () => {
           e.beh = [...sel]; e.note = o.querySelector("#bh-note").value.trim();
-          save(); closeSheet(); drawRows(); renderToday();
+          save(regClass); closeSheet(); drawRows(); renderToday();
         };
       });
   }
@@ -339,7 +442,7 @@
           `<span class="cc" style="background:${BEH[bi].pts >= 0 ? "var(--ok)" : "var(--bad)"}">${esc(BEH[bi].name)} ×${behAgg[bi]}</span>`).join("")}</div>
       ${t.notes.length ? `<div style="font-size:13px;color:var(--muted)"><b>ملاحظات:</b> ${t.notes.map(n => esc(n.note)).join(" • ")}</div>` : ""}
       <a class="wa-btn ${phone ? "" : "off"}" target="_blank" rel="noopener"
-         href="https://wa.me/${phone}?text=${waTxt}">💬 واتساب ولي الأمر${phone ? "" : " (لا رقم في النسخة التجريبية)"}</a>
+         href="https://wa.me/${phone}?text=${waTxt}">💬 واتساب ولي الأمر${phone ? "" : " (لا رقم مسجل)"}</a>
       <div class="sheet-actions"><button class="btn-plain" onclick="document.querySelector('#overlay-root').innerHTML=''">إغلاق</button></div>`);
   }
 
@@ -376,15 +479,16 @@
   }
 
   /* ═══ المزيد ═══ */
-  function renderMore() {
+  async function renderMore() {
     const box = $("#tab-more");
     let adminHtml = "";
-    if (TE.admin) {
-      adminHtml = `<div class="card"><h3><span class="dot"></span>لوحة المدير — المعلمون (${D.teachers.filter(t => t.classes.length).length})</h3>
-        ${D.teachers.filter(t => t.classes.length).map(t => `
+    if (TE.admin && CLOUD && fdb) {
+      adminHtml = '<div class="card"><h3><span class="dot"></span>لوحة المدير — رصد المعلمين لحظياً</h3><div class="empty-note">جارِ التحميل…</div></div>';
+    } else if (TE.admin) {
+      adminHtml = `<div class="card"><h3><span class="dot"></span>لوحة المدير</h3>
+        ${D.teachers.filter(t => (t.classes || []).length).map(t => `
           <div class="admin-row"><span>${esc(t.name)}<div class="cls">${esc(t.subject)}</div></span>
-          <span class="cls">${t.classes.length} فصول</span></div>`).join("")}
-        <div class="empty-note" style="padding:12px">في النسخة السحابية يرى المدير رصد جميع المعلمين لحظياً هنا</div></div>`;
+          <span class="cls">${(t.classes || []).length} فصول</span></div>`).join("")}</div>`;
     }
     box.innerHTML = adminHtml + `
       <div class="card"><h3><span class="dot"></span>النسخة الاحتياطية</h3>
@@ -393,15 +497,14 @@
           <button class="btn-gold" id="bk-in" style="flex:1;text-align:center">⬆️ استعادة نسخة</button>
           <input type="file" id="bk-file" accept=".json" class="hidden">
         </div>
-        <div class="empty-note" style="padding:10px 4px 0">ملف JSON يمكن حفظه أو إرساله واتساب ثم استعادته على أي جهاز</div></div>
+        <div class="empty-note" style="padding:10px 4px 0">${CLOUD ? "بياناتك محفوظة سحابياً تلقائياً — التصدير هنا نسخة إضافية بيدك" : "ملف JSON يمكن حفظه أو إرساله واتساب ثم استعادته على أي جهاز"}</div></div>
       <div class="card"><h3><span class="dot"></span>مكتبة التقييمات</h3>
         <div class="countchips">${STATES.map((s, k) => `<span class="cc" style="background:${STCOLORS[k]}">${esc(s.name)} ${s.pts >= 0 ? "+" : ""}${s.pts}</span>`).join("")}</div>
         <div class="countchips">${BEH.map(b => `<span class="cc" style="background:${b.pts >= 0 ? "var(--ok)" : "var(--bad)"}">${esc(b.name)} ${b.pts >= 0 ? "+" : ""}${b.pts}</span>`).join("")}</div></div>
       <div class="card"><h3><span class="dot"></span>عن البرنامج</h3>
         <div style="font-size:13.5px;line-height:2;color:var(--muted)">
-        سجل المتابعة الرقمي — نسخة الويب التجريبية.<br>
+        سجل المتابعة الرقمي — ${CLOUD ? "النسخة السحابية المشتركة ☁️" : "نسخة تجريبية محلية"}.<br>
         يعمل على أي جهاز: جوال، تابلت (هواوي وغيره)، وكمبيوتر.<br>
-        هذه النسخة تحفظ البيانات على جهازك؛ النسخة السحابية المشتركة قيد الإعداد.<br>
         <b>المطوّر:</b> أ. ضيف الله أحمد محمد مشني — ${esc(META.school.name)}</div></div>`;
     $("#bk-out").onclick = () => {
       const blob = new Blob([JSON.stringify({ v: 1, teacher: TE.id, recs: DB.recs })], { type: "application/json" });
@@ -419,19 +522,40 @@
         try {
           const j = JSON.parse(rd.result);
           if (!j.recs) throw 0;
-          DB.recs = j.recs; save();
+          DB.recs = j.recs;
+          Object.keys(DB.recs).forEach(cid => save(cid));
           renderToday(); renderReg(); renderRep();
           alert("تمت الاستعادة بنجاح ✓");
         } catch (e) { alert("ملف غير صالح"); }
       };
       rd.readAsText(f);
     };
+    // لوحة المدير السحابية: اجلب كل الرصد
+    if (TE.admin && CLOUD && fdb) {
+      try {
+        const all = await fdb.collection("recs").get();
+        const per = {};
+        all.forEach(d2 => {
+          const [tid, cid] = d2.id.split("_");
+          per[tid] = per[tid] || { days: 0, classes: new Set() };
+          per[tid].classes.add(cid);
+          per[tid].days += Object.keys((d2.data() || {}).d || {}).length;
+        });
+        const card = box.querySelector(".card");
+        card.innerHTML = `<h3><span class="dot"></span>لوحة المدير — رصد المعلمين لحظياً</h3>` +
+          D.teachers.filter(t => (t.classes || []).length).map(t => {
+            const p = per[t.id];
+            return `<div class="admin-row"><span>${esc(t.name)}<div class="cls">${esc(t.subject)}</div></span>
+              <span class="cls">${p ? `${p.classes.size} فصول مرصودة · ${p.days} يوم رصد` : "لم يبدأ بعد"}</span></div>`;
+          }).join("");
+      } catch (e) { }
+    }
   }
 
   /* ═══ إقلاع ═══ */
-  initLogin();
-  if (DB.session) {
-    const t = D.teachers.find(x => x.id === DB.session);
-    if (t) enter(t);
+  if (!CLOUD) {
+    const ds = $("#demo-strip");
+    if (ds) ds.textContent = "نسخة تجريبية — طلاب بأسماء وهمية، والبيانات على هذا الجهاز فقط";
   }
+  boot();
 })();
