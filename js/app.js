@@ -783,7 +783,11 @@
       <div class="live-top">
         <button class="live-btn" id="live-exit">✕ إنهاء</button>
         <div class="live-title">🎬 ${esc(c.name)} <small id="live-sub"></small></div>
-        <button class="live-btn" id="live-fs">⛶ ملء الشاشة</button>
+        <div style="display:flex;gap:6px">
+          <button class="live-btn" id="live-tools-t" title="إخفاء/إظهار الأدوات">🎛️ الأدوات</button>
+          <button class="live-btn" id="live-board-t" title="إخفاء/إظهار لوحة الشرف">🏆 اللوحة</button>
+          <button class="live-btn" id="live-fs">⛶ ملء الشاشة</button>
+        </div>
       </div>
       <div class="live-wrap">
         <div class="live-center">
@@ -803,6 +807,8 @@
       </div>`;
     $("#live-exit").onclick = () => { if (timerIv) { clearInterval(timerIv); timerIv = null; } stopStory(); try { if (document.fullscreenElement) document.exitFullscreen(); } catch (e) { } V.classList.add("hidden"); $("#view-app").classList.remove("hidden"); renderReg(); renderToday(); renderGrades(); };
     $("#live-fs").onclick = () => { try { document.fullscreenElement ? document.exitFullscreen() : V.requestFullscreen(); } catch (e) { } };
+    $("#live-board-t").onclick = () => { const h = V.classList.toggle("board-hidden"); $("#live-board-t").classList.toggle("off", h); $("#live-board-t").innerHTML = h ? "🏆 إظهار اللوحة" : "🏆 اللوحة"; };
+    $("#live-tools-t").onclick = () => { const h = V.classList.toggle("tools-hidden"); $("#live-tools-t").classList.toggle("off", h); $("#live-tools-t").innerHTML = h ? "🎛️ إظهار الأدوات" : "🎛️ الأدوات"; };
     V.querySelectorAll(".live-tools button").forEach(b => b.onclick = () => {
       V.querySelectorAll(".live-tools button").forEach(x => x.classList.toggle("on", x === b));
       liveView(b.dataset.v);

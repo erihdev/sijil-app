@@ -253,9 +253,16 @@ button{font-family:inherit}
 .live-title small{color:#c9d5e3; font-weight:400; font-size:13px}
 .live-btn{background:rgba(255,255,255,.12); color:#fff; border:1px solid rgba(255,255,255,.3);
   border-radius:10px; padding:8px 14px; font-size:14px; font-weight:800; cursor:pointer; font-family:inherit}
-.live-wrap{flex:1; display:flex; gap:12px; padding:12px; overflow:hidden}
+.live-wrap{flex:1; display:flex; gap:12px; padding:12px; overflow:hidden; transition:gap .35s ease}
 .live-center{flex:1; display:flex; flex-direction:column; min-width:0}
-.live-tools{display:flex; gap:6px; margin-bottom:10px; flex-wrap:wrap}
+.live-tools{display:flex; gap:6px; margin-bottom:10px; flex-wrap:wrap; transition:max-height .32s ease, opacity .25s ease, margin .3s ease; max-height:220px; overflow:hidden}
+.live-btn.off{opacity:.5}
+/* إخفاء/إظهار لوحة الشرف — تتمدّد الشاشة تلقائياً */
+.live-board{transition:width .35s ease, min-width .35s ease, max-width .35s ease, opacity .3s ease, padding .3s ease, margin .3s ease, border-width .3s ease}
+#view-live.board-hidden .live-wrap{gap:0}
+#view-live.board-hidden .live-board{width:0; min-width:0; max-width:0; padding:0; margin:0; border-width:0; opacity:0; overflow:hidden}
+/* إخفاء/إظهار شريط الأدوات */
+#view-live.tools-hidden .live-tools{max-height:0; opacity:0; margin-bottom:0; border:0}
 .live-tools button{background:rgba(255,255,255,.1); color:#fff; border:1px solid rgba(255,255,255,.28);
   border-radius:10px; padding:8px 14px; font-weight:800; font-size:14px; cursor:pointer; font-family:inherit}
 .live-tools button.on{background:var(--gold); color:#0E2033; border-color:var(--gold)}
