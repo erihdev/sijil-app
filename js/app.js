@@ -667,13 +667,14 @@
           const code = sc + g + TERM, rows = await loadCurr(code);
           if (!rows.length) continue;
           const idxRows = rows.map((r, idx) => ({ r, idx })).sort((a, b) => a.r.w - b.r.w);
-          html += `<div style="font-weight:800;color:var(--navy);margin:10px 0 4px">الصف ${GNAME[g]}</div><div class="table-scroll"><table class="report-table"><tr><th>أ</th><th style="min-width:90px">الوحدة</th><th style="min-width:120px">الدرس</th><th>${curEdit ? "" : "تفاعلي"}</th></tr>` +
+          html += `<div style="font-weight:800;color:var(--navy);margin:10px 0 4px">الصف ${GNAME[g]}</div><div class="table-scroll"><table class="report-table"><tr><th>أ</th><th style="min-width:90px">الوحدة</th><th style="min-width:120px">الدرس</th><th>${curEdit ? "" : "الدرس الغني"}</th></tr>` +
             idxRows.map(({ r, idx }) => curEdit
               ? `<tr><td>${r.w}</td><td><input class="gr-in cur-in" style="width:88px" data-code="${code}" data-idx="${idx}" data-f="unit" value="${esc(r.unit || "")}"></td><td><input class="gr-in cur-in" style="width:120px" data-code="${code}" data-idx="${idx}" data-f="lesson" value="${esc(r.lesson || "")}"></td><td></td></tr>`
-              : `<tr><td>${r.w}</td><td class="nm">${esc(r.unit || "")}</td><td class="nm">${esc(r.lesson || "")}</td><td>${String(r.lesson || "").includes("إجازة") ? "—" : `<a href="${lessonURL(code, r.w)}" target="_blank" rel="noopener" style="color:var(--gold);font-weight:800">🚀</a>`}</td></tr>`).join("") + `</table></div>`;
+              : `<tr><td>${r.w}</td><td class="nm">${esc(r.unit || "")}</td><td class="nm">${esc(r.lesson || "")}</td><td style="white-space:nowrap">${String(r.lesson || "").includes("إجازة") ? "—" : `<button class="btn-soft au-btn" data-code="${code}" data-wk="${r.w}" data-name="${esc(r.lesson || "")}" style="padding:4px 8px">✏️ تأليف</button>`}</td></tr>`).join("") + `</table></div>`;
         }
         const b = o.querySelector("#cur-body"); if (!b) return;
         b.innerHTML = html || '<div class="empty-note">لا مناهج مسندة</div>';
+        b.querySelectorAll(".au-btn").forEach(bt => bt.onclick = () => authorLesson(bt.dataset.code, +bt.dataset.wk, bt.dataset.name, build));
         if (curEdit) b.querySelectorAll(".cur-in").forEach(inp => inp.onchange = () => {
           const patch = {}; patch[inp.dataset.f] = inp.value.trim();
           saveCurrEdit(inp.dataset.code, +inp.dataset.idx, patch);
@@ -879,10 +880,10 @@
       const rows = (await loadCurr(code)).filter(r => r.w === wk);
       const m = rows.find(r => r.lesson && !String(r.lesson).includes("تابع")) || rows[0];
       if (!sc || !m || String(m.lesson).includes("إجازة")) { box.innerHTML = `<div class="empty-note" style="color:#c9d5e3">لا درس متاح لهذا الأسبوع</div>`; return; }
-      let data = null;
-      try { const r = await fetch("data/lessons/" + code + "w" + wk + ".json"); if (r.ok) data = await r.json(); } catch (e) { }
+      const data = await lessonData(code, wk);
       if (data) renderRichLesson(box, data);
-      else box.innerHTML = `<div class="live-stage"><div class="stage-bar"><span style="color:#fff;font-weight:800">▶️ ${esc(m.lesson)}</span></div><div class="rl-scroll"><div class="rl-wrap"><div class="rl-title">${esc(m.lesson)}</div><div style="color:#c9d5e3;text-align:center;margin-top:20px">درس هذا الأسبوع من وحدة «${esc(m.unit || "")}».<br>الدرس التفاعلي الغني لهذا الدرس قيد الإعداد — استخدم «سؤال» و«ورقة تفاعلية» و«العجلة» لتفعيل الحصة.</div></div></div></div>`;
+      else box.innerHTML = `<div class="live-stage"><div class="stage-bar"><span style="color:#fff;font-weight:800">▶️ ${esc(m.lesson)}</span></div><div class="rl-scroll"><div class="rl-wrap"><div class="rl-title">${esc(m.lesson)}</div><div style="color:#c9d5e3;text-align:center;margin-top:20px">درس هذا الأسبوع من وحدة «${esc(m.unit || "")}».<br>الدرس التفاعلي الغني لهذا الدرس قيد الإعداد — استخدم «سؤال» و«ورقة تفاعلية» و«العجلة» لتفعيل الحصة.<br><br><button class="btn-gold" id="rl-author" style="font-size:16px">✏️ ألّف هذا الدرس الآن (يعمل عليه كل شيء فوراً)</button></div></div></div></div>`;
+      const ab = box.querySelector("#rl-author"); if (ab) ab.onclick = () => authorLesson(code, wk, m.lesson, () => liveView("lesson"));
       return;
     }
     if (v === "yt") { stageYouTube(box, code, wk, c); return; }
@@ -904,7 +905,7 @@
       </div>`).join("");
     const vocab = (d.vocab && d.vocab.length) ? `<div class="rl-sec"><div class="rl-h"><span class="rl-n">📖</span>مصطلحات الدرس</div><div class="rl-vocab">${d.vocab.map(v => `<div class="rl-term"><b>${esc(v.t)}</b><span>${esc(v.d)}</span></div>`).join("")}</div></div>` : "";
     const checks = (d.checks && d.checks.length) ? `<div class="rl-sec"><div class="rl-h"><span class="rl-n">✅</span>تحقّق من فهمك</div><div id="rl-checks"></div></div>` : "";
-    box.innerHTML = `<div class="live-stage"><div class="stage-bar"><span style="color:#fff;font-weight:800">▶️ ${esc(d.title || "")}</span><span style="color:#c9d5e3;font-size:13px;margin-inline-start:auto">${esc(d.unit || "")}</span></div>
+    box.innerHTML = `<div class="live-stage"><div class="stage-bar"><span style="color:#fff;font-weight:800">▶️ ${esc(d.title || "")}</span><span style="color:#c9d5e3;font-size:13px;margin-inline-start:auto">${esc(d.unit || "")}</span><button class="live-btn" id="rl-edit" title="تعديل الدرس">✏️</button></div>
       <div class="rl-scroll"><div class="rl-wrap">
         <div class="rl-title">${esc(d.title || "")}</div>
         ${(d.story || []).some(s => s.img) ? `<img class="rl-hero" src="${(d.story || []).find(s => s.img).img}" alt="">` : ""}
@@ -914,6 +915,7 @@
         ${d.activity ? `<div class="rl-sec rl-act"><div class="rl-h"><span class="rl-n">✏️</span>نشاط تطبيقي</div><div class="rl-body">${esc(d.activity)}</div></div>` : ""}
         ${d.summary ? `<div class="rl-summary">🧾 ${esc(d.summary)}</div>` : ""}
       </div></div></div>`;
+    const eb = box.querySelector("#rl-edit"); if (eb) eb.onclick = () => { const c = classById(liveCid); authorLesson(subjCode(TE.subject) + c.gc + TERM, curWeek(), d.title, () => liveView("lesson")); };
     // أسئلة التحقق التفاعلية
     if (d.checks && d.checks.length) {
       const cbox = box.querySelector("#rl-checks");
@@ -936,8 +938,7 @@
   }
   async function stageYouTube(box, code, wk, c) {
     const key = code + "w" + wk;
-    let d = null;
-    try { const r = await fetch("data/lessons/" + code + "w" + wk + ".json"); if (r.ok) d = await r.json(); } catch (e) { }
+    const d = await lessonData(code, wk);
     let les = d && d.title ? d.title : "";
     if (!les) { try { const rows = (await loadCurr(code)).filter(r => r.w === wk); const m = rows.find(x => x.lesson && !String(x.lesson).includes("تابع")) || rows[0]; les = m ? m.lesson : ""; } catch (e) { } }
     // رابط محفوظ سابقاً لهذا الدرس (سحابي مشترك، أو محلي)
@@ -1008,8 +1009,7 @@
   }
   const fmtT = (s) => { s = Math.max(0, Math.floor(s || 0)); return Math.floor(s / 60) + ":" + String(s % 60).padStart(2, "0"); };
   async function stageStory(box, code, wk) {
-    let d = null;
-    try { const r = await fetch("data/lessons/" + code + "w" + wk + ".json"); if (r.ok) d = await r.json(); } catch (e) { }
+    const d = await lessonData(code, wk);
     if (!d) { box.innerHTML = `<div class="empty-note" style="color:#c9d5e3">قصة هذا الدرس قيد الإعداد</div>`; return; }
     const scenes = buildStory(d);
     storyActive = true;
@@ -1137,6 +1137,7 @@
     const key = code + "w" + wk;
     if (lessonCache[key] !== undefined) return lessonCache[key];
     let d = null; try { const r = await fetch("data/lessons/" + key + ".json"); if (r.ok) d = await r.json(); } catch (e) { }
+    const ov = await lessonOverride(key); if (ov) d = ov;   // درس ألّفه المعلم أونلاين
     lessonCache[key] = d; return d;
   }
   // اختيار صورة من قصة الدرس تناسب نصاً (سؤال/عبارة) بتقاطع الكلمات
@@ -1782,6 +1783,71 @@
         <div class="sheet-actions"><button class="btn-primary" onclick="window._sheetClose()">إغلاق</button></div>`, (o) => o.querySelectorAll("[data-pg]").forEach(b => b.onclick = () => studentProgress(repClass, +b.dataset.pg)));
     };
   }
+
+  /* ═══════════ ✏️ تأليف الدروس أونلاين (لكل المواد) — يُحفظ سحابياً ويعمل عليه الدرس والقصة والأسئلة والألعاب والورقة ═══════════ */
+  const lessonKey = (code, wk) => code + "w" + wk;
+  async function lessonOverride(key) {
+    if (CLOUD && fdb) { try { const s = await fdb.doc("lessons/" + key).get(); if (s.exists) { const d = s.data() || {}; if (d.title) return d; } } catch (e) { } return null; }
+    try { const j = localStorage.getItem("lesson:" + key); return j ? JSON.parse(j) : null; } catch (e) { return null; }
+  }
+  const lines = (t) => String(t || "").split(/\r?\n/).map(x => x.trim()).filter(Boolean);
+  // تحويل نص المعلم البسيط → بنية الدرس
+  function parseLessonForm(o) {
+    const g = (id) => o.querySelector(id).value;
+    const d = { title: g("#au-title").trim(), unit: g("#au-unit").trim(), objectives: lines(g("#au-obj")), intro: g("#au-intro").trim(), sections: [], vocab: [], checks: [], questions: [], story: [], activity: g("#au-act").trim(), summary: g("#au-sum").trim() };
+    String(g("#au-sec")).split(/\n\s*\n/).forEach(block => { const ls = lines(block); if (!ls.length) return; const sec = { h: ls[0].replace(/^#+\s*/, ""), points: [] }; ls.slice(1).forEach(l => { if (/^💡/.test(l)) sec.tip = l.replace(/^💡\s*/, ""); else sec.points.push(l.replace(/^[-•*]\s*/, "")); }); if (!sec.points.length) delete sec.points; d.sections.push(sec); });
+    lines(g("#au-vocab")).forEach(l => { const m = l.split(/\s*[:：]\s*/); if (m.length >= 2) d.vocab.push({ t: m[0].trim(), d: m.slice(1).join(":").trim() }); });
+    lines(g("#au-q")).forEach(l => {
+      let m;
+      if ((m = l.match(/^(صح|خطأ)\s*[:：]\s*(.+)$/))) d.questions.push({ t: "tf", q: m[2].trim(), opts: ["صح", "خطأ"], correct: m[1] === "صح" ? 0 : 1 });
+      else if ((m = l.match(/^أكمل\s*[:：]\s*(.+?)\s*\|\s*(.+)$/))) d.questions.push({ t: "fill", q: m[1].trim(), ans: m[2].trim() });
+      else { const parts = l.replace(/^س\s*[:：]\s*/, "").split("|").map(x => x.trim()).filter(Boolean); if (parts.length >= 3) { let correct = 0; const opts = parts.slice(1).map((x, k) => { if (/\*$/.test(x)) { correct = k; return x.replace(/\*+$/, "").trim(); } return x; }); d.questions.push({ t: "mcq", q: parts[0], opts: opts.slice(0, 4), correct }); } }
+    });
+    d.checks = d.questions.filter(q => q.t === "mcq").slice(0, 3).map(q => ({ q: q.q, opts: q.opts, correct: q.correct }));
+    lines(g("#au-story")).forEach(l => { const [txt, url] = l.split("|").map(x => x.trim()); const m = txt.match(/^(\p{Extended_Pictographic}[️‍\p{Extended_Pictographic}]*)\s*(.*)$/u); const sc = m ? { v: m[1], t: m[2] } : { v: "📘", t: txt }; if (url && /^https?:\/\//.test(url)) { sc.img = url; sc.cap = sc.t.split(/\s+/).slice(0, 3).join(" "); } d.story.push(sc); });
+    return d;
+  }
+  // بنية الدرس → نص المعلم (للتعبئة المسبقة)
+  function lessonToForm(d) {
+    d = d || {};
+    return {
+      obj: (d.objectives || []).join("\n"),
+      sec: (d.sections || []).map(s => [s.h, ...(s.points || []).map(p => "- " + p), s.tip ? "💡 " + s.tip : ""].filter(Boolean).join("\n")).join("\n\n"),
+      vocab: (d.vocab || []).map(v => v.t + " : " + v.d).join("\n"),
+      q: (d.questions || d.checks || []).map(q => q.t === "tf" ? (q.correct === 0 ? "صح: " : "خطأ: ") + q.q : q.t === "fill" ? "أكمل: " + q.q + " | " + (q.ans || "") : "س: " + q.q + " | " + (q.opts || []).map((o, k) => o + (k === q.correct ? "*" : "")).join(" | ")).join("\n"),
+      story: (d.story || []).map(s => (s.v || "📘") + " " + s.t + (s.img && /^https?:\/\//.test(s.img) ? " | " + s.img : "")).join("\n"),
+    };
+  }
+  async function authorLesson(code, wk, lessonName, onSaved) {
+    const key = lessonKey(code, wk);
+    const cur = await lessonData(code, wk); const f = lessonToForm(cur);
+    const ta = (id, label, val, rows, hint) => `<div class="field"><label>${label}${hint ? ` <small style="color:var(--muted);font-weight:500">${hint}</small>` : ""}</label><textarea id="${id}" class="note" rows="${rows}" style="width:100%">${esc(val)}</textarea></div>`;
+    openSheet(`<h4>✏️ تأليف الدرس — ${esc(lessonName || key)}</h4>
+      <div style="font-size:12.5px;color:var(--muted);line-height:1.9;margin-bottom:8px">اكتب المحتوى بالصيغة البسيطة أدناه، وبعد الحفظ يعمل عليه فوراً: ▶️ الدرس، 🎬 القصة (بصوت المتصفح)، ❓ الأسئلة، 📝 الورقة، و🎮 الألعاب — لك ولزملاء المادة.</div>
+      <div class="field"><label>عنوان الدرس</label><input id="au-title" class="search-box" style="margin:0" value="${esc(cur ? cur.title : (lessonName || ""))}"></div>
+      <div class="field"><label>الوحدة</label><input id="au-unit" class="search-box" style="margin:0" value="${esc(cur ? cur.unit : "")}"></div>
+      ${ta("au-obj", "🎯 الأهداف", f.obj, 3, "هدف في كل سطر")}
+      ${ta("au-intro", "المقدمة", cur ? cur.intro : "", 2)}
+      ${ta("au-sec", "📚 الأقسام", f.sec, 8, "السطر الأول عنوان القسم، ثم نقطة في كل سطر، و💡 للتلميح — سطر فارغ بين الأقسام")}
+      ${ta("au-vocab", "📖 المصطلحات", f.vocab, 4, "المصطلح : التعريف")}
+      ${ta("au-q", "❓ بنك الأسئلة", f.q, 7, "س: السؤال | خيار | الخيار الصحيح* | خيار | خيار — أو: صح: عبارة / خطأ: عبارة — أو: أكمل: جملة ...... | الجواب")}
+      ${ta("au-story", "🎬 قصة الدرس", f.story, 7, "مشهد في كل سطر يبدأ بإيموجي، ويمكن إضافة | رابط صورة")}
+      ${ta("au-act", "✏️ النشاط", cur ? cur.activity : "", 2)}
+      ${ta("au-sum", "🧾 الخلاصة", cur ? cur.summary : "", 2)}
+      <div id="au-msg" class="empty-note" style="padding:4px"></div>
+      <div class="sheet-actions"><button class="btn-plain" onclick="window._sheetClose()">إلغاء</button><button class="btn-primary" id="au-save">💾 حفظ الدرس</button></div>`, (o) => {
+      o.querySelector("#au-save").onclick = async () => {
+        const d = parseLessonForm(o);
+        if (!d.title) { o.querySelector("#au-msg").textContent = "اكتب عنوان الدرس"; return; }
+        d.tn = TE.name; d.ts = Date.now(); d.by = TE.id;
+        let ok = true;
+        if (CLOUD && fdb) { try { await fdb.doc("lessons/" + key).set(d); } catch (e) { ok = false; } }
+        else { try { localStorage.setItem("lesson:" + key, JSON.stringify(d)); } catch (e) { ok = false; } }
+        if (!ok) { o.querySelector("#au-msg").textContent = "تعذّر الحفظ — تحقق من الاتصال"; return; }
+        delete lessonCache[key]; closeSheet(); if (onSaved) onSaved();
+      };
+    });
+  }
   function confetti() {
     const em = ["🎉", "⭐", "🏆", "✨", "🎊"];
     for (let n = 0; n < 14; n++) {
@@ -1906,3 +1972,6 @@
   try { if (window.speechSynthesis) { window.speechSynthesis.getVoices(); window.speechSynthesis.onvoiceschanged = () => { try { window.speechSynthesis.getVoices(); } catch (e) { } }; } } catch (e) { }
   boot();
 })();
+
+// ═══ PWA: تثبيت على الجوال/التابلت + عمل دون اتصال للواجهة والدروس المزارة ═══
+if ("serviceWorker" in navigator && location.protocol === "https:") { window.addEventListener("load", () => { navigator.serviceWorker.register("sw.js").catch(() => { }); }); }
