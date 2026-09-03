@@ -1322,7 +1322,7 @@
     box.querySelectorAll("[data-s]").forEach(b => b.onclick = () => { left = +b.dataset.s; fmt(); });
     box.querySelector("#tm-se").onclick = () => {
       if (running) { stop(); return; }
-      if (left <= 0) return;
+      if (left <= 0) { left = 60; fmt(); }   // افتراضي دقيقة إن لم يُختر وقت
       running = true; box.querySelector("#tm-se").textContent = "⏸ إيقاف";
       timerIv = setInterval(() => { left--; fmt(); if (left <= 0) { stop(); disp.style.color = "#ff6b6b"; confetti(); } }, 1000);
     };
