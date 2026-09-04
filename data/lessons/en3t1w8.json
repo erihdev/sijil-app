@@ -1,0 +1,123 @@
+{
+  "title": "الرياضة والأنشطة — I can",
+  "unit": "Sports and Activities — الصف الثالث",
+  "objectives": [
+    "أن يسمّي الطالب ستة أنشطة رياضية بالإنجليزية",
+    "أن يعبّر الطالب عمّا يستطيع فعله بـ I can",
+    "أن يسأل الطالب Can you…? ويجيب Yes, I can أو No, I can't"
+  ],
+  "intro": "هل تستطيع السباحة؟ هل تركب الدراجة؟ اليوم نتعلم أسماء الأنشطة وكيف نقول: أستطيع، أو لا أستطيع.",
+  "sections": [
+    {
+      "h": "الأنشطة",
+      "points": [
+        "play soccer = يلعب كرة القدم",
+        "play basketball = يلعب كرة السلة",
+        "swim = يسبح",
+        "run = يجري",
+        "jump = يقفز",
+        "ride a bike = يركب دراجة",
+        "fly a kite = يطيّر طائرة ورقية",
+        "climb = يتسلق"
+      ],
+      "tip": "مع الألعاب ذات الكرة نقول play: play soccer، play basketball."
+    },
+    {
+      "h": "أستطيع",
+      "points": [
+        "I can swim. = أستطيع السباحة",
+        "I can't fly. = لا أستطيع الطيران",
+        "can't = cannot (لا أستطيع)",
+        "الفعل بعد can لا يتغير: I can run"
+      ]
+    },
+    {
+      "h": "هل تستطيع؟",
+      "points": [
+        "Can you swim? = هل تستطيع السباحة؟",
+        "Yes, I can. = نعم، أستطيع",
+        "No, I can't. = لا، لا أستطيع",
+        "What can you do? = ماذا تستطيع أن تفعل؟"
+      ]
+    }
+  ],
+  "vocab": [
+    { "t": "swim", "d": "يسبح" },
+    { "t": "run", "d": "يجري" },
+    { "t": "jump", "d": "يقفز" },
+    { "t": "ride a bike", "d": "يركب دراجة" },
+    { "t": "can", "d": "يستطيع" },
+    { "t": "can't", "d": "لا يستطيع" }
+  ],
+  "checks": [
+    {
+      "q": "معنى swim؟",
+      "opts": ["يجري", "يسبح", "يقفز"],
+      "correct": 1
+    },
+    {
+      "q": "الرد بـ «نعم» على Can you run?",
+      "opts": ["Yes, I can", "No, I can't", "Yes, it is"],
+      "correct": 0
+    },
+    {
+      "q": "play soccer معناها؟",
+      "opts": ["يركب دراجة", "يلعب كرة القدم", "يتسلق"],
+      "correct": 1
+    }
+  ],
+  "questions": [
+    {
+      "t": "mcq",
+      "q": "أكمل: I ...... ride a bike. (أستطيع)",
+      "opts": ["can", "can't", "am"],
+      "correct": 0
+    },
+    {
+      "t": "tf",
+      "q": "can't تعني لا أستطيع.",
+      "opts": ["صح", "خطأ"],
+      "correct": 0
+    },
+    {
+      "t": "mcq",
+      "q": "معنى fly a kite؟",
+      "opts": ["يلعب كرة السلة", "يطيّر طائرة ورقية", "يجري"],
+      "correct": 1
+    },
+    {
+      "t": "mcq",
+      "q": "Can you swim? — No, ......",
+      "opts": ["I can", "I can't", "it isn't"],
+      "correct": 1
+    },
+    {
+      "t": "fill",
+      "q": "I can jump. I can ...... (أجري)",
+      "ans": "run"
+    },
+    {
+      "t": "tf",
+      "q": "الجملة I can basketball صحيحة.",
+      "opts": ["صح", "خطأ"],
+      "correct": 1
+    },
+    {
+      "t": "mcq",
+      "q": "What can you do? معناها؟",
+      "opts": ["أين تلعب؟", "كم عمرك؟", "ماذا تستطيع أن تفعل؟"],
+      "correct": 2
+    }
+  ],
+  "story": [
+    { "v": "🏃", "t": "في حصة الرياضة سأل المعلم: What can you do, Ryan? ففكّر ريان: ماذا أستطيع أن أفعل؟" },
+    { "v": "⚽", "t": "رفع ريان يده: I can play soccer! ثم ركض بالكرة ليثبت ذلك." },
+    { "v": "🏊", "t": "سأله زميله: Can you swim? فأجاب ريان بصدق: No, I can't. لكنني سأتعلم!" },
+    { "v": "🚲", "t": "بعد الظهر ركب ريان دراجته في الحي وهو يردّد: I can ride a bike!" },
+    { "v": "🪁", "t": "رأى أخاه الصغير يطيّر طائرة ورقية: Can you fly a kite? — Yes, I can! قال الصغير بفخر." },
+    { "v": "💪", "t": "في المساء كتب ريان قائمة: I can run. I can jump. I can climb. I can't swim… yet!" },
+    { "v": "🌟", "t": "عرف ريان ما يستطيعه وما سيتعلمه قريباً. أحسنت يا ريان!" }
+  ],
+  "activity": "اسأل ثلاثة من زملائك: Can you swim? Can you ride a bike? Can you fly a kite? وسجّل إجاباتهم في جدول بعلامة صح أو خطأ.",
+  "summary": "نقول I can swim عمّا نستطيع، و I can't عمّا لا نستطيع. ونسأل Can you…? فنجيب Yes, I can أو No, I can't."
+}

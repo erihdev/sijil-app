@@ -1,0 +1,133 @@
+{
+  "title": "A Day with a Doctor — يوم مع طبيب",
+  "unit": "Unit 4: Professions — الصف السادس",
+  "objectives": [
+    "أن يسمّي الطالب مفردات المستشفى وأدوات الطبيب بالإنجليزية",
+    "أن يصف الطالب يوم عمل الطبيب بالمضارع البسيط مع ضمير الغائب",
+    "أن يعبّر الطالب عن المرض والعلاج بعبارات بسيطة"
+  ],
+  "intro": "حين تمرض تذهب إلى الطبيب، فيفحصك ويطمئنك ويكتب لك الدواء. كيف يبدو يومه كاملاً؟ في هذا الدرس نرافق طبيباً من الصباح إلى المساء ونتعلّم مفردات المستشفى بالإنجليزية.",
+  "sections": [
+    {
+      "h": "At the Hospital — في المستشفى",
+      "points": [
+        "hospital — مستشفى، clinic — عيادة",
+        "patient — مريض، nurse — ممرّض",
+        "medicine — دواء، pill — قرص دواء",
+        "stethoscope — سماعة الطبيب، thermometer — مقياس الحرارة",
+        "white coat — المعطف الأبيض، bandage — ضمادة"
+      ]
+    },
+    {
+      "h": "A Doctor's Day — يوم الطبيب",
+      "body": "نصف عمل الطبيب بالمضارع البسيط مع إضافة s / es للفعل لأن الفاعل he / she.",
+      "points": [
+        "He gets up at 6 o'clock and goes to the hospital.",
+        "He checks patients and listens to their hearts.",
+        "He takes their temperature. — يقيس حرارتهم",
+        "He writes a prescription. — يكتب وصفة الدواء",
+        "He finishes work at 4 o'clock."
+      ],
+      "tip": "الأفعال المنتهية بـ sh / ch / o / x تأخذ es: finishes, watches, goes."
+    },
+    {
+      "h": "Talking About Illness — الحديث عن المرض",
+      "points": [
+        "What's the matter? — ما بك؟",
+        "I have a headache. — عندي صداع",
+        "I have a cold. / I have a fever. — عندي زكام / حمّى",
+        "My stomach hurts. — بطني تؤلمني",
+        "Take this medicine twice a day. — خذ الدواء مرتين يومياً"
+      ]
+    },
+    {
+      "h": "Doctor's Advice — نصائح الطبيب",
+      "points": [
+        "Wash your hands. — اغسل يديك",
+        "Drink warm water and rest. — اشرب ماءً دافئاً وارتح",
+        "Don't eat too much sugar. — لا تكثر من السكر",
+        "Get well soon! — شفاك الله (عبارة تمنّي الشفاء)"
+      ],
+      "tip": "نقول Get well soon لمن نزوره مريضاً."
+    }
+  ],
+  "vocab": [
+    { "t": "patient", "d": "المريض الذي يزور الطبيب" },
+    { "t": "stethoscope", "d": "سماعة الطبيب التي يسمع بها القلب" },
+    { "t": "thermometer", "d": "مقياس الحرارة" },
+    { "t": "medicine", "d": "الدواء" },
+    { "t": "fever", "d": "حمّى، ارتفاع حرارة الجسم" },
+    { "t": "headache", "d": "صداع، ألم في الرأس" }
+  ],
+  "checks": [
+    {
+      "q": "الأداة التي يسمع بها الطبيب القلب:",
+      "opts": ["thermometer", "stethoscope", "bandage", "pill"],
+      "correct": 1
+    },
+    {
+      "q": "أكمل: The doctor ...... patients every day.",
+      "opts": ["check", "checking", "checks", "is check"],
+      "correct": 2
+    },
+    {
+      "q": "«عندي صداع» بالإنجليزية:",
+      "opts": ["I have a headache.", "I have a cold.", "My stomach hurts.", "I have a fever."],
+      "correct": 0
+    }
+  ],
+  "questions": [
+    {
+      "t": "mcq",
+      "q": "الجملة الصحيحة:",
+      "opts": ["He finish work at 4.", "He finishs work at 4.", "He finishes work at 4.", "He is finish work at 4."],
+      "correct": 2
+    },
+    {
+      "t": "tf",
+      "q": "A nurse helps the doctor and takes care of patients.",
+      "opts": ["صح", "خطأ"],
+      "correct": 0
+    },
+    {
+      "t": "mcq",
+      "q": "«المريض» بالإنجليزية:",
+      "opts": ["nurse", "doctor", "medicine", "patient"],
+      "correct": 3
+    },
+    {
+      "t": "mcq",
+      "q": "السؤال الذي يطرحه الطبيب أولاً:",
+      "opts": ["What's your hobby?", "What's the matter?", "What time is it?", "Where do you live?"],
+      "correct": 1
+    },
+    {
+      "t": "fill",
+      "q": "The doctor takes my ...... with a thermometer.",
+      "ans": "temperature"
+    },
+    {
+      "t": "tf",
+      "q": "نقول Get well soon للطبيب عندما ننهي الزيارة.",
+      "opts": ["صح", "خطأ"],
+      "correct": 1
+    },
+    {
+      "t": "mcq",
+      "q": "«ضمادة» بالإنجليزية:",
+      "opts": ["bandage", "white coat", "pill", "clinic"],
+      "correct": 0
+    }
+  ],
+  "story": [
+    { "v": "🤒", "t": "استيقظ سعود ورأسه يؤلمه وجسمه ساخن. قالت أمه: You have a fever. Let's go to the doctor." },
+    { "v": "🏥", "t": "في المستشفى رأى سعود الـ nurse تسجّل الأسماء، وطبيباً بمعطف أبيض يخرج من غرفته ويقول: Next patient, please!" },
+    { "v": "🩺", "t": "سأله الطبيب: What's the matter? قال سعود: I have a headache and a fever. فوضع الـ stethoscope على صدره." },
+    { "v": "🌡️", "t": "قاس حرارته بالـ thermometer: 38! Then he wrote a prescription: Take this medicine twice a day." },
+    { "v": "💡", "t": "سأل سعود بفضول: What do you do all day? ابتسم الطبيب: I check patients, I listen to their hearts, and I help them." },
+    { "v": "💊", "t": "في البيت شرب ماءً دافئاً وأخذ دواءه وارتاح. بعد يومين قال: I am fine now. Thank you, doctor!" },
+    { "v": "🌟", "t": "عرف سعود أن الطبيب يعمل طوال اليوم ليساعد الناس. أحسنت!" }
+  ],
+  "activity": "مثّل مع زميلك حواراً بين طبيب ومريض من ست جمل: What's the matter? / I have ... / Let me check ... / Take this medicine ... / Thank you, doctor. ثم اكتب ثلاث جمل عن يوم الطبيب بالمضارع البسيط.",
+  "summary": "الطبيب يعمل في hospital ويفحص الـ patients بالـ stethoscope والـ thermometer ويكتب الدواء. نصف يومه بالمضارع البسيط مع s / es (checks, finishes)، ونعبّر عن المرض بـ I have a headache / a fever."
+}

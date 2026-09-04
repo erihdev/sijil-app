@@ -1,0 +1,125 @@
+{
+  "title": "المهن — What does he do?",
+  "unit": "Jobs — الصف الثالث",
+  "objectives": [
+    "أن يسمّي الطالب ثماني مهن بالإنجليزية",
+    "أن يسأل الطالب What does he do? ويجيب He's a…",
+    "أن يعبّر الطالب عمّا يريد أن يكون بـ I want to be a…"
+  ],
+  "intro": "أبوك معلم أو طبيب أو مهندس؟ كل مهنة لها اسم بالإنجليزية. وأنت، ماذا تريد أن تكون عندما تكبر؟",
+  "sections": [
+    {
+      "h": "المهن",
+      "points": [
+        "teacher = معلم",
+        "doctor = طبيب",
+        "nurse = ممرض",
+        "farmer = مزارع",
+        "pilot = طيار",
+        "police officer = شرطي",
+        "firefighter = رجل إطفاء",
+        "cook = طباخ",
+        "driver = سائق",
+        "dentist = طبيب أسنان"
+      ]
+    },
+    {
+      "h": "ماذا يعمل؟",
+      "points": [
+        "What does he do? = ماذا يعمل؟",
+        "He's a doctor. = هو طبيب",
+        "What does she do? – She's a teacher.",
+        "Is he a pilot? – Yes, he is. / No, he isn't."
+      ],
+      "tip": "He's = He is، و She's = She is."
+    },
+    {
+      "h": "ماذا تريد أن تكون؟",
+      "points": [
+        "What do you want to be? = ماذا تريد أن تكون؟",
+        "I want to be a pilot. = أريد أن أكون طياراً",
+        "نضع a قبل المهنة: a doctor",
+        "نضع an قبل حرف العلة: an engineer"
+      ]
+    }
+  ],
+  "vocab": [
+    { "t": "job", "d": "مهنة / عمل" },
+    { "t": "doctor", "d": "طبيب" },
+    { "t": "teacher", "d": "معلم" },
+    { "t": "pilot", "d": "طيار" },
+    { "t": "farmer", "d": "مزارع" },
+    { "t": "firefighter", "d": "رجل إطفاء" }
+  ],
+  "checks": [
+    {
+      "q": "معنى pilot؟",
+      "opts": ["طيار", "طبيب", "مزارع"],
+      "correct": 0
+    },
+    {
+      "q": "What does he do? معناها؟",
+      "opts": ["أين يعمل؟", "ماذا يعمل؟", "من هو؟"],
+      "correct": 1
+    },
+    {
+      "q": "رجل الإطفاء بالإنجليزية؟",
+      "opts": ["farmer", "driver", "firefighter"],
+      "correct": 2
+    }
+  ],
+  "questions": [
+    {
+      "t": "mcq",
+      "q": "أكمل: He's ...... doctor.",
+      "opts": ["a", "an", "is"],
+      "correct": 0
+    },
+    {
+      "t": "mcq",
+      "q": "من يعالج الأسنان؟",
+      "opts": ["nurse", "dentist", "cook"],
+      "correct": 1
+    },
+    {
+      "t": "tf",
+      "q": "كلمة farmer تعني سائق.",
+      "opts": ["صح", "خطأ"],
+      "correct": 1
+    },
+    {
+      "t": "mcq",
+      "q": "أكمل: I want to be ...... engineer.",
+      "opts": ["is", "a", "an"],
+      "correct": 2
+    },
+    {
+      "t": "fill",
+      "q": "What does she do? She's a ...... (معلمة)",
+      "ans": "teacher"
+    },
+    {
+      "t": "tf",
+      "q": "police officer تعني شرطي.",
+      "opts": ["صح", "خطأ"],
+      "correct": 0
+    },
+    {
+      "t": "mcq",
+      "q": "Is he a pilot? — No, ......",
+      "opts": ["he is", "he isn't", "I am"],
+      "correct": 1
+    }
+  ],
+  "story": [
+    { "v": "👨‍⚕️", "t": "سأل المعلم ريان: What does your father do? فأجاب بفخر: He's a doctor!" },
+    { "v": "👩‍🏫", "t": "ثم سأل: And your mother? فقال ريان: She's a teacher. She works at a school." },
+    { "v": "🚒", "t": "عرض المعلم صورة رجل إطفاء: Is he a pilot? فصاح الفصل: No, he isn't! He's a firefighter!" },
+    { "v": "✈️", "t": "سأل المعلم: What do you want to be, Ryan? ففكّر ريان طويلاً…" },
+    { "v": "🌾", "t": "تذكّر جدّه المزارع: My grandfather is a farmer. لكن ريان يحب الطائرات أكثر!" },
+    { "v": "🧑‍✈️", "t": "قال أخيراً بصوت عالٍ: I want to be a pilot! فصفّق له الجميع." },
+    { "v": "🌟", "t": "عرف ريان مهن أسرته وحلمه بالإنجليزية. أحسنت يا ريان!" }
+  ],
+  "activity": "اكتب عن ثلاثة من أفراد أسرتك: My father is a… My uncle is a… ثم اكتب حلمك: I want to be a… وارسمه.",
+  "summary": "نتعلم أسماء المهن مثل doctor و teacher و pilot. نسأل What does he do? ونجيب He's a doctor. ونقول I want to be a pilot عن حلمنا."
+}

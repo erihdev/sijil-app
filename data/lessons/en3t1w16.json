@@ -1,0 +1,132 @@
+{
+  "title": "أنشودة المهن وأصوات u v w x y z",
+  "unit": "Jobs — الصف الثالث",
+  "objectives": [
+    "أن يذكر الطالب مكان عمل كل مهنة بالإنجليزية",
+    "أن يقرأ الطالب نصاً قصيراً عن المهن",
+    "أن ينطق الطالب أصوات الحروف u و v و w و x و y و z"
+  ],
+  "intro": "الطبيب يعمل في المستشفى والطيار في المطار. اليوم نربط كل مهنة بمكانها، ونكمل آخر أصوات الحروف، ونراجع الفصل كله.",
+  "sections": [
+    {
+      "h": "أنشودة المهن",
+      "body": "نمثّل كل مهنة أثناء الترديد.",
+      "points": [
+        "Doctor, doctor, what do you do? I help sick people, that's what I do!",
+        "Farmer, farmer, what do you do? I grow food, that's what I do!"
+      ]
+    },
+    {
+      "h": "أين يعمل؟",
+      "points": [
+        "A doctor works at a hospital. (مستشفى)",
+        "A teacher works at a school. (مدرسة)",
+        "A pilot works at an airport. (مطار)",
+        "A farmer works on a farm. (مزرعة)",
+        "A firefighter works at a fire station. (مركز إطفاء)",
+        "Where does he work? = أين يعمل؟"
+      ]
+    },
+    {
+      "h": "القراءة",
+      "body": "نقرأ ثم نجيب.",
+      "points": [
+        "This is my uncle. He's a cook.",
+        "He works at a restaurant. He makes rice and chicken.",
+        "سؤال: Where does he work? — At a restaurant."
+      ]
+    },
+    {
+      "h": "أصوات الحروف + مراجعة الفصل",
+      "points": [
+        "Uu – /u/ – umbrella (مظلة)",
+        "Vv – /v/ – van (شاحنة صغيرة)",
+        "Ww – /w/ – water (ماء)",
+        "Xx – /ks/ – box (صندوق) — الصوت في آخر الكلمة",
+        "Yy – /y/ – yo-yo (لعبة اليويو)",
+        "Zz – /z/ – zebra (حمار وحشي)",
+        "مراجعة: التحية، حيوانات البحر، I can، الأعمال المنزلية، was / is، المهن"
+      ],
+      "tip": "بهذا أكملنا أصوات الحروف الستة والعشرين كلها!"
+    }
+  ],
+  "vocab": [
+    { "t": "hospital", "d": "مستشفى" },
+    { "t": "airport", "d": "مطار" },
+    { "t": "farm", "d": "مزرعة" },
+    { "t": "umbrella", "d": "مظلة — تبدأ بصوت /u/" },
+    { "t": "van", "d": "شاحنة صغيرة — تبدأ بصوت /v/" },
+    { "t": "zebra", "d": "حمار وحشي — يبدأ بصوت /z/" }
+  ],
+  "checks": [
+    {
+      "q": "أين يعمل الطبيب؟",
+      "opts": ["hospital", "airport", "farm"],
+      "correct": 0
+    },
+    {
+      "q": "كلمة تبدأ بصوت /z/؟",
+      "opts": ["van", "zebra", "water"],
+      "correct": 1
+    },
+    {
+      "q": "معنى umbrella؟",
+      "opts": ["مظلة", "شاحنة صغيرة", "ماء"],
+      "correct": 0
+    }
+  ],
+  "questions": [
+    {
+      "t": "mcq",
+      "q": "A pilot works at ......",
+      "opts": ["a farm", "an airport", "a school"],
+      "correct": 1
+    },
+    {
+      "t": "tf",
+      "q": "كلمة box تنتهي بصوت /ks/.",
+      "opts": ["صح", "خطأ"],
+      "correct": 0
+    },
+    {
+      "t": "mcq",
+      "q": "الحرف الأول في water؟",
+      "opts": ["v", "u", "w"],
+      "correct": 2
+    },
+    {
+      "t": "mcq",
+      "q": "Where does he work? معناها؟",
+      "opts": ["ماذا يعمل؟", "أين يعمل؟", "متى يعمل؟"],
+      "correct": 1
+    },
+    {
+      "t": "fill",
+      "q": "u – umbrella، v – van، z – ......",
+      "ans": "zebra"
+    },
+    {
+      "t": "tf",
+      "q": "المزارع farmer يعمل في hospital.",
+      "opts": ["صح", "خطأ"],
+      "correct": 1
+    },
+    {
+      "t": "mcq",
+      "q": "مراجعة: الرد بـ «نعم» على Can you swim?",
+      "opts": ["Yes, I do", "Yes, I can", "Yes, it is"],
+      "correct": 1
+    }
+  ],
+  "story": [
+    { "v": "🎵", "t": "ردّد الفصل أنشودة المهن: Doctor, doctor, what do you do? وفهد يمثّل الطبيب بسماعة." },
+    { "v": "🏥", "t": "قال المعلم: A doctor works at a hospital. A pilot works at an airport. وفهد يربط كل مهنة بمكانها." },
+    { "v": "📖", "t": "قرأ فهد النص: This is my uncle. He's a cook. He works at a restaurant." },
+    { "v": "☂️", "t": "ثم الأصوات: /u/ umbrella، /v/ van، /w/ water. هتف فهد: اقتربنا من نهاية الحروف!" },
+    { "v": "🦓", "t": "وأخيراً: box، yo-yo، zebra! رسم فهد zebra على السبورة وضحك الجميع." },
+    { "v": "🔁", "t": "في المراجعة تذكّر فهد الفصل كله: Hello… It's a shark… I can run… I make my bed… Yesterday was sunny…" },
+    { "v": "🌟", "t": "أنهى فهد الفصل الدراسي وهو يعرف أصوات الحروف كلها. أحسنت يا فهد!" }
+  ],
+  "activity": "اصنع بطاقة لمهنة تحبها: ارسمها واكتب: He's a… He works at a… ثم اكتب الحروف من u إلى z مع كلمة لكل حرف.",
+  "summary": "لكل مهنة مكان عمل: hospital و school و airport و farm. ونطقنا الأصوات الأخيرة umbrella و van و water و box و yo-yo و zebra، وراجعنا وحدات الفصل كلها."
+}

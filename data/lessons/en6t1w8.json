@@ -1,0 +1,132 @@
+{
+  "title": "Screen Time — وقت الشاشة",
+  "unit": "Unit 2: Lifestyles — الصف السادس",
+  "objectives": [
+    "أن يسمّي الطالب الأجهزة الإلكترونية بالإنجليزية",
+    "أن يسأل الطالب ويجيب عن مدة الاستخدام بـ How long / How many hours",
+    "أن يستخدم الطالب too much وmust / mustn't لوضع قواعد وقت الشاشة"
+  ],
+  "intro": "الهاتف واللوحي والتلفاز ممتعة، لكن ساعات طويلة أمام الشاشة تتعب العين وتسرق وقت اللعب والنوم. في هذا الدرس نتعلّم كيف نتحدث عن وقت الشاشة ونضع له حدوداً بالإنجليزية.",
+  "sections": [
+    {
+      "h": "Devices — الأجهزة",
+      "points": [
+        "phone — هاتف، tablet — جهاز لوحي",
+        "computer / laptop — حاسوب / محمول",
+        "TV — تلفاز، video game — لعبة فيديو",
+        "screen — الشاشة، screen time — وقت الشاشة"
+      ]
+    },
+    {
+      "h": "How long? — كم من الوقت؟",
+      "body": "نسأل عن المدة بـ How long أو How many hours.",
+      "points": [
+        "How long do you watch TV? — I watch TV for one hour.",
+        "How many hours do you play video games? — Two hours a day.",
+        "an hour — ساعة، half an hour — نصف ساعة",
+        "a day — في اليوم، a week — في الأسبوع"
+      ],
+      "tip": "نستخدم for مع المدة: for one hour, for thirty minutes."
+    },
+    {
+      "h": "Too Much Screen Time — الإفراط في الشاشة",
+      "points": [
+        "too much — أكثر من اللازم: Six hours is too much!",
+        "Too much screen time hurts your eyes. — يضرّ عينيك",
+        "It makes you tired. — يجعلك متعباً",
+        "You don't sleep well. — لا تنام جيداً",
+        "You don't play outside. — لا تلعب في الخارج"
+      ]
+    },
+    {
+      "h": "Rules: must / mustn't — القواعد",
+      "points": [
+        "You must take a break every hour. — يجب أن تستريح كل ساعة",
+        "You must turn off your phone at night.",
+        "You mustn't use the tablet at the table. — ممنوع اللوحي على المائدة",
+        "You mustn't play games all day.",
+        "Play outside, read a book, help your family. — بدائل مفيدة"
+      ],
+      "tip": "must للوجوب، وmustn't للمنع، وshould للنصيحة الأخف."
+    }
+  ],
+  "vocab": [
+    { "t": "screen time", "d": "الوقت الذي نقضيه أمام شاشة الجهاز" },
+    { "t": "tablet", "d": "جهاز لوحي بشاشة لمس" },
+    { "t": "too much", "d": "أكثر من اللازم" },
+    { "t": "break", "d": "استراحة قصيرة" },
+    { "t": "turn off", "d": "يُطفئ الجهاز" },
+    { "t": "outside", "d": "في الخارج، خارج البيت" }
+  ],
+  "checks": [
+    {
+      "q": "«جهاز لوحي» بالإنجليزية:",
+      "opts": ["laptop", "tablet", "screen", "phone"],
+      "correct": 1
+    },
+    {
+      "q": "السؤال المناسب للإجابة: I watch TV for one hour.",
+      "opts": ["How long do you watch TV?", "What do you watch?", "Where do you watch TV?", "Why do you watch TV?"],
+      "correct": 0
+    },
+    {
+      "q": "أكمل: You ...... use the phone at the table. (ممنوع)",
+      "opts": ["must", "should", "mustn't", "can"],
+      "correct": 2
+    }
+  ],
+  "questions": [
+    {
+      "t": "mcq",
+      "q": "الجملة التي تعبّر عن الإفراط:",
+      "opts": ["One hour is enough.", "Six hours is too much!", "I take a break.", "I play outside."],
+      "correct": 1
+    },
+    {
+      "t": "tf",
+      "q": "Too much screen time is good for your eyes.",
+      "opts": ["صح", "خطأ"],
+      "correct": 1
+    },
+    {
+      "t": "mcq",
+      "q": "«يُطفئ» بالإنجليزية:",
+      "opts": ["turn on", "take a break", "turn off", "play"],
+      "correct": 2
+    },
+    {
+      "t": "mcq",
+      "q": "حرف الجر المناسب مع المدة: I play games ...... two hours.",
+      "opts": ["at", "in", "on", "for"],
+      "correct": 3
+    },
+    {
+      "t": "fill",
+      "q": "You must take a ...... every hour.",
+      "ans": "break"
+    },
+    {
+      "t": "tf",
+      "q": "نستخدم mustn't للمنع.",
+      "opts": ["صح", "خطأ"],
+      "correct": 0
+    },
+    {
+      "t": "mcq",
+      "q": "الجملة الصحيحة:",
+      "opts": ["You must to turn off the phone.", "You must turning off the phone.", "You must turn off the phone.", "You must turns off the phone."],
+      "correct": 2
+    }
+  ],
+  "story": [
+    { "v": "📱", "t": "عاد ريان من المدرسة وأمسك الـ tablet فوراً. لعب ولعب حتى سألته أمه: How long do you play? فأجاب: Four hours!" },
+    { "v": "😵", "t": "في المساء آلمته عيناه ولم يستطع النوم. قالت أمه: Four hours is too much. Too much screen time hurts your eyes." },
+    { "v": "📋", "t": "في اليوم التالي كتبت الأسرة قواعد: You must take a break every hour. You mustn't use the tablet at the table." },
+    { "v": "⏱️", "t": "ضبط ريان مؤقّتاً: I play for one hour, then I stop. وعندما رنّ المؤقّت أطفأ الجهاز: I turn off the tablet." },
+    { "v": "⚽", "t": "خرج إلى الحديقة ولعب الكرة مع أخيه. صاح مبتسماً: Playing outside is more fun than the screen!" },
+    { "v": "😴", "t": "في الليل نام مبكراً وبعمق. وفي الصباح قال: My eyes are fine and I am not tired." },
+    { "v": "🌟", "t": "عرف ريان أن الشاشة ممتعة، لكن الحدود تجعل يومه أجمل. أحسنت!" }
+  ],
+  "activity": "سجّل وقت الشاشة عندك لثلاثة أيام في جدول بالإنجليزية (Device / How long)، ثم اكتب ثلاث قواعد لنفسك تبدأ بـ You must أو You mustn't، واقترح بديلاً واحداً مثل: Read a book.",
+  "summary": "نسأل عن مدة استخدام الأجهزة بـ How long وHow many hours ونجيب بـ for one hour، ونعبّر عن الإفراط بـ too much، ونضع قواعد وقت الشاشة بـ must وmustn't، والبديل اللعب في الخارج والقراءة."
+}

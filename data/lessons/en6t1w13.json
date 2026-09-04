@@ -1,0 +1,131 @@
+{
+  "title": "Collecting Things — جمع الأشياء",
+  "unit": "Unit 3: Interests — الصف السادس",
+  "objectives": [
+    "أن يسمّي الطالب أنواع المجموعات التي يجمعها الناس بالإنجليزية",
+    "أن يستخدم الطالب have got / has got مع الأعداد الكبيرة",
+    "أن يسأل الطالب ويجيب بـ How many … have you got?"
+  ],
+  "intro": "طوابع من بلدان بعيدة، عملات قديمة، أصداف من شاطئ البحر… جمع الأشياء هواية تعلّمنا الصبر والترتيب. في هذا الدرس نتعلّم كيف نتحدث عن مجموعاتنا ونعدّها بالإنجليزية.",
+  "sections": [
+    {
+      "h": "Collections — المجموعات",
+      "points": [
+        "stamps — طوابع، coins — عملات معدنية",
+        "shells — أصداف، stones — أحجار",
+        "cards — بطاقات، stickers — ملصقات",
+        "toy cars — سيارات لعبة، key rings — ميداليات مفاتيح",
+        "I collect stamps. — أجمع الطوابع. My collection is big."
+      ]
+    },
+    {
+      "h": "have got / has got — عندي / عنده",
+      "body": "نستخدم have got مع I / you / we / they وhas got مع he / she / it.",
+      "points": [
+        "I have got fifty stamps. — عندي خمسون طابعاً",
+        "She has got twenty shells. — عندها عشرون صدفة",
+        "They haven't got any coins. — ليس عندهم عملات",
+        "Have you got a rare stamp? — Yes, I have. / No, I haven't."
+      ],
+      "tip": "I've got = I have got، وHe's got = He has got."
+    },
+    {
+      "h": "Big Numbers — الأعداد الكبيرة",
+      "points": [
+        "20 twenty, 30 thirty, 40 forty, 50 fifty",
+        "60 sixty, 70 seventy, 80 eighty, 90 ninety",
+        "100 a hundred, 200 two hundred, 1000 a thousand",
+        "How many coins have you got? — I have got a hundred and twenty coins."
+      ],
+      "tip": "forty بلا حرف u، بخلاف four وfourteen."
+    },
+    {
+      "h": "Describing Items — وصف القطع",
+      "points": [
+        "old — قديم، new — جديد، rare — نادر",
+        "colorful — ملوّن، shiny — لامع، special — مميّز",
+        "This coin is very old. It is from 1970.",
+        "My favorite shell is the biggest one. — أفضل صدفة عندي هي الأكبر"
+      ]
+    }
+  ],
+  "vocab": [
+    { "t": "collect", "d": "يجمع أشياء من نوع واحد ويحتفظ بها" },
+    { "t": "collection", "d": "مجموعة الأشياء التي جمعناها" },
+    { "t": "stamp", "d": "طابع بريد" },
+    { "t": "coin", "d": "عملة معدنية" },
+    { "t": "shell", "d": "صدفة من البحر" },
+    { "t": "rare", "d": "نادر، لا يوجد منه إلا القليل" }
+  ],
+  "checks": [
+    {
+      "q": "«طوابع» بالإنجليزية:",
+      "opts": ["coins", "stamps", "shells", "cards"],
+      "correct": 1
+    },
+    {
+      "q": "أكمل: She ...... got twenty shells.",
+      "opts": ["have", "has", "is", "does"],
+      "correct": 1
+    },
+    {
+      "q": "العدد 40 يُكتب:",
+      "opts": ["fourty", "forteen", "forty", "fourteen"],
+      "correct": 2
+    }
+  ],
+  "questions": [
+    {
+      "t": "mcq",
+      "q": "السؤال الصحيح:",
+      "opts": ["How many stamps you have got?", "How many stamps have you got?", "How many have you got stamps?", "How many stamps has you got?"],
+      "correct": 1
+    },
+    {
+      "t": "tf",
+      "q": "نقول: They has got a lot of coins.",
+      "opts": ["صح", "خطأ"],
+      "correct": 1
+    },
+    {
+      "t": "mcq",
+      "q": "«نادر» بالإنجليزية:",
+      "opts": ["rare", "shiny", "new", "colorful"],
+      "correct": 0
+    },
+    {
+      "t": "mcq",
+      "q": "العدد 100 يُقال:",
+      "opts": ["a thousand", "ten", "ninety", "a hundred"],
+      "correct": 3
+    },
+    {
+      "t": "fill",
+      "q": "I ...... shells from the beach. (أجمع)",
+      "ans": "collect"
+    },
+    {
+      "t": "tf",
+      "q": "الرد الصحيح على Have you got a rare coin? هو Yes, I have.",
+      "opts": ["صح", "خطأ"],
+      "correct": 0
+    },
+    {
+      "t": "mcq",
+      "q": "«أصداف» بالإنجليزية:",
+      "opts": ["stones", "stickers", "shells", "key rings"],
+      "correct": 2
+    }
+  ],
+  "story": [
+    { "v": "🐚", "t": "على شاطئ الخبر وجد ريان صدفة لامعة. قال: This shell is shiny and special! ووضعها في جيبه." },
+    { "v": "🧺", "t": "في كل زيارة للبحر جمع المزيد. قالت أمه: You have got a collection now! فأحضر صندوقاً ورتّبها فيه." },
+    { "v": "🔢", "t": "عدّها ريان بصوت عالٍ: ten, twenty, thirty… I have got forty shells! وكتب الرقم على الصندوق." },
+    { "v": "🏫", "t": "في المدرسة قال زميله جود: I collect stamps. I have got a hundred stamps! سأله ريان: Have you got a rare one?" },
+    { "v": "📮", "t": "أجاب جود: Yes, I have. This stamp is very old. It is from 1970. اندهش ريان من ألوانه." },
+    { "v": "🤝", "t": "اتفقا على عرض مجموعتيهما في معرض الفصل: Rayan has got shells, and Joud has got stamps." },
+    { "v": "🌟", "t": "من صدفة واحدة بدأت هواية جميلة تعلّم الصبر والترتيب. أحسنت!" }
+  ],
+  "activity": "اسأل خمسة من زملائك: What do you collect? How many have you got? وسجّل الإجابات في جدول بالإنجليزية، ثم اكتب جملتين بـ has got عن زميل واحد.",
+  "summary": "الناس يجمعون stamps وcoins وshells وcards. نتحدث عن مجموعاتنا بـ have got / has got، ونسأل بـ How many … have you got?، ونعدّ بالأعداد الكبيرة (forty, a hundred)، ونصف القطع بـ old وrare وshiny."
+}

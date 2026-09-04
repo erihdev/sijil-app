@@ -1,0 +1,131 @@
+{
+  "title": "أين كنت أمس؟ وأصوات q r s t",
+  "unit": "Yesterday and Today — الصف الثالث",
+  "objectives": [
+    "أن يسأل الطالب Where were you yesterday? ويجيب I was at…",
+    "أن يردّد الطالب أنشودة أيام الأسبوع",
+    "أن ينطق الطالب أصوات الحروف q و r و s و t"
+  ],
+  "intro": "أين كنت أمس؟ في البيت أم في الحديقة؟ اليوم نتعلم السؤال والجواب، ونردّد أنشودة الأيام، ونتعلم أربعة أصوات.",
+  "sections": [
+    {
+      "h": "أنشودة الأيام",
+      "body": "نصفّق عند كل يوم.",
+      "points": [
+        "Sunday, Monday, Tuesday, Wednesday,",
+        "Thursday, Friday, Saturday, hooray!"
+      ]
+    },
+    {
+      "h": "أين كنت أمس؟",
+      "points": [
+        "Where were you yesterday? = أين كنت أمس؟",
+        "I was at home. = كنت في البيت",
+        "I was at school. = كنت في المدرسة",
+        "I was at the park. = كنت في الحديقة",
+        "Where is he today? – He is at school."
+      ],
+      "tip": "مع you نقول were، ومع I و he و she و it نقول was."
+    },
+    {
+      "h": "القراءة",
+      "body": "نقرأ ثم نجيب.",
+      "points": [
+        "Yesterday was Friday. I was at home.",
+        "It was sunny. I was happy.",
+        "Today is Saturday. I am at the park.",
+        "سؤال: Where was he yesterday? — At home."
+      ]
+    },
+    {
+      "h": "أصوات الحروف + مراجعة",
+      "points": [
+        "Qq – /kw/ – queen (ملكة)",
+        "Rr – /r/ – rabbit (أرنب)",
+        "Ss – /s/ – sun (شمس)",
+        "Tt – /t/ – tiger (نمر)",
+        "مراجعة: sunny – rainy – cloudy – windy، و was / is"
+      ],
+      "tip": "الحرف q يأتي دائماً ومعه u: queen."
+    }
+  ],
+  "vocab": [
+    { "t": "where", "d": "أين" },
+    { "t": "at home", "d": "في البيت" },
+    { "t": "at school", "d": "في المدرسة" },
+    { "t": "queen", "d": "ملكة — تبدأ بصوت /kw/" },
+    { "t": "rabbit", "d": "أرنب — يبدأ بصوت /r/" },
+    { "t": "sun", "d": "شمس — تبدأ بصوت /s/" }
+  ],
+  "checks": [
+    {
+      "q": "الرد على Where were you yesterday?",
+      "opts": ["I was at home", "I am eight", "It is sunny"],
+      "correct": 0
+    },
+    {
+      "q": "كلمة تبدأ بصوت /r/؟",
+      "opts": ["sun", "rabbit", "queen"],
+      "correct": 1
+    },
+    {
+      "q": "معنى at school؟",
+      "opts": ["في البيت", "في الحديقة", "في المدرسة"],
+      "correct": 2
+    }
+  ],
+  "questions": [
+    {
+      "t": "mcq",
+      "q": "أكمل: Where ...... you yesterday?",
+      "opts": ["was", "were", "is"],
+      "correct": 1
+    },
+    {
+      "t": "tf",
+      "q": "sun تبدأ بصوت /s/.",
+      "opts": ["صح", "خطأ"],
+      "correct": 0
+    },
+    {
+      "t": "mcq",
+      "q": "I was at the ...... (الحديقة)",
+      "opts": ["park", "home", "school"],
+      "correct": 0
+    },
+    {
+      "t": "mcq",
+      "q": "اليوم الذي يأتي قبل Saturday؟",
+      "opts": ["Sunday", "Thursday", "Friday"],
+      "correct": 2
+    },
+    {
+      "t": "fill",
+      "q": "q – queen، t – tiger، r – ......",
+      "ans": "rabbit"
+    },
+    {
+      "t": "tf",
+      "q": "نقول I was at school للحديث عن اليوم الحاضر.",
+      "opts": ["صح", "خطأ"],
+      "correct": 1
+    },
+    {
+      "t": "mcq",
+      "q": "معنى It was sunny yesterday؟",
+      "opts": ["كان الجو ممطراً أمس", "الجو مشمس اليوم", "كان الجو مشمساً أمس"],
+      "correct": 2
+    }
+  ],
+  "story": [
+    { "v": "🎶", "t": "بدأت الحصة بأنشودة الأيام: Sunday, Monday, Tuesday… وسعود يصفّق مع كل يوم." },
+    { "v": "🏠", "t": "سأل المعلم: Where were you yesterday, Saud? فأجاب: I was at home. It was rainy." },
+    { "v": "🌳", "t": "وسأل فهد فقال: I was at the park! It was sunny. فتمنى سعود لو ذهب معه." },
+    { "v": "📖", "t": "قرأ سعود النص: Yesterday was Friday. I was at home. Today is Saturday." },
+    { "v": "👑", "t": "ثم الأصوات: /kw/ queen، /r/ rabbit، /s/ sun، /t/ tiger. لاحظ سعود أن sun هي أصل sunny!" },
+    { "v": "🔁", "t": "في المراجعة رتّب سعود بطاقات الطقس على السبورة وقال: was للأمس، is لليوم." },
+    { "v": "🌟", "t": "أتقن سعود السؤال عن الأمس وأصوات أربعة حروف. أحسنت يا سعود!" }
+  ],
+  "activity": "اسأل زميلك: Where were you yesterday? وسجّل جوابه: He was at… ثم اكتب كلمة لكل حرف: q, r, s, t وارسمها.",
+  "summary": "نسأل Where were you yesterday? ونجيب I was at home. ونردّد أيام الأسبوع، ونطقنا الأصوات /kw/ queen، /r/ rabbit، /s/ sun، /t/ tiger."
+}

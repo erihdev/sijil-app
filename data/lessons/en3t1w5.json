@@ -1,0 +1,132 @@
+{
+  "title": "حيوانات البحر — What is it?",
+  "unit": "Sea Animals — الصف الثالث",
+  "objectives": [
+    "أن يسمّي الطالب ستة من حيوانات البحر بالإنجليزية",
+    "أن يسأل الطالب What is it? ويجيب It's a…",
+    "أن يجيب الطالب عن Is it a…? بـ Yes, it is أو No, it isn't"
+  ],
+  "intro": "على شاطئ البحر الأحمر ترى أسماكاً وسلاحف ونجوم بحر. ما أسماء هذه الحيوانات بالإنجليزية؟",
+  "sections": [
+    {
+      "h": "حيوانات البحر",
+      "points": [
+        "fish = سمكة",
+        "shark = قرش",
+        "whale = حوت",
+        "dolphin = دلفين",
+        "octopus = أخطبوط",
+        "starfish = نجم البحر",
+        "crab = سرطان البحر",
+        "turtle = سلحفاة",
+        "jellyfish = قنديل البحر"
+      ]
+    },
+    {
+      "h": "ما هذا؟",
+      "points": [
+        "What is it? = ما هذا؟",
+        "It's a shark. = إنه قرش",
+        "نضع a قبل الاسم المفرد: a fish, a crab",
+        "نضع an قبل الكلمة التي تبدأ بحرف علة: an octopus"
+      ],
+      "tip": "It's هي اختصار It is."
+    },
+    {
+      "h": "هل هو…؟",
+      "points": [
+        "Is it a whale? = هل هو حوت؟",
+        "Yes, it is. = نعم، هو كذلك",
+        "No, it isn't. It's a dolphin. = لا، إنه دلفين"
+      ]
+    },
+    {
+      "h": "كم عددها؟",
+      "points": [
+        "How many sharks? = كم قرشاً؟",
+        "Two sharks. – نضيف s للجمع",
+        "one crab – three crabs",
+        "fish تبقى fish في الجمع: one fish – ten fish"
+      ]
+    }
+  ],
+  "vocab": [
+    { "t": "shark", "d": "قرش" },
+    { "t": "whale", "d": "حوت — أكبر حيوان في البحر" },
+    { "t": "dolphin", "d": "دلفين" },
+    { "t": "octopus", "d": "أخطبوط — له ثماني أذرع" },
+    { "t": "starfish", "d": "نجم البحر" },
+    { "t": "turtle", "d": "سلحفاة" }
+  ],
+  "checks": [
+    {
+      "q": "معنى whale؟",
+      "opts": ["قرش", "حوت", "سلحفاة"],
+      "correct": 1
+    },
+    {
+      "q": "الرد على Is it a shark? إذا كان قرشاً فعلاً؟",
+      "opts": ["Yes, it is", "No, it isn't", "It's a whale"],
+      "correct": 0
+    },
+    {
+      "q": "What is it? معناها؟",
+      "opts": ["كم عدده؟", "ما هذا؟", "أين هو؟"],
+      "correct": 1
+    }
+  ],
+  "questions": [
+    {
+      "t": "mcq",
+      "q": "الحيوان الذي له ثماني أذرع؟",
+      "opts": ["starfish", "octopus", "crab"],
+      "correct": 1
+    },
+    {
+      "t": "mcq",
+      "q": "أكمل: It's ...... octopus.",
+      "opts": ["a", "an", "it"],
+      "correct": 1
+    },
+    {
+      "t": "tf",
+      "q": "كلمة turtle تعني دلفين.",
+      "opts": ["صح", "خطأ"],
+      "correct": 1
+    },
+    {
+      "t": "mcq",
+      "q": "نجم البحر بالإنجليزية؟",
+      "opts": ["starfish", "jellyfish", "shark"],
+      "correct": 0
+    },
+    {
+      "t": "fill",
+      "q": "Is it a whale? No, it ......",
+      "ans": "isn't"
+    },
+    {
+      "t": "tf",
+      "q": "نقول It's a fish للإجابة عن What is it?",
+      "opts": ["صح", "خطأ"],
+      "correct": 0
+    },
+    {
+      "t": "mcq",
+      "q": "ثلاثة أسماك قرش: Three ......",
+      "opts": ["shark", "sharks", "a shark"],
+      "correct": 1
+    }
+  ],
+  "story": [
+    { "v": "🏖️", "t": "ذهب ناصر مع أبيه إلى شاطئ جدة. رأى شيئاً يتحرك في الماء وسأل: What is it?" },
+    { "v": "🐢", "t": "قال أبوه: It's a turtle! سلحفاة كبيرة تسبح ببطء نحو الشاطئ." },
+    { "v": "🐙", "t": "ثم رأى ناصر شيئاً بأذرع كثيرة: Is it a starfish? فقال أبوه: No, it isn't. It's an octopus!" },
+    { "v": "⭐", "t": "وعلى الرمل وجد نجماً صغيراً: Is it a starfish? — Yes, it is! فرح ناصر كثيراً." },
+    { "v": "🐬", "t": "في البعيد قفزت دلافين فوق الماء: dolphins! عدّها ناصر: one, two, three dolphins!" },
+    { "v": "🦀", "t": "وفي طريق العودة مرّ crab صغير بين الصخور. ضحك ناصر: It's a crab! لا تلمسه!" },
+    { "v": "🌟", "t": "عاد ناصر إلى البيت وهو يعرف حيوانات البحر بالإنجليزية. أحسنت يا ناصر!" }
+  ],
+  "activity": "ارسم بحراً في دفترك وضع فيه خمسة حيوانات، واكتب تحت كل واحد: It's a … ثم اسأل زميلك عن رسمته: Is it a shark?",
+  "summary": "نسأل What is it? ونجيب It's a shark. ونسأل Is it a whale? فنجيب Yes, it is أو No, it isn't. ونضيف s للجمع ونستخدم an قبل octopus."
+}

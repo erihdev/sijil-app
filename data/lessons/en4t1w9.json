@@ -1,0 +1,137 @@
+{
+  "title": "Tell me Your Story! — شخصيات القصص وصفاتها",
+  "unit": "Stories — الصف الرابع",
+  "objectives": [
+    "أن يسمّي الطالب شخصيات القصص وأماكنها بالإنجليزية",
+    "أن يصف الطالب الشخصيات بصفات مثل big و small و tall و short",
+    "أن يستخدم الطالب There is و There are لوصف مشهد القصة"
+  ],
+  "intro": "الجدة تحكي قصة عن ملك وقلعة وتنين كبير، والأطفال يستمعون بشغف. في هذا الدرس نتعلم أسماء شخصيات القصص وأماكنها، وكيف نصفها بالإنجليزية ونقول ما يوجد في المشهد.",
+  "sections": [
+    {
+      "h": "شخصيات القصص وأماكنها (Story Words)",
+      "points": [
+        "king = ملك / queen = ملكة",
+        "prince = أمير / princess = أميرة",
+        "giant = عملاق",
+        "dragon = تنين",
+        "castle = قلعة",
+        "forest = غابة",
+        "village = قرية",
+        "hero = بطل"
+      ]
+    },
+    {
+      "h": "الصفات (Adjectives)",
+      "body": "الصفة كلمة تصف الاسم وتأتي قبله في الإنجليزية: a big castle.",
+      "points": [
+        "big = كبير / small = صغير",
+        "tall = طويل / short = قصير",
+        "old = عجوز أو قديم / young = صغير السن",
+        "happy = سعيد / sad = حزين",
+        "strong = قوي / kind = طيب",
+        "The giant is tall. He is a tall giant."
+      ],
+      "tip": "في الإنجليزية الصفة قبل الاسم: big castle، عكس العربية: قلعة كبيرة."
+    },
+    {
+      "h": "There is / There are",
+      "points": [
+        "There is + مفرد: There is a castle in the forest. = توجد قلعة في الغابة",
+        "There are + جمع: There are three dragons. = يوجد ثلاثة تنانين",
+        "Is there a king? — Yes, there is. / No, there isn't.",
+        "Are there any giants? — Yes, there are. / No, there aren't."
+      ],
+      "tip": "انظر إلى الاسم بعد There: إن كان واحداً فاستخدم is، وإن كان أكثر فاستخدم are."
+    },
+    {
+      "h": "احكِ قصتك (Tell me your story!)",
+      "body": "نبدأ القصة بعبارة Once upon a time ونصف المكان والشخصيات.",
+      "points": [
+        "Once upon a time, there was a small village.",
+        "There is an old king and a young prince.",
+        "The dragon is big and strong.",
+        "The end. = النهاية"
+      ]
+    }
+  ],
+  "vocab": [
+    { "t": "castle", "d": "قلعة: بناء كبير يعيش فيه الملك" },
+    { "t": "giant", "d": "عملاق: شخصية ضخمة في القصص" },
+    { "t": "dragon", "d": "تنين: مخلوق خيالي ينفث النار" },
+    { "t": "adjective", "d": "صفة تصف الاسم مثل big و kind" },
+    { "t": "There are", "d": "يوجد (للجمع)" },
+    { "t": "Once upon a time", "d": "كان يا ما كان: بداية القصص" }
+  ],
+  "checks": [
+    {
+      "q": "كلمة castle تعني؟",
+      "opts": ["غابة", "قلعة", "قرية", "ملك"],
+      "correct": 1
+    },
+    {
+      "q": "الترتيب الصحيح للصفة والاسم؟",
+      "opts": ["castle big", "a big castle", "big a castle", "castle a big"],
+      "correct": 1
+    },
+    {
+      "q": "...... two princes in the story.",
+      "opts": ["There is", "There are", "It is", "This is"],
+      "correct": 1
+    }
+  ],
+  "questions": [
+    {
+      "t": "mcq",
+      "q": "عكس كلمة tall هو؟",
+      "opts": ["big", "old", "short", "sad"],
+      "correct": 2
+    },
+    {
+      "t": "mcq",
+      "q": "زوجة الملك تُسمّى؟",
+      "opts": ["princess", "queen", "giant", "hero"],
+      "correct": 1
+    },
+    {
+      "t": "tf",
+      "q": "كلمة forest تعني «غابة».",
+      "opts": ["صح", "خطأ"],
+      "correct": 0
+    },
+    {
+      "t": "mcq",
+      "q": "There ...... a dragon in the castle.",
+      "opts": ["are", "is", "am", "these"],
+      "correct": 1
+    },
+    {
+      "t": "fill",
+      "q": "The giant is very ...... (قوي). He can lift a tree.",
+      "ans": "strong"
+    },
+    {
+      "t": "tf",
+      "q": "نستخدم There are مع الاسم المفرد.",
+      "opts": ["صح", "خطأ"],
+      "correct": 1
+    },
+    {
+      "t": "mcq",
+      "q": "Is there a king? — ...... (لا)",
+      "opts": ["No, there isn't.", "No, there aren't.", "No, he isn't.", "No, it is."],
+      "correct": 0
+    }
+  ],
+  "story": [
+    { "v": "🌙", "t": "في ليلة هادئة طلبت جود من جدتها قصة، فبدأت الجدة: Once upon a time, there was a small village." },
+    { "v": "🏰", "t": "قالت الجدة: There is a big castle on the hill. وفي القلعة ملك عجوز: an old king وأمير شاب: a young prince." },
+    { "v": "🐉", "t": "وفجأة: There are three dragons in the forest! صرخت جود: Three? Are they big? — Yes, they are big and strong." },
+    { "v": "🧍", "t": "خرج الأمير الشاب ليواجهها، وكان kind and brave. سألت جود: Is there a giant? — No, there isn't." },
+    { "v": "🤝", "t": "لم يقاتل الأمير التنانين، بل أطعمها فصارت صديقة له. The dragons are happy now!" },
+    { "v": "📖", "t": "في الصباح حكت جود القصة للفصل بالإنجليزية: There is a castle… There are three dragons… The end!" },
+    { "v": "🌟", "t": "صفّق الطلاب، وقالت المعلمة: You told the story with adjectives and There is/are! أحسنتِ يا جود!" }
+  ],
+  "activity": "ارسم مشهداً من قصة خيالية فيه قلعة وشخصيتان على الأقل، ثم اكتب تحته أربع جمل: جملتين بـ There is/There are، وجملتين فيهما صفة قبل الاسم مثل: There is a tall giant.",
+  "summary": "شخصيات القصص مثل king و prince و giant و dragon وأماكنها مثل castle و forest، ونصفها بصفات تأتي قبل الاسم مثل big و strong، ونقول There is للمفرد و There are للجمع."
+}

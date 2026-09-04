@@ -1,0 +1,119 @@
+{
+  "title": "كيف حالك؟ وكم عمرك؟",
+  "unit": "It's Nice to Meet You! — الصف الثالث",
+  "objectives": [
+    "أن يسأل الطالب How are you? ويجيب I'm fine, thank you",
+    "أن يعدّ الطالب من one إلى ten بالإنجليزية",
+    "أن يجيب الطالب عن سؤال How old are you? بعمره الصحيح"
+  ],
+  "intro": "يسألك زميلك: كيف حالك؟ وكم عمرك؟ اليوم نتعلم الإجابة بالإنجليزية مع الأرقام من 1 إلى 10.",
+  "sections": [
+    {
+      "h": "كيف حالك؟",
+      "points": [
+        "How are you? = كيف حالك؟",
+        "I'm fine, thank you. = أنا بخير، شكراً",
+        "I'm great! = أنا رائع",
+        "نضيف And you? لنسأل الآخر بدوره"
+      ],
+      "tip": "I'm هي اختصار I am."
+    },
+    {
+      "h": "الأرقام من 1 إلى 10",
+      "points": [
+        "one 1 – two 2 – three 3 – four 4 – five 5",
+        "six 6 – seven 7 – eight 8 – nine 9 – ten 10",
+        "نعدّ على أصابعنا ونحن ننطق"
+      ],
+      "tip": "three تبدأ بصوت th: ضع طرف لسانك بين أسنانك."
+    },
+    {
+      "h": "كم عمرك؟",
+      "points": [
+        "How old are you? = كم عمرك؟",
+        "I'm eight. = عمري ثمانٍ",
+        "I'm eight years old. = عمري ثماني سنوات",
+        "old هنا تعني العمر لا «قديم»"
+      ]
+    }
+  ],
+  "vocab": [
+    { "t": "fine", "d": "بخير" },
+    { "t": "thank you", "d": "شكراً لك" },
+    { "t": "How old are you?", "d": "كم عمرك؟" },
+    { "t": "years old", "d": "سنوات من العمر" },
+    { "t": "seven", "d": "سبعة" },
+    { "t": "ten", "d": "عشرة" }
+  ],
+  "checks": [
+    {
+      "q": "الرد على How are you?",
+      "opts": ["I'm fine, thank you", "My name is Ali", "Goodbye"],
+      "correct": 0
+    },
+    {
+      "q": "الرقم 5 بالإنجليزية؟",
+      "opts": ["four", "five", "six"],
+      "correct": 1
+    },
+    {
+      "q": "How old are you? معناها؟",
+      "opts": ["ما اسمك؟", "كيف حالك؟", "كم عمرك؟"],
+      "correct": 2
+    }
+  ],
+  "questions": [
+    {
+      "t": "mcq",
+      "q": "ما الرقم الذي يأتي بعد seven؟",
+      "opts": ["six", "eight", "nine"],
+      "correct": 1
+    },
+    {
+      "t": "mcq",
+      "q": "عمر ريان 9 سنوات. يقول: I'm ...... years old.",
+      "opts": ["nine", "seven", "ten"],
+      "correct": 0
+    },
+    {
+      "t": "tf",
+      "q": "كلمة ten تعني عشرة.",
+      "opts": ["صح", "خطأ"],
+      "correct": 0
+    },
+    {
+      "t": "mcq",
+      "q": "أكمل: How ...... are you? (كم عمرك؟)",
+      "opts": ["fine", "old", "name"],
+      "correct": 1
+    },
+    {
+      "t": "fill",
+      "q": "I'm fine, ...... you.",
+      "ans": "thank"
+    },
+    {
+      "t": "tf",
+      "q": "نقول My name is عند الرد على How are you?",
+      "opts": ["صح", "خطأ"],
+      "correct": 1
+    },
+    {
+      "t": "mcq",
+      "q": "معنى three؟",
+      "opts": ["ثلاثة", "أربعة", "اثنان"],
+      "correct": 0
+    }
+  ],
+  "story": [
+    { "v": "🚌", "t": "في الحافلة جلس ريان بجانب زميل. سلّم عليه وسأله: How are you?" },
+    { "v": "😄", "t": "أجاب الزميل: I'm fine, thank you. And you? فقال ريان: I'm great!" },
+    { "v": "🎂", "t": "ثم سأله ريان: How old are you? ففكّر الزميل وبدأ يعدّ على أصابعه…" },
+    { "v": "✋", "t": "one, two, three… eight! وقال: I'm eight years old." },
+    { "v": "🔢", "t": "ضحك ريان: أنا أيضاً! I'm eight, too! ثم عدّا معاً بصوت عالٍ حتى ten." },
+    { "v": "🎒", "t": "في الفصل عدّ ريان أقلامه: one, two, three, four, five. خمسة أقلام!" },
+    { "v": "🌟", "t": "صار ريان يسأل ويجيب ويعدّ بالإنجليزية. أحسنت يا ريان!" }
+  ],
+  "activity": "اسأل خمسة من زملائك: How are you? ثم How old are you? وسجّل أعمارهم بالكلمات الإنجليزية، ثم عدّوا معاً من one إلى ten.",
+  "summary": "نسأل How are you? ونجيب I'm fine, thank you. ونسأل How old are you? ونجيب I'm eight years old، ونعدّ من one إلى ten."
+}

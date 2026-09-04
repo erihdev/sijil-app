@@ -1,0 +1,132 @@
+{
+  "title": "عناصر القصة: الشخصيات والمكان والأحداث",
+  "unit": "Stories — الصف الرابع",
+  "objectives": [
+    "أن يقرأ الطالب قصة قصيرة ويحدّد شخصياتها ومكانها",
+    "أن يميّز الطالب الأضداد والكلمات المتشابهة في القافية",
+    "أن يكتب الطالب قصة قصيرة لها بداية ووسط ونهاية"
+  ],
+  "intro": "كل قصة تحبها لها شخصيات ومكان وأحداث تبدأ وتتطور وتنتهي. في هذا الدرس نقرأ قصة، نلعب بالكلمات وأضدادها، ثم نصبح كتّاباً ونؤلف قصتنا الخاصة.",
+  "sections": [
+    {
+      "h": "القراءة (Reading): The Little Boat",
+      "body": "Once upon a time, there was a little boat. It was in a big sea. The sea was calm. Then a strong wind came. The boat was afraid. A big ship helped the little boat. Finally, they were friends. The end.",
+      "points": [
+        "Who is in the story? — A little boat and a big ship.",
+        "Where is the story? — In the sea.",
+        "What happened? — A strong wind came.",
+        "How does it end? — They were friends."
+      ]
+    },
+    {
+      "h": "عمل الكلمات (Word Work): الأضداد والقافية",
+      "points": [
+        "الأضداد (Opposites): big ↔ small, tall ↔ short, old ↔ young, happy ↔ sad, strong ↔ weak",
+        "الكلمات المتقافية (Rhyming words) لها النهاية الصوتية نفسها: cat / hat, king / ring, boat / coat",
+        "كلمات القصة: little = small, calm = هادئ, wind = ريح, sea = بحر, ship = سفينة"
+      ],
+      "tip": "لتجد القافية غيّر الحرف الأول فقط: sea → tea, bee."
+    },
+    {
+      "h": "تعلّم متكامل: عناصر القصة (Language Arts)",
+      "body": "لكل قصة أربعة عناصر أساسية نبحث عنها عند القراءة.",
+      "points": [
+        "Title = العنوان: اسم القصة",
+        "Characters = الشخصيات: من في القصة (the boat, the ship)",
+        "Setting = المكان والزمان: أين ومتى (in the sea)",
+        "Plot = الأحداث: Beginning (البداية) → Middle (الوسط) → End (النهاية)",
+        "في الوسط عادة مشكلة (problem)، وفي النهاية حل (solution)"
+      ]
+    },
+    {
+      "h": "الكتابة (Writing): اكتب قصتك",
+      "points": [
+        "اختر شخصية ومكاناً: a small cat / in the garden",
+        "Beginning: Once upon a time, there was a small cat.",
+        "Middle: One day, the cat was in a tall tree. It was afraid.",
+        "End: A kind boy helped the cat. They were happy. The end.",
+        "استخدم was/were والصفات وكلمات الترتيب Then و Finally"
+      ],
+      "tip": "قصة من خمس جمل تكفي، المهم أن يكون فيها بداية ووسط ونهاية."
+    }
+  ],
+  "vocab": [
+    { "t": "characters", "d": "شخصيات القصة: من فيها" },
+    { "t": "setting", "d": "مكان القصة وزمانها" },
+    { "t": "plot", "d": "أحداث القصة من البداية إلى النهاية" },
+    { "t": "opposite", "d": "الضد: كلمة معناها عكس الأخرى" },
+    { "t": "rhyme", "d": "قافية: تشابه في نهاية الكلمات مثل cat و hat" },
+    { "t": "problem", "d": "مشكلة تحدث في وسط القصة" }
+  ],
+  "checks": [
+    {
+      "q": "مكان قصة The Little Boat هو؟",
+      "opts": ["the forest", "the castle", "the sea", "the village"],
+      "correct": 2
+    },
+    {
+      "q": "ضد كلمة happy هو؟",
+      "opts": ["sad", "big", "old", "weak"],
+      "correct": 0
+    },
+    {
+      "q": "أي كلمة تتقافى مع cat؟",
+      "opts": ["car", "hat", "cut", "cap"],
+      "correct": 1
+    }
+  ],
+  "questions": [
+    {
+      "t": "mcq",
+      "q": "من أو ما الذي يحدث في القصة يُسمّى؟",
+      "opts": ["Title", "Setting", "Characters", "Plot"],
+      "correct": 3
+    },
+    {
+      "t": "mcq",
+      "q": "ضد كلمة strong هو؟",
+      "opts": ["tall", "weak", "young", "little"],
+      "correct": 1
+    },
+    {
+      "t": "tf",
+      "q": "في القصة ساعدت السفينة الكبيرة القارب الصغير.",
+      "opts": ["صح", "خطأ"],
+      "correct": 0
+    },
+    {
+      "t": "mcq",
+      "q": "الكلمة التي تتقافى مع king هي؟",
+      "opts": ["kind", "ring", "kite", "keep"],
+      "correct": 1
+    },
+    {
+      "t": "fill",
+      "q": "The story has a beginning, a middle, and an ...... (نهاية).",
+      "ans": "end"
+    },
+    {
+      "t": "tf",
+      "q": "كلمة Setting تعني شخصيات القصة.",
+      "opts": ["صح", "خطأ"],
+      "correct": 1
+    },
+    {
+      "t": "mcq",
+      "q": "الجملة المناسبة لبداية القصة هي؟",
+      "opts": ["The end.", "Finally, they were friends.", "Once upon a time, there was a little boat.", "Then a strong wind came."],
+      "correct": 2
+    }
+  ],
+  "story": [
+    { "v": "📚", "t": "أعلن المعلم مسابقة: اكتبوا قصة قصيرة بالإنجليزية! حمل ريان قلمه وفكّر: عن ماذا أكتب؟" },
+    { "v": "🐪", "t": "اختار شخصيته: a small camel، والمكان: in the desert. كتب العنوان: The Little Camel." },
+    { "v": "🌅", "t": "البداية: Once upon a time, there was a little camel. He was happy in the big desert." },
+    { "v": "🌪️", "t": "الوسط والمشكلة: Then a strong wind came. The camel was afraid and alone." },
+    { "v": "🧑‍🤝‍🧑", "t": "النهاية والحل: A kind boy helped the camel. Finally, they were friends. The end." },
+    { "v": "🔠", "t": "راجع ريان: الأضداد small/big، happy/afraid، والقافية sand/hand في آخر سطر. القصة جاهزة!" },
+    { "v": "🌟", "t": "قرأ قصته أمام الفصل. قال المعلم: Characters, setting, plot… all there! أحسنت يا ريان!" }
+  ],
+  "activity": "اكتب قصة من خمس جمل بالإنجليزية بعنوان من اختيارك، وحدّد فيها بالألوان: الشخصيات (أحمر)، المكان (أخضر)، والمشكلة والحل (أزرق). ثم اقرأها لزميلك واطلب منه أن يذكر عنصرين من عناصرها.",
+  "summary": "نقرأ القصة ونحدّد عناصرها: العنوان والشخصيات والمكان والأحداث ذات البداية والوسط والنهاية؛ ونلعب بالأضداد مثل big/small والقوافي مثل cat/hat، ونكتب قصة قصيرة بـ was/were وكلمات الترتيب."
+}

@@ -1,0 +1,130 @@
+{
+  "title": "Animals Around Us — الحيوانات من حولنا",
+  "unit": "Unit 1: Living Things — الصف السادس",
+  "objectives": [
+    "أن يسمّي الطالب حيوانات البيئة السعودية بالإنجليزية",
+    "أن يستخدم الطالب can / can't للتعبير عن قدرات الحيوانات",
+    "أن يصف الطالب الحيوان بصفتين على الأقل بالإنجليزية"
+  ],
+  "intro": "الجمل في الصحراء، والصقر في السماء، والماعز في المزرعة… حيوانات نراها كل يوم. في هذا الدرس نتعلّم أسماءها بالإنجليزية وماذا تستطيع أن تفعل.",
+  "sections": [
+    {
+      "h": "Animal Names — أسماء الحيوانات",
+      "points": [
+        "camel — جمل، horse — حصان، goat — ماعز، sheep — خروف",
+        "falcon — صقر، eagle — نسر، owl — بومة",
+        "lizard — سحلية، snake — ثعبان، fox — ثعلب",
+        "cow — بقرة، donkey — حمار، hen — دجاجة"
+      ],
+      "tip": "كلمة sheep لا تتغيّر في الجمع: one sheep, two sheep."
+    },
+    {
+      "h": "Where Do They Live? — أين تعيش؟",
+      "points": [
+        "desert — الصحراء: camels, lizards, snakes",
+        "farm — المزرعة: cows, goats, hens",
+        "mountains — الجبال: eagles, foxes",
+        "The camel lives in the desert. — الجمل يعيش في الصحراء"
+      ]
+    },
+    {
+      "h": "can / can't — يستطيع / لا يستطيع",
+      "body": "نستخدم can مع الفعل الأصلي بلا تغيير، ونضيف not للنفي.",
+      "points": [
+        "A falcon can fly fast. — الصقر يستطيع الطيران بسرعة",
+        "A camel can walk for days without water.",
+        "A hen can't fly high. — الدجاجة لا تستطيع الطيران عالياً",
+        "Can a horse run? — Yes, it can. / Can a snake jump? — No, it can't."
+      ],
+      "tip": "بعد can لا نضيف s للفعل: It can run وليس It can runs."
+    },
+    {
+      "h": "Describing Animals — وصف الحيوانات",
+      "points": [
+        "big — كبير، small — صغير، tall — طويل",
+        "fast — سريع، slow — بطيء، strong — قوي",
+        "The eagle is big and strong. — النسر كبير وقوي",
+        "The lizard is small and fast."
+      ]
+    }
+  ],
+  "vocab": [
+    { "t": "camel", "d": "الجمل، حيوان الصحراء الذي يصبر على العطش" },
+    { "t": "falcon", "d": "الصقر، طائر سريع يطير عالياً" },
+    { "t": "desert", "d": "الصحراء، أرض رملية حارة وجافة" },
+    { "t": "farm", "d": "المزرعة، مكان تربية الحيوانات وزراعة النبات" },
+    { "t": "wild", "d": "بري، يعيش في الطبيعة لا مع الناس" },
+    { "t": "strong", "d": "قوي" }
+  ],
+  "checks": [
+    {
+      "q": "«صقر» بالإنجليزية:",
+      "opts": ["eagle", "falcon", "owl", "hen"],
+      "correct": 1
+    },
+    {
+      "q": "أكمل: A camel ...... walk in the desert.",
+      "opts": ["cans", "can", "is", "have"],
+      "correct": 1
+    },
+    {
+      "q": "الحيوان الذي يعيش في المزرعة:",
+      "opts": ["snake", "eagle", "lizard", "cow"],
+      "correct": 3
+    }
+  ],
+  "questions": [
+    {
+      "t": "mcq",
+      "q": "الجملة الصحيحة هي:",
+      "opts": ["A hen can flies.", "A hen can't fly high.", "A hen can to fly.", "A hen cans fly."],
+      "correct": 1
+    },
+    {
+      "t": "mcq",
+      "q": "«سحلية» بالإنجليزية:",
+      "opts": ["lizard", "fox", "goat", "donkey"],
+      "correct": 0
+    },
+    {
+      "t": "tf",
+      "q": "The falcon lives on the farm and can't fly.",
+      "opts": ["صح", "خطأ"],
+      "correct": 1
+    },
+    {
+      "t": "mcq",
+      "q": "الرد الصحيح على: Can a horse run fast?",
+      "opts": ["Yes, it is.", "No, it can.", "Yes, it can.", "Yes, it does."],
+      "correct": 2
+    },
+    {
+      "t": "fill",
+      "q": "The camel lives in the ...... .",
+      "ans": "desert"
+    },
+    {
+      "t": "tf",
+      "q": "جمع كلمة sheep هو sheep بلا تغيير.",
+      "opts": ["صح", "خطأ"],
+      "correct": 0
+    },
+    {
+      "t": "mcq",
+      "q": "عكس كلمة fast هو:",
+      "opts": ["big", "strong", "tall", "slow"],
+      "correct": 3
+    }
+  ],
+  "story": [
+    { "v": "🚙", "t": "في رحلة مع والده إلى المزرعة نظر فهد من النافذة فرأى قطيعاً وقال: Look! Camels! They live in the desert." },
+    { "v": "🐪", "t": "قال الوالد: A camel can walk for days without water. فتعجّب فهد: It is big and strong!" },
+    { "v": "🦅", "t": "وفوقهم حلّق طائر سريع. صاح فهد: A falcon! It can fly very fast. أومأ الوالد مبتسماً." },
+    { "v": "🐐", "t": "في المزرعة رأى goats وhens. سأل فهد: Can a hen fly? فأجاب العم: No, it can't fly high." },
+    { "v": "🦎", "t": "وعلى صخرة دافئة وقفت lizard صغيرة ثم اختفت بسرعة. ضحك فهد: It is small, but it is fast!" },
+    { "v": "📝", "t": "في المساء كتب فهد في دفتره: The camel can walk. The falcon can fly. The hen can't fly high." },
+    { "v": "🌟", "t": "عرف فهد أن لكل حيوان مكاناً يعيش فيه وقدرة يتميّز بها. أحسنت!" }
+  ],
+  "activity": "اختر ثلاثة حيوانات من البيئة السعودية، واكتب عن كل واحد جملتين بالإنجليزية: أين يعيش (It lives in ...) وماذا يستطيع (It can ...). ثم ارسم أحدها.",
+  "summary": "تعلّمنا أسماء حيوانات مثل camel وfalcon وgoat وأماكن عيشها (desert / farm / mountains)، واستخدمنا can وcan't للقدرة، ووصفنا الحيوانات بصفات مثل big وfast وstrong."
+}

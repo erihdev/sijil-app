@@ -1,0 +1,136 @@
+{
+  "title": "I like to… — نادي ما بعد المدرسة",
+  "unit": "After-School Fun — الصف الرابع",
+  "objectives": [
+    "أن يستمع الطالب إلى قصة عن نادي ما بعد المدرسة ويجيب عن أسئلتها",
+    "أن يعبّر الطالب عمّا يحب وما لا يحب فعله بـ I like to / I don't like to",
+    "أن يجري الطالب حواراً قصيراً مع زميله عن أنشطته المفضلة"
+  ],
+  "intro": "في نادي ما بعد المدرسة يختار كل طالب ما يحبه: الرسم، أو السباحة، أو كرة السلة. في هذا الدرس نستمع إلى قصة أصدقاء في النادي، ونتعلم كيف نقول ما نحب وما لا نحب أن نفعله.",
+  "sections": [
+    {
+      "h": "القصة (Story): The After-School Club",
+      "body": "أربعة أصدقاء في النادي: عمر يحب كرة السلة، وسامي يحب الرسم، وعلي لا يحب السباحة لكنه يحب الشطرنج، وخالد يحب القراءة. في النهاية يلعبون جميعاً لعبة واحدة معاً.",
+      "points": [
+        "Omar: I like to play basketball.",
+        "Sami: I like to draw. I don't like to run.",
+        "Ali: I don't like to swim. I like to play chess.",
+        "Khalid: I like to read stories.",
+        "All: Let's play together!"
+      ]
+    },
+    {
+      "h": "I like to / I don't like to",
+      "body": "نعبّر عن الأشياء التي نستمتع بها أو لا نستمتع بها.",
+      "points": [
+        "I like to + الفعل: I like to swim. = أحب أن أسبح",
+        "I don't like to + الفعل: I don't like to run. = لا أحب أن أركض",
+        "Do you like to play chess? — Yes, I do. / No, I don't.",
+        "What do you like to do? — I like to fly a kite."
+      ],
+      "tip": "بعد like to يأتي الفعل في صورته الأصلية بلا s وبلا ing."
+    },
+    {
+      "h": "أنشطة النادي (Club Activities)",
+      "points": [
+        "play basketball = يلعب كرة السلة",
+        "swim = يسبح",
+        "play chess = يلعب الشطرنج",
+        "sing = يغني (أنشودة)",
+        "run = يركض",
+        "paint = يرسم بالألوان",
+        "play tennis = يلعب التنس"
+      ]
+    },
+    {
+      "h": "الاستماع والتحدث (Listening and Speaking)",
+      "points": [
+        "استمع إلى القصة وحدّد: Who likes to draw? — Sami.",
+        "Who doesn't like to swim? — Ali.",
+        "اسأل زميلك: What do you like to do after school?",
+        "أجب بجملتين: I like to… and I don't like to…",
+        "عبارة الدعوة: Let's play together! = هيا نلعب معاً"
+      ],
+      "tip": "عند الحوار انظر إلى زميلك واستخدم نبرة صوت واضحة وودودة."
+    }
+  ],
+  "vocab": [
+    { "t": "like to", "d": "يحب أن يفعل شيئاً" },
+    { "t": "club", "d": "نادٍ: مكان نمارس فيه الأنشطة بعد المدرسة" },
+    { "t": "basketball", "d": "كرة السلة" },
+    { "t": "chess", "d": "الشطرنج: لعبة على رقعة" },
+    { "t": "swim", "d": "يسبح" },
+    { "t": "together", "d": "معاً" }
+  ],
+  "checks": [
+    {
+      "q": "في القصة من يحب الرسم؟",
+      "opts": ["Omar", "Sami", "Ali", "Khalid"],
+      "correct": 1
+    },
+    {
+      "q": "الجملة الصحيحة هي؟",
+      "opts": ["I like to swimming.", "I like to swims.", "I like to swim.", "I like swim to."],
+      "correct": 2
+    },
+    {
+      "q": "كلمة together تعني؟",
+      "opts": ["وحدي", "معاً", "بعد", "دائماً"],
+      "correct": 1
+    }
+  ],
+  "questions": [
+    {
+      "t": "mcq",
+      "q": "Ali doesn't like to ......",
+      "opts": ["play chess", "swim", "read", "draw"],
+      "correct": 1
+    },
+    {
+      "t": "mcq",
+      "q": "Do you like to play basketball? — ...... (لا)",
+      "opts": ["No, I'm not.", "No, I don't.", "No, I do.", "No, I like."],
+      "correct": 1
+    },
+    {
+      "t": "tf",
+      "q": "بعد like to نضيف ing إلى الفعل.",
+      "opts": ["صح", "خطأ"],
+      "correct": 1
+    },
+    {
+      "t": "mcq",
+      "q": "أي كلمة تعني «الشطرنج»؟",
+      "opts": ["tennis", "chess", "basketball", "kite"],
+      "correct": 1
+    },
+    {
+      "t": "fill",
+      "q": "What do you ...... to do? — I like to paint.",
+      "ans": "like"
+    },
+    {
+      "t": "tf",
+      "q": "عبارة Let's play together! دعوة للعب معاً.",
+      "opts": ["صح", "خطأ"],
+      "correct": 0
+    },
+    {
+      "t": "mcq",
+      "q": "I ...... like to run. I like to swim.",
+      "opts": ["don't", "not", "isn't", "no"],
+      "correct": 0
+    }
+  ],
+  "story": [
+    { "v": "🏫", "t": "انضم سعود إلى نادي ما بعد المدرسة لأول مرة. كان الجميع يعرفون بعضهم إلا هو." },
+    { "v": "🏀", "t": "اقترب منه عمر وقال: I like to play basketball. Do you like to play? فأجاب سعود بخجل: Yes, I do." },
+    { "v": "🏊", "t": "وفي بركة السباحة سأله المدرب: Do you like to swim? — No, I don't، لكنني أحب أن أتعلم!" },
+    { "v": "♟️", "t": "في ركن الشطرنج جلس علي: I don't like to swim either. I like to play chess. Let's play together!" },
+    { "v": "🎨", "t": "وفي ركن الرسم قال سامي: I like to paint. فرسم سعود معه لوحة كبيرة للنادي." },
+    { "v": "🗣️", "t": "في نهاية اليوم قال سعود بثقة: I like to play basketball and chess. I don't like to swim… yet!" },
+    { "v": "🌟", "t": "ضحك الأصدقاء وقالوا: You're one of us now! لقد وجد سعود أصدقاء جدداً. أحسنت!" }
+  ],
+  "activity": "مثّل مع زميلك حوار النادي: يسأل أحدكما What do you like to do after school? ويجيب الآخر بجملتين إحداهما بـ I like to والأخرى بـ I don't like to، ثم يقترح لعبة مشتركة بعبارة Let's… together!",
+  "summary": "نعبّر عمّا نحب بـ I like to + الفعل وعمّا لا نحب بـ I don't like to، ونسأل Do you like to…? ونجيب Yes, I do. أو No, I don't.، ونتحدث عن أنشطة النادي مثل basketball و chess و swim."
+}

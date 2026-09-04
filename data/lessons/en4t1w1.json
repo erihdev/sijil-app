@@ -1,0 +1,139 @@
+{
+  "title": "Look and find! — التحية وأدوات الفصل",
+  "unit": "Welcome — الصف الرابع",
+  "objectives": [
+    "أن يستخدم الطالب عبارات التحية والتعريف بالنفس بالإنجليزية",
+    "أن يسمّي الطالب أدوات الفصل الأساسية بالإنجليزية",
+    "أن ينفّذ الطالب تعليمات الفصل البسيطة مثل Look و Find و Listen"
+  ],
+  "intro": "في أول يوم في الصف الرابع نلتقي بمعلم جديد وزملاء جدد، ونقول لهم Hello! في هذا الدرس نتعلم كيف نحيّي ونعرّف بأنفسنا، ونبحث عن الأشياء التي حولنا في الفصل بالإنجليزية.",
+  "sections": [
+    {
+      "h": "التحية والتعريف بالنفس",
+      "body": "نبدأ الحديث مع أي شخص بالتحية ثم نسأل عن اسمه.",
+      "points": [
+        "Hello! / Hi! = مرحباً",
+        "Good morning = صباح الخير",
+        "What's your name? = ما اسمك؟",
+        "My name is Saud. = اسمي سعود",
+        "Nice to meet you. = سعيد بلقائك",
+        "Goodbye! = مع السلامة"
+      ],
+      "tip": "عند التحية انظر إلى الشخص وابتسم، وردّ التحية بمثلها."
+    },
+    {
+      "h": "أدوات الفصل (Classroom Objects)",
+      "points": [
+        "book = كتاب",
+        "pen = قلم حبر",
+        "pencil = قلم رصاص",
+        "eraser = ممحاة",
+        "ruler = مسطرة",
+        "bag = حقيبة",
+        "desk = مكتب (طاولة الطالب)",
+        "chair = كرسي"
+      ]
+    },
+    {
+      "h": "تعليمات الفصل (Classroom Language)",
+      "points": [
+        "Look! = انظر",
+        "Find! = ابحث / جد",
+        "Listen! = استمع",
+        "Point to the book. = أشر إلى الكتاب",
+        "Open your book. = افتح كتابك",
+        "Sit down. / Stand up. = اجلس / قف"
+      ],
+      "tip": "حين تسمع Look and find! ابحث في الصورة عن الشيء الذي يقوله المعلم وأشر إليه."
+    },
+    {
+      "h": "نشاط Look and find!",
+      "body": "ننظر إلى صورة الفصل ونبحث عن الأشياء: Find the ruler! ثم نقول: Here is the ruler!",
+      "points": [
+        "Where is the bag? = أين الحقيبة؟",
+        "It's on the desk. = إنها على المكتب",
+        "It's under the chair. = إنها تحت الكرسي",
+        "I can see a book. = أستطيع أن أرى كتاباً"
+      ]
+    }
+  ],
+  "vocab": [
+    { "t": "Hello", "d": "كلمة تحية نقولها عند اللقاء" },
+    { "t": "name", "d": "الاسم؛ نسأل عنه بـ What's your name?" },
+    { "t": "pencil", "d": "قلم رصاص نكتب به ويمكن مسحه" },
+    { "t": "eraser", "d": "ممحاة نمسح بها الكتابة" },
+    { "t": "desk", "d": "الطاولة التي يجلس عليها الطالب في الفصل" },
+    { "t": "Find", "d": "تعليمة معناها: ابحث وجِد الشيء" }
+  ],
+  "checks": [
+    {
+      "q": "ماذا نقول عند اللقاء أول مرة؟",
+      "opts": ["Goodbye", "Hello", "Sit down", "Under"],
+      "correct": 1
+    },
+    {
+      "q": "كلمة ruler تعني؟",
+      "opts": ["ممحاة", "كتاب", "مسطرة", "كرسي"],
+      "correct": 2
+    },
+    {
+      "q": "الرد الصحيح على What's your name?",
+      "opts": ["My name is Fahd.", "Good morning.", "It's on the desk.", "Open your book."],
+      "correct": 0
+    }
+  ],
+  "questions": [
+    {
+      "t": "mcq",
+      "q": "أي كلمة تعني «حقيبة»؟",
+      "opts": ["book", "chair", "bag", "pen"],
+      "correct": 2
+    },
+    {
+      "t": "mcq",
+      "q": "ماذا نقول في الصباح عند دخول الفصل؟",
+      "opts": ["Goodbye!", "Good morning!", "Stand up!", "Find!"],
+      "correct": 1
+    },
+    {
+      "t": "tf",
+      "q": "كلمة Listen تعني «انظر».",
+      "opts": ["صح", "خطأ"],
+      "correct": 1
+    },
+    {
+      "t": "mcq",
+      "q": "أكمل: Nice to meet ......",
+      "opts": ["me", "you", "book", "desk"],
+      "correct": 1
+    },
+    {
+      "t": "fill",
+      "q": "الكلمة الإنجليزية التي تعني «قلم رصاص» هي ......",
+      "ans": "pencil"
+    },
+    {
+      "t": "tf",
+      "q": "Point to the book تعني: أشر إلى الكتاب.",
+      "opts": ["صح", "خطأ"],
+      "correct": 0
+    },
+    {
+      "t": "mcq",
+      "q": "أين الحقيبة؟ The bag is ...... the desk. (على)",
+      "opts": ["on", "name", "hello", "find"],
+      "correct": 0
+    }
+  ],
+  "story": [
+    { "v": "🌅", "t": "في أول يوم دراسي دخل سعود فصله الجديد وهو متوتر قليلاً، فقال له المعلم مبتسماً: Good morning!" },
+    { "v": "🤝", "t": "اقترب منه زميل جديد وقال: Hello! What's your name? فأجاب سعود بثقة: My name is Saud. Nice to meet you!" },
+    { "v": "📚", "t": "بدأ المعلم لعبة Look and find! وقال: Find the ruler! فبحث سعود في الصورة بسرعة." },
+    { "v": "🔍", "t": "وجد سعود المسطرة تحت الكرسي فصاح: Here is the ruler! It's under the chair!" },
+    { "v": "✏️", "t": "ثم قال المعلم: Point to the pencil! فأشار سعود إلى قلم الرصاص على مكتبه." },
+    { "v": "🎒", "t": "في نهاية الحصة عرف سعود أسماء كل أدواته: book, pen, eraser, bag, desk." },
+    { "v": "🌟", "t": "خرج سعود وهو يقول لزملائه: Goodbye! لقد صار يحب الإنجليزية. أحسنت يا سعود!" }
+  ],
+  "activity": "اعمل مع زميلك: أحدكما يقول تعليمة مثل Find the eraser! أو Point to the chair! والآخر ينفّذها ويقول Here is the eraser! ثم تبادلا الأدوار خمس مرات.",
+  "summary": "نبدأ الحديث بالتحية Hello ونسأل What's your name? ونجيب My name is… ونسمّي أدوات الفصل مثل book و pencil و ruler، وننفّذ التعليمات Look و Find و Point to."
+}

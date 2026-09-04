@@ -1,0 +1,130 @@
+{
+  "title": "Reading Is Fun — القراءة متعة",
+  "unit": "Unit 3: Interests — الصف السادس",
+  "objectives": [
+    "أن يسمّي الطالب أنواع الكتب وأجزاءها بالإنجليزية",
+    "أن يسأل الطالب ويجيب عن الكتب المفضّلة بـ What kind of…?",
+    "أن يستخدم الطالب صيغة التفضيل (the -est) في وصف الكتب"
+  ],
+  "intro": "كتاب واحد يأخذك إلى الفضاء أو إلى قاع البحر دون أن تغادر مقعدك. في هذا الدرس نتعلّم كيف نتحدث عن الكتب والقراءة والمكتبة بالإنجليزية.",
+  "sections": [
+    {
+      "h": "Kinds of Books — أنواع الكتب",
+      "points": [
+        "story book — كتاب قصص، comic — قصة مصوّرة",
+        "science book — كتاب علوم، dictionary — قاموس",
+        "magazine — مجلة، atlas — أطلس خرائط",
+        "adventure story — قصة مغامرات، funny story — قصة مضحكة"
+      ]
+    },
+    {
+      "h": "Parts of a Book — أجزاء الكتاب",
+      "points": [
+        "title — العنوان، cover — الغلاف",
+        "author — المؤلّف، page — صفحة",
+        "character — شخصية القصة، chapter — فصل",
+        "The title of my book is «The Little Falcon». — عنوان كتابي"
+      ]
+    },
+    {
+      "h": "Talking About Reading — الحديث عن القراءة",
+      "body": "نسأل عن النوع بـ What kind of وعن العدد بـ How many.",
+      "points": [
+        "What kind of books do you like? — I like adventure stories.",
+        "Who is your favorite author? — My favorite author is…",
+        "How many books did you read last month? — I read three books.",
+        "Where do you read? — I read in the library / at home."
+      ],
+      "tip": "read في المضارع والماضي تُكتب بالحروف نفسها، لكن نطق الماضي يشبه red."
+    },
+    {
+      "h": "Superlatives — التفضيل بـ the -est",
+      "points": [
+        "long → the longest: This is the longest book in the library.",
+        "funny → the funniest: It is the funniest story I know.",
+        "big → the biggest: The atlas is the biggest book.",
+        "good → the best: Reading is the best hobby!"
+      ],
+      "tip": "المقارنة بين اثنين -er than، والتفضيل بين ثلاثة فأكثر the -est."
+    }
+  ],
+  "vocab": [
+    { "t": "library", "d": "المكتبة، مكان فيه كتب كثيرة نستعيرها" },
+    { "t": "author", "d": "المؤلّف الذي كتب الكتاب" },
+    { "t": "title", "d": "عنوان الكتاب" },
+    { "t": "character", "d": "شخصية في القصة" },
+    { "t": "comic", "d": "قصة مصوّرة بالرسوم" },
+    { "t": "borrow", "d": "يستعير كتاباً ثم يعيده" }
+  ],
+  "checks": [
+    {
+      "q": "«المؤلّف» بالإنجليزية:",
+      "opts": ["title", "author", "cover", "page"],
+      "correct": 1
+    },
+    {
+      "q": "الكتاب الذي نبحث فيه عن معاني الكلمات:",
+      "opts": ["comic", "atlas", "magazine", "dictionary"],
+      "correct": 3
+    },
+    {
+      "q": "أكمل: This is ...... book in the library.",
+      "opts": ["the longest", "longer", "long", "the longer"],
+      "correct": 0
+    }
+  ],
+  "questions": [
+    {
+      "t": "mcq",
+      "q": "السؤال المناسب للإجابة: I like adventure stories.",
+      "opts": ["How many books do you have?", "What kind of books do you like?", "Where do you read?", "Who is the author?"],
+      "correct": 1
+    },
+    {
+      "t": "tf",
+      "q": "The cover is the first page inside the book with the story.",
+      "opts": ["صح", "خطأ"],
+      "correct": 1
+    },
+    {
+      "t": "mcq",
+      "q": "صيغة التفضيل من funny:",
+      "opts": ["the funnyest", "the most funny", "the funniest", "funnier"],
+      "correct": 2
+    },
+    {
+      "t": "mcq",
+      "q": "«يستعير» بالإنجليزية:",
+      "opts": ["borrow", "read", "write", "buy"],
+      "correct": 0
+    },
+    {
+      "t": "fill",
+      "q": "Reading is ...... hobby! (الأفضل)",
+      "ans": "the best"
+    },
+    {
+      "t": "tf",
+      "q": "الشخصية في القصة تسمّى character.",
+      "opts": ["صح", "خطأ"],
+      "correct": 0
+    },
+    {
+      "t": "mcq",
+      "q": "الرد المناسب على: How many books did you read last month?",
+      "opts": ["I read at home.", "I like comics.", "I read two books.", "My favorite author."],
+      "correct": 2
+    }
+  ],
+  "story": [
+    { "v": "📚", "t": "قالت المعلمة إن أفضل قارئ هذا الشهر سيحصل على جائزة. لم تكن لمى تحب القراءة، لكنها ذهبت إلى الـ library." },
+    { "v": "🔎", "t": "سألتها أمينة المكتبة: What kind of books do you like? ترددت لمى ثم قالت: Maybe adventure stories?" },
+    { "v": "🦅", "t": "أعطتها كتاباً عنوانه «The Little Falcon». قرأت لمى الغلاف: The title, the author, the cover… ثم فتحت الصفحة الأولى." },
+    { "v": "🌙", "t": "في الليل لم تستطع التوقف! The main character is a brave falcon. صارت تقرأ chapter بعد chapter." },
+    { "v": "📖", "t": "في الأسبوع التالي استعارت comic وكتاب علوم. قالت لأخيها: I read three books this month. This is the funniest one!" },
+    { "v": "🏆", "t": "سألتها المعلمة: How many books did you read? أجابت لمى بفخر: Three! Reading is the best hobby!" },
+    { "v": "🌟", "t": "من طالبة لا تحب القراءة إلى أفضل قارئة في الفصل. أحسنت!" }
+  ],
+  "activity": "اختر كتاباً قرأته واكتب بطاقة تعريف به بالإنجليزية: Title / Author / Kind of book / Main character / I like it because... ثم قدّمها لزملائك في دقيقة واحدة.",
+  "summary": "تعرّفنا على أنواع الكتب (story, comic, dictionary, atlas) وأجزائها (title, cover, author, character)، وسألنا بـ What kind of books do you like? وHow many books did you read?، واستخدمنا التفضيل the longest وthe funniest وthe best."
+}

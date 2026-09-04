@@ -1,0 +1,124 @@
+{
+  "title": "الأعمال المنزلية — I help at home",
+  "unit": "Chores — الصف الثالث",
+  "objectives": [
+    "أن يسمّي الطالب ستة أعمال منزلية بالإنجليزية",
+    "أن يعبّر الطالب عمّا يفعله في البيت بجمل قصيرة",
+    "أن يسأل الطالب Do you…? ويجيب Yes, I do أو No, I don't"
+  ],
+  "intro": "هل تساعد أهلك في البيت؟ ترتيب السرير وغسل الأطباق أعمال صغيرة لها أسماء بالإنجليزية.",
+  "sections": [
+    {
+      "h": "الأعمال المنزلية",
+      "points": [
+        "make the bed = يرتّب السرير",
+        "wash the dishes = يغسل الأطباق",
+        "clean the room = ينظّف الغرفة",
+        "sweep the floor = يكنس الأرض",
+        "set the table = يجهّز المائدة",
+        "take out the trash = يخرج القمامة",
+        "water the plants = يسقي النباتات",
+        "feed the cat = يطعم القطة"
+      ],
+      "tip": "chores = الأعمال المنزلية."
+    },
+    {
+      "h": "ماذا تفعل في البيت؟",
+      "points": [
+        "What do you do at home? = ماذا تفعل في البيت؟",
+        "I make my bed. = أرتّب سريري",
+        "I help my mom. = أساعد أمي",
+        "I water the plants. = أسقي النباتات"
+      ]
+    },
+    {
+      "h": "هل تفعل…؟",
+      "points": [
+        "Do you wash the dishes? = هل تغسل الأطباق؟",
+        "Yes, I do. = نعم، أفعل",
+        "No, I don't. = لا، لا أفعل",
+        "don't = do not"
+      ],
+      "tip": "السؤال يبدأ بـ Do والجواب فيه do أو don't."
+    }
+  ],
+  "vocab": [
+    { "t": "chores", "d": "الأعمال المنزلية" },
+    { "t": "make the bed", "d": "يرتّب السرير" },
+    { "t": "wash the dishes", "d": "يغسل الأطباق" },
+    { "t": "sweep the floor", "d": "يكنس الأرض" },
+    { "t": "help", "d": "يساعد" },
+    { "t": "water the plants", "d": "يسقي النباتات" }
+  ],
+  "checks": [
+    {
+      "q": "معنى wash the dishes؟",
+      "opts": ["يرتّب السرير", "يغسل الأطباق", "يكنس الأرض"],
+      "correct": 1
+    },
+    {
+      "q": "الرد بـ «نعم» على Do you help at home?",
+      "opts": ["Yes, I do", "Yes, I can", "Yes, it is"],
+      "correct": 0
+    },
+    {
+      "q": "sweep the floor معناها؟",
+      "opts": ["يسقي النباتات", "يجهّز المائدة", "يكنس الأرض"],
+      "correct": 2
+    }
+  ],
+  "questions": [
+    {
+      "t": "mcq",
+      "q": "أكمل: I ...... my bed. (أرتّب)",
+      "opts": ["wash", "make", "sweep"],
+      "correct": 1
+    },
+    {
+      "t": "tf",
+      "q": "chores تعني الأعمال المنزلية.",
+      "opts": ["صح", "خطأ"],
+      "correct": 0
+    },
+    {
+      "t": "mcq",
+      "q": "معنى take out the trash؟",
+      "opts": ["يطعم القطة", "ينظّف الغرفة", "يخرج القمامة"],
+      "correct": 2
+    },
+    {
+      "t": "mcq",
+      "q": "Do you clean your room? — No, ......",
+      "opts": ["I can't", "I don't", "it isn't"],
+      "correct": 1
+    },
+    {
+      "t": "fill",
+      "q": "I ...... the plants. (أسقي)",
+      "ans": "water"
+    },
+    {
+      "t": "tf",
+      "q": "الجملة I wash the bed صحيحة.",
+      "opts": ["صح", "خطأ"],
+      "correct": 1
+    },
+    {
+      "t": "mcq",
+      "q": "What do you do at home? معناها؟",
+      "opts": ["ماذا تفعل في البيت؟", "أين بيتك؟", "هل تساعد في البيت؟"],
+      "correct": 0
+    }
+  ],
+  "story": [
+    { "v": "🏠", "t": "يوم الجمعة قالت أم عبدالله: البيت يحتاج مساعدة! فسأل عبدالله: ماذا أفعل؟" },
+    { "v": "🛏️", "t": "بدأ بغرفته: I make my bed! ثم رتّب كتبه على الرف: I clean my room!" },
+    { "v": "🍽️", "t": "بعد الغداء سأله أخوه: Do you wash the dishes? فأجاب: Yes, I do! وحمل الأطباق." },
+    { "v": "🧹", "t": "أعطته أمه المكنسة: sweep the floor! فكنس الأرض وهو يردّد الكلمة." },
+    { "v": "🌱", "t": "في الحديقة سقى النباتات: I water the plants. وأطعم القطة: I feed the cat." },
+    { "v": "🗑️", "t": "أخيراً أخرج القمامة: take out the trash! وعاد مبتسماً: I help my mom!" },
+    { "v": "🌟", "t": "ساعد عبدالله أهله وتعلّم أسماء الأعمال بالإنجليزية. أحسنت يا عبدالله!" }
+  ],
+  "activity": "اكتب ثلاثة أعمال تقوم بها في البيت: I make my bed… ثم اسأل زميلك: Do you sweep the floor? وسجّل جوابه.",
+  "summary": "الأعمال المنزلية chores مثل make the bed و wash the dishes. نقول I help my mom، ونسأل Do you…? فنجيب Yes, I do أو No, I don't."
+}

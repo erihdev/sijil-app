@@ -1,0 +1,137 @@
+{
+  "title": "A Visit to Their Grandparents — الأعمال المنزلية",
+  "unit": "Chores — الصف الرابع",
+  "objectives": [
+    "أن يسمّي الطالب الأعمال المنزلية الشائعة بالإنجليزية",
+    "أن يستخدم الطالب المضارع المستمر للحديث عمّا يفعله الآن",
+    "أن يسأل الطالب ويجيب عن What are you doing?"
+  ],
+  "intro": "عندما نزور بيت الجد والجدة نساعدهم في ترتيب الغرف وغسل الأطباق وسقي النباتات. في هذا الدرس نتعلم أسماء هذه الأعمال، وكيف نقول ما نفعله الآن بالإنجليزية.",
+  "sections": [
+    {
+      "h": "الأعمال المنزلية (Chores)",
+      "points": [
+        "make the bed = يرتّب السرير",
+        "wash the dishes = يغسل الأطباق",
+        "sweep the floor = يكنس الأرض",
+        "clean the room = ينظّف الغرفة",
+        "feed the cat = يطعم القطة",
+        "water the plants = يسقي النباتات",
+        "set the table = يجهّز المائدة",
+        "take out the trash = يخرج القمامة"
+      ],
+      "tip": "كل عمل منزلي يتكوّن من فعل + شيء: wash + the dishes."
+    },
+    {
+      "h": "المضارع المستمر (Present Continuous)",
+      "body": "نستخدمه للحديث عن شيء يحدث الآن: am / is / are + الفعل + ing",
+      "points": [
+        "I am (I'm) washing the dishes.",
+        "He is (He's) sweeping the floor.",
+        "She is (She's) feeding the cat.",
+        "They are (They're) cleaning the room.",
+        "make → making (نحذف e ثم نضيف ing)"
+      ],
+      "tip": "كلمة now أو right now تدل على أن الفعل يحدث الآن."
+    },
+    {
+      "h": "السؤال والجواب",
+      "points": [
+        "What are you doing? = ماذا تفعل الآن؟",
+        "I'm making the bed. = أرتّب السرير",
+        "What is he doing? — He's watering the plants.",
+        "What is Grandma doing? — She's setting the table."
+      ]
+    },
+    {
+      "h": "القصة: زيارة الجد والجدة",
+      "body": "في القصة يزور الأطفال بيت جديهم ويتقاسمون الأعمال: كلٌّ يفعل شيئاً يساعد به.",
+      "points": [
+        "Grandpa: What are you doing, kids?",
+        "Sami: I'm sweeping the floor.",
+        "Sara: I'm feeding the cat.",
+        "Grandma: Thank you! You're helping a lot."
+      ],
+      "tip": "مساعدة الجد والجدة برّ وإحسان، وهي فرصة رائعة لتعلّم الكلمات الجديدة."
+    }
+  ],
+  "vocab": [
+    { "t": "chores", "d": "الأعمال المنزلية اليومية مثل الكنس والغسل" },
+    { "t": "sweep", "d": "يكنس الأرض بالمكنسة" },
+    { "t": "dishes", "d": "الأطباق والصحون" },
+    { "t": "feed", "d": "يطعم: يعطي الطعام للحيوان" },
+    { "t": "water the plants", "d": "يسقي النباتات" },
+    { "t": "doing", "d": "يفعل (صيغة ing من do)" }
+  ],
+  "checks": [
+    {
+      "q": "عبارة make the bed تعني؟",
+      "opts": ["يغسل الأطباق", "يرتّب السرير", "يكنس الأرض", "يطعم القطة"],
+      "correct": 1
+    },
+    {
+      "q": "What are you doing? — I ...... the dishes.",
+      "opts": ["am washing", "washing", "is washing", "wash am"],
+      "correct": 0
+    },
+    {
+      "q": "الفعل sweep مع ing يصبح؟",
+      "opts": ["sweping", "sweepping", "sweeping", "sweeps"],
+      "correct": 2
+    }
+  ],
+  "questions": [
+    {
+      "t": "mcq",
+      "q": "أي عبارة تعني «يسقي النباتات»؟",
+      "opts": ["feed the plants", "water the plants", "clean the plants", "make the plants"],
+      "correct": 1
+    },
+    {
+      "t": "mcq",
+      "q": "She ...... feeding the cat now.",
+      "opts": ["am", "are", "is", "be"],
+      "correct": 2
+    },
+    {
+      "t": "tf",
+      "q": "المضارع المستمر يصف شيئاً يحدث الآن.",
+      "opts": ["صح", "خطأ"],
+      "correct": 0
+    },
+    {
+      "t": "mcq",
+      "q": "الفعل make مع ing يُكتب؟",
+      "opts": ["makeing", "makking", "making", "maked"],
+      "correct": 2
+    },
+    {
+      "t": "fill",
+      "q": "What ...... you doing? — I'm cleaning the room.",
+      "ans": "are"
+    },
+    {
+      "t": "tf",
+      "q": "take out the trash تعني «يجهّز المائدة».",
+      "opts": ["صح", "خطأ"],
+      "correct": 1
+    },
+    {
+      "t": "mcq",
+      "q": "They ...... the room. (ينظّفون الآن)",
+      "opts": ["is cleaning", "are cleaning", "am cleaning", "cleaning are"],
+      "correct": 1
+    }
+  ],
+  "story": [
+    { "v": "🚗", "t": "يوم الجمعة ذهب سعود وأخته جود مع والدهم لزيارة الجد والجدة في بيتهم القديم الجميل." },
+    { "v": "🧹", "t": "رأى سعود الجدة تكنس، فأخذ المكنسة وقال: I'm sweeping the floor, Grandma! Sit down, please." },
+    { "v": "🐈", "t": "سأل الجد جود: What are you doing? فأجابت وهي تحمل الطبق: I'm feeding the cat!" },
+    { "v": "🌱", "t": "ثم ذهبت جود إلى الحديقة: Now I'm watering the plants. النباتات عطشى في الصيف!" },
+    { "v": "🍽️", "t": "نادت الجدة: Lunch is ready! فقال سعود: I'm setting the table. ووضع الأطباق والملاعق." },
+    { "v": "🧼", "t": "بعد الغداء غسل الاثنان الأطباق معاً: We're washing the dishes! وضحكا من رغوة الصابون." },
+    { "v": "🌟", "t": "قال الجد: Thank you! You're helping a lot. الأعمال المنزلية أسهل مع الأحفاد. أحسنتما!" }
+  ],
+  "activity": "في البيت نفّذ ثلاثة أعمال منزلية (مثل make the bed, set the table, water the plants)، والتقط لكل عمل صورة أو ارسمه، واكتب تحته جملة: I'm making the bed.",
+  "summary": "الأعمال المنزلية مثل wash the dishes و sweep the floor و feed the cat، ونصف ما يحدث الآن بالمضارع المستمر am/is/are + الفعل + ing، ونسأل What are you doing? ونجيب I'm…"
+}

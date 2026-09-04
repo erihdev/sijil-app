@@ -1,0 +1,130 @@
+{
+  "title": "التحية والتعارف — Hello!",
+  "unit": "It's Nice to Meet You! — الصف الثالث",
+  "objectives": [
+    "أن ينطق الطالب كلمات التحية Hello و Hi و Goodbye نطقاً صحيحاً",
+    "أن يسأل الطالب عن الاسم بـ What's your name? ويجيب بـ My name is",
+    "أن يستخدم الطالب عبارة Nice to meet you عند التعارف"
+  ],
+  "intro": "في أول يوم في المدرسة تقابل زميلاً جديداً لا تعرفه. كيف تحيّيه وتخبره باسمك بالإنجليزية؟",
+  "sections": [
+    {
+      "h": "كلمات التحية",
+      "body": "نبدأ الكلام دائماً بتحية.",
+      "points": [
+        "Hello / Hi = مرحباً",
+        "Good morning = صباح الخير",
+        "Good afternoon = مساء الخير (بعد الظهر)",
+        "Good evening = مساء الخير (في المساء)",
+        "Goodbye / Bye = مع السلامة"
+      ],
+      "tip": "Hi أقصر من Hello ونقولها للأصدقاء."
+    },
+    {
+      "h": "ما اسمك؟",
+      "points": [
+        "What's your name? = ما اسمك؟",
+        "My name is Saud. = اسمي سعود",
+        "I'm Saud. = أنا سعود",
+        "نبدأ اسم الشخص بحرف كبير: Saud"
+      ],
+      "tip": "What's هي اختصار What is."
+    },
+    {
+      "h": "تشرّفت بمعرفتك",
+      "points": [
+        "Nice to meet you. = تشرّفت بمعرفتك",
+        "الرد: Nice to meet you, too.",
+        "نبتسم ونصافح عند التعارف"
+      ]
+    },
+    {
+      "h": "التهيئة: حروف وكلمات نعرفها",
+      "points": [
+        "الحروف الإنجليزية 26 حرفاً من A إلى Z",
+        "لكل حرف شكل كبير وشكل صغير: A a",
+        "كلمات الفصل: book, pen, bag, desk",
+        "teacher = معلم، student = طالب"
+      ]
+    }
+  ],
+  "vocab": [
+    { "t": "Hello", "d": "مرحباً — نقولها عند اللقاء" },
+    { "t": "Goodbye", "d": "مع السلامة — نقولها عند الوداع" },
+    { "t": "name", "d": "الاسم" },
+    { "t": "Nice to meet you", "d": "تشرّفت بمعرفتك" },
+    { "t": "Good morning", "d": "صباح الخير" },
+    { "t": "friend", "d": "صديق" }
+  ],
+  "checks": [
+    {
+      "q": "ماذا نقول عند اللقاء؟",
+      "opts": ["Hello", "Goodbye", "Book"],
+      "correct": 0
+    },
+    {
+      "q": "معنى What's your name?",
+      "opts": ["كم عمرك؟", "ما اسمك؟", "كيف حالك؟"],
+      "correct": 1
+    },
+    {
+      "q": "الرد على Nice to meet you هو؟",
+      "opts": ["Goodbye", "My name is", "Nice to meet you, too"],
+      "correct": 2
+    }
+  ],
+  "questions": [
+    {
+      "t": "mcq",
+      "q": "نقول في الصباح؟",
+      "opts": ["Good evening", "Good morning", "Goodbye"],
+      "correct": 1
+    },
+    {
+      "t": "tf",
+      "q": "كلمة Hi تعني مع السلامة.",
+      "opts": ["صح", "خطأ"],
+      "correct": 1
+    },
+    {
+      "t": "mcq",
+      "q": "أكمل: My ...... is Fahd.",
+      "opts": ["name", "book", "friend"],
+      "correct": 0
+    },
+    {
+      "t": "mcq",
+      "q": "عند الوداع نقول؟",
+      "opts": ["Hello", "Hi", "Goodbye"],
+      "correct": 2
+    },
+    {
+      "t": "fill",
+      "q": "What's your ......?",
+      "ans": "name"
+    },
+    {
+      "t": "tf",
+      "q": "نبدأ اسم الشخص بالإنجليزية بحرف كبير.",
+      "opts": ["صح", "خطأ"],
+      "correct": 0
+    },
+    {
+      "t": "mcq",
+      "q": "معنى Nice to meet you؟",
+      "opts": ["صباح الخير", "تشرّفت بمعرفتك", "ما اسمك؟"],
+      "correct": 1
+    }
+  ],
+  "story": [
+    { "v": "😊", "t": "في أول يوم دراسي جلس سعود بجانب طالب جديد لا يعرفه. فكّر: كيف أكلّمه بالإنجليزية؟" },
+    { "v": "👋", "t": "ابتسم سعود وقال: Hello! فردّ الطالب بسرعة: Hi!" },
+    { "v": "❓", "t": "سأل سعود: What's your name? فأجاب الطالب: My name is Fahd." },
+    { "v": "🤝", "t": "قال سعود: My name is Saud. Nice to meet you! فردّ فهد: Nice to meet you, too!" },
+    { "v": "📚", "t": "دخل المعلم وقال: Good morning, students! فأجاب الجميع بصوت واحد: Good morning, teacher!" },
+    { "v": "🔔", "t": "عند الجرس الأخير لوّح سعود لصديقه الجديد: Goodbye, Fahd! فقال فهد: Bye, Saud!" },
+    { "v": "🌟", "t": "بكلمات قليلة صنع سعود صديقاً جديداً. أحسنت يا سعود!" }
+  ],
+  "activity": "قف مع زميلك وقدّما حواراً قصيراً أمام الفصل: تحية، سؤال عن الاسم، الرد، ثم Nice to meet you والوداع. بدّلا الأدوار.",
+  "summary": "نحيّي بـ Hello أو Hi ونودّع بـ Goodbye. نسأل What's your name? ونجيب My name is، ونقول Nice to meet you عند التعارف."
+}

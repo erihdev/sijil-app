@@ -1,0 +1,136 @@
+{
+  "title": "ألعاب حول العالم ومراجعة الفصل",
+  "unit": "After-School Fun — الصف الرابع",
+  "objectives": [
+    "أن يتعرف الطالب على ألعاب وأنشطة يمارسها الأطفال في دول مختلفة",
+    "أن يقارن الطالب بين ألعابه وألعاب أطفال العالم بجمل إنجليزية",
+    "أن يراجع الطالب أهم مفردات وقواعد الفصل الدراسي الأول"
+  ],
+  "intro": "الأطفال في كل بلاد العالم يحبون اللعب بعد المدرسة، لكن ألعابهم تختلف: كرة القدم هنا، والطائرات الورقية هناك، وطيّ الورق في اليابان. في هذا الدرس نسافر بين البلدان، ثم نراجع كل ما تعلمناه هذا الفصل.",
+  "sections": [
+    {
+      "h": "تعلّم متكامل: ألعاب حول العالم (Social Studies)",
+      "body": "لكل بلد ألعاب مشهورة يحبها أطفاله، وبعض الألعاب يعرفها العالم كله.",
+      "points": [
+        "Saudi Arabia: Children like to play football and ride horses.",
+        "Brazil: Children love football too. It is very popular there.",
+        "Japan: Children like to make origami (paper folding).",
+        "India: Many children like to play cricket.",
+        "China: Kite flying is an old and popular activity.",
+        "Everywhere: children like to play hide-and-seek! = الغميضة"
+      ],
+      "tip": "اللعبة نفسها قد يكون لها اسم مختلف: football في بريطانيا هي soccer في أمريكا."
+    },
+    {
+      "h": "قارن بين الألعاب (Compare)",
+      "points": [
+        "In Saudi Arabia, we play football. In India, they play cricket.",
+        "I like to fly a kite. Children in China like to fly kites too!",
+        "Same = نفس الشيء / Different = مختلف",
+        "Where are you from? — I'm from Saudi Arabia.",
+        "What do children play in Japan? — They make origami."
+      ]
+    },
+    {
+      "h": "مراجعة المفردات (Vocabulary Review)",
+      "points": [
+        "Welcome: book, pencil, ruler, numbers 1–20, colors",
+        "Family Events: father, mother, grandparents, uncle, aunt, cousin, wedding, picnic",
+        "Chores: make the bed, wash the dishes, sweep the floor, feed the cat, water the plants",
+        "Stories: king, prince, giant, dragon, castle, big/small, brave",
+        "After-School Fun: play soccer, ride a bike, fly a kite, read a book, collect stamps"
+      ]
+    },
+    {
+      "h": "مراجعة القواعد (Grammar Review)",
+      "points": [
+        "This is / These are: This is my uncle. These are my cousins.",
+        "الجمع: brother → brothers, box → boxes, child → children",
+        "المضارع المستمر (الآن): I'm washing the dishes. Is he sweeping? Yes, he is.",
+        "There is / There are: There is a castle. There are three dragons.",
+        "was / were: The lion was big. The hunters were angry.",
+        "المضارع البسيط (العادة): I play soccer. He likes to swim. Does she like to cook?"
+      ],
+      "tip": "الفرق الأهم: ing لما يحدث الآن، والفعل الأصلي (أو مع s للغائب) لما نفعله عادة."
+    }
+  ],
+  "vocab": [
+    { "t": "country", "d": "بلد أو دولة" },
+    { "t": "popular", "d": "مشهور ومحبوب عند كثير من الناس" },
+    { "t": "origami", "d": "فن طيّ الورق من اليابان" },
+    { "t": "cricket", "d": "لعبة بمضرب وكرة مشهورة في الهند" },
+    { "t": "hide-and-seek", "d": "لعبة الغميضة" },
+    { "t": "different", "d": "مختلف" }
+  ],
+  "checks": [
+    {
+      "q": "فن طيّ الورق origami من أي بلد؟",
+      "opts": ["Brazil", "Japan", "India", "China"],
+      "correct": 1
+    },
+    {
+      "q": "اللعبة المشهورة في الهند هي؟",
+      "opts": ["cricket", "origami", "chess", "kites"],
+      "correct": 0
+    },
+    {
+      "q": "مراجعة: ...... are my cousins.",
+      "opts": ["This", "He", "These", "She"],
+      "correct": 2
+    }
+  ],
+  "questions": [
+    {
+      "t": "mcq",
+      "q": "Where are you from? — I'm ...... Saudi Arabia.",
+      "opts": ["in", "from", "on", "at"],
+      "correct": 1
+    },
+    {
+      "t": "mcq",
+      "q": "مراجعة: جمع كلمة child هو؟",
+      "opts": ["childs", "children", "childes", "childen"],
+      "correct": 1
+    },
+    {
+      "t": "tf",
+      "q": "كرة القدم لعبة شعبية في البرازيل والسعودية.",
+      "opts": ["صح", "خطأ"],
+      "correct": 0
+    },
+    {
+      "t": "mcq",
+      "q": "مراجعة: What is she doing now? — She ...... the plants.",
+      "opts": ["waters", "is watering", "water", "was water"],
+      "correct": 1
+    },
+    {
+      "t": "fill",
+      "q": "مراجعة: The lion ...... big and strong. (كان)",
+      "ans": "was"
+    },
+    {
+      "t": "tf",
+      "q": "كلمة popular تعني «مختلف».",
+      "opts": ["صح", "خطأ"],
+      "correct": 1
+    },
+    {
+      "t": "mcq",
+      "q": "مراجعة: Does he like to swim? — ......",
+      "opts": ["Yes, he is.", "Yes, he do.", "Yes, he does.", "Yes, he likes."],
+      "correct": 2
+    }
+  ],
+  "story": [
+    { "v": "🌍", "t": "جاء إلى فصل جود ضيف عاش في بلدان كثيرة، وسأل: What do you like to play after school?" },
+    { "v": "⚽", "t": "قالت جود: I like to play football. فقال الضيف: In Brazil, children love football too! Same!" },
+    { "v": "🪁", "t": "وقال: In China, children fly kites. فصاحت جود: I fly a kite too! ورسمت طائرتها الورقية." },
+    { "v": "📄", "t": "ثم أخرج ورقة وطواها طائراً: In Japan, this is origami. تعلم الفصل كله طيّ طائر ورقي." },
+    { "v": "🏏", "t": "وحكى عن الهند: Many children play cricket. It's different from football. قالت جود: Different, but fun!" },
+    { "v": "📝", "t": "بعد الزيارة راجع المعلم الفصل كله: This/These, was/were, likes… وأجابت جود عن كل سؤال." },
+    { "v": "🌟", "t": "قال المعلم: You learned so much this term! ابتسمت جود: الإنجليزية تجمع أطفال العالم. أحسنتِ!" }
+  ],
+  "activity": "اختر بلداً واحداً وابحث عن لعبة يحبها أطفاله، ثم اكتب ثلاث جمل: In (البلد), children like to… / In Saudi Arabia, we like to… / They are the same أو different. ثم أجب عن عشرة أسئلة مراجعة يختارها المعلم من دروس الفصل.",
+  "summary": "أطفال العالم يحبون اللعب بألعاب مختلفة مثل football و cricket و origami و kites؛ وراجعنا مفردات الفصل وقواعده: This/These، الجمع، المضارع المستمر، There is/are، was/were، والمضارع البسيط مع like/likes."
+}

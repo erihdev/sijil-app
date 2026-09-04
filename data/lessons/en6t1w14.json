@@ -1,0 +1,132 @@
+{
+  "title": "What Do You Want to Be? — ماذا تريد أن تصبح؟",
+  "unit": "Unit 4: Professions — الصف السادس",
+  "objectives": [
+    "أن يسمّي الطالب المهن الشائعة بالإنجليزية",
+    "أن يعبّر الطالب عن مهنة المستقبل بـ I want to be a / an…",
+    "أن يستخدم الطالب a / an بشكل صحيح مع أسماء المهن"
+  ],
+  "intro": "طبيب، مهندس، طيّار، معلّم… كل مهنة تخدم الناس بطريقة مختلفة. في هذا الدرس نتعلّم أسماء المهن بالإنجليزية ونتحدث عمّا نريد أن نصبح في المستقبل.",
+  "sections": [
+    {
+      "h": "Jobs — المهن",
+      "points": [
+        "teacher — معلّم، doctor — طبيب، nurse — ممرّض",
+        "engineer — مهندس، pilot — طيّار، police officer — شرطي",
+        "chef — طاهٍ، farmer — مزارع، driver — سائق",
+        "dentist — طبيب أسنان، programmer — مبرمج، scientist — عالم"
+      ]
+    },
+    {
+      "h": "What Do They Do? — ماذا يعملون؟",
+      "points": [
+        "A teacher teaches students. — المعلّم يعلّم الطلاب",
+        "A doctor helps sick people. — الطبيب يساعد المرضى",
+        "A pilot flies planes. — الطيّار يقود الطائرات",
+        "A chef cooks food. — الطاهي يطبخ الطعام",
+        "A farmer grows vegetables. — المزارع يزرع الخضار"
+      ]
+    },
+    {
+      "h": "a / an with Jobs — أداة التنكير",
+      "body": "نضع a قبل الصوت الساكن وan قبل صوت العلة (a, e, i, o, u).",
+      "points": [
+        "a teacher, a doctor, a pilot",
+        "an engineer, an artist, an astronaut",
+        "He is a nurse. She is an engineer.",
+        "الخطأ الشائع: a engineer ✗ — الصواب an engineer ✓"
+      ],
+      "tip": "اسمع الصوت الأول لا الحرف: an hour لأن h صامتة."
+    },
+    {
+      "h": "I Want to Be… — أريد أن أصبح",
+      "points": [
+        "What do you want to be? — I want to be a pilot.",
+        "Why? — Because I love planes. / Because I want to help people.",
+        "My father is a doctor. I want to be a doctor too.",
+        "Where does a pilot work? — At the airport.",
+        "Where does a chef work? — In a restaurant."
+      ],
+      "tip": "بعد want نستخدم to + الفعل: I want to be وليس I want be."
+    }
+  ],
+  "vocab": [
+    { "t": "job", "d": "مهنة أو عمل" },
+    { "t": "engineer", "d": "مهندس يصمّم الآلات والمباني" },
+    { "t": "pilot", "d": "طيّار يقود الطائرة" },
+    { "t": "nurse", "d": "ممرّض يعتني بالمرضى" },
+    { "t": "chef", "d": "طاهٍ محترف في المطعم" },
+    { "t": "want to be", "d": "يريد أن يصبح" }
+  ],
+  "checks": [
+    {
+      "q": "«طيّار» بالإنجليزية:",
+      "opts": ["pilot", "driver", "engineer", "farmer"],
+      "correct": 0
+    },
+    {
+      "q": "أكمل: She is ...... engineer.",
+      "opts": ["a", "an", "the", "is"],
+      "correct": 1
+    },
+    {
+      "q": "الشخص الذي يعلّم الطلاب:",
+      "opts": ["doctor", "chef", "teacher", "nurse"],
+      "correct": 2
+    }
+  ],
+  "questions": [
+    {
+      "t": "mcq",
+      "q": "الجملة الصحيحة:",
+      "opts": ["I want be a doctor.", "I want to be a doctor.", "I want to being a doctor.", "I want to am a doctor."],
+      "correct": 1
+    },
+    {
+      "t": "mcq",
+      "q": "المهنة التي تأخذ an قبلها:",
+      "opts": ["teacher", "pilot", "nurse", "artist"],
+      "correct": 3
+    },
+    {
+      "t": "tf",
+      "q": "A chef flies planes.",
+      "opts": ["صح", "خطأ"],
+      "correct": 1
+    },
+    {
+      "t": "mcq",
+      "q": "أين يعمل الطاهي؟",
+      "opts": ["At the airport.", "In a restaurant.", "In a hospital.", "On a farm."],
+      "correct": 1
+    },
+    {
+      "t": "fill",
+      "q": "A doctor ...... sick people.",
+      "ans": "helps"
+    },
+    {
+      "t": "tf",
+      "q": "الرد على What do you want to be? يمكن أن يكون: I want to be a scientist.",
+      "opts": ["صح", "خطأ"],
+      "correct": 0
+    },
+    {
+      "t": "mcq",
+      "q": "«طبيب أسنان» بالإنجليزية:",
+      "opts": ["dentist", "nurse", "scientist", "programmer"],
+      "correct": 0
+    }
+  ],
+  "story": [
+    { "v": "🏫", "t": "كتب المعلم على السبورة: What do you want to be? وطلب من كل طالب أن يفكّر قبل أن يجيب." },
+    { "v": "✈️", "t": "قال فهد بسرعة: I want to be a pilot because I love planes! فسأله المعلم: Where does a pilot work? أجاب: At the airport." },
+    { "v": "👩‍⚕️", "t": "قالت نورة: My mother is a nurse. She helps sick people. I want to be a doctor too. صفّق لها الفصل." },
+    { "v": "🤔", "t": "أما جود فتردّد: I don't know… I like computers and building things. قال المعلم: Maybe an engineer?" },
+    { "v": "✏️", "t": "كتب جود: I want to be a engineer. فقال المعلم بلطف: Listen: e-ngineer. It starts with a vowel sound, so it is an engineer." },
+    { "v": "📋", "t": "علّق الفصل لوحة الأحلام: a pilot, a doctor, an engineer, a chef, a programmer… كل حلم مكتوب بالإنجليزية." },
+    { "v": "🌟", "t": "المهنة الجميلة تبدأ بحلم وتكبر بالاجتهاد. أحسنت!" }
+  ],
+  "activity": "اكتب فقرة من أربع جمل بالإنجليزية: I want to be a/an ... / A ... works in ... / A ... helps / makes / teaches ... / I want to be a ... because ... ثم ارسم نفسك في مهنة المستقبل.",
+  "summary": "تعلّمنا أسماء المهن مثل teacher وdoctor وpilot وengineer وما يفعله كل منهم وأين يعمل، واستخدمنا a قبل الصوت الساكن وan قبل صوت العلة، وعبّرنا عن حلمنا بـ I want to be a … because …"
+}

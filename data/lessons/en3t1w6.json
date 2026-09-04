@@ -1,0 +1,130 @@
+{
+  "title": "أنشودة البحر وأصوات e f g h",
+  "unit": "Sea Animals — الصف الثالث",
+  "objectives": [
+    "أن يصف الطالب حيوانات البحر بـ big و small",
+    "أن يقرأ الطالب نصاً قصيراً عن حيوانات البحر",
+    "أن ينطق الطالب أصوات الحروف e و f و g و h"
+  ],
+  "intro": "الحوت كبير جداً والسرطان صغير جداً. اليوم نصف حيوانات البحر بالإنجليزية، ونتعلم أربعة أصوات جديدة.",
+  "sections": [
+    {
+      "h": "أنشودة البحر",
+      "body": "نردّد ونحرّك اليدين كأننا نسبح.",
+      "points": [
+        "Big fish, small fish, swim, swim, swim!",
+        "Big shark, small crab, swim, swim, swim!",
+        "نصفّق مع كلمة swim"
+      ]
+    },
+    {
+      "h": "الوصف: كبير وصغير",
+      "points": [
+        "big = كبير: A whale is big.",
+        "small = صغير: A crab is small.",
+        "It's a big shark. = إنه قرش كبير",
+        "It's a small fish. = إنها سمكة صغيرة"
+      ],
+      "tip": "الصفة تأتي قبل الاسم: big whale وليس whale big."
+    },
+    {
+      "h": "القراءة",
+      "body": "نقرأ ثم نجيب.",
+      "points": [
+        "I see a whale. It is big.",
+        "I see a crab. It is small.",
+        "I see three fish. They are small.",
+        "سؤال: Is the whale big? — Yes, it is."
+      ]
+    },
+    {
+      "h": "أصوات الحروف",
+      "points": [
+        "Ee – /e/ – egg (بيضة)",
+        "Ff – /f/ – fish (سمكة)",
+        "Gg – /g/ – goat (ماعز)",
+        "Hh – /h/ – hat (قبعة)"
+      ],
+      "tip": "في صوت /f/ نضع الأسنان العليا على الشفة السفلى وننفخ."
+    }
+  ],
+  "vocab": [
+    { "t": "big", "d": "كبير" },
+    { "t": "small", "d": "صغير" },
+    { "t": "see", "d": "يرى" },
+    { "t": "egg", "d": "بيضة — تبدأ بصوت /e/" },
+    { "t": "goat", "d": "ماعز — تبدأ بصوت /g/" },
+    { "t": "hat", "d": "قبعة — تبدأ بصوت /h/" }
+  ],
+  "checks": [
+    {
+      "q": "معنى big؟",
+      "opts": ["صغير", "كبير", "طويل"],
+      "correct": 1
+    },
+    {
+      "q": "كلمة تبدأ بصوت /g/؟",
+      "opts": ["egg", "goat", "hat"],
+      "correct": 1
+    },
+    {
+      "q": "الحرف الأول في fish؟",
+      "opts": ["e", "f", "h"],
+      "correct": 1
+    }
+  ],
+  "questions": [
+    {
+      "t": "mcq",
+      "q": "أكمل: A crab is ...... (السرطان صغير)",
+      "opts": ["big", "small", "long"],
+      "correct": 1
+    },
+    {
+      "t": "mcq",
+      "q": "hat تبدأ بالحرف؟",
+      "opts": ["g", "e", "h"],
+      "correct": 2
+    },
+    {
+      "t": "tf",
+      "q": "الحوت whale حيوان small.",
+      "opts": ["صح", "خطأ"],
+      "correct": 1
+    },
+    {
+      "t": "mcq",
+      "q": "معنى I see a whale؟",
+      "opts": ["أرى حوتاً", "أرى قرشاً", "أرى سمكة"],
+      "correct": 0
+    },
+    {
+      "t": "fill",
+      "q": "e – egg، g – goat، f – ......",
+      "ans": "fish"
+    },
+    {
+      "t": "tf",
+      "q": "كلمة egg تعني بيضة.",
+      "opts": ["صح", "خطأ"],
+      "correct": 0
+    },
+    {
+      "t": "mcq",
+      "q": "أكمل: Is the whale big? Yes, ......",
+      "opts": ["it isn't", "it is", "I am"],
+      "correct": 1
+    }
+  ],
+  "story": [
+    { "v": "🎶", "t": "ردّد الفصل أنشودة البحر وهم يحرّكون أيديهم كالسباحة: Big fish, small fish, swim, swim, swim!" },
+    { "v": "🐋", "t": "عرض المعلم صورة حوت ضخم. قال سعود: It's a whale. It is big!" },
+    { "v": "🦀", "t": "ثم صورة سرطان صغير: It's a crab. It is small! قالها سعود بصوت خافت مازحاً." },
+    { "v": "📖", "t": "قرأ سعود النص: I see three fish. They are small. وعدّ الأسماك في الصورة بإصبعه." },
+    { "v": "🥚", "t": "بعدها جاء دور الأصوات: /e/ egg، /f/ fish، /g/ goat، /h/ hat. رسم سعود الحروف في الهواء." },
+    { "v": "🐟", "t": "اكتشف سعود أن fish من حيوانات البحر وتبدأ بصوت /f/ الذي تعلّمه اليوم!" },
+    { "v": "🌟", "t": "وصف سعود، وقرأ، ونطق أربعة أصوات جديدة. أحسنت يا سعود!" }
+  ],
+  "activity": "اكتب أربع جمل عن حيوانات البحر باستخدام big و small، مثل: A whale is big. ثم اكتب كلمة لكل حرف: e, f, g, h وارسمها.",
+  "summary": "نصف الحيوانات بـ big و small ونضع الصفة قبل الاسم. ونقرأ جملاً مثل I see a whale. ونطقنا الأصوات /e/ egg، /f/ fish، /g/ goat، /h/ hat."
+}

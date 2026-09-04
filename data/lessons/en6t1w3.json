@@ -1,0 +1,130 @@
+{
+  "title": "Plants Are Living Things — النباتات كائنات حية",
+  "unit": "Unit 1: Living Things — الصف السادس",
+  "objectives": [
+    "أن يسمّي الطالب أجزاء النبات بالإنجليزية",
+    "أن يذكر الطالب ما يحتاجه النبات لينمو باستخدام need",
+    "أن يستخدم الطالب المضارع البسيط للتعبير عن حقائق النبات"
+  ],
+  "intro": "النبتة الصغيرة على نافذة الفصل تشرب وتتنفس وتكبر مثلك تماماً. في هذا الدرس نتعلّم أجزاء النبات وما يحتاجه لينمو، بالإنجليزية.",
+  "sections": [
+    {
+      "h": "Parts of a Plant — أجزاء النبات",
+      "points": [
+        "root — الجذر: يمتص الماء من التربة",
+        "stem — الساق: يحمل النبات وينقل الماء",
+        "leaf / leaves — الورقة / الأوراق: تصنع الغذاء بضوء الشمس",
+        "flower — الزهرة، seed — البذرة، fruit — الثمرة"
+      ],
+      "tip": "جمع leaf هو leaves، نبدّل f إلى ves."
+    },
+    {
+      "h": "What Plants Need — ماذا يحتاج النبات؟",
+      "body": "نستخدم need لنقول ما يحتاجه النبات ليبقى حياً.",
+      "points": [
+        "Plants need water. — النباتات تحتاج الماء",
+        "Plants need sunlight. — تحتاج ضوء الشمس",
+        "Plants need air and soil. — تحتاج الهواء والتربة",
+        "A plant doesn't need meat. — النبات لا يحتاج اللحم"
+      ]
+    },
+    {
+      "h": "Living or Non-living? — حي أم غير حي؟",
+      "points": [
+        "Living things grow, eat or make food, and breathe.",
+        "A plant is a living thing. — النبات كائن حي",
+        "A rock is a non-living thing. — الصخرة ليست كائناً حياً",
+        "Plants grow from seeds. — النباتات تنمو من البذور"
+      ],
+      "tip": "في المضارع البسيط نضيف s مع المفرد: A plant grows. Plants grow."
+    },
+    {
+      "h": "How a Seed Grows — كيف تنمو البذرة",
+      "points": [
+        "First, put the seed in the soil. — أولاً ضع البذرة في التربة",
+        "Then, water it every day. — ثم اسقها كل يوم",
+        "Next, put it in the sun. — بعد ذلك ضعها في الشمس",
+        "Finally, the seed grows into a plant. — أخيراً تصبح نبتة"
+      ]
+    }
+  ],
+  "vocab": [
+    { "t": "root", "d": "الجذر، الجزء المدفون في التربة يمتص الماء" },
+    { "t": "stem", "d": "الساق التي تحمل الأوراق والزهور" },
+    { "t": "leaves", "d": "الأوراق، جمع leaf" },
+    { "t": "seed", "d": "البذرة التي تنمو منها النبتة" },
+    { "t": "soil", "d": "التربة التي يُزرع فيها النبات" },
+    { "t": "sunlight", "d": "ضوء الشمس" }
+  ],
+  "checks": [
+    {
+      "q": "جزء النبات الذي يمتص الماء من التربة:",
+      "opts": ["root", "flower", "leaf", "seed"],
+      "correct": 0
+    },
+    {
+      "q": "أكمل: Plants ...... water and sunlight.",
+      "opts": ["needs", "need", "needing", "is need"],
+      "correct": 1
+    },
+    {
+      "q": "جمع كلمة leaf هو:",
+      "opts": ["leafs", "leafes", "leaves", "leaf"],
+      "correct": 2
+    }
+  ],
+  "questions": [
+    {
+      "t": "mcq",
+      "q": "«التربة» بالإنجليزية:",
+      "opts": ["soil", "seed", "stem", "sun"],
+      "correct": 0
+    },
+    {
+      "t": "tf",
+      "q": "A rock is a living thing.",
+      "opts": ["صح", "خطأ"],
+      "correct": 1
+    },
+    {
+      "t": "mcq",
+      "q": "الجملة الصحيحة في المضارع البسيط:",
+      "opts": ["A plant grow.", "A plant grows.", "A plant growing.", "A plant are grow."],
+      "correct": 1
+    },
+    {
+      "t": "mcq",
+      "q": "الشيء الذي لا يحتاجه النبات لينمو:",
+      "opts": ["water", "air", "meat", "sunlight"],
+      "correct": 2
+    },
+    {
+      "t": "fill",
+      "q": "Plants grow from ...... .",
+      "ans": "seeds"
+    },
+    {
+      "t": "tf",
+      "q": "The stem carries the leaves and flowers.",
+      "opts": ["صح", "خطأ"],
+      "correct": 0
+    },
+    {
+      "t": "mcq",
+      "q": "الكلمة المناسبة لبداية الخطوات: ...... put the seed in the soil.",
+      "opts": ["Finally", "Then", "Next", "First"],
+      "correct": 3
+    }
+  ],
+  "story": [
+    { "v": "🌱", "t": "أعطى المعلم كل طالب seed صغيرة وكوباً فيه soil. قال لجود: Plants are living things. Let's grow one!" },
+    { "v": "💧", "t": "غرس جود البذرة وقال: First, I put the seed in the soil. Then, I water it. وسقاها بحذر." },
+    { "v": "☀️", "t": "وضع الكوب قرب النافذة: Plants need sunlight and air. ثم انتظر… ولم يحدث شيء في اليوم الأول." },
+    { "v": "🔍", "t": "بعد أسبوع صاح جود: Look! A small stem and two leaves! فقال المعلم: The root is under the soil." },
+    { "v": "🌿", "t": "شرح المعلم: The root drinks water, the stem carries it, and the leaves make food. فرسم جود كل جزء." },
+    { "v": "🪨", "t": "سأل زميله: Is a rock a living thing? أجاب جود واثقاً: No! A rock doesn't grow. A plant grows." },
+    { "v": "🌟", "t": "من بذرة صغيرة تعلّم جود أن النبات يعيش ويحتاج ويكبر مثلنا. أحسنت!" }
+  ],
+  "activity": "ازرع بذرة فول في كوب فيه قطن مبلّل، وضعه قرب النافذة. سجّل كل يوم بالإنجليزية ما تراه (Day 1: nothing. Day 5: a root. Day 8: a stem and leaves) وارسم النبتة مع كتابة أسماء أجزائها.",
+  "summary": "النبات كائن حي ينمو من seed، وأجزاؤه root وstem وleaves وflower، ويحتاج water وsunlight وair وsoil. نعبّر عن حقائقه بالمضارع البسيط: Plants grow. A plant needs water."
+}

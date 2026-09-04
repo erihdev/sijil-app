@@ -1,0 +1,128 @@
+{
+  "title": "هذا صديقي — His name / Her name",
+  "unit": "It's Nice to Meet You! — الصف الثالث",
+  "objectives": [
+    "أن يقدّم الطالب صديقه بعبارة This is my friend",
+    "أن يفرّق الطالب بين my و his و her",
+    "أن يقرأ الطالب نصاً قصيراً عن التعارف ويردّد الأنشودة"
+  ],
+  "intro": "جاء صديقك لزيارة الفصل وتريد أن تعرّف زملاءك به. كيف تقول: هذا صديقي، اسمه فهد؟",
+  "sections": [
+    {
+      "h": "قواعد: my / his / her",
+      "points": [
+        "my = ـي (لي): My name is Saud.",
+        "his = ـه (له): His name is Fahd.",
+        "her = ـها (لها): Her name is Noura.",
+        "للولد نقول his وللبنت نقول her"
+      ],
+      "tip": "he = هو، she = هي."
+    },
+    {
+      "h": "تقديم الأصدقاء",
+      "points": [
+        "This is my friend. = هذا صديقي",
+        "This is Fahd. = هذا فهد",
+        "He is my friend. = هو صديقي",
+        "She is my sister. = هي أختي"
+      ]
+    },
+    {
+      "h": "أنشودة الفصل",
+      "body": "نردّد بإيقاع ونصفّق مع كل سطر.",
+      "points": [
+        "Hello, hello, what's your name?",
+        "My name is Saud, my name is Saud.",
+        "Nice to meet you, nice to meet you!"
+      ]
+    },
+    {
+      "h": "القراءة",
+      "body": "نقرأ النص ثم نجيب عن السؤال.",
+      "points": [
+        "Hi! My name is Saud. I'm eight.",
+        "This is my friend. His name is Fahd. He is nine.",
+        "سؤال: What's his name? — His name is Fahd."
+      ]
+    }
+  ],
+  "vocab": [
+    { "t": "this", "d": "هذا" },
+    { "t": "friend", "d": "صديق" },
+    { "t": "his", "d": "له — للولد" },
+    { "t": "her", "d": "لها — للبنت" },
+    { "t": "he", "d": "هو" },
+    { "t": "she", "d": "هي" }
+  ],
+  "checks": [
+    {
+      "q": "للولد نستخدم؟",
+      "opts": ["his", "her", "she"],
+      "correct": 0
+    },
+    {
+      "q": "This is my friend معناها؟",
+      "opts": ["هذا كتابي", "هذا صديقي", "هذا معلمي"],
+      "correct": 1
+    },
+    {
+      "q": "أكمل: ...... name is Noura.",
+      "opts": ["His", "Her", "He"],
+      "correct": 1
+    }
+  ],
+  "questions": [
+    {
+      "t": "mcq",
+      "q": "أكمل: This is Fahd. ...... name is Fahd.",
+      "opts": ["His", "Her", "My"],
+      "correct": 0
+    },
+    {
+      "t": "tf",
+      "q": "كلمة she تعني هو.",
+      "opts": ["صح", "خطأ"],
+      "correct": 1
+    },
+    {
+      "t": "mcq",
+      "q": "معنى He is my friend؟",
+      "opts": ["هي صديقتي", "هو صديقي", "أنا صديقك"],
+      "correct": 1
+    },
+    {
+      "t": "mcq",
+      "q": "أكمل: ...... name is Saud. (اسمي أنا)",
+      "opts": ["Her", "His", "My"],
+      "correct": 2
+    },
+    {
+      "t": "fill",
+      "q": "This is my ...... . His name is Ryan.",
+      "ans": "friend"
+    },
+    {
+      "t": "tf",
+      "q": "نقول This is my friend عند تقديم صديق.",
+      "opts": ["صح", "خطأ"],
+      "correct": 0
+    },
+    {
+      "t": "mcq",
+      "q": "What's his name? نسأل بها عن؟",
+      "opts": ["اسم ولد", "اسم بنت", "اسمك أنت"],
+      "correct": 0
+    }
+  ],
+  "story": [
+    { "v": "🏫", "t": "جاء ابن عم فهد لزيارة المدرسة. أراد فهد أن يعرّفه على زملائه بالإنجليزية." },
+    { "v": "🧑‍🤝‍🧑", "t": "وقف فهد وقال: This is my friend. His name is Ryan." },
+    { "v": "🤔", "t": "سأل زميل: What's his name? فردّ فهد بثقة: His name is Ryan. He is nine." },
+    { "v": "📖", "t": "ثم قرأ الفصل نصاً: Hi! My name is Saud. This is my friend. His name is Fahd." },
+    { "v": "🎵", "t": "وردّدوا الأنشودة بإيقاع: Hello, hello, what's your name?" },
+    { "v": "🏠", "t": "في البيت قدّم فهد أخته الصغيرة لجدّته مازحاً: This is my sister. Her name is Lama!" },
+    { "v": "🌟", "t": "فهم فهد متى يقول his ومتى يقول her. أحسنت يا فهد!" }
+  ],
+  "activity": "أحضر صورة لصديق أو أخ وقدّمه للفصل: This is my friend. His name is… He is… years old. ثم اكتب الجمل في دفترك.",
+  "summary": "نقدّم الصديق بـ This is my friend، ونقول His name للولد و Her name للبنت، و My name لأنفسنا. ونقرأ نصوصاً قصيرة ونردّد الأنشودة."
+}

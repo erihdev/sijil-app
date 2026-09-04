@@ -1,0 +1,136 @@
+{
+  "title": "My Week — قراءة وكتابة عن أنشطتي",
+  "unit": "After-School Fun — الصف الرابع",
+  "objectives": [
+    "أن يقرأ الطالب نصاً عن أنشطة الأسبوع ويستخرج المعلومات منه",
+    "أن يكوّن الطالب الكلمات المركبة ويربط الفعل بالاسم المناسب",
+    "أن يكتب الطالب فقرة قصيرة عن أنشطته بعد المدرسة"
+  ],
+  "intro": "كل يوم في أسبوعك له نشاط مختلف: يوم للكرة ويوم للقراءة ويوم لزيارة الجدة. في هذا الدرس نقرأ عن أسبوع طالب، ونكتشف كلمات مركبة مثل basketball و homework، ثم نكتب عن أسبوعنا.",
+  "sections": [
+    {
+      "h": "القراءة (Reading): My Week",
+      "body": "My name is Majed. On Sunday, I play soccer with my friends. On Monday, I do my homework and read a book. On Tuesday, I ride my bike in the park. On Wednesday, I play basketball. On Thursday, I visit my grandmother. I like my week!",
+      "points": [
+        "What does Majed do on Sunday? — He plays soccer.",
+        "When does he ride his bike? — On Tuesday.",
+        "Who does he visit on Thursday? — His grandmother.",
+        "أيام الأسبوع: Sunday, Monday, Tuesday, Wednesday, Thursday, Friday, Saturday"
+      ],
+      "tip": "أسماء الأيام تبدأ دائماً بحرف كبير، ونستخدم On قبل اليوم: On Monday."
+    },
+    {
+      "h": "عمل الكلمات (Word Work): الكلمات المركبة",
+      "body": "الكلمة المركبة (compound word) كلمتان تلتصقان لتكوّنا كلمة جديدة.",
+      "points": [
+        "basket + ball = basketball",
+        "foot + ball = football",
+        "home + work = homework",
+        "after + noon = afternoon",
+        "grand + mother = grandmother",
+        "book + shelf = bookshelf"
+      ]
+    },
+    {
+      "h": "الفعل والاسم المناسب (Verb + Noun)",
+      "points": [
+        "play + soccer / basketball / chess / video games",
+        "ride + a bike / a horse",
+        "fly + a kite",
+        "read + a book / a story",
+        "do + homework",
+        "watch + TV"
+      ],
+      "tip": "لا نقول play a bike ولا ride soccer: لكل فعل أسماؤه المناسبة."
+    },
+    {
+      "h": "الكتابة (Writing): فقرة عن أسبوعي",
+      "points": [
+        "ابدأ بجملة تعريف: My name is…",
+        "اكتب ثلاث جمل عن ثلاثة أيام: On Sunday, I…",
+        "اربط نشاطين بـ and: I do my homework and read a book.",
+        "اختم بجملة رأي: I like my week!",
+        "راجع: الحرف الكبير في بداية الجملة وأسماء الأيام، والنقطة في النهاية"
+      ]
+    }
+  ],
+  "vocab": [
+    { "t": "week", "d": "الأسبوع: سبعة أيام" },
+    { "t": "compound word", "d": "كلمة مركبة من كلمتين مثل homework" },
+    { "t": "afternoon", "d": "فترة ما بعد الظهر" },
+    { "t": "visit", "d": "يزور" },
+    { "t": "park", "d": "حديقة عامة" },
+    { "t": "Tuesday", "d": "يوم الثلاثاء" }
+  ],
+  "checks": [
+    {
+      "q": "في النص: ماذا يفعل ماجد يوم الأربعاء؟",
+      "opts": ["He plays soccer.", "He plays basketball.", "He rides his bike.", "He visits his grandmother."],
+      "correct": 1
+    },
+    {
+      "q": "الكلمة المركبة من home + work هي؟",
+      "opts": ["workhome", "homework", "home-work", "homeswork"],
+      "correct": 1
+    },
+    {
+      "q": "الفعل المناسب مع a kite هو؟",
+      "opts": ["play", "ride", "fly", "read"],
+      "correct": 2
+    }
+  ],
+  "questions": [
+    {
+      "t": "mcq",
+      "q": "basketball كلمة مركبة من؟",
+      "opts": ["basket + ball", "bask + etball", "basketb + all", "ba + sketball"],
+      "correct": 0
+    },
+    {
+      "t": "mcq",
+      "q": "متى يزور ماجد جدته؟",
+      "opts": ["On Sunday", "On Monday", "On Tuesday", "On Thursday"],
+      "correct": 3
+    },
+    {
+      "t": "tf",
+      "q": "أسماء أيام الأسبوع تبدأ بحرف كبير في الإنجليزية.",
+      "opts": ["صح", "خطأ"],
+      "correct": 0
+    },
+    {
+      "t": "mcq",
+      "q": "الجملة الصحيحة هي؟",
+      "opts": ["I ride soccer.", "I play a bike.", "I ride a bike.", "I fly a book."],
+      "correct": 2
+    },
+    {
+      "t": "fill",
+      "q": "...... Monday, I do my homework. (حرف الجر قبل اليوم)",
+      "ans": "On"
+    },
+    {
+      "t": "tf",
+      "q": "كلمة afternoon مركبة من after و noon.",
+      "opts": ["صح", "خطأ"],
+      "correct": 0
+    },
+    {
+      "t": "mcq",
+      "q": "الكلمة التي تعني «يزور»؟",
+      "opts": ["play", "visit", "read", "watch"],
+      "correct": 1
+    }
+  ],
+  "story": [
+    { "v": "📅", "t": "طلبت المعلمة كتابة فقرة بعنوان My Week. نظرت لمى إلى تقويم غرفتها وبدأت تتذكر أيامها." },
+    { "v": "⚽", "t": "كتبت: On Sunday, I play football with my cousins. ولاحظت أن football من foot + ball!" },
+    { "v": "📚", "t": "On Monday, I do my homework and read a story. تذكرت أن homework أيضاً كلمة مركبة." },
+    { "v": "🚲", "t": "On Tuesday, I ride my bike. كادت تكتب play my bike لكنها تذكرت: ride مع الدراجة!" },
+    { "v": "👵", "t": "On Thursday, I visit my grandmother. وابتسمت: grandmother = grand + mother. الكلمات المركبة في كل مكان!" },
+    { "v": "🔍", "t": "راجعت لمى فقرتها: كل يوم بحرف كبير، وكل جملة تنتهي بنقطة، وختمتها: I like my week!" },
+    { "v": "🌟", "t": "قالت المعلمة: A perfect paragraph, Lama! واحتفظت بها نموذجاً للفصل. أحسنتِ!" }
+  ],
+  "activity": "اصنع جدولاً لأسبوعك من سبعة صفوف، اكتب في كل صف اسم اليوم بالإنجليزية ونشاطاً واحداً بالفعل والاسم المناسبين، ثم حوّل الجدول إلى فقرة من خمس جمل تبدأ بـ My name is وتنتهي بـ I like my week!",
+  "summary": "نقرأ عن أنشطة الأسبوع مع أيام تبدأ بحرف كبير وحرف الجر On، ونكوّن كلمات مركبة مثل basketball و homework، ونربط الفعل بالاسم الصحيح مثل ride a bike و fly a kite، ونكتب فقرة قصيرة عن أسبوعنا."
+}

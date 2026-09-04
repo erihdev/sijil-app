@@ -1,0 +1,131 @@
+{
+  "title": "My Pet Cat — قطّي الأليف",
+  "unit": "Unit 1: Living Things — الصف السادس",
+  "objectives": [
+    "أن يسمّي الطالب الحيوانات الأليفة بالإنجليزية",
+    "أن يصف الطالب طريقة العناية بالحيوان الأليف بأفعال بسيطة",
+    "أن يستخدم الطالب ظروف التكرار (always / usually / sometimes / never) في جمل المضارع البسيط"
+  ],
+  "intro": "قطة صغيرة تموء عند الباب كل صباح تنتظر طعامها. من يربّي حيواناً أليفاً يتعلّم المسؤولية والرحمة. في هذا الدرس نتحدث عن الحيوانات الأليفة والعناية بها بالإنجليزية.",
+  "sections": [
+    {
+      "h": "Pets — الحيوانات الأليفة",
+      "points": [
+        "cat — قطة، kitten — قطة صغيرة",
+        "bird — طائر، parrot — ببغاء",
+        "fish — سمكة، rabbit — أرنب، hamster — هامستر",
+        "I have a pet cat. Her name is Lulu. — عندي قطة اسمها لولو"
+      ],
+      "tip": "نقول pet لكل حيوان يعيش معنا في البيت ونعتني به."
+    },
+    {
+      "h": "Taking Care of a Pet — العناية بالحيوان",
+      "points": [
+        "feed — يُطعم: I feed my cat every morning.",
+        "brush — يمشّط: I brush her fur.",
+        "clean — ينظّف: I clean her bed.",
+        "play with — يلعب مع: I play with my cat after school.",
+        "take to the vet — يأخذ إلى الطبيب البيطري"
+      ]
+    },
+    {
+      "h": "Adverbs of Frequency — ظروف التكرار",
+      "body": "تخبرنا كم مرة يحدث الشيء، وتأتي قبل الفعل الأصلي.",
+      "points": [
+        "always — دائماً: My cat always sleeps in the sun.",
+        "usually — عادةً: She usually eats fish.",
+        "sometimes — أحياناً: She sometimes plays with a ball.",
+        "never — أبداً: She never eats vegetables."
+      ],
+      "tip": "مع الفاعل المفرد (he / she / it) نضيف s للفعل: She sleeps, She eats."
+    },
+    {
+      "h": "Talking About My Pet — الحديث عن حيواني",
+      "points": [
+        "What's her name? — Her name is Lulu.",
+        "What does she like? — She likes milk and fish.",
+        "What does she do? — She sleeps a lot and plays with a ball.",
+        "Does she like water? — No, she doesn't."
+      ]
+    }
+  ],
+  "vocab": [
+    { "t": "pet", "d": "حيوان أليف يعيش معنا في البيت" },
+    { "t": "kitten", "d": "قطة صغيرة السن" },
+    { "t": "feed", "d": "يُطعم الحيوان" },
+    { "t": "fur", "d": "الفرو، شعر القطة الناعم" },
+    { "t": "vet", "d": "الطبيب البيطري الذي يعالج الحيوانات" },
+    { "t": "usually", "d": "عادةً، في أغلب الأوقات" }
+  ],
+  "checks": [
+    {
+      "q": "«قطة صغيرة» بالإنجليزية:",
+      "opts": ["parrot", "kitten", "rabbit", "hamster"],
+      "correct": 1
+    },
+    {
+      "q": "أكمل: My cat ...... eats fish. (عادةً)",
+      "opts": ["never", "usually", "not", "very"],
+      "correct": 1
+    },
+    {
+      "q": "الفعل الذي يعني «يُطعم»:",
+      "opts": ["brush", "clean", "feed", "play"],
+      "correct": 2
+    }
+  ],
+  "questions": [
+    {
+      "t": "mcq",
+      "q": "الجملة الصحيحة:",
+      "opts": ["She sleep a lot.", "She sleeps a lot.", "She sleeping a lot.", "She is sleeps a lot."],
+      "correct": 1
+    },
+    {
+      "t": "mcq",
+      "q": "الطبيب الذي يعالج الحيوانات يسمّى:",
+      "opts": ["dentist", "teacher", "farmer", "vet"],
+      "correct": 3
+    },
+    {
+      "t": "tf",
+      "q": "كلمة never تعني «دائماً».",
+      "opts": ["صح", "خطأ"],
+      "correct": 1
+    },
+    {
+      "t": "mcq",
+      "q": "الموضع الصحيح لظرف التكرار في الجملة:",
+      "opts": ["Always my cat sleeps in the sun.", "My cat sleeps always in the sun.", "My cat always sleeps in the sun.", "My cat sleeps in the sun always."],
+      "correct": 2
+    },
+    {
+      "t": "fill",
+      "q": "I ...... my cat's fur every day.",
+      "ans": "brush"
+    },
+    {
+      "t": "tf",
+      "q": "الرد الصحيح على Does she like milk? هو Yes, she does.",
+      "opts": ["صح", "خطأ"],
+      "correct": 0
+    },
+    {
+      "t": "mcq",
+      "q": "«ببغاء» بالإنجليزية:",
+      "opts": ["parrot", "bird", "fish", "cat"],
+      "correct": 0
+    }
+  ],
+  "story": [
+    { "v": "🐱", "t": "أحضر والد لمى kitten صغيرة رمادية. قفزت لمى فرحاً: My pet cat! I will call her Lulu." },
+    { "v": "🥛", "t": "قال الوالد: A pet needs care. You must feed her every morning. فسكبت لمى الحليب وقالت: Lulu likes milk!" },
+    { "v": "🪮", "t": "في اليوم التالي مشّطت لمى فروها: I brush her fur every day. فأغمضت لولو عينيها بسعادة." },
+    { "v": "☀️", "t": "لاحظت لمى أن لولو تنام في الشمس كل يوم، فكتبت في دفترها: My cat always sleeps in the sun." },
+    { "v": "🧶", "t": "بعد المدرسة لعبت معها بكرة صوف: She sometimes plays with a ball, but she never eats vegetables!" },
+    { "v": "🩺", "t": "مرضت لولو قليلاً، فأخذتها لمى إلى الـ vet الذي قال: She is fine. You take good care of your pet." },
+    { "v": "🌟", "t": "تعلّمت لمى أن الحيوان الأليف أمانة يحتاج إلى طعام ونظافة وحب. أحسنت!" }
+  ],
+  "activity": "اختر حيواناً أليفاً (حقيقياً أو تتمنّاه) واكتب عنه خمس جمل بالإنجليزية تستخدم فيها always وusually وsometimes وnever، مثل: My rabbit usually eats carrots. ثم اعرضها على زملائك.",
+  "summary": "الحيوانات الأليفة مثل cat وbird وrabbit تحتاج إلى عناية: feed وbrush وclean. نتحدث عنها بالمضارع البسيط مع إضافة s للمفرد، ونضع ظروف التكرار always / usually / sometimes / never قبل الفعل."
+}

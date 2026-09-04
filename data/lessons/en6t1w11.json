@@ -1,0 +1,132 @@
+{
+  "title": "Football Fans — مشجّعو كرة القدم",
+  "unit": "Unit 3: Interests — الصف السادس",
+  "objectives": [
+    "أن يسمّي الطالب مفردات كرة القدم بالإنجليزية",
+    "أن يستخدم الطالب المضارع المستمر لوصف ما يحدث الآن في المباراة",
+    "أن يتحدث الطالب عن فريقه ولاعبه المفضّل بجمل بسيطة"
+  ],
+  "intro": "صافرة الحكم، هتاف الجماهير، وهدف في الدقيقة الأخيرة! كرة القدم تجمع الأصدقاء والعائلات. في هذا الدرس نتعلّم مفردات المباراة ونصف ما يحدث فيها الآن بالإنجليزية.",
+  "sections": [
+    {
+      "h": "Football Words — مفردات كرة القدم",
+      "points": [
+        "team — فريق، player — لاعب، coach — مدرب",
+        "match / game — مباراة، goal — هدف، score — النتيجة",
+        "stadium — ملعب كبير، fans — المشجّعون، referee — الحكم",
+        "goalkeeper — حارس المرمى، kick — يركل، pass — يمرّر",
+        "win — يفوز، lose — يخسر، draw — يتعادل"
+      ]
+    },
+    {
+      "h": "Present Continuous — المضارع المستمر",
+      "body": "لوصف ما يحدث الآن نستخدم am / is / are + الفعل + ing.",
+      "points": [
+        "The players are running. — اللاعبون يركضون الآن",
+        "He is kicking the ball. — إنه يركل الكرة",
+        "The fans are cheering. — المشجّعون يهتفون",
+        "The goalkeeper is catching the ball.",
+        "What are they doing? — They are playing football."
+      ],
+      "tip": "المضارع المستمر يأتي عادة مع now أو Look! أو Listen!"
+    },
+    {
+      "h": "My Favorite Team — فريقي المفضّل",
+      "points": [
+        "Who is your favorite team? — My favorite team is the Green Falcons.",
+        "Who is your favorite player? — My favorite player is the goalkeeper.",
+        "I am a big fan of the national team. — أنا مشجّع كبير للمنتخب",
+        "The score is two to one. — النتيجة اثنان لواحد"
+      ]
+    },
+    {
+      "h": "Good Fans — المشجّع الجيد",
+      "points": [
+        "Cheer for your team. — شجّع فريقك",
+        "Respect the other team. — احترم الفريق الآخر",
+        "Don't shout bad words. — لا تصرخ بكلمات سيئة",
+        "Play fair. — العب بشرف"
+      ],
+      "tip": "منتخب السعودية يُلقّب بـ the Green Falcons (الصقور الخضر)."
+    }
+  ],
+  "vocab": [
+    { "t": "fan", "d": "مشجّع يحب فريقاً ويؤيّده" },
+    { "t": "match", "d": "مباراة بين فريقين" },
+    { "t": "goal", "d": "هدف، إدخال الكرة في المرمى" },
+    { "t": "stadium", "d": "الملعب الكبير الذي تُقام فيه المباريات" },
+    { "t": "referee", "d": "الحكم الذي يدير المباراة" },
+    { "t": "cheer", "d": "يهتف ويشجّع" }
+  ],
+  "checks": [
+    {
+      "q": "«حارس المرمى» بالإنجليزية:",
+      "opts": ["coach", "goalkeeper", "referee", "fan"],
+      "correct": 1
+    },
+    {
+      "q": "أكمل: Look! The players ...... running.",
+      "opts": ["is", "am", "are", "be"],
+      "correct": 2
+    },
+    {
+      "q": "عكس الفعل win هو:",
+      "opts": ["lose", "draw", "kick", "pass"],
+      "correct": 0
+    }
+  ],
+  "questions": [
+    {
+      "t": "mcq",
+      "q": "الجملة الصحيحة في المضارع المستمر:",
+      "opts": ["He is kick the ball.", "He kicking the ball.", "He is kicking the ball.", "He are kicking the ball."],
+      "correct": 2
+    },
+    {
+      "t": "tf",
+      "q": "The referee scores goals for the team.",
+      "opts": ["صح", "خطأ"],
+      "correct": 1
+    },
+    {
+      "t": "mcq",
+      "q": "«الجماهير تهتف» بالإنجليزية:",
+      "opts": ["The fans are cheering.", "The fans are passing.", "The fans are losing.", "The fans are kicking."],
+      "correct": 0
+    },
+    {
+      "t": "mcq",
+      "q": "الرد المناسب على: What are they doing?",
+      "opts": ["They play football every day.", "They are playing football.", "They played football.", "They like football."],
+      "correct": 1
+    },
+    {
+      "t": "fill",
+      "q": "My favorite ...... is the Green Falcons.",
+      "ans": "team"
+    },
+    {
+      "t": "tf",
+      "q": "المشجّع الجيد يحترم الفريق الآخر.",
+      "opts": ["صح", "خطأ"],
+      "correct": 0
+    },
+    {
+      "t": "mcq",
+      "q": "«ملعب كبير» بالإنجليزية:",
+      "opts": ["score", "match", "goal", "stadium"],
+      "correct": 3
+    }
+  ],
+  "story": [
+    { "v": "🏟️", "t": "ذهب فهد مع والده إلى الـ stadium لأول مرة. آلاف الـ fans يرتدون الأخضر. قال فهد: I am a big fan!" },
+    { "v": "📣", "t": "بدأت المباراة. صاح فهد: Look! The players are running and the fans are cheering!" },
+    { "v": "⚽", "t": "قال الوالد: What is the goalkeeper doing? أجاب فهد: He is catching the ball. Wow, he is great!" },
+    { "v": "🥅", "t": "في الدقيقة الأخيرة ركل اللاعب الكرة… Goal! قفز فهد: We are winning! The score is two to one!" },
+    { "v": "🤝", "t": "بعد الصافرة تصافح اللاعبون. قال الوالد: Good fans respect the other team. فصفّق فهد للفريقين." },
+    { "v": "📝", "t": "في البيت كتب فهد: My favorite team is the Green Falcons. My favorite player is the goalkeeper." },
+    { "v": "🌟", "t": "عاد فهد مشجّعاً يعرف مفردات المباراة ويحترم الجميع. أحسنت!" }
+  ],
+  "activity": "ارسم مشهداً من مباراة كرة قدم واكتب تحته أربع جمل بالمضارع المستمر تصف ما يحدث (The goalkeeper is ... / The fans are ...)، ثم اكتب جملتين عن فريقك ولاعبك المفضّل.",
+  "summary": "تعلّمنا مفردات كرة القدم مثل team وgoal وstadium وreferee، ووصفنا ما يحدث الآن بالمضارع المستمر (am / is / are + ing)، وتحدثنا عن الفريق المفضّل وقواعد المشجّع الجيد."
+}

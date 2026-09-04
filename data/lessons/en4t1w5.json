@@ -1,0 +1,134 @@
+{
+  "title": "جمع الأسماء وشجرة العائلة",
+  "unit": "Family Events — الصف الرابع",
+  "objectives": [
+    "أن يكوّن الطالب جمع الأسماء بإضافة s أو es",
+    "أن يقرأ الطالب نصاً قصيراً عن عائلة ويكتب جملاً عن عائلته",
+    "أن يرسم الطالب شجرة عائلته ويشرح أجيالها الثلاثة"
+  ],
+  "intro": "لك أخ واحد أم إخوة كثيرون؟ وعمّ واحد أم أعمام؟ اللغة الإنجليزية تغيّر الكلمة عندما يزيد العدد. في هذا الدرس نتعلم الجمع، ونقرأ ونكتب عن العائلة، ونرسم شجرة عائلتنا كما يفعل علماء الاجتماع.",
+  "sections": [
+    {
+      "h": "جمع الأسماء (Plurals)",
+      "body": "لتحويل الاسم من مفرد إلى جمع نضيف s في الغالب.",
+      "points": [
+        "brother → brothers / sister → sisters",
+        "uncle → uncles / cousin → cousins",
+        "الأسماء التي تنتهي بـ s, x, ch, sh نضيف لها es: box → boxes, watch → watches",
+        "baby → babies (y تصبح ies بعد حرف ساكن)",
+        "جمع شاذ: child → children, man → men, woman → women"
+      ],
+      "tip": "مع الجمع نستخدم are و These: These are my brothers."
+    },
+    {
+      "h": "القراءة (Reading): My Family",
+      "body": "نقرأ النص ونجيب: My name is Lama. This is my family. I have two brothers and one sister. My grandparents live with us. We have a big picnic every Friday.",
+      "points": [
+        "How many brothers? — Two brothers.",
+        "Who lives with Lama? — Her grandparents.",
+        "What do they do on Friday? — They have a picnic.",
+        "grandparents = الجد والجدة معاً / parents = الأب والأم معاً"
+      ]
+    },
+    {
+      "h": "عمل الكلمات والكتابة (Word Work and Writing)",
+      "points": [
+        "نبدأ الجملة بحرف كبير وننهيها بنقطة",
+        "أسماء الأشخاص تبدأ بحرف كبير: Saud, Noura",
+        "نربط جملتين بـ and: I have a brother and a sister.",
+        "اكتب ثلاث جمل عن عائلتك: This is my… / I have… / My … is…"
+      ],
+      "tip": "راجع كتابتك: هل كل جملة فيها فعل مثل is أو have؟"
+    },
+    {
+      "h": "تعلّم متكامل: شجرة العائلة (Social Studies)",
+      "body": "شجرة العائلة رسم يوضّح الأجيال: الجد والجدة في الأعلى، ثم الوالدان، ثم الأبناء.",
+      "points": [
+        "Generation 1: grandparents (grandfather, grandmother)",
+        "Generation 2: parents, uncles, aunts",
+        "Generation 3: me, my brothers, my sisters, my cousins",
+        "العائلة الممتدة تشمل الأعمام والأخوال وأبناءهم",
+        "في المجتمع السعودي صلة الرحم وزيارة الأقارب قيمة عظيمة"
+      ]
+    }
+  ],
+  "vocab": [
+    { "t": "plural", "d": "صيغة الجمع: أكثر من واحد" },
+    { "t": "children", "d": "أطفال أو أبناء (جمع child)" },
+    { "t": "grandparents", "d": "الجد والجدة معاً" },
+    { "t": "parents", "d": "الوالدان: الأب والأم" },
+    { "t": "family tree", "d": "شجرة العائلة: رسم يوضّح الأجيال والقرابة" },
+    { "t": "generation", "d": "جيل: مجموعة من العائلة في العمر نفسه تقريباً" }
+  ],
+  "checks": [
+    {
+      "q": "جمع كلمة sister هو؟",
+      "opts": ["sisteres", "sisters", "sisteries", "sister"],
+      "correct": 1
+    },
+    {
+      "q": "جمع كلمة child هو؟",
+      "opts": ["childs", "childes", "children", "childies"],
+      "correct": 2
+    },
+    {
+      "q": "من يكون في أعلى شجرة العائلة؟",
+      "opts": ["الأبناء", "الجد والجدة", "أبناء العم", "الإخوة"],
+      "correct": 1
+    }
+  ],
+  "questions": [
+    {
+      "t": "mcq",
+      "q": "جمع كلمة box هو؟",
+      "opts": ["boxs", "boxies", "boxes", "boxen"],
+      "correct": 2
+    },
+    {
+      "t": "mcq",
+      "q": "جمع كلمة baby هو؟",
+      "opts": ["babies", "babys", "babyes", "baby"],
+      "correct": 0
+    },
+    {
+      "t": "tf",
+      "q": "كلمة parents تعني الجد والجدة.",
+      "opts": ["صح", "خطأ"],
+      "correct": 1
+    },
+    {
+      "t": "mcq",
+      "q": "في نص Lama: كم عدد إخوتها الذكور؟",
+      "opts": ["One", "Two", "Three", "Four"],
+      "correct": 1
+    },
+    {
+      "t": "fill",
+      "q": "I have three ...... (أعمام). They are all teachers.",
+      "ans": "uncles"
+    },
+    {
+      "t": "tf",
+      "q": "الجملة I have a brother and a sister. مربوطة بكلمة and.",
+      "opts": ["صح", "خطأ"],
+      "correct": 0
+    },
+    {
+      "t": "mcq",
+      "q": "الجيل الثالث في شجرة العائلة يضم؟",
+      "opts": ["grandparents", "parents", "uncles and aunts", "me and my cousins"],
+      "correct": 3
+    }
+  ],
+  "story": [
+    { "v": "🌳", "t": "طلبت المعلمة رسم family tree. جلست لمى مع جدتها وسألتها عن أسماء كل الأقارب." },
+    { "v": "👵", "t": "قالت الجدة: أنا وجدك في الأعلى، نحن grandparents. وتحتنا أبوك وأعمامك الثلاثة." },
+    { "v": "✍️", "t": "كتبت لمى: uncle… ثم توقفت: ثلاثة أعمام! فأضافت s وكتبت: I have three uncles." },
+    { "v": "👶", "t": "وعند أطفال عمها الصغار كتبت: babys؟ تذكرت القاعدة: y تصبح ies. فصحّحت: babies." },
+    { "v": "📖", "t": "في الفصل قرأت لمى نصها: This is my family. I have two brothers and one sister. My grandparents live with us." },
+    { "v": "🧩", "t": "نظر الطلاب إلى شجرتها ذات الثلاثة أجيال، وقالت المعلمة: جميلة ومنظّمة، وكل جمع صحيح!" },
+    { "v": "🌟", "t": "شعرت لمى بالفخر: عائلتي كبيرة… ولغتي الإنجليزية تكبر معها. أحسنتِ يا لمى!" }
+  ],
+  "activity": "ارسم شجرة عائلتك بثلاثة أجيال واكتب الأسماء بالإنجليزية، ثم اكتب فقرة من أربع جمل مثل: This is my family. I have two brothers. My grandparents are kind. We have a picnic on Friday.",
+  "summary": "نجمع الأسماء بإضافة s غالباً و es بعد s وx وch وsh، وبعض الأسماء شاذة مثل children؛ ونقرأ ونكتب عن العائلة بجمل تبدأ بحرف كبير وتنتهي بنقطة، ونمثّل الأجيال في شجرة العائلة."
+}

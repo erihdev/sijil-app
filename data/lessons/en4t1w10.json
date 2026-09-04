@@ -1,0 +1,136 @@
+{
+  "title": "The Lion and the Mouse — was و were",
+  "unit": "Stories — الصف الرابع",
+  "objectives": [
+    "أن يستمع الطالب إلى قصة الأسد والفأر ويرتّب أحداثها",
+    "أن يستخدم الطالب was و were لوصف شخصيات القصة في الماضي",
+    "أن يعبّر الطالب عن رأيه في الشخصيات بصفات مناسبة"
+  ],
+  "intro": "أسد ضخم قوي وفأر صغير ضعيف، من يساعد من؟ في هذا الدرس نستمع إلى حكاية مشهورة، ونتعلم كيف نتحدث عن شخصيات القصة في الماضي بـ was و were.",
+  "sections": [
+    {
+      "h": "القصة (Story): The Lion and the Mouse",
+      "body": "أسد نائم في الغابة، ركض فوقه فأر صغير فأمسكه. توسّل الفأر فتركه الأسد. بعد أيام وقع الأسد في شبكة صياد، فجاء الفأر وقرض الحبال وأنقذه.",
+      "points": [
+        "The lion was big and strong.",
+        "The mouse was small but brave.",
+        "The hunters were in the forest.",
+        "The lion was in a net. The mouse helped him.",
+        "A small friend can be a great friend."
+      ],
+      "tip": "العبرة: لا تحتقر أحداً لصغره، فقد يكون عونك يوماً."
+    },
+    {
+      "h": "was و were (الماضي من am/is/are)",
+      "points": [
+        "I / He / She / It → was: The lion was sleepy.",
+        "You / We / They → were: The hunters were angry.",
+        "النفي: wasn't / weren't: The mouse wasn't afraid.",
+        "السؤال: Was the lion big? — Yes, he was.",
+        "Were the hunters happy? — No, they weren't."
+      ],
+      "tip": "was للمفرد و were للجمع ومع You. تذكّر: قصص الماضي تُحكى بـ was و were."
+    },
+    {
+      "h": "مفردات القصة (Vocabulary)",
+      "points": [
+        "lion = أسد / mouse = فأر",
+        "net = شبكة / rope = حبل",
+        "hunter = صياد",
+        "brave = شجاع / afraid = خائف",
+        "weak = ضعيف / strong = قوي",
+        "help = يساعد / friend = صديق"
+      ]
+    },
+    {
+      "h": "الاستماع والتحدث (Listening and Speaking)",
+      "body": "نستمع إلى القصة ونرتّب الصور، ثم نتحدث عن الشخصيات.",
+      "points": [
+        "First, the lion was sleeping. = أولاً",
+        "Then, the mouse ran over the lion. = ثم",
+        "Next, the lion was in a net. = بعد ذلك",
+        "Finally, the mouse helped the lion. = أخيراً",
+        "What do you think? — The mouse was kind and brave."
+      ]
+    }
+  ],
+  "vocab": [
+    { "t": "was", "d": "كان (الماضي من is/am) للمفرد" },
+    { "t": "were", "d": "كانوا (الماضي من are) للجمع" },
+    { "t": "brave", "d": "شجاع" },
+    { "t": "net", "d": "شبكة يصطاد بها الصياد" },
+    { "t": "hunter", "d": "صياد" },
+    { "t": "finally", "d": "أخيراً: كلمة تدل على آخر حدث" }
+  ],
+  "checks": [
+    {
+      "q": "The lion ...... big and strong.",
+      "opts": ["were", "was", "are", "is"],
+      "correct": 1
+    },
+    {
+      "q": "The hunters ...... in the forest.",
+      "opts": ["was", "is", "were", "am"],
+      "correct": 2
+    },
+    {
+      "q": "من أنقذ الأسد من الشبكة؟",
+      "opts": ["the hunter", "the king", "the mouse", "the dragon"],
+      "correct": 2
+    }
+  ],
+  "questions": [
+    {
+      "t": "mcq",
+      "q": "كلمة brave تعني؟",
+      "opts": ["خائف", "ضعيف", "شجاع", "نائم"],
+      "correct": 2
+    },
+    {
+      "t": "mcq",
+      "q": "Was the mouse afraid? — No, he ......",
+      "opts": ["weren't", "isn't", "wasn't", "aren't"],
+      "correct": 2
+    },
+    {
+      "t": "tf",
+      "q": "نستخدم were مع They.",
+      "opts": ["صح", "خطأ"],
+      "correct": 0
+    },
+    {
+      "t": "mcq",
+      "q": "الكلمة التي تدل على آخر حدث في القصة؟",
+      "opts": ["First", "Then", "Next", "Finally"],
+      "correct": 3
+    },
+    {
+      "t": "fill",
+      "q": "The mouse was small, and the lion was ...... (قوي).",
+      "ans": "strong"
+    },
+    {
+      "t": "tf",
+      "q": "في القصة وقع الفأر في شبكة الصياد.",
+      "opts": ["صح", "خطأ"],
+      "correct": 1
+    },
+    {
+      "t": "mcq",
+      "q": "We ...... at the library yesterday.",
+      "opts": ["was", "were", "is", "am"],
+      "correct": 1
+    }
+  ],
+  "story": [
+    { "v": "🎧", "t": "في حصة الاستماع شغّل المعلم قصة The Lion and the Mouse. أغمض سعود عينيه ليتخيل الغابة." },
+    { "v": "🦁", "t": "سمع: The lion was big and strong. He was sleeping. ثم: A small mouse ran over his nose!" },
+    { "v": "🐭", "t": "أمسك الأسد الفأر، لكن الفأر قال: Please, let me go! I can help you one day. فضحك الأسد وتركه." },
+    { "v": "🪢", "t": "بعد أيام: The lion was in a net! The hunters were coming! خاف سعود على الأسد." },
+    { "v": "🦷", "t": "جاء الفأر وقرض الحبال بأسنانه: The mouse was small but brave. The lion was free!" },
+    { "v": "🗣️", "t": "سأل المعلم: Was the mouse weak? فأجاب سعود: No, he wasn't. He was brave and kind!" },
+    { "v": "🌟", "t": "رتّب سعود صور القصة: First… Then… Finally… وقال المعلم: Perfect order, Saud! أحسنت!" }
+  ],
+  "activity": "ارسم أربع صور لأحداث قصة الأسد والفأر بالترتيب، واكتب تحت كل صورة جملة تبدأ بـ First أو Then أو Next أو Finally وفيها was أو were، مثل: First, the lion was sleeping.",
+  "summary": "قصة الأسد والفأر تعلّمنا أن الصغير قد يكون عوناً كبيراً؛ ونحكي القصص في الماضي بـ was للمفرد و were للجمع، ونرتّب الأحداث بـ First و Then و Next و Finally."
+}

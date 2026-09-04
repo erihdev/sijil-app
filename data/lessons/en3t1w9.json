@@ -1,0 +1,128 @@
+{
+  "title": "أنشودة الأنشطة وأصوات i j k l",
+  "unit": "Sports and Activities — الصف الثالث",
+  "objectives": [
+    "أن يردّد الطالب أنشودة الأنشطة بإيقاع صحيح",
+    "أن يستخدم الطالب He can و She can للحديث عن الآخرين",
+    "أن ينطق الطالب أصوات الحروف i و j و k و l"
+  ],
+  "intro": "أخوك يستطيع ركوب الدراجة وأختك تستطيع القفز. كيف نتكلم عمّا يستطيعه الآخرون؟ ونتعلم أربعة أصوات جديدة.",
+  "sections": [
+    {
+      "h": "أنشودة الأنشطة",
+      "body": "نمثّل كل حركة أثناء الترديد.",
+      "points": [
+        "I can run, I can jump, I can play all day!",
+        "I can swim, I can climb, hip, hip, hooray!"
+      ]
+    },
+    {
+      "h": "هو يستطيع / هي تستطيع",
+      "points": [
+        "He can swim. = هو يستطيع السباحة",
+        "She can jump. = هي تستطيع القفز",
+        "Can he run? – Yes, he can.",
+        "Can she climb? – No, she can't."
+      ],
+      "tip": "الفعل بعد can لا يأخذ s أبداً: He can run."
+    },
+    {
+      "h": "القراءة",
+      "body": "نقرأ ثم نجيب.",
+      "points": [
+        "This is Fahd. He can play soccer.",
+        "He can run and jump. He can't swim.",
+        "سؤال: Can Fahd swim? — No, he can't."
+      ]
+    },
+    {
+      "h": "أصوات الحروف + مراجعة",
+      "points": [
+        "Ii – /i/ – ink (حبر)",
+        "Jj – /j/ – jam (مربى)",
+        "Kk – /k/ – kite (طائرة ورقية)",
+        "Ll – /l/ – lion (أسد)",
+        "مراجعة: Can you…? Yes, I can. / No, I can't."
+      ]
+    }
+  ],
+  "vocab": [
+    { "t": "He can", "d": "هو يستطيع" },
+    { "t": "She can", "d": "هي تستطيع" },
+    { "t": "ink", "d": "حبر — يبدأ بصوت /i/" },
+    { "t": "jam", "d": "مربى — تبدأ بصوت /j/" },
+    { "t": "kite", "d": "طائرة ورقية — تبدأ بصوت /k/" },
+    { "t": "lion", "d": "أسد — يبدأ بصوت /l/" }
+  ],
+  "checks": [
+    {
+      "q": "للحديث عن ولد نقول؟",
+      "opts": ["He can", "She can", "I can"],
+      "correct": 0
+    },
+    {
+      "q": "كلمة تبدأ بصوت /j/؟",
+      "opts": ["ink", "jam", "kite"],
+      "correct": 1
+    },
+    {
+      "q": "معنى lion؟",
+      "opts": ["أسد", "طائرة ورقية", "حبر"],
+      "correct": 0
+    }
+  ],
+  "questions": [
+    {
+      "t": "mcq",
+      "q": "أكمل: Can he swim? Yes, ......",
+      "opts": ["he can", "she can", "I can"],
+      "correct": 0
+    },
+    {
+      "t": "tf",
+      "q": "كلمة kite تبدأ بالحرف k.",
+      "opts": ["صح", "خطأ"],
+      "correct": 0
+    },
+    {
+      "t": "mcq",
+      "q": "This is Lama. ...... can jump.",
+      "opts": ["He", "She", "It"],
+      "correct": 1
+    },
+    {
+      "t": "mcq",
+      "q": "معنى ink؟",
+      "opts": ["مربى", "حبر", "أسد"],
+      "correct": 1
+    },
+    {
+      "t": "fill",
+      "q": "Can she climb? No, she ......",
+      "ans": "can't"
+    },
+    {
+      "t": "tf",
+      "q": "الفعل بعد can يأخذ s مع he.",
+      "opts": ["صح", "خطأ"],
+      "correct": 1
+    },
+    {
+      "t": "mcq",
+      "q": "i – ink، j – jam، l – ......",
+      "opts": ["kite", "jump", "lion"],
+      "correct": 2
+    }
+  ],
+  "story": [
+    { "v": "🎵", "t": "بدأت الحصة بأنشودة: I can run, I can jump, I can play all day! وقفز الجميع معاً." },
+    { "v": "🧒", "t": "عرض المعلم صورة ولد يسبح: He can swim! ثم صورة بنت تقفز: She can jump!" },
+    { "v": "❓", "t": "سأل المعلم: Can he run? فقال فهد: Yes, he can! لأن الولد في الصورة يركض." },
+    { "v": "📖", "t": "قرأ فهد النص: This is Saud. He can play soccer. He can't swim." },
+    { "v": "🪁", "t": "ثم الأصوات: /i/ ink، /j/ jam، /k/ kite، /l/ lion. لاحظ فهد أن kite من درس الأنشطة!" },
+    { "v": "📝", "t": "في المراجعة كتب فهد عن أخيه: This is Turki. He can ride a bike. He can't fly a kite." },
+    { "v": "🌟", "t": "صار فهد يتحدث عن نفسه وعن غيره بالإنجليزية. أحسنت يا فهد!" }
+  ],
+  "activity": "اكتب ثلاث جمل عن أخيك أو صديقك: He can… He can't… ثم اكتب كلمة لكل حرف من i, j, k, l وارسمها في دفترك.",
+  "summary": "نقول He can و She can للحديث عن الآخرين، والفعل بعد can لا يتغير. ونطقنا الأصوات /i/ ink، /j/ jam، /k/ kite، /l/ lion وراجعنا Can you…?"
+}

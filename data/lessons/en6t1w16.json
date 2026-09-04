@@ -1,0 +1,133 @@
+{
+  "title": "The Firefighter — رجل الإطفاء",
+  "unit": "Unit 4: Professions — الصف السادس",
+  "objectives": [
+    "أن يسمّي الطالب أدوات رجل الإطفاء ومعداته بالإنجليزية",
+    "أن يصف الطالب عمل رجل الإطفاء بأفعال مناسبة",
+    "أن يذكر الطالب قواعد السلامة من الحريق باستخدام must / mustn't"
+  ],
+  "intro": "صفّارة سيارة الإطفاء الحمراء تعني أن أبطالاً يسرعون لإنقاذ الناس. في هذا الدرس نتعرّف على رجل الإطفاء وأدواته وعمله الشجاع، ونتعلّم قواعد السلامة بالإنجليزية.",
+  "sections": [
+    {
+      "h": "Firefighter's Equipment — المعدات",
+      "points": [
+        "fire engine / fire truck — سيارة الإطفاء",
+        "helmet — خوذة، boots — أحذية طويلة، gloves — قفازات",
+        "hose — خرطوم الماء، ladder — سلّم",
+        "fire extinguisher — طفّاية الحريق، mask — قناع",
+        "fire station — مركز الإطفاء"
+      ]
+    },
+    {
+      "h": "What Does a Firefighter Do? — ماذا يفعل؟",
+      "points": [
+        "He puts out fires. — يطفئ الحرائق",
+        "He rescues people and animals. — ينقذ الناس والحيوانات",
+        "He climbs ladders. — يتسلّق السلالم",
+        "He drives the fire engine fast. — يقود سيارة الإطفاء بسرعة",
+        "Firefighters are brave and strong. — رجال الإطفاء شجعان وأقوياء"
+      ],
+      "tip": "put out تعني يطفئ، وتختلف عن put on التي تعني يرتدي."
+    },
+    {
+      "h": "Fire Safety Rules — قواعد السلامة",
+      "body": "نستخدم must للواجب وmustn't للمنع.",
+      "points": [
+        "You mustn't play with matches. — لا تلعب بأعواد الثقاب",
+        "You must turn off the stove. — يجب إطفاء الموقد",
+        "If there is a fire, you must get out fast. — اخرج بسرعة",
+        "You mustn't hide under the bed. — لا تختبئ تحت السرير",
+        "Call 998 for the Civil Defense in Saudi Arabia. — اتصل بالدفاع المدني"
+      ]
+    },
+    {
+      "h": "Being Brave — الشجاعة",
+      "points": [
+        "brave — شجاع، dangerous — خطير، safe — آمن",
+        "A firefighter's job is dangerous, but he helps people.",
+        "Stop, drop, and roll! — قف، انبطح، تدحرج (إذا اشتعلت ملابسك)",
+        "Thank you, firefighters! — شكراً رجال الإطفاء"
+      ],
+      "tip": "رقم الدفاع المدني في السعودية 998، ورقم الإسعاف 997."
+    }
+  ],
+  "vocab": [
+    { "t": "firefighter", "d": "رجل الإطفاء الذي يطفئ الحرائق" },
+    { "t": "fire engine", "d": "سيارة الإطفاء الحمراء" },
+    { "t": "hose", "d": "خرطوم يخرج منه الماء بقوة" },
+    { "t": "helmet", "d": "خوذة تحمي الرأس" },
+    { "t": "rescue", "d": "ينقذ شخصاً من الخطر" },
+    { "t": "brave", "d": "شجاع لا يخاف" }
+  ],
+  "checks": [
+    {
+      "q": "«خرطوم الماء» بالإنجليزية:",
+      "opts": ["ladder", "hose", "helmet", "mask"],
+      "correct": 1
+    },
+    {
+      "q": "أكمل: A firefighter ...... out fires.",
+      "opts": ["put", "puts", "putting", "is put"],
+      "correct": 1
+    },
+    {
+      "q": "رقم الدفاع المدني في السعودية:",
+      "opts": ["997", "911", "999", "998"],
+      "correct": 3
+    }
+  ],
+  "questions": [
+    {
+      "t": "mcq",
+      "q": "قاعدة السلامة الصحيحة:",
+      "opts": ["You must play with matches.", "You mustn't play with matches.", "You must hide under the bed.", "You mustn't get out fast."],
+      "correct": 1
+    },
+    {
+      "t": "mcq",
+      "q": "«ينقذ» بالإنجليزية:",
+      "opts": ["rescue", "climb", "drive", "hide"],
+      "correct": 0
+    },
+    {
+      "t": "tf",
+      "q": "A firefighter works at the fire station.",
+      "opts": ["صح", "خطأ"],
+      "correct": 0
+    },
+    {
+      "t": "mcq",
+      "q": "الشيء الذي يحمي رأس رجل الإطفاء:",
+      "opts": ["boots", "gloves", "helmet", "hose"],
+      "correct": 2
+    },
+    {
+      "t": "fill",
+      "q": "Firefighters are ...... and strong. (شجعان)",
+      "ans": "brave"
+    },
+    {
+      "t": "tf",
+      "q": "put out تعني «يرتدي».",
+      "opts": ["صح", "خطأ"],
+      "correct": 1
+    },
+    {
+      "t": "mcq",
+      "q": "«سلّم» بالإنجليزية:",
+      "opts": ["mask", "ladder", "engine", "station"],
+      "correct": 1
+    }
+  ],
+  "story": [
+    { "v": "🚒", "t": "زار فصل جود الـ fire station. وقفت أمامهم fire engine حمراء ضخمة، فقال رجل الإطفاء: Welcome! I am Captain Khalid." },
+    { "v": "⛑️", "t": "جرّب جود الـ helmet والـ boots فكانت ثقيلة جداً! ضحك الكابتن: We wear them to be safe. They protect us from fire." },
+    { "v": "💦", "t": "فتح الكابتن الـ hose فاندفع الماء بقوة. قال: We put out fires with water, and we climb ladders to rescue people." },
+    { "v": "❓", "t": "سأل جود: Is your job dangerous? أجاب: Yes, it is dangerous, but we are brave because we help people." },
+    { "v": "📵", "t": "ثم علّمهم القواعد: You mustn't play with matches. If there is a fire, you must get out fast and call 998." },
+    { "v": "🔥", "t": "وأراهم التدريب: Stop, drop, and roll! فكرّر الطلاب الحركة وهم يضحكون ويتعلّمون." },
+    { "v": "🌟", "t": "عاد جود يحترم هؤلاء الأبطال ويعرف كيف يحمي نفسه. أحسنت!" }
+  ],
+  "activity": "ارسم رجل إطفاء واكتب أسماء خمس قطع من معداته بالإنجليزية، ثم اكتب ثلاث قواعد سلامة لبيتك تبدأ بـ You must أو You mustn't، واحفظ رقم الدفاع المدني 998.",
+  "summary": "رجل الإطفاء يعمل في fire station ويستخدم fire engine وhose وladder وhelmet، ويطفئ الحرائق (puts out fires) وينقذ الناس (rescues people)، وهو brave. قواعد السلامة بـ must / mustn't، ورقم الدفاع المدني 998."
+}

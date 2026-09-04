@@ -1,0 +1,131 @@
+{
+  "title": "A Healthy Day — يوم صحي",
+  "unit": "Unit 2: Lifestyles — الصف السادس",
+  "objectives": [
+    "أن يصف الطالب روتينه اليومي بالإنجليزية مع ذكر الوقت",
+    "أن يميّز الطالب بين الطعام الصحي وغير الصحي بالإنجليزية",
+    "أن يستخدم الطالب should / shouldn't لتقديم النصيحة الصحية"
+  ],
+  "intro": "تستيقظ مبكراً، تفطر جيداً، تتحرك وتلعب، وتنام في وقتك… هذا هو اليوم الصحي. في هذا الدرس نتعلّم كيف نتحدث عن يومنا وعاداتنا الصحية بالإنجليزية.",
+  "sections": [
+    {
+      "h": "Daily Routine — الروتين اليومي",
+      "points": [
+        "wake up — يستيقظ، get up — ينهض من السرير",
+        "brush my teeth — أنظّف أسناني، take a shower — أستحم",
+        "have breakfast — أتناول الفطور، go to school — أذهب للمدرسة",
+        "do my homework — أحل واجبي، go to bed — أنام",
+        "I wake up at six o'clock. — أستيقظ في السادسة"
+      ],
+      "tip": "نستخدم at مع الساعة: at 7 o'clock, at half past six."
+    },
+    {
+      "h": "Telling the Time — قول الوقت",
+      "points": [
+        "7:00 — seven o'clock",
+        "7:30 — half past seven",
+        "7:15 — quarter past seven",
+        "What time do you get up? — I get up at half past five."
+      ]
+    },
+    {
+      "h": "Healthy Food — الطعام الصحي",
+      "body": "الطعام الصحي يعطي الجسم القوة، وغير الصحي يضرّه إذا أكثرنا منه.",
+      "points": [
+        "healthy — صحي: vegetables, fruit, milk, water, dates",
+        "unhealthy — غير صحي: candy, chips, soda, fast food",
+        "Eat fruit every day. — كُل الفاكهة كل يوم",
+        "Drink a lot of water. — اشرب ماءً كثيراً"
+      ]
+    },
+    {
+      "h": "should / shouldn't — النصيحة",
+      "points": [
+        "You should eat vegetables. — ينبغي أن تأكل الخضار",
+        "You should sleep eight hours. — ينبغي أن تنام ثماني ساعات",
+        "You shouldn't eat a lot of candy. — لا ينبغي أن تكثر من الحلوى",
+        "You shouldn't skip breakfast. — لا تهمل الفطور"
+      ],
+      "tip": "بعد should يأتي الفعل الأصلي بلا to: You should eat وليس You should to eat."
+    }
+  ],
+  "vocab": [
+    { "t": "healthy", "d": "صحي، مفيد للجسم" },
+    { "t": "routine", "d": "الأعمال التي نكرّرها كل يوم بالترتيب نفسه" },
+    { "t": "breakfast", "d": "وجبة الفطور في الصباح" },
+    { "t": "exercise", "d": "تمرين رياضي يحرّك الجسم" },
+    { "t": "half past", "d": "والنصف، مثل 7:30 = half past seven" },
+    { "t": "vegetables", "d": "الخضار مثل الخيار والجزر" }
+  ],
+  "checks": [
+    {
+      "q": "الطعام الصحي من بين الخيارات:",
+      "opts": ["chips", "soda", "candy", "fruit"],
+      "correct": 3
+    },
+    {
+      "q": "الساعة 7:30 تُقال:",
+      "opts": ["seven o'clock", "half past seven", "quarter past seven", "seven thirty o'clock"],
+      "correct": 1
+    },
+    {
+      "q": "أكمل: You ...... eat a lot of candy.",
+      "opts": ["shouldn't", "should", "can", "are"],
+      "correct": 0
+    }
+  ],
+  "questions": [
+    {
+      "t": "mcq",
+      "q": "الجملة الصحيحة:",
+      "opts": ["You should to eat vegetables.", "You should eating vegetables.", "You should eat vegetables.", "You should eats vegetables."],
+      "correct": 2
+    },
+    {
+      "t": "mcq",
+      "q": "«أنظّف أسناني» بالإنجليزية:",
+      "opts": ["brush my teeth", "take a shower", "wake up", "have breakfast"],
+      "correct": 0
+    },
+    {
+      "t": "tf",
+      "q": "نقول: I go to school in seven o'clock.",
+      "opts": ["صح", "خطأ"],
+      "correct": 1
+    },
+    {
+      "t": "mcq",
+      "q": "السؤال المناسب للإجابة: I get up at six o'clock.",
+      "opts": ["What do you eat?", "What time do you get up?", "Where do you go?", "How old are you?"],
+      "correct": 1
+    },
+    {
+      "t": "fill",
+      "q": "You should drink a lot of ...... every day.",
+      "ans": "water"
+    },
+    {
+      "t": "tf",
+      "q": "Dates and milk are healthy food.",
+      "opts": ["صح", "خطأ"],
+      "correct": 0
+    },
+    {
+      "t": "mcq",
+      "q": "«وجبة الفطور» بالإنجليزية:",
+      "opts": ["dinner", "lunch", "exercise", "breakfast"],
+      "correct": 3
+    }
+  ],
+  "story": [
+    { "v": "😴", "t": "كان سعود يسهر ويستيقظ متأخراً ويذهب للمدرسة بلا فطور. قال له المعلم: You should have a healthy day!" },
+    { "v": "⏰", "t": "في اليوم التالي ضبط المنبّه: I wake up at six o'clock. نهض بنشاط ونظّف أسنانه: I brush my teeth." },
+    { "v": "🥣", "t": "على المائدة اختار الحليب والتمر والخبز: This is a healthy breakfast! وترك علبة الـ chips جانباً." },
+    { "v": "🏃", "t": "في حصة الرياضة ركض بسهولة أكثر من قبل. قال المدرّب: Exercise every day. It is good for your body." },
+    { "v": "💧", "t": "عند الغداء أراد soda، لكنه تذكّر الدرس: I shouldn't drink soda. I should drink water." },
+    { "v": "🌙", "t": "في المساء حلّ واجبه، وفي half past eight قال: It's time to go to bed. I should sleep eight hours." },
+    { "v": "🌟", "t": "بعد أسبوع شعر سعود بنشاط لم يعرفه من قبل. اليوم الصحي يبدأ بقرار صغير. أحسنت!" }
+  ],
+  "activity": "اكتب جدول يومك الصحي بالإنجليزية من ست جمل مع الوقت، مثل: I wake up at 6 o'clock. I have breakfast at half past six. ثم اكتب نصيحتين لصديقك تبدآن بـ You should وYou shouldn't.",
+  "summary": "نصف روتيننا بأفعال مثل wake up وbrush my teeth وgo to bed مع الوقت (at seven o'clock / half past seven)، ونميّز الطعام الصحي من غير الصحي، ونقدّم النصيحة بـ should وshouldn't."
+}

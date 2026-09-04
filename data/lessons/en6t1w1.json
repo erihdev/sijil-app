@@ -1,0 +1,133 @@
+{
+  "title": "Back to School — العودة إلى المدرسة",
+  "unit": "Welcome! — الصف السادس",
+  "objectives": [
+    "أن يستخدم الطالب عبارات التحية والتعارف بالإنجليزية",
+    "أن يسمّي الطالب أدوات الفصل والمواد الدراسية بالإنجليزية",
+    "أن يوظّف الطالب الفعل be (am / is / are) في جمل التعريف بالنفس"
+  ],
+  "intro": "أول يوم في المدرسة يعني أصدقاء جدداً ومعلّمين جدداً وحقيبة مليئة بالأدوات. في هذا الدرس نتعلّم كيف نرحّب ونعرّف بأنفسنا وبأدواتنا بالإنجليزية.",
+  "sections": [
+    {
+      "h": "Greetings — التحية والتعارف",
+      "body": "نبدأ الحوار بتحية ثم نسأل عن الاسم والعمر والصف.",
+      "points": [
+        "Hello! / Good morning! — مرحباً / صباح الخير",
+        "What's your name? — My name is Saud.",
+        "How old are you? — I am eleven years old.",
+        "What grade are you in? — I am in grade six.",
+        "Nice to meet you! — تشرّفت بمعرفتك"
+      ],
+      "tip": "نقول Good morning قبل الظهر، وGood afternoon بعده."
+    },
+    {
+      "h": "Classroom Objects — أدوات الفصل",
+      "points": [
+        "pen — قلم حبر، pencil — قلم رصاص",
+        "ruler — مسطرة، eraser — ممحاة",
+        "notebook — دفتر، book — كتاب",
+        "schoolbag — حقيبة مدرسية، desk — طاولة",
+        "board — سبّورة، timetable — الجدول الدراسي"
+      ]
+    },
+    {
+      "h": "School Subjects — المواد الدراسية",
+      "points": [
+        "English — الإنجليزية، Math — الرياضيات",
+        "Science — العلوم، Art — الفنية",
+        "P.E. — التربية البدنية، Islamic Studies — الدراسات الإسلامية",
+        "My favorite subject is Science. — مادتي المفضّلة العلوم",
+        "We have Math on Sunday. — عندنا رياضيات يوم الأحد"
+      ],
+      "tip": "أسماء الأيام والمواد تبدأ بحرف كبير: Sunday, English."
+    },
+    {
+      "h": "The Verb be — الفعل am / is / are",
+      "points": [
+        "I am a student. — مع I نستخدم am",
+        "He is my friend. / She is a teacher. — مع المفرد نستخدم is",
+        "We are in grade six. / They are new. — مع الجمع وyou نستخدم are",
+        "السؤال: Are you new? — Yes, I am. / No, I'm not."
+      ]
+    }
+  ],
+  "vocab": [
+    { "t": "greeting", "d": "تحية نبدأ بها الحديث مثل Hello" },
+    { "t": "classmate", "d": "زميل معك في الفصل نفسه" },
+    { "t": "timetable", "d": "الجدول الذي يبيّن حصص كل يوم" },
+    { "t": "subject", "d": "مادة دراسية مثل Math وScience" },
+    { "t": "favorite", "d": "المفضّل الذي تحبه أكثر من غيره" },
+    { "t": "schoolbag", "d": "الحقيبة التي نضع فيها الكتب والأدوات" }
+  ],
+  "checks": [
+    {
+      "q": "ما الردّ المناسب على: What's your name?",
+      "opts": ["I am ten.", "My name is Fahad.", "I am fine.", "It is Sunday."],
+      "correct": 1
+    },
+    {
+      "q": "الأداة التي نمسح بها الكتابة هي:",
+      "opts": ["ruler", "pencil", "eraser", "notebook"],
+      "correct": 2
+    },
+    {
+      "q": "أكمل: We ...... in grade six.",
+      "opts": ["are", "am", "is", "be"],
+      "correct": 0
+    }
+  ],
+  "questions": [
+    {
+      "t": "mcq",
+      "q": "التحية المناسبة في الصباح هي:",
+      "opts": ["Good night", "Good afternoon", "Good morning", "Goodbye"],
+      "correct": 2
+    },
+    {
+      "t": "mcq",
+      "q": "«مسطرة» بالإنجليزية:",
+      "opts": ["ruler", "eraser", "desk", "board"],
+      "correct": 0
+    },
+    {
+      "t": "tf",
+      "q": "نقول: She are my teacher.",
+      "opts": ["صح", "خطأ"],
+      "correct": 1
+    },
+    {
+      "t": "mcq",
+      "q": "السؤال المناسب لمعرفة العمر هو:",
+      "opts": ["What's your name?", "Where are you?", "What grade are you in?", "How old are you?"],
+      "correct": 3
+    },
+    {
+      "t": "fill",
+      "q": "I ...... a student in grade six.",
+      "ans": "am"
+    },
+    {
+      "t": "tf",
+      "q": "كلمة Science تعني مادة العلوم.",
+      "opts": ["صح", "خطأ"],
+      "correct": 0
+    },
+    {
+      "t": "mcq",
+      "q": "الجدول الذي يبيّن حصص كل يوم يسمّى:",
+      "opts": ["notebook", "timetable", "schoolbag", "subject"],
+      "correct": 1
+    }
+  ],
+  "story": [
+    { "v": "🎒", "t": "في أول يوم دراسي حمل سعود حقيبته الجديدة، وفيها pen وruler وnotebook، وقلبه يخفق من الحماس." },
+    { "v": "🚪", "t": "دخل الفصل فرأى طالباً جديداً يجلس وحده. ابتسم وقال: Hello! My name is Saud. What's your name?" },
+    { "v": "🤝", "t": "أجاب الطالب: My name is Rayan. I am eleven years old. ثم تصافحا وقالا معاً: Nice to meet you!" },
+    { "v": "📋", "t": "علّق المعلم الـ timetable على السبورة، فقرأ سعود: We have English on Sunday and Science on Monday." },
+    { "v": "📚", "t": "سأل ريان: What's your favorite subject? فأجاب سعود: My favorite subject is Science. And you?" },
+    { "v": "✏️", "t": "نسي ريان قلمه، فأعطاه سعود pencil وقال: We are classmates now! فشكره ريان بابتسامة واسعة." },
+    { "v": "🌟", "t": "بكلمات إنجليزية بسيطة كسب سعود صديقاً جديداً في أول يوم. أحسنت!" }
+  ],
+  "activity": "اكتب بطاقة تعريف بنفسك بالإنجليزية من أربع جمل: My name is ... / I am ... years old. / I am in grade six. / My favorite subject is ... ثم اقرأها أمام زميلك واسأله: What's your name?",
+  "summary": "نرحّب بـ Hello وGood morning، ونتعارف بـ What's your name? وHow old are you?، ونستخدم am مع I وis مع المفرد وare مع الجمع، ونعرف أسماء أدوات الفصل والمواد الدراسية."
+}

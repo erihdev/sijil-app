@@ -1,0 +1,134 @@
+{
+  "title": "Jobs of the Future — مهن المستقبل",
+  "unit": "Unit 4: Professions — الصف السادس",
+  "objectives": [
+    "أن يسمّي الطالب مهن المستقبل المرتبطة بالتقنية بالإنجليزية",
+    "أن يستخدم الطالب will / won't للحديث عن المستقبل",
+    "أن يراجع الطالب مفردات المهن وتراكيب الوحدة الرابعة"
+  ],
+  "intro": "روبوتات تساعد الأطباء، وسيارات تقود نفسها، ورحلات إلى الفضاء… المستقبل يحتاج مهناً جديدة. في هذا الدرس نتخيّل وظائف الغد ونتحدث عنها بـ will، ثم نراجع كل ما تعلّمناه عن المهن.",
+  "sections": [
+    {
+      "h": "Future Jobs — مهن المستقبل",
+      "points": [
+        "programmer — مبرمج، game designer — مصمّم ألعاب",
+        "robot engineer — مهندس روبوتات، astronaut — رائد فضاء",
+        "scientist — عالم، app developer — مطوّر تطبيقات",
+        "drone pilot — قائد طائرة مسيّرة، solar energy engineer — مهندس طاقة شمسية"
+      ],
+      "tip": "كثير من هذه المهن تحتاج مهارات الحاسوب التي تتعلّمها في المهارات الرقمية."
+    },
+    {
+      "h": "will / won't — المستقبل",
+      "body": "نستخدم will + الفعل الأصلي للتنبؤ بالمستقبل، وwon't للنفي.",
+      "points": [
+        "I will be a programmer. — سأكون مبرمجاً",
+        "Robots will help doctors. — الروبوتات ستساعد الأطباء",
+        "Cars will drive themselves. — السيارات ستقود نفسها",
+        "People won't use paper money. — لن يستخدم الناس النقود الورقية",
+        "Will you be an astronaut? — Yes, I will. / No, I won't."
+      ],
+      "tip": "بعد will لا نضيف s ولا to: She will be وليس She will bes."
+    },
+    {
+      "h": "Skills for the Future — مهارات المستقبل",
+      "points": [
+        "learn coding — تعلّم البرمجة",
+        "speak English well — تحدّث الإنجليزية جيداً",
+        "work in a team — اعمل ضمن فريق",
+        "solve problems — حلّ المشكلات",
+        "keep learning — استمر في التعلّم"
+      ]
+    },
+    {
+      "h": "Unit Review — مراجعة الوحدة الرابعة",
+      "points": [
+        "المهن: teacher, doctor, pilot, engineer, chef, firefighter, nurse",
+        "a / an: a doctor — an engineer — an astronaut",
+        "المضارع البسيط مع he / she: A doctor checks patients. A firefighter puts out fires.",
+        "want to be: I want to be a pilot because I love planes.",
+        "must / mustn't للقواعد، وwill / won't للمستقبل"
+      ],
+      "tip": "راجع الفرق: I want to be (رغبة الآن) — I will be (توقّع للمستقبل)."
+    }
+  ],
+  "vocab": [
+    { "t": "future", "d": "المستقبل، الزمن القادم" },
+    { "t": "robot", "d": "آلة تعمل وتتحرك بأوامر البرمجة" },
+    { "t": "programmer", "d": "مبرمج يكتب أوامر الحاسوب" },
+    { "t": "astronaut", "d": "رائد فضاء يسافر خارج الأرض" },
+    { "t": "coding", "d": "البرمجة، كتابة الأوامر للحاسوب" },
+    { "t": "will", "d": "سوف، للحديث عن المستقبل" }
+  ],
+  "checks": [
+    {
+      "q": "«رائد فضاء» بالإنجليزية:",
+      "opts": ["scientist", "astronaut", "programmer", "pilot"],
+      "correct": 1
+    },
+    {
+      "q": "أكمل: Robots ...... help doctors in the future.",
+      "opts": ["will", "wills", "is", "did"],
+      "correct": 0
+    },
+    {
+      "q": "الجملة الصحيحة:",
+      "opts": ["I want to be a astronaut.", "I want to be an pilot.", "I want to be an engineer.", "I want to be a app developer."],
+      "correct": 2
+    }
+  ],
+  "questions": [
+    {
+      "t": "mcq",
+      "q": "نفي will هو:",
+      "opts": ["willn't", "won't", "don't will", "not will"],
+      "correct": 1
+    },
+    {
+      "t": "mcq",
+      "q": "الجملة الصحيحة:",
+      "opts": ["She will be a scientist.", "She will bes a scientist.", "She will to be a scientist.", "She wills be a scientist."],
+      "correct": 0
+    },
+    {
+      "t": "tf",
+      "q": "A programmer writes code for computers.",
+      "opts": ["صح", "خطأ"],
+      "correct": 0
+    },
+    {
+      "t": "mcq",
+      "q": "الرد الصحيح على: Will you be a game designer?",
+      "opts": ["Yes, I am.", "Yes, I do.", "Yes, I will.", "Yes, I want."],
+      "correct": 2
+    },
+    {
+      "t": "fill",
+      "q": "In the future, cars ...... drive themselves. (سوف)",
+      "ans": "will"
+    },
+    {
+      "t": "tf",
+      "q": "من مراجعة الوحدة: A chef puts out fires.",
+      "opts": ["صح", "خطأ"],
+      "correct": 1
+    },
+    {
+      "t": "mcq",
+      "q": "«البرمجة» بالإنجليزية:",
+      "opts": ["drone", "coding", "robot", "future"],
+      "correct": 1
+    }
+  ],
+  "story": [
+    { "v": "🤖", "t": "في معرض العلوم بالمدرسة رأى ريان روبوتاً صغيراً يمشي. سأل: Who made this? أجاب المعلم: A robot engineer!" },
+    { "v": "💻", "t": "قال المعلم: In the future, robots will help doctors and cars will drive themselves. فتح ريان عينيه دهشة." },
+    { "v": "🚀", "t": "في ركن آخر تحدثت نورة عن الفضاء: I will be an astronaut. Saudi astronauts went to space, and I will go too!" },
+    { "v": "🎮", "t": "قال سعود: I will be a game designer. سأله ريان: Will you make a football game? أجاب: Yes, I will!" },
+    { "v": "🧠", "t": "سأل ريان: What skills do I need? قال المعلم: Learn coding, speak English well, and keep learning." },
+    { "v": "📋", "t": "في نهاية المعرض راجع الفصل مهن الوحدة: a doctor helps, a pilot flies, a firefighter rescues… and we will be the future!" },
+    { "v": "🌟", "t": "المستقبل يصنعه من يتعلّم اليوم. أحسنت!" }
+  ],
+  "activity": "اكتب فقرة من خمس جمل بعنوان My Future تستخدم فيها will وwon't: I will be a ... / I will learn ... / Robots will ... / People won't ... ثم ارسم مهنة المستقبل التي تحلم بها واعرضها في الفصل.",
+  "summary": "مهن المستقبل مثل programmer وastronaut وrobot engineer تحتاج مهارات coding والإنجليزية والتعلّم المستمر. نتحدث عن المستقبل بـ will / won't + الفعل الأصلي، ونراجع مفردات المهن وتراكيب a / an وwant to be وmust / mustn't."
+}

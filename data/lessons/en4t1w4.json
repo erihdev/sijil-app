@@ -1,0 +1,135 @@
+{
+  "title": "This و These — مناسبات العائلة",
+  "unit": "Family Events — الصف الرابع",
+  "objectives": [
+    "أن يفرّق الطالب بين This is (للمفرد) و These are (للجمع)",
+    "أن يستخدم الطالب ضمائر الملكية my و your و his و her",
+    "أن يستمع الطالب إلى قصة عن مناسبة عائلية ويتحدث عنها"
+  ],
+  "intro": "عندما نعرض صورة واحدة نقول This is، وعندما نعرض صورة فيها كثيرون نقول These are. في هذا الدرس نتعلم القاعدة، ونستمع إلى قصة حفل زفاف عائلي مليء بالفرح.",
+  "sections": [
+    {
+      "h": "This is / These are",
+      "body": "This للمفرد القريب، و These للجمع القريب.",
+      "points": [
+        "This is my brother. = هذا أخي (واحد)",
+        "These are my brothers. = هؤلاء إخوتي (أكثر من واحد)",
+        "Who's this? — This is my aunt.",
+        "Who are these? — These are my cousins.",
+        "مع الجمع نضيف s للاسم: cousin → cousins"
+      ],
+      "tip": "This + is + مفرد / These + are + جمع. تذكّر: is مع واحد، are مع أكثر."
+    },
+    {
+      "h": "ضمائر الملكية (my, your, his, her)",
+      "points": [
+        "my = لي (ملكي): my father",
+        "your = لك: your sister",
+        "his = له (للذكر): This is Fahd. His mother is a nurse.",
+        "her = لها (للأنثى): This is Noura. Her brother is ten.",
+        "Is this your grandfather? — Yes, he's my grandfather."
+      ]
+    },
+    {
+      "h": "مناسبات العائلة (Family Events)",
+      "points": [
+        "wedding = حفل زفاف",
+        "birthday party = حفل عيد ميلاد",
+        "picnic = نزهة",
+        "Eid = العيد",
+        "family dinner = عشاء عائلي",
+        "This is my uncle's wedding. = هذا زفاف عمي"
+      ]
+    },
+    {
+      "h": "الاستماع والتحدث (Listening and Speaking)",
+      "body": "نستمع إلى قصة الزفاف ثم نجيب عن الأسئلة ونعيد سردها.",
+      "points": [
+        "Who is this? — This is the bride's father.",
+        "Where are they? — They're at the wedding.",
+        "What is it? — It's a big party!",
+        "تكلّم عن مناسبة حضرتها: This is my cousin's birthday party."
+      ],
+      "tip": "عند الاستماع ركّز على أسماء الأقارب والمكان، ثم أعد الحكاية لزميلك بجمل قصيرة."
+    }
+  ],
+  "vocab": [
+    { "t": "these", "d": "هؤلاء أو هذه (للجمع القريب)" },
+    { "t": "his", "d": "ضمير ملكية للذكر: له" },
+    { "t": "her", "d": "ضمير ملكية للأنثى: لها" },
+    { "t": "wedding", "d": "حفل زفاف" },
+    { "t": "picnic", "d": "نزهة في الحديقة أو البر مع طعام" },
+    { "t": "party", "d": "حفلة" }
+  ],
+  "checks": [
+    {
+      "q": "الجملة الصحيحة للجمع هي؟",
+      "opts": ["This is my cousins.", "These are my cousins.", "These is my cousin.", "This are my cousins."],
+      "correct": 1
+    },
+    {
+      "q": "This is Noura. ...... father is a doctor.",
+      "opts": ["His", "Her", "My", "These"],
+      "correct": 1
+    },
+    {
+      "q": "كلمة wedding تعني؟",
+      "opts": ["نزهة", "عيد ميلاد", "حفل زفاف", "عشاء"],
+      "correct": 2
+    }
+  ],
+  "questions": [
+    {
+      "t": "mcq",
+      "q": "Who are ......? — They are my uncles.",
+      "opts": ["this", "these", "he", "she"],
+      "correct": 1
+    },
+    {
+      "t": "mcq",
+      "q": "This is Saud. ...... brother is twelve.",
+      "opts": ["Her", "This", "His", "These"],
+      "correct": 2
+    },
+    {
+      "t": "tf",
+      "q": "نستخدم These are مع الاسم المفرد.",
+      "opts": ["صح", "خطأ"],
+      "correct": 1
+    },
+    {
+      "t": "mcq",
+      "q": "الكلمة التي تعني «نزهة»؟",
+      "opts": ["wedding", "party", "dinner", "picnic"],
+      "correct": 3
+    },
+    {
+      "t": "fill",
+      "q": "...... are my grandparents. (هؤلاء)",
+      "ans": "These"
+    },
+    {
+      "t": "tf",
+      "q": "Is this your father? — Yes, he's my father. جملة صحيحة.",
+      "opts": ["صح", "خطأ"],
+      "correct": 0
+    },
+    {
+      "t": "mcq",
+      "q": "This is my sister. ...... name is Lama.",
+      "opts": ["Her", "His", "Your", "These"],
+      "correct": 0
+    }
+  ],
+  "story": [
+    { "v": "💌", "t": "وصلت دعوة إلى بيت نورة: زفاف عمها يوم الخميس! It's my uncle's wedding! قالت بفرح." },
+    { "v": "🎉", "t": "في القاعة رأت نورة أقاربها كلهم، فقالت لأمها: These are my cousins! هؤلاء جميعاً بنات عمي!" },
+    { "v": "👵", "t": "جاءت الجدة وسألت: Who's this? فأجابت نورة: This is my friend Jood. Her mother is here too." },
+    { "v": "📷", "t": "التقطت نورة صورة وقالت: This is my aunt, and these are her three daughters." },
+    { "v": "🍽️", "t": "على العشاء قالت لجود: This is my father, and his brother is the groom. هذا أبي وأخوه هو العريس!" },
+    { "v": "🎤", "t": "في اليوم التالي حكت نورة القصة للفصل: We were at a wedding. These are the photos!" },
+    { "v": "🌟", "t": "قالت المعلمة: You used This and These perfectly! أحسنتِ يا نورة!" }
+  ],
+  "activity": "أحضر صورتين: واحدة فيها شخص واحد وأخرى فيها عدة أشخاص، واكتب تحت الأولى This is my… وتحت الثانية These are my…، ثم اذكر مناسبة الصورة (wedding, picnic, Eid).",
+  "summary": "نقول This is للمفرد و These are للجمع مع إضافة s للاسم، ونستخدم my و your و his و her للملكية، ونتحدث عن مناسبات العائلة مثل wedding و picnic و birthday party."
+}

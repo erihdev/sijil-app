@@ -1,0 +1,136 @@
+{
+  "title": "Peter and his Sisters — ماذا تفعل بعد المدرسة؟",
+  "unit": "After-School Fun — الصف الرابع",
+  "objectives": [
+    "أن يسمّي الطالب أنشطة ما بعد المدرسة بالإنجليزية",
+    "أن يسأل الطالب ويجيب عن What do you do after school?",
+    "أن يستخدم الطالب Do you…? مع الإجابات القصيرة Yes, I do. / No, I don't."
+  ],
+  "intro": "يرنّ جرس نهاية الدوام، وتبدأ المتعة: كرة قدم، دراجة، طائرة ورقية، أو كتاب مشوّق. في هذا الدرس نتعرف على بيتر وأخواته وما يفعلونه في البيت، ونتعلم كيف نتحدث عن أنشطتنا بعد المدرسة.",
+  "sections": [
+    {
+      "h": "أنشطة ما بعد المدرسة (After-School Activities)",
+      "points": [
+        "play soccer = يلعب كرة القدم",
+        "ride a bike = يركب دراجة",
+        "fly a kite = يطيّر طائرة ورقية",
+        "play video games = يلعب ألعاب الفيديو",
+        "read a book = يقرأ كتاباً",
+        "draw pictures = يرسم صوراً",
+        "watch TV = يشاهد التلفاز",
+        "do homework = يحل الواجب"
+      ]
+    },
+    {
+      "h": "قصة: Peter and his Sisters Playing at Home",
+      "body": "بعد المدرسة يلعب بيتر وأختاه في البيت: بيتر يرسم، وآنا تقرأ، وماري تلعب لعبة الألغاز، ثم يلعبون معاً بالكرة في الحديقة.",
+      "points": [
+        "Peter draws pictures after school.",
+        "His sisters read books and play puzzles.",
+        "They play ball in the garden together.",
+        "They do their homework first! = يحلون واجبهم أولاً"
+      ],
+      "tip": "الواجب أولاً ثم اللعب: هذه عادة الطلاب الناجحين."
+    },
+    {
+      "h": "القاعدة: المضارع البسيط (Present Simple)",
+      "body": "نستخدمه للعادات وما نفعله عادة كل يوم، بعكس المضارع المستمر الذي يصف ما يحدث الآن.",
+      "points": [
+        "What do you do after school? = ماذا تفعل بعد المدرسة عادة؟",
+        "I play soccer. / I read books. (بلا ing)",
+        "Do you ride a bike? — Yes, I do. / No, I don't.",
+        "Do you fly a kite? — No, I don't. I play video games.",
+        "قارن: I'm reading now. (الآن) ↔ I read every day. (عادة)"
+      ],
+      "tip": "كلمات مثل every day و after school و always تدل على العادة، فنستخدم المضارع البسيط."
+    },
+    {
+      "h": "تحدّث عن نفسك",
+      "points": [
+        "After school, I do my homework.",
+        "Then I play soccer with my friends.",
+        "I don't watch TV a lot.",
+        "اسأل ثلاثة زملاء: Do you draw pictures? وسجّل إجاباتهم"
+      ]
+    }
+  ],
+  "vocab": [
+    { "t": "after school", "d": "بعد المدرسة: وقت ما بعد انتهاء الدوام" },
+    { "t": "ride a bike", "d": "يركب الدراجة" },
+    { "t": "fly a kite", "d": "يطيّر طائرة ورقية" },
+    { "t": "homework", "d": "الواجب المنزلي" },
+    { "t": "don't", "d": "اختصار do not للنفي" },
+    { "t": "every day", "d": "كل يوم" }
+  ],
+  "checks": [
+    {
+      "q": "عبارة fly a kite تعني؟",
+      "opts": ["يركب دراجة", "يطيّر طائرة ورقية", "يرسم صوراً", "يشاهد التلفاز"],
+      "correct": 1
+    },
+    {
+      "q": "What do you do after school? — I ...... soccer.",
+      "opts": ["playing", "am play", "play", "plays"],
+      "correct": 2
+    },
+    {
+      "q": "Do you read books? — الإجابة القصيرة بالإيجاب؟",
+      "opts": ["Yes, I am.", "Yes, I do.", "Yes, I read.", "Yes, I does."],
+      "correct": 1
+    }
+  ],
+  "questions": [
+    {
+      "t": "mcq",
+      "q": "في القصة ماذا يفعل بيتر بعد المدرسة؟",
+      "opts": ["He draws pictures.", "He rides a bike.", "He flies a kite.", "He watches TV."],
+      "correct": 0
+    },
+    {
+      "t": "mcq",
+      "q": "...... you play video games? — No, I don't.",
+      "opts": ["Are", "Is", "Do", "Does"],
+      "correct": 2
+    },
+    {
+      "t": "tf",
+      "q": "المضارع البسيط يصف ما نفعله عادة كل يوم.",
+      "opts": ["صح", "خطأ"],
+      "correct": 0
+    },
+    {
+      "t": "mcq",
+      "q": "الجملة التي تصف عادة (وليس الآن) هي؟",
+      "opts": ["I'm reading now.", "I read every day.", "I am drawing.", "She's playing."],
+      "correct": 1
+    },
+    {
+      "t": "fill",
+      "q": "Do you ride a bike? — No, I ...... (لا)",
+      "ans": "don't"
+    },
+    {
+      "t": "tf",
+      "q": "عبارة do homework تعني «يشاهد التلفاز».",
+      "opts": ["صح", "خطأ"],
+      "correct": 1
+    },
+    {
+      "t": "mcq",
+      "q": "أي عبارة تعني «يرسم صوراً»؟",
+      "opts": ["read pictures", "draw pictures", "watch pictures", "play pictures"],
+      "correct": 1
+    }
+  ],
+  "story": [
+    { "v": "🔔", "t": "رنّ الجرس الأخير، وخرج فهد يجري من المدرسة. سأله زميله في الباص: What do you do after school?" },
+    { "v": "📝", "t": "أجاب فهد: First, I do my homework. ثم ابتسم: Then I play soccer with my brothers!" },
+    { "v": "⚽", "t": "سأله زميله: Do you ride a bike? — Yes, I do! I ride my bike every day in the park." },
+    { "v": "🪁", "t": "Do you fly a kite? — No, I don't. لكنني أريد أن أتعلم! هل تعلّمني؟" },
+    { "v": "📖", "t": "في البيت قرأ فهد قصة Peter and his Sisters: Peter draws pictures and his sisters read books." },
+    { "v": "🎨", "t": "قرر فهد أن يجرّب شيئاً جديداً: I draw pictures too! ورسم طائرة ورقية ملونة." },
+    { "v": "🌟", "t": "في اليوم التالي أخبر المعلم: After school I do my homework, play soccer, and draw. أحسنت يا فهد!" }
+  ],
+  "activity": "اعمل استبياناً في الفصل: اسأل خمسة زملاء Do you play soccer? / Do you read books? / Do you ride a bike? وسجّل الإجابات في جدول بعلامة صح أو خطأ، ثم اكتب جملتين عن النتائج مثل: Four friends play soccer.",
+  "summary": "أنشطة ما بعد المدرسة مثل play soccer و ride a bike و fly a kite، ونسأل What do you do after school? ونجيب بالمضارع البسيط I play…، ونسأل Do you…? ونجيب Yes, I do. أو No, I don't."
+}

@@ -1,0 +1,133 @@
+{
+  "title": "Is he washing the car? — أسئلة نعم/لا",
+  "unit": "Chores — الصف الرابع",
+  "objectives": [
+    "أن يستمع الطالب إلى قصة عن الأعمال المنزلية ويجيب عن أسئلتها",
+    "أن يكوّن الطالب أسئلة نعم/لا بالمضارع المستمر ويجيب عنها",
+    "أن يوظّف الطالب أعمالاً منزلية جديدة في جمل صحيحة"
+  ],
+  "intro": "أمك تنادي من المطبخ: هل تغسل السيارة؟ هل تطوي الملابس؟ في هذا الدرس نتعلم كيف نسأل بـ Is he…? و Are you…? ونجيب بنعم أو لا، ونتعرف على أعمال منزلية جديدة.",
+  "sections": [
+    {
+      "h": "أعمال منزلية جديدة",
+      "points": [
+        "wash the car = يغسل السيارة",
+        "fold the clothes = يطوي الملابس",
+        "cook dinner = يطبخ العشاء",
+        "walk the dog = يمشي بالكلب (يتمشّى معه)",
+        "dust the shelves = يمسح الغبار عن الرفوف",
+        "wash the windows = يغسل النوافذ"
+      ]
+    },
+    {
+      "h": "أسئلة نعم/لا (Yes/No Questions)",
+      "body": "نقدّم am / is / are إلى بداية الجملة لنكوّن السؤال.",
+      "points": [
+        "He is washing the car. → Is he washing the car?",
+        "Yes, he is. / No, he isn't.",
+        "Are you folding the clothes? — Yes, I am. / No, I'm not.",
+        "Are they cooking dinner? — Yes, they are. / No, they aren't."
+      ],
+      "tip": "في الإجابة القصيرة لا نكرّر الفعل: نقول Yes, he is. وليس Yes, he is washing."
+    },
+    {
+      "h": "الاستماع والتحدث (Listening and Speaking)",
+      "body": "نستمع إلى حوار بين أفراد عائلة يوم السبت ونحدّد من يفعل ماذا.",
+      "points": [
+        "Mom: Is Dad washing the car? — Yes, he is.",
+        "Mom: Is Ahmad walking the dog? — No, he isn't. He's dusting the shelves.",
+        "Who is cooking dinner? — Grandma is.",
+        "بعد الاستماع مثّل الحوار مع زميلك بتبديل الأدوار"
+      ]
+    },
+    {
+      "h": "مراجعة المفردات والقواعد",
+      "points": [
+        "What is she doing? — She's folding the clothes.",
+        "الأفعال المنتهية بحرف ساكن قبله حرف صوتي قصير نضاعفها: run → running, sit → sitting",
+        "الأفعال المنتهية بـ e نحذفها: make → making, take → taking",
+        "الجمع: dish → dishes, shelf → shelves"
+      ],
+      "tip": "shelf جمعها shelves وليس shelfs."
+    }
+  ],
+  "vocab": [
+    { "t": "fold", "d": "يطوي (الملابس)" },
+    { "t": "cook", "d": "يطبخ الطعام" },
+    { "t": "dust", "d": "يمسح الغبار" },
+    { "t": "shelves", "d": "رفوف (جمع shelf)" },
+    { "t": "isn't", "d": "اختصار is not: ليس" },
+    { "t": "aren't", "d": "اختصار are not: ليسوا" }
+  ],
+  "checks": [
+    {
+      "q": "السؤال الصحيح من الجملة She is cooking dinner. هو؟",
+      "opts": ["She is cooking dinner?", "Is she cooking dinner?", "Cooking is she dinner?", "Does she cooking dinner?"],
+      "correct": 1
+    },
+    {
+      "q": "Are you washing the car? — الإجابة الصحيحة بالنفي؟",
+      "opts": ["No, I'm not.", "No, I isn't.", "No, you aren't.", "No, I not."],
+      "correct": 0
+    },
+    {
+      "q": "عبارة fold the clothes تعني؟",
+      "opts": ["يغسل الملابس", "يطوي الملابس", "يشتري الملابس", "يلبس الملابس"],
+      "correct": 1
+    }
+  ],
+  "questions": [
+    {
+      "t": "mcq",
+      "q": "...... they walking the dog? — Yes, they are.",
+      "opts": ["Is", "Am", "Are", "Do"],
+      "correct": 2
+    },
+    {
+      "t": "mcq",
+      "q": "Is Grandpa dusting the shelves? — ...... (نعم)",
+      "opts": ["Yes, he is.", "Yes, she is.", "Yes, he does.", "Yes, is he."],
+      "correct": 0
+    },
+    {
+      "t": "tf",
+      "q": "جمع كلمة shelf هو shelves.",
+      "opts": ["صح", "خطأ"],
+      "correct": 0
+    },
+    {
+      "t": "mcq",
+      "q": "الفعل run في المضارع المستمر يُكتب؟",
+      "opts": ["runing", "running", "runeing", "runs"],
+      "correct": 1
+    },
+    {
+      "t": "fill",
+      "q": "Is she cooking dinner? — No, she ...... She's washing the windows.",
+      "ans": "isn't"
+    },
+    {
+      "t": "tf",
+      "q": "wash the car تعني «يطبخ العشاء».",
+      "opts": ["صح", "خطأ"],
+      "correct": 1
+    },
+    {
+      "t": "mcq",
+      "q": "في الحوار: من يطبخ العشاء؟ Who is cooking dinner?",
+      "opts": ["Dad", "Ahmad", "Grandma", "Mom"],
+      "correct": 2
+    }
+  ],
+  "story": [
+    { "v": "🌤️", "t": "صباح السبت، البيت كله مشغول. جلس ريان يراقب من النافذة والدَه أمام السيارة." },
+    { "v": "🚿", "t": "سألته أمه: Is Dad washing the car? فنظر ريان وأجاب: Yes, he is! والماء يتطاير في كل مكان." },
+    { "v": "🧺", "t": "ثم سألت: Is your sister folding the clothes? فذهب يتفقد: No, she isn't. She's dusting the shelves." },
+    { "v": "🐕", "t": "نادت الأم: Rayan, are you walking the dog? ضحك ريان: No, I'm not! We don't have a dog, Mom!" },
+    { "v": "🍲", "t": "من المطبخ فاحت رائحة لذيذة. Who is cooking dinner? سأل ريان. Grandma is! أجابت أمه." },
+    { "v": "🪟", "t": "قرر ريان أن يساعد: I'm washing the windows now! فصارت النوافذ تلمع." },
+    { "v": "🌟", "t": "على العشاء قال الأب: Is everyone happy? فأجاب الجميع: Yes, we are! أحسنت يا ريان!" }
+  ],
+  "activity": "العب مع زميلك لعبة التمثيل الصامت: مثّل عملاً منزلياً دون كلام، وعلى زميلك أن يسأل Are you washing the car? وتجيب Yes, I am. أو No, I'm not. ثم تبادلا الأدوار.",
+  "summary": "نكوّن أسئلة نعم/لا بتقديم is/are: Is he washing the car? ونجيب Yes, he is. أو No, he isn't.، ونتعلم أعمالاً جديدة مثل fold the clothes و cook dinner و dust the shelves."
+}
