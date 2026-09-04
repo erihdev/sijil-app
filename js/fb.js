@@ -7,3 +7,6 @@ window.FIREBASE_CONFIG = {
   messagingSenderId: "278465090183",
   appId: "1:278465090183:web:e54370dfd4f67660af5e22"
 };
+
+/* مفتاح App Check (reCAPTCHA Enterprise) — عام بطبيعته، مقيّد بنطاق erihdev.github.io */
+window.APPCHECK_SITE_KEY = "6LfyzaktAAAAACXGDfkljYD65230YrRTOPXEJgVB";

@@ -171,6 +171,8 @@
   /* ═══ اتصال ═══ */
   async function bootCloud() {
     firebase.initializeApp(window.FIREBASE_CONFIG);
+    // App Check: لا تُقبل طلبات Firestore إلا من موقعنا (reCAPTCHA Enterprise غير مرئي)
+    try { if (firebase.appCheck && window.APPCHECK_SITE_KEY) firebase.appCheck().activate(new firebase.appCheck.ReCaptchaEnterpriseProvider(window.APPCHECK_SITE_KEY), true); } catch (e) { }
     await firebase.auth().signInAnonymously();
     fdb = firebase.firestore();
     const [metaS, teachS, clsS, schS] = await Promise.all([
