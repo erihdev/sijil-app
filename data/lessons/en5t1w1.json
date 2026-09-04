@@ -1,0 +1,132 @@
+{
+  "title": "Look and find! — التحية والتعارف",
+  "unit": "Welcome (وحدة الترحيب) — الصف الخامس",
+  "objectives": [
+    "أن يستخدم الطالب عبارات التحية والتعارف بالإنجليزية استخداماً صحيحاً",
+    "أن يسمّي الطالب أدوات الفصل الدراسي بالإنجليزية عند رؤيتها في الصورة",
+    "أن يستجيب الطالب لتعليمات المعلم الصفية باللغة الإنجليزية"
+  ],
+  "intro": "أول يوم في الصف الخامس، حقيبتك مليئة بالأدوات الجديدة وزملاء جدد ينتظرون التعرّف عليك. سنتعلّم اليوم كيف نلقي التحية ونعرّف بأنفسنا ونجد الأشياء من حولنا بالإنجليزية.",
+  "sections": [
+    {
+      "h": "عبارات التحية Greetings",
+      "points": [
+        "Hello! / Hi! = مرحباً",
+        "Good morning = صباح الخير، Good afternoon = مساء الخير (بعد الظهر)",
+        "How are you? = كيف حالك؟ — I'm fine, thank you. = أنا بخير، شكراً",
+        "Nice to meet you. = سعدت بلقائك",
+        "Goodbye! / See you! = مع السلامة / أراك لاحقاً"
+      ],
+      "tip": "نقول Good evening عند اللقاء مساءً، أما Good night فتُقال عند الوداع ليلاً أو قبل النوم فقط."
+    },
+    {
+      "h": "التعريف بالنفس Introducing yourself",
+      "points": [
+        "What's your name? — My name is Saud. / I'm Saud.",
+        "How old are you? — I'm ten years old.",
+        "Where are you from? — I'm from Saudi Arabia.",
+        "What grade are you in? — I'm in grade five."
+      ],
+      "tip": "نبدأ أسماء الأشخاص والمدن والبلدان بحرف كبير دائماً: Saud, Riyadh, Saudi Arabia."
+    },
+    {
+      "h": "Look and find! أدوات الفصل",
+      "body": "في نشاط Look and find ننظر إلى الصورة، نبحث عن الأشياء، ثم نسمّيها بالإنجليزية.",
+      "points": [
+        "book كتاب — notebook دفتر — pencil قلم رصاص — pen قلم حبر",
+        "ruler مسطرة — eraser ممحاة — pencil case مقلمة — backpack حقيبة ظهر",
+        "desk مكتب — chair كرسي — board سبورة — clock ساعة حائط",
+        "نسأل: Where is the ruler? ونجيب: It's on the desk."
+      ]
+    },
+    {
+      "h": "تعليمات الفصل Classroom language",
+      "points": [
+        "Open your book. افتح كتابك — Close your book. أغلق كتابك",
+        "Listen. استمع — Look. انظر — Repeat. كرّر",
+        "Stand up. قف — Sit down. اجلس — Raise your hand. ارفع يدك",
+        "Can I go out, please? هل أستطيع الخروج من فضلك؟"
+      ],
+      "tip": "كلمة please تجعل الطلب مهذباً، وكلمة Thank you تُقال بعد تلبية الطلب."
+    }
+  ],
+  "vocab": [
+    { "t": "greeting", "d": "تحية: كلمة نبدأ بها اللقاء مثل Hello" },
+    { "t": "introduce", "d": "يعرّف بنفسه أو بغيره ويذكر الاسم" },
+    { "t": "backpack", "d": "حقيبة ظهر نحملها على الكتفين" },
+    { "t": "ruler", "d": "مسطرة نقيس بها ونرسم الخطوط" },
+    { "t": "find", "d": "يجد: يعثر على الشيء بعد البحث عنه" },
+    { "t": "classmate", "d": "زميل يدرس معك في الصف نفسه" }
+  ],
+  "checks": [
+    {
+      "q": "ماذا نقول عند اللقاء صباحاً؟",
+      "opts": ["Good night", "Good morning", "Goodbye", "Good luck"],
+      "correct": 1
+    },
+    {
+      "q": "الجواب المناسب لسؤال How are you?",
+      "opts": ["I'm ten years old.", "I'm from Jeddah.", "I'm fine, thank you.", "My name is Fahd."],
+      "correct": 2
+    },
+    {
+      "q": "كلمة eraser تعني؟",
+      "opts": ["مسطرة", "ممحاة", "مقلمة", "دفتر"],
+      "correct": 1
+    }
+  ],
+  "questions": [
+    {
+      "t": "mcq",
+      "q": "ما السؤال الذي نسأله لمعرفة اسم شخص؟",
+      "opts": ["How old are you?", "Where are you from?", "What's your name?", "How are you?"],
+      "correct": 2
+    },
+    {
+      "t": "tf",
+      "q": "عبارة Nice to meet you تعني «سعدت بلقائك».",
+      "opts": ["صح", "خطأ"],
+      "correct": 0
+    },
+    {
+      "t": "mcq",
+      "q": "«ارفع يدك» بالإنجليزية؟",
+      "opts": ["Sit down.", "Raise your hand.", "Open your book.", "Stand up."],
+      "correct": 1
+    },
+    {
+      "t": "mcq",
+      "q": "الجملة التي نعرّف بها عن بلدنا؟",
+      "opts": ["I'm from Saudi Arabia.", "I'm ten years old.", "I'm in grade five.", "I'm fine."],
+      "correct": 0
+    },
+    {
+      "t": "fill",
+      "q": "كلمة «حقيبة ظهر» بالإنجليزية هي ......",
+      "ans": "backpack"
+    },
+    {
+      "t": "tf",
+      "q": "نقول Good night عندما نلتقي بصديقنا في الصباح.",
+      "opts": ["صح", "خطأ"],
+      "correct": 1
+    },
+    {
+      "t": "mcq",
+      "q": "Where is the ruler? — الجواب المناسب:",
+      "opts": ["It's on the desk.", "I'm ten.", "Yes, I am.", "She's fine."],
+      "correct": 0
+    }
+  ],
+  "story": [
+    { "v": "🎒", "t": "في أول يوم دخل سعود الصف الخامس بحقيبة جديدة، ورأى زميلاً لا يعرفه يجلس بجانبه." },
+    { "v": "👋", "t": "ابتسم سعود وقال: Hello! My name is Saud. فردّ الزميل: Hi! I'm Rayan. Nice to meet you!" },
+    { "v": "🗣️", "t": "سأله المعلم: How are you today, Saud? فأجاب بثقة: I'm fine, thank you!" },
+    { "v": "🔍", "t": "بدأ نشاط Look and find: انظروا إلى الصورة… Where is the ruler? بحث سعود فوجدها: It's on the desk!" },
+    { "v": "📚", "t": "قال المعلم: Open your books, please. ففتح الجميع كتبهم وسمّوا أدواتهم: pencil, eraser, notebook." },
+    { "v": "🤝", "t": "في نهاية الحصة صار سعود وريان صديقين، وتعلّما أن كلمة please تفتح القلوب." },
+    { "v": "🌟", "t": "التحية الطيبة أول خطوة نحو الصداقة. أحسنت يا سعود!" }
+  ],
+  "activity": "اصنع بطاقة تعريف صغيرة اكتب عليها: My name is…, I'm … years old, I'm from …، ثم تبادل البطاقات مع زميلك وألقيا التحية بالإنجليزية أمام الصف.",
+  "summary": "تعلّمنا عبارات التحية والتعارف مثل Hello وHow are you? وMy name is…، وتعرّفنا على أسماء أدوات الفصل وتعليماته. نستخدم please وThank you لنكون مهذبين."
+}

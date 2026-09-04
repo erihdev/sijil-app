@@ -1,0 +1,132 @@
+{
+  "title": "قراءة الوصفات والمجموعات الغذائية",
+  "unit": "الوحدة الرابعة: Glorious Food (طعام شهي) — الصف الخامس",
+  "objectives": [
+    "أن يقرأ الطالب وصفة مكتوبة ويحدد مكوّناتها وخطواتها",
+    "أن يصنّف الطالب الأطعمة في مجموعاتها الغذائية بالإنجليزية",
+    "أن يكتب الطالب وصفة قصيرة بترتيب صحيح وتهجئة سليمة"
+  ],
+  "intro": "الوصفة نص له شكل خاص: قائمة مكوّنات ثم خطوات مرقّمة. واللقمة التي تأكلها تنتمي إلى مجموعة غذائية تفيد جسمك بطريقة مختلفة. اليوم نقرأ وصفة، ونكتب أخرى، ونتعلّم لماذا نحتاج ألواناً متعددة في صحننا.",
+  "sections": [
+    {
+      "h": "القراءة: Fruit Salad Recipe",
+      "body": "الوصفة تتكون من جزأين: Ingredients المكوّنات، وSteps الخطوات.",
+      "points": [
+        "Ingredients: two apples, one banana, some grapes, a cup of orange juice.",
+        "Step 1: Wash the fruit. Step 2: Peel the banana and cut the apples.",
+        "Step 3: Mix the fruit in a bowl. Step 4: Pour the juice on top and serve.",
+        "مهارة القراءة: ابحث عن الأعداد والوحدات في المكوّنات، وعن أفعال الأمر في الخطوات"
+      ]
+    },
+    {
+      "h": "Word Work: كلمات الطعام وتهجئتها",
+      "points": [
+        "الجمع غير المنتظم: tomato → tomatoes، potato → potatoes",
+        "الجمع المنتظم: apple → apples، carrot → carrots",
+        "كلمات بحرف صامت: knife (k لا تُنطق)، sandwich (d خفيفة)",
+        "صفات الطعم: sweet حلو — salty مالح — sour حامض — spicy حار — delicious لذيذ"
+      ],
+      "tip": "احفظ tomatoes وpotatoes معاً: كلتاهما تأخذان es في الجمع."
+    },
+    {
+      "h": "الكتابة: اكتب وصفتك",
+      "points": [
+        "العنوان: My Cheese Sandwich",
+        "المكوّنات مع الكميات: two slices of bread, some cheese, one tomato",
+        "الخطوات مرقّمة وبصيغة الأمر: 1. Cut the tomato. 2. Put the cheese on the bread.",
+        "الخاتمة: Enjoy your snack!",
+        "راجع: كل خطوة تبدأ بفعل وحرف كبير وتنتهي بنقطة"
+      ]
+    },
+    {
+      "h": "Integrated Learning: Natural Science — المجموعات الغذائية",
+      "points": [
+        "fruits and vegetables الفواكه والخضار: فيتامينات تقوّي المناعة",
+        "grains الحبوب: bread, rice — تمنح الجسم الطاقة",
+        "protein البروتين: meat, fish, eggs, beans — تبني العضلات",
+        "dairy الألبان: milk, cheese, yogurt — تقوّي العظام والأسنان",
+        "الصحن الصحي healthy plate: نصفه خضار وفواكه، وربعه حبوب، وربعه بروتين، مع الحليب والماء"
+      ],
+      "tip": "الحلويات والمقليات ليست مجموعة غذائية أساسية، فنأكلها قليلاً وأحياناً فقط."
+    }
+  ],
+  "vocab": [
+    { "t": "step", "d": "خطوة: مرحلة واحدة في الوصفة" },
+    { "t": "peel", "d": "يقشّر: ينزع قشرة الفاكهة" },
+    { "t": "grains", "d": "الحبوب: مثل القمح والأرز، تمنح الطاقة" },
+    { "t": "protein", "d": "البروتين: في اللحم والبيض والبقول، يبني العضلات" },
+    { "t": "dairy", "d": "الألبان: الحليب ومشتقاته، تقوّي العظام" },
+    { "t": "healthy", "d": "صحي: مفيد للجسم" }
+  ],
+  "checks": [
+    {
+      "q": "الجزء الذي يذكر الكميات والمواد في الوصفة يُسمّى",
+      "opts": ["Steps", "Ingredients", "Title", "Enjoy"],
+      "correct": 1
+    },
+    {
+      "q": "الحليب والجبن ينتميان إلى مجموعة",
+      "opts": ["grains", "protein", "dairy", "fruits"],
+      "correct": 2
+    },
+    {
+      "q": "جمع كلمة potato هو",
+      "opts": ["potatos", "potatoes", "potaties", "potato"],
+      "correct": 1
+    }
+  ],
+  "questions": [
+    {
+      "t": "mcq",
+      "q": "بحسب الوصفة، ما الخطوة الأولى في سلطة الفواكه؟",
+      "opts": ["Pour the juice.", "Mix the fruit.", "Wash the fruit.", "Peel the banana."],
+      "correct": 2
+    },
+    {
+      "t": "tf",
+      "q": "الحبوب مثل الخبز والأرز تمنح الجسم الطاقة.",
+      "opts": ["صح", "خطأ"],
+      "correct": 0
+    },
+    {
+      "t": "mcq",
+      "q": "كلمة sour تعني؟",
+      "opts": ["حلو", "مالح", "حامض", "لذيذ"],
+      "correct": 2
+    },
+    {
+      "t": "fill",
+      "q": "Eggs, fish and beans are rich in ......",
+      "ans": "protein"
+    },
+    {
+      "t": "mcq",
+      "q": "في الصحن الصحي، نصف الصحن يكون من",
+      "opts": ["الحلويات", "الخضار والفواكه", "اللحوم", "الأرز فقط"],
+      "correct": 1
+    },
+    {
+      "t": "tf",
+      "q": "الحرف k في كلمة knife يُنطق بوضوح.",
+      "opts": ["صح", "خطأ"],
+      "correct": 1
+    },
+    {
+      "t": "mcq",
+      "q": "الجملة المناسبة كخطوة في وصفة مكتوبة؟",
+      "opts": ["I am cutting the tomato.", "Cut the tomato.", "He cuts tomatoes.", "Tomatoes are red."],
+      "correct": 1
+    }
+  ],
+  "story": [
+    { "v": "📄", "t": "أحضر المعلم ورقة بعنوان Fruit Salad Recipe، وقال لسعود: Read the ingredients first, then the steps." },
+    { "v": "🍎", "t": "قرأ سعود: two apples, one banana, some grapes… ولاحظ أن كل مكوّن له كمية قبله." },
+    { "v": "🔪", "t": "ثم الخطوات: Wash… Peel… Cut… Mix… Pour. كل خطوة تبدأ بفعل أمر، تماماً كما تعلّم في الأسبوع الماضي!" },
+    { "v": "🥗", "t": "في حصة العلوم المدمجة سأل المعلم: Which food group is the apple in? أجاب سعود: Fruits! It has vitamins." },
+    { "v": "🍽️", "t": "رسم سعود صحناً صحياً: نصفه خضار وفواكه، وربعه أرز، وربعه دجاج، وبجانبه كوب حليب من مجموعة dairy." },
+    { "v": "✍️", "t": "في البيت كتب وصفته الخاصة: My Date Milkshake. Ingredients: some dates, a glass of milk. Step 1: Mix them!" },
+    { "v": "🌟", "t": "من يقرأ الوصفة جيداً يأكل جيداً. أحسنت يا سعود!" }
+  ],
+  "activity": "اكتب وصفة سلطة أو عصير من ثلاثة مكوّنات على الأقل بالشكل الصحيح: عنوان، وقائمة Ingredients بالكميات، وثلاث خطوات Steps مرقّمة بصيغة الأمر، ثم صنّف كل مكوّن في مجموعته الغذائية.",
+  "summary": "قرأنا وصفة سلطة الفواكه وتعرّفنا على جزأيها: المكوّنات والخطوات، وتعلّمنا تهجئة كلمات الطعام وجمعها وصفات الطعم، وكتبنا وصفتنا الخاصة. وفي العلوم تعرّفنا على المجموعات الغذائية والصحن الصحي."
+}

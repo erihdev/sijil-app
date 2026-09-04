@@ -1,0 +1,131 @@
+{
+  "title": "من أين يأتي طعامنا؟ ومراجعة الفصل",
+  "unit": "الوحدة الرابعة: Glorious Food (طعام شهي) — الصف الخامس",
+  "objectives": [
+    "أن يصنّف الطالب الأطعمة حسب مصدرها: من النبات أو من الحيوان",
+    "أن يذكر الطالب عادات الأكل الصحية بالإنجليزية",
+    "أن يراجع الطالب مفردات وقواعد وحدة Glorious Food ووحدات الفصل"
+  ],
+  "intro": "الخبز الذي تأكله كان سنبلة قمح في حقل، والجبن كان حليباً في مزرعة. من أين يأتي كل ما في صحنك؟ اليوم نتتبع رحلة الطعام من مصدره، ثم نراجع ما تعلّمناه طوال الفصل.",
+  "sections": [
+    {
+      "h": "Integrated Learning: Natural Science — مصادر الطعام",
+      "points": [
+        "From plants من النباتات: wheat → bread، rice، fruit، vegetables، dates، olive oil",
+        "From animals من الحيوانات: milk → cheese and yogurt، eggs، meat، fish، honey from bees",
+        "رحلة الخبز: The farmer grows wheat → the mill makes flour → the baker bakes bread.",
+        "Where does cheese come from? — It comes from milk."
+      ],
+      "tip": "بعض الأطعمة تمرّ بمراحل صناعة كثيرة، وكلما قلّت المراحل كان الطعام أقرب إلى طبيعته."
+    },
+    {
+      "h": "عادات الأكل الصحية Healthy eating habits",
+      "points": [
+        "Eat breakfast every day. تناول الفطور كل يوم",
+        "Drink a lot of water. اشرب كثيراً من الماء",
+        "Eat fruit and vegetables of different colors. تناول فواكه وخضاراً بألوان مختلفة",
+        "Don't eat too many sweets. لا تكثر من الحلويات",
+        "Wash your hands before eating. اغسل يديك قبل الأكل"
+      ]
+    },
+    {
+      "h": "مراجعة وحدة Glorious Food",
+      "points": [
+        "معدود: an egg / two eggs — غير معدود: some milk / a glass of milk",
+        "How many apples? — Three. / How much water? — Two glasses.",
+        "الأمر والنهي: Cut the bread. Don't add salt.",
+        "الترتيب: First, Then, Next, Finally",
+        "المجموعات الغذائية: fruits and vegetables, grains, protein, dairy"
+      ]
+    },
+    {
+      "h": "مراجعة الفصل الدراسي الأول",
+      "points": [
+        "Personal Interests: I like swimming. / She likes painting. / I'm good at chess.",
+        "House Designs: There is a sofa. / There are two beds. / The lamp is next to the bed.",
+        "Job Paths: What does he do? — He's a doctor. / I want to be a pilot because…",
+        "Glorious Food: How many eggs? / How much milk? / Spread the cheese."
+      ],
+      "tip": "راجع كل وحدة بسؤال واحد وجواب واحد تحفظهما جيداً، فهما مفتاح باقي القاعدة."
+    }
+  ],
+  "vocab": [
+    { "t": "wheat", "d": "قمح: نبات يُصنع منه الدقيق والخبز" },
+    { "t": "flour", "d": "دقيق: مسحوق من القمح نخبز به" },
+    { "t": "come from", "d": "يأتي من: مصدر الشيء" },
+    { "t": "habit", "d": "عادة: شيء نفعله بانتظام" },
+    { "t": "yogurt", "d": "لبن رائب مصنوع من الحليب" },
+    { "t": "sweets", "d": "حلويات: أطعمة كثيرة السكر" }
+  ],
+  "checks": [
+    {
+      "q": "Where does cheese come from?",
+      "opts": ["From wheat", "From milk", "From rice", "From bees"],
+      "correct": 1
+    },
+    {
+      "q": "أي الأطعمة مصدره نباتي؟",
+      "opts": ["eggs", "fish", "bread", "yogurt"],
+      "correct": 2
+    },
+    {
+      "q": "أكمل: How ...... water do you drink?",
+      "opts": ["many", "much", "old", "often"],
+      "correct": 1
+    }
+  ],
+  "questions": [
+    {
+      "t": "mcq",
+      "q": "العسل مصدره",
+      "opts": ["الأبقار", "النحل", "القمح", "النخيل"],
+      "correct": 1
+    },
+    {
+      "t": "tf",
+      "q": "الدقيق flour يُصنع من القمح.",
+      "opts": ["صح", "خطأ"],
+      "correct": 0
+    },
+    {
+      "t": "mcq",
+      "q": "«اشرب كثيراً من الماء» بالإنجليزية؟",
+      "opts": ["Drink a lot of water.", "Eat a lot of water.", "Drinks water many.", "Don't drink water."],
+      "correct": 0
+    },
+    {
+      "t": "fill",
+      "q": "The farmer grows ...... to make bread.",
+      "ans": "wheat"
+    },
+    {
+      "t": "mcq",
+      "q": "مراجعة: الجملة الصحيحة؟",
+      "opts": ["There is two beds.", "He like swimming.", "She wants to be a doctor.", "How much eggs?"],
+      "correct": 2
+    },
+    {
+      "t": "tf",
+      "q": "من العادات الصحية الإكثار من الحلويات كل يوم.",
+      "opts": ["صح", "خطأ"],
+      "correct": 1
+    },
+    {
+      "t": "mcq",
+      "q": "مراجعة: What does he do? — الجواب الصحيح:",
+      "opts": ["He likes chess.", "He's a firefighter.", "There is a doctor.", "He wants a snack."],
+      "correct": 1
+    }
+  ],
+  "story": [
+    { "v": "🌾", "t": "زار ريان مزرعة عمّه في القصيم ورأى حقل قمح ذهبياً، فسأل: What do you make from wheat? أجاب عمّه: Flour, then bread!" },
+    { "v": "🐄", "t": "عند الحظيرة قال عمّه: Milk comes from cows. And cheese and yogurt come from milk. فتذكّر ريان مجموعة dairy." },
+    { "v": "🐝", "t": "رأى خلايا النحل وسأل: Where does honey come from? ضحك عمّه: From bees, not from the shop!" },
+    { "v": "🍽️", "t": "على الغداء صنّف ريان صحنه: rice from plants، chicken from animals، salad from plants. كل شيء له مصدر!" },
+    { "v": "💧", "t": "قال له عمّه: Drink a lot of water and don't eat too many sweets. فوعده ريان بعادات صحية." },
+    { "v": "📚", "t": "في المساء راجع ريان الفصل كاملاً: I like… There are… He's a… How much… فوجد أنه يتذكر كل وحدة!" },
+    { "v": "🌟", "t": "من يعرف مصدر طعامه يحترمه ويأكل بحكمة. أحسنت يا ريان!" }
+  ],
+  "activity": "اكتب ثمانية أطعمة تأكلها في يوم واحد وصنّفها في عمودين: From plants وFrom animals، ثم اكتب ثلاث عادات صحية بصيغة الأمر أو النهي، وأخيراً اكتب جملة واحدة صحيحة من كل وحدة من وحدات الفصل الأربع.",
+  "summary": "تعلّمنا أن الطعام يأتي من النباتات أو الحيوانات وتتبّعنا رحلة الخبز من القمح، وتعرّفنا على عادات الأكل الصحية. وراجعنا وحدة Glorious Food ووحدات الفصل الأول: الهوايات، والمنازل، والمهن، والطعام."
+}

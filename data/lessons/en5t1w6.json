@@ -1,0 +1,130 @@
+{
+  "title": "Sophie moves to a new house — غرف المنزل",
+  "unit": "الوحدة الثانية: House Designs (تصاميم المنازل) — الصف الخامس",
+  "objectives": [
+    "أن يسمّي الطالب غرف المنزل وأجزاءه بالإنجليزية",
+    "أن يميّز الطالب بين أنواع المساكن: house وapartment وvilla",
+    "أن يصف الطالب منزله بجمل بسيطة مستخدماً This is وصفات مثل big وsmall"
+  ],
+  "intro": "صناديق في كل مكان وشاحنة كبيرة أمام الباب… صوفي تنتقل إلى منزل جديد! ما الغرف التي ستجدها فيه؟ اليوم نتجوّل داخل المنزل ونسمّي غرفه بالإنجليزية.",
+  "sections": [
+    {
+      "h": "Sophie moves to a new house",
+      "body": "تنتقل عائلة صوفي إلى منزل جديد، فتستكشف الغرف واحدة واحدة وتتعرّف على الجيران.",
+      "points": [
+        "move ينتقل — new house منزل جديد — box صندوق — truck شاحنة",
+        "neighbor جار — upstairs في الطابق العلوي — downstairs في الطابق السفلي",
+        "Welcome to our new house! أهلاً بكم في منزلنا الجديد",
+        "Which room do you like? — I like the living room."
+      ]
+    },
+    {
+      "h": "غرف المنزل Rooms of the house",
+      "points": [
+        "living room غرفة المعيشة — dining room غرفة الطعام — kitchen المطبخ",
+        "bedroom غرفة النوم — bathroom الحمّام — hall المدخل / الصالة",
+        "garage مرأب السيارة — garden الحديقة — balcony الشرفة",
+        "stairs الدرج — roof السطح — yard الفناء"
+      ],
+      "tip": "كلمات مثل bedroom وbathroom كلمة واحدة، أما living room وdining room فكلمتان."
+    },
+    {
+      "h": "أنواع المساكن Types of homes",
+      "points": [
+        "house منزل مستقل — apartment / flat شقة — villa فيلا",
+        "farmhouse بيت مزرعة — tent خيمة — building عمارة",
+        "I live in an apartment on the third floor. أسكن في شقة في الطابق الثالث",
+        "We live in a house with a garden. نسكن في منزل له حديقة"
+      ]
+    },
+    {
+      "h": "مراجعة: الوصف بـ This is والصفات",
+      "points": [
+        "This is the kitchen. It's big and clean.",
+        "This is my bedroom. It's small but nice.",
+        "الصفات: big كبير — small صغير — new جديد — old قديم — clean نظيف",
+        "There are two bathrooms upstairs. (مراجعة لـ There are)"
+      ],
+      "tip": "الصفة تأتي قبل الاسم: a big kitchen، أو بعد is: The kitchen is big."
+    }
+  ],
+  "vocab": [
+    { "t": "move", "d": "ينتقل من منزل إلى منزل آخر" },
+    { "t": "living room", "d": "غرفة المعيشة: حيث تجتمع العائلة" },
+    { "t": "kitchen", "d": "المطبخ: مكان إعداد الطعام" },
+    { "t": "garage", "d": "مرأب: مكان وقوف السيارة في المنزل" },
+    { "t": "apartment", "d": "شقة: مسكن داخل عمارة" },
+    { "t": "neighbor", "d": "جار: من يسكن قريباً منك" }
+  ],
+  "checks": [
+    {
+      "q": "مكان إعداد الطعام في المنزل؟",
+      "opts": ["bathroom", "kitchen", "garage", "balcony"],
+      "correct": 1
+    },
+    {
+      "q": "كلمة move تعني؟",
+      "opts": ["يبني", "ينتقل", "ينظّف", "يشتري"],
+      "correct": 1
+    },
+    {
+      "q": "الجملة الصحيحة لوصف المطبخ؟",
+      "opts": ["This is the kitchen. It's big.", "This the kitchen big.", "Kitchen is this big.", "This are kitchen."],
+      "correct": 0
+    }
+  ],
+  "questions": [
+    {
+      "t": "mcq",
+      "q": "«غرفة النوم» بالإنجليزية؟",
+      "opts": ["bathroom", "bedroom", "living room", "dining room"],
+      "correct": 1
+    },
+    {
+      "t": "tf",
+      "q": "كلمة garage تعني الحديقة.",
+      "opts": ["صح", "خطأ"],
+      "correct": 1
+    },
+    {
+      "t": "mcq",
+      "q": "المسكن الذي يكون داخل عمارة يُسمّى",
+      "opts": ["farmhouse", "tent", "apartment", "villa"],
+      "correct": 2
+    },
+    {
+      "t": "fill",
+      "q": "We eat dinner in the ...... room.",
+      "ans": "dining"
+    },
+    {
+      "t": "mcq",
+      "q": "الكلمة التي تُكتب كلمة واحدة؟",
+      "opts": ["living room", "dining room", "bathroom", "car garage"],
+      "correct": 2
+    },
+    {
+      "t": "tf",
+      "q": "upstairs تعني «في الطابق العلوي».",
+      "opts": ["صح", "خطأ"],
+      "correct": 0
+    },
+    {
+      "t": "mcq",
+      "q": "Which room do you like? — الجواب المناسب:",
+      "opts": ["I like the living room.", "I'm from Riyadh.", "It's Monday.", "Yes, I do."],
+      "correct": 0
+    }
+  ],
+  "story": [
+    { "v": "🚚", "t": "توقفت شاحنة كبيرة أمام البيت المجاور، ورأى سعود عائلة جديدة تحمل الصناديق: جيران جدد!" },
+    { "v": "📦", "t": "ساعد سعود في حمل صندوق مكتوب عليه kitchen، فقال له الجار: Thank you! Welcome to our new house!" },
+    { "v": "🏠", "t": "تجوّل سعود مع ابن الجيران: This is the living room, and this is the dining room. كل غرفة لها اسم!" },
+    { "v": "🪜", "t": "صعدا الدرج: Upstairs there are two bedrooms and a bathroom. ثم أطلّا من balcony على الحديقة." },
+    { "v": "🚗", "t": "في الأسفل رأى سعود المرأب وقال: This is the garage. It's big! فضحك صاحبه: Yes, and it's clean!" },
+    { "v": "🗣️", "t": "سأله الجار: Which room do you like? أجاب سعود: I like the garden. It's small but beautiful." },
+    { "v": "🌟", "t": "الجار الطيب أول هدية في المنزل الجديد. أحسنت يا سعود!" }
+  ],
+  "activity": "ارسم مخططاً بسيطاً لمنزلك واكتب اسم كل غرفة بالإنجليزية، ثم صف ثلاث غرف بجمل مثل: This is the kitchen. It's big and clean.",
+  "summary": "تعلّمنا أسماء غرف المنزل وأجزائه مثل living room وkitchen وgarage، وأنواع المساكن مثل house وapartment، وراجعنا وصف الغرف بـ This is والصفات."
+}

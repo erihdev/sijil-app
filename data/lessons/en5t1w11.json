@@ -1,0 +1,130 @@
+{
+  "title": "ماذا تريد أن تصبح؟ I want to be…",
+  "unit": "الوحدة الثالثة: Job Paths (مسارات المهن) — الصف الخامس",
+  "objectives": [
+    "أن يعبّر الطالب عن مهنة المستقبل باستخدام I want to be a…",
+    "أن يذكر الطالب سبب اختياره للمهنة باستخدام because",
+    "أن يصف الطالب ما يفعله أصحاب المهن باستخدام أفعال العمل مثل helps وfixes وflies"
+  ],
+  "intro": "عندما تكبر، ماذا تريد أن تصبح؟ طياراً يحلّق فوق الغيوم، أم طبيباً يعالج المرضى، أم مهندساً يبني المدن؟ اليوم نحكي قصة يوم المهن، ونتعلّم كيف نتحدث عن أحلامنا.",
+  "sections": [
+    {
+      "h": "القصة: يوم المهن Career Day",
+      "body": "تدعو المدرسة أولياء الأمور ليتحدثوا عن مهنهم، ويكتشف الطلاب أن لكل مهنة أدوات ومكاناً وفائدة للناس.",
+      "points": [
+        "uniform زيّ العمل — tools أدوات — help يساعد — save ينقذ",
+        "A firefighter wears a helmet and saves people.",
+        "A doctor wears a white coat and helps sick people.",
+        "الدرس: اختر مهنة تحبها وتفيد بها الناس"
+      ]
+    },
+    {
+      "h": "القاعدة: What do you want to be?",
+      "points": [
+        "What do you want to be? — I want to be a pilot.",
+        "What does he want to be? — He wants to be a vet.",
+        "النفي: I don't want to be a farmer.",
+        "السؤال: Do you want to be a teacher? — Yes, I do. / No, I don't."
+      ],
+      "tip": "بعد want to يأتي الفعل be ثم a أو an ثم المهنة: I want to be an engineer."
+    },
+    {
+      "h": "السبب: because",
+      "points": [
+        "I want to be a doctor because I like helping people.",
+        "She wants to be a teacher because she loves children.",
+        "He wants to be a pilot because he likes traveling.",
+        "Why do you want to be a chef? — Because I love cooking."
+      ],
+      "tip": "بعد because نضع جملة كاملة فيها فاعل وفعل: because I like… وليس because like."
+    },
+    {
+      "h": "ماذا يفعل أصحاب المهن؟ What do they do?",
+      "points": [
+        "A pilot flies planes. / A bus driver drives a bus.",
+        "A mechanic fixes cars. / A baker bakes bread.",
+        "A farmer grows vegetables. / A vet takes care of animals.",
+        "A police officer keeps people safe. / A nurse looks after patients."
+      ]
+    }
+  ],
+  "vocab": [
+    { "t": "want to be", "d": "يريد أن يصبح: يتمنى مهنة في المستقبل" },
+    { "t": "uniform", "d": "زي موحّد يلبسه أصحاب مهنة معينة" },
+    { "t": "helmet", "d": "خوذة تحمي الرأس" },
+    { "t": "save", "d": "ينقذ: يخلّص شخصاً من الخطر" },
+    { "t": "patient", "d": "مريض يتلقى العلاج" },
+    { "t": "future", "d": "المستقبل: الزمن القادم" }
+  ],
+  "checks": [
+    {
+      "q": "الجملة الصحيحة؟",
+      "opts": ["I want be a pilot.", "I want to be a pilot.", "I want to a pilot.", "I want to be pilot."],
+      "correct": 1
+    },
+    {
+      "q": "A pilot ...... planes.",
+      "opts": ["fixes", "drives", "flies", "bakes"],
+      "correct": 2
+    },
+    {
+      "q": "كلمة uniform تعني؟",
+      "opts": ["أداة", "زي عمل", "خوذة", "مريض"],
+      "correct": 1
+    }
+  ],
+  "questions": [
+    {
+      "t": "mcq",
+      "q": "What does he want to be? — الجواب الصحيح:",
+      "opts": ["He want to be a vet.", "He wants to be a vet.", "He is want a vet.", "He wants be vet."],
+      "correct": 1
+    },
+    {
+      "t": "tf",
+      "q": "بعد because نضع جملة كاملة فيها فاعل وفعل.",
+      "opts": ["صح", "خطأ"],
+      "correct": 0
+    },
+    {
+      "t": "mcq",
+      "q": "أكمل: I want to be a doctor ...... I like helping people.",
+      "opts": ["but", "because", "and", "or"],
+      "correct": 1
+    },
+    {
+      "t": "fill",
+      "q": "A mechanic ...... cars.",
+      "ans": "fixes"
+    },
+    {
+      "t": "mcq",
+      "q": "الشخص الذي يعتني بالحيوانات المريضة يريد أن يكون",
+      "opts": ["a vet", "a baker", "a pilot", "a dentist"],
+      "correct": 0
+    },
+    {
+      "t": "tf",
+      "q": "جملة I don't want to be a farmer تعني «أريد أن أصبح مزارعاً».",
+      "opts": ["صح", "خطأ"],
+      "correct": 1
+    },
+    {
+      "t": "mcq",
+      "q": "Why do you want to be a chef? — الجواب المناسب:",
+      "opts": ["Because I love cooking.", "He's a chef.", "In a restaurant.", "Yes, I do."],
+      "correct": 0
+    }
+  ],
+  "story": [
+    { "v": "🏫", "t": "أعلنت المدرسة عن Career Day، وجاء آباء الطلاب يحملون أدوات مهنهم. تحمّس سعود كثيراً." },
+    { "v": "🚒", "t": "دخل رجل إطفاء بخوذته وقال: I'm a firefighter. I save people from fires. صفّق الجميع بحرارة." },
+    { "v": "🩺", "t": "ثم تحدثت طبيبة: I help sick people. I wear a white coat. سأل سعود: Why? أجابت: Because I love helping people." },
+    { "v": "✈️", "t": "وقال طيار: I fly planes to many countries. لمعت عينا سعود: I want to be a pilot!" },
+    { "v": "🤔", "t": "سأله المعلم: Why do you want to be a pilot? أجاب سعود: Because I like traveling and I love the sky." },
+    { "v": "📋", "t": "كتب كل طالب حلمه على لوحة الفصل: I want to be a vet… an engineer… a teacher… وكل واحد ذكر السبب." },
+    { "v": "🌟", "t": "الحلم يبدأ بجملة: I want to be… أحسنت يا سعود!" }
+  ],
+  "activity": "اكتب ثلاث جمل عن مهنة المستقبل: I want to be a … because …، وما يفعله صاحب هذه المهنة، ثم ارسم زيّ العمل أو أداته، واسأل زميلك: What do you want to be?",
+  "summary": "تعلّمنا التعبير عن مهنة المستقبل بـ I want to be a…، وذكر السبب بـ because مع جملة كاملة، ووصف ما يفعله أصحاب المهن مثل A pilot flies planes. وعشنا قصة يوم المهن في المدرسة."
+}

@@ -1,0 +1,131 @@
+{
+  "title": "الأثاث ووصف منزل الأحلام",
+  "unit": "الوحدة الثانية: House Designs (تصاميم المنازل) — الصف الخامس",
+  "objectives": [
+    "أن يسمّي الطالب قطع الأثاث والأجهزة المنزلية بالإنجليزية",
+    "أن يسأل الطالب بـ How many…? ويستخدم some وany استخداماً صحيحاً",
+    "أن يكتب الطالب فقرة قصيرة يصف فيها منزل أحلامه"
+  ],
+  "intro": "لو صمّمت منزل أحلامك، كم غرفة سيكون فيه؟ وما الأثاث الذي ستضعه في كل غرفة؟ اليوم نتعلّم أسماء الأثاث، ونقرأ عن منزل، ثم نكتب عن منزلنا المثالي.",
+  "sections": [
+    {
+      "h": "الأثاث والأجهزة Furniture and appliances",
+      "points": [
+        "sofa أريكة — armchair كرسي بذراعين — table طاولة — chair كرسي",
+        "bed سرير — wardrobe خزانة ملابس — lamp مصباح — shelf رف",
+        "carpet سجّادة — curtains ستائر — mirror مرآة — picture لوحة",
+        "fridge ثلاجة — stove موقد — sink حوض — washing machine غسّالة"
+      ]
+    },
+    {
+      "h": "القاعدة: How many…? و some / any",
+      "points": [
+        "How many rooms are there? — There are five rooms.",
+        "How many chairs are there in the kitchen? — There are four.",
+        "some في الإثبات: There are some pictures on the wall.",
+        "any في النفي والسؤال: There aren't any curtains. / Are there any lamps?"
+      ],
+      "tip": "بعد How many يأتي الاسم في صيغة الجمع دائماً: How many beds؟ وليس How many bed."
+    },
+    {
+      "h": "القراءة و Word Work: الكلمات المركّبة",
+      "body": "نقرأ نصاً يصف منزل عائلة، ثم نتعرّف على الكلمات المركّبة من كلمتين.",
+      "points": [
+        "bed + room = bedroom، bath + room = bathroom",
+        "arm + chair = armchair، book + shelf = bookshelf",
+        "wash + ing + machine = washing machine (كلمتان)",
+        "عند القراءة: ابحث عن أسماء الغرف أولاً ثم الأثاث في كل غرفة"
+      ],
+      "tip": "الكلمة المركّبة معناها من معنى جزأيها: bookshelf رف الكتب."
+    },
+    {
+      "h": "الكتابة: My dream house",
+      "points": [
+        "الجملة الأولى: My dream house is big and white.",
+        "الغرف: There are six rooms and a beautiful garden.",
+        "الأثاث: In my bedroom, there is a big bed and some shelves for my books.",
+        "الخاتمة: I love my dream house because it is quiet and sunny.",
+        "استخدم حروف الجر: The sofa is in front of the TV."
+      ]
+    }
+  ],
+  "vocab": [
+    { "t": "furniture", "d": "أثاث: الأشياء التي نضعها في البيت مثل السرير والطاولة" },
+    { "t": "wardrobe", "d": "خزانة ملابس كبيرة" },
+    { "t": "armchair", "d": "كرسي مريح له ذراعان" },
+    { "t": "curtains", "d": "ستائر تُعلّق على النوافذ" },
+    { "t": "fridge", "d": "ثلاجة تحفظ الطعام بارداً" },
+    { "t": "dream", "d": "حلم: ما نتمنى أن يتحقق" }
+  ],
+  "checks": [
+    {
+      "q": "كلمة wardrobe تعني؟",
+      "opts": ["خزانة ملابس", "ثلاجة", "مصباح", "ستائر"],
+      "correct": 0
+    },
+    {
+      "q": "أكمل: There aren't ...... pictures on the wall.",
+      "opts": ["some", "any", "a", "an"],
+      "correct": 1
+    },
+    {
+      "q": "الكلمة المركّبة من bed و room هي؟",
+      "opts": ["roombed", "bed room", "bedroom", "bedsroom"],
+      "correct": 2
+    }
+  ],
+  "questions": [
+    {
+      "t": "mcq",
+      "q": "السؤال الصحيح عن عدد الغرف؟",
+      "opts": ["How many room is there?", "How many rooms are there?", "How much rooms are there?", "How many rooms is there?"],
+      "correct": 1
+    },
+    {
+      "t": "tf",
+      "q": "نستخدم some في الجملة المثبتة مثل There are some lamps.",
+      "opts": ["صح", "خطأ"],
+      "correct": 0
+    },
+    {
+      "t": "mcq",
+      "q": "الجهاز الذي نطبخ عليه في المطبخ؟",
+      "opts": ["fridge", "sink", "stove", "mirror"],
+      "correct": 2
+    },
+    {
+      "t": "fill",
+      "q": "arm + chair = ......",
+      "ans": "armchair"
+    },
+    {
+      "t": "mcq",
+      "q": "Are there any curtains? — الجواب الصحيح:",
+      "opts": ["Yes, there is.", "No, there aren't.", "Yes, it is.", "No, there isn't."],
+      "correct": 1
+    },
+    {
+      "t": "tf",
+      "q": "carpet تعني «مرآة».",
+      "opts": ["صح", "خطأ"],
+      "correct": 1
+    },
+    {
+      "t": "mcq",
+      "q": "الجملة الأنسب لبداية فقرة عن منزل الأحلام؟",
+      "opts": ["My dream house is big and white.", "The sofa is red.", "I like curtains.", "There is a fridge."],
+      "correct": 0
+    }
+  ],
+  "story": [
+    { "v": "📝", "t": "طلب المعلم من لمى أن تكتب عن My dream house، فأغمضت عينيها وبدأت تتخيّل." },
+    { "v": "🏡", "t": "كتبت: My dream house is big and white. There are seven rooms and a garden with trees." },
+    { "v": "🛏️", "t": "في غرفة النوم تخيّلت: There is a big bed, a wardrobe, and some shelves for my books. Bookshelf… كلمة مركّبة!" },
+    { "v": "🍳", "t": "وفي المطبخ: There is a fridge, a stove, and a sink. But there aren't any curtains. I don't like curtains!" },
+    { "v": "❓", "t": "سألتها صديقتها: How many bathrooms are there? فكّرت لمى ثم ضحكت: There are three! One is only for my cat." },
+    { "v": "🖼️", "t": "قرأ المعلم الفقرة وقال: Wonderful! فقد استخدمت some وany بشكل صحيح ووصفت مكان كل قطعة أثاث." },
+    { "v": "🌟", "t": "الكلمات تبني البيوت قبل الطوب. أحسنت يا لمى!" }
+  ],
+  "activity": "ارسم غرفة أحلامك وضع فيها خمس قطع أثاث على الأقل، ثم اكتب فقرة من خمس جمل تصفها مستخدماً There is وThere are وsome وany وحرفي جر على الأقل.",
+  "summary": "تعلّمنا أسماء الأثاث والأجهزة المنزلية، والسؤال بـ How many…?، واستخدام some في الإثبات وany في النفي والسؤال. وتعرّفنا على الكلمات المركّبة مثل bedroom، وكتبنا فقرة عن منزل الأحلام."
+}

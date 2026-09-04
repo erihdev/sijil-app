@@ -1,0 +1,129 @@
+{
+  "title": "Join an activity at the youth center! — الهوايات",
+  "unit": "الوحدة الأولى: Personal Interests (الاهتمامات الشخصية) — الصف الخامس",
+  "objectives": [
+    "أن يسمّي الطالب أنشطة المركز الشبابي بالإنجليزية",
+    "أن يعبّر الطالب عن ما يحبه باستخدام like / love / enjoy + الفعل مع -ing",
+    "أن يسأل الطالب زميله عن هوايته ويجيب عن السؤال إجابة صحيحة"
+  ],
+  "intro": "افتُتح مركز شبابي جديد في الحي، وعلى بابه لوحة كبيرة: Join an activity! سباحة، رسم، شطرنج، كاراتيه… أي نشاط ستختار؟ اليوم نتعلّم كيف نتحدث عن هواياتنا بالإنجليزية.",
+  "sections": [
+    {
+      "h": "أنشطة المركز الشبابي Youth center activities",
+      "points": [
+        "swimming السباحة — painting الرسم بالألوان — drawing الرسم بالقلم",
+        "playing chess لعب الشطرنج — playing football كرة القدم — doing karate الكاراتيه",
+        "cooking الطبخ — taking photos التصوير — reading القراءة",
+        "riding a bike ركوب الدراجة — collecting stamps جمع الطوابع — doing puzzles حل الألغاز"
+      ]
+    },
+    {
+      "h": "القاعدة: like / love / enjoy + -ing",
+      "points": [
+        "I like swimming. أحب السباحة",
+        "I love painting. أعشق الرسم",
+        "I enjoy reading. أستمتع بالقراءة",
+        "النفي: I don't like cooking. لا أحب الطبخ"
+      ],
+      "tip": "بعد like وlove وenjoy وhate يأتي الفعل دائماً مع -ing."
+    },
+    {
+      "h": "السؤال والجواب Asking about hobbies",
+      "points": [
+        "What do you like doing? — I like playing chess.",
+        "Do you like swimming? — Yes, I do. / No, I don't.",
+        "What's your favorite activity? — My favorite activity is karate.",
+        "What's your hobby? — My hobby is taking photos."
+      ],
+      "tip": "السؤال الذي يبدأ بـ Do يُجاب بـ Yes, I do أو No, I don't وليس بـ Yes, I like."
+    },
+    {
+      "h": "مراجعة: كيف نضيف -ing؟",
+      "points": [
+        "معظم الأفعال: play → playing، read → reading، draw → drawing",
+        "الفعل المنتهي بـ e صامتة: نحذفها ثم نضيف ing: ride → riding، dance → dancing",
+        "حرف علة قصير ثم حرف صامت: نضاعف الصامت: swim → swimming، run → running",
+        "مثال: I enjoy riding my bike and swimming in the pool."
+      ]
+    }
+  ],
+  "vocab": [
+    { "t": "youth center", "d": "مركز شبابي: مكان يمارس فيه الشباب الأنشطة الرياضية والثقافية" },
+    { "t": "hobby", "d": "هواية: نشاط نحبه ونمارسه في وقت الفراغ" },
+    { "t": "activity", "d": "نشاط: عمل نقوم به مثل السباحة أو الرسم" },
+    { "t": "join", "d": "ينضم: يشترك في نشاط أو مجموعة" },
+    { "t": "chess", "d": "الشطرنج: لعبة ذكاء على رقعة بقطع" },
+    { "t": "puzzle", "d": "لغز أو أحجية نحاول حلّها" }
+  ],
+  "checks": [
+    {
+      "q": "الجملة الصحيحة؟",
+      "opts": ["I like swim.", "I like swimming.", "I like to swimming.", "I likes swim."],
+      "correct": 1
+    },
+    {
+      "q": "كلمة painting تعني؟",
+      "opts": ["السباحة", "الطبخ", "الرسم بالألوان", "القراءة"],
+      "correct": 2
+    },
+    {
+      "q": "Do you like chess? — الجواب المناسب:",
+      "opts": ["Yes, I do.", "Yes, I am.", "Yes, I can.", "Yes, it does."],
+      "correct": 0
+    }
+  ],
+  "questions": [
+    {
+      "t": "mcq",
+      "q": "الصيغة الصحيحة للفعل swim مع -ing؟",
+      "opts": ["swiming", "swimming", "swimeing", "swimging"],
+      "correct": 1
+    },
+    {
+      "t": "tf",
+      "q": "بعد الفعل enjoy نضع الفعل الثاني مع -ing.",
+      "opts": ["صح", "خطأ"],
+      "correct": 0
+    },
+    {
+      "t": "mcq",
+      "q": "«جمع الطوابع» بالإنجليزية؟",
+      "opts": ["taking photos", "doing puzzles", "collecting stamps", "playing chess"],
+      "correct": 2
+    },
+    {
+      "t": "fill",
+      "q": "ride + ing = ......",
+      "ans": "riding"
+    },
+    {
+      "t": "mcq",
+      "q": "السؤال المناسب للجواب: I like taking photos.",
+      "opts": ["How old are you?", "What do you like doing?", "Where are you from?", "Can you swim?"],
+      "correct": 1
+    },
+    {
+      "t": "tf",
+      "q": "جملة I don't like cooking تعني «أحب الطبخ».",
+      "opts": ["صح", "خطأ"],
+      "correct": 1
+    },
+    {
+      "t": "mcq",
+      "q": "المكان الذي نمارس فيه الأنشطة الرياضية والثقافية في الحي هو",
+      "opts": ["hospital", "youth center", "airport", "kitchen"],
+      "correct": 1
+    }
+  ],
+  "story": [
+    { "v": "🏢", "t": "مرّ ريان بالمركز الشبابي الجديد ورأى لوحة: Join an activity at the youth center! فدخل بفضول." },
+    { "v": "📋", "t": "على الجدار قائمة طويلة: swimming, painting, chess, karate, cooking… حار ريان أيهما يختار." },
+    { "v": "🗣️", "t": "سأله المشرف: What do you like doing, Rayan? فكّر قليلاً ثم قال: I like swimming and I love playing chess!" },
+    { "v": "🏊", "t": "في حصة السباحة كتب اسمه على الاستمارة: I enjoy swimming. وتذكّر أن swim تصبح swimming بحرفي m." },
+    { "v": "♟️", "t": "في نادي الشطرنج التقى صديقاً سأله: Do you like chess? فأجاب بابتسامة: Yes, I do!" },
+    { "v": "🍳", "t": "وعندما دعوه إلى نادي الطبخ قال بأدب: I don't like cooking, but thank you!" },
+    { "v": "🌟", "t": "اختر هوايتك وعبّر عنها بثقة. أحسنت يا ريان!" }
+  ],
+  "activity": "ارسم جدولاً من عمودين: الأول I like والثاني I don't like، واكتب في كل عمود ثلاثة أنشطة مع -ing، ثم اسأل ثلاثة زملاء: What do you like doing? وسجّل إجاباتهم.",
+  "summary": "تعلّمنا أسماء أنشطة المركز الشبابي، وأن الفعل بعد like وlove وenjoy يأخذ -ing، وكيف نسأل ونجيب عن الهوايات. وراجعنا قواعد إضافة -ing إلى الفعل."
+}

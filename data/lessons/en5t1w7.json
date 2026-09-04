@@ -1,0 +1,131 @@
+{
+  "title": "There is / There are وحروف الجر المكانية",
+  "unit": "الوحدة الثانية: House Designs (تصاميم المنازل) — الصف الخامس",
+  "objectives": [
+    "أن يستخدم الطالب There is مع المفرد و There are مع الجمع استخداماً صحيحاً",
+    "أن يحدد الطالب مكان الأشياء باستخدام حروف الجر المكانية",
+    "أن يسأل الطالب بـ Is there…? و Where is…? ويجيب إجابة صحيحة"
+  ],
+  "intro": "أين مفاتيح البيت؟ على الطاولة أم تحت الوسادة أم خلف الباب؟ اليوم نتعلّم كيف نقول أين الأشياء بالضبط، وكيف نصف ما في الغرفة بـ There is وThere are.",
+  "sections": [
+    {
+      "h": "القاعدة: There is / There are",
+      "points": [
+        "There is + مفرد: There is a sofa in the living room.",
+        "There are + جمع: There are two beds in the bedroom.",
+        "النفي: There isn't a garden. / There aren't any pictures.",
+        "الاختصار: There's = There is"
+      ],
+      "tip": "انظر إلى الاسم الذي بعد There: مفرد → is، جمع → are."
+    },
+    {
+      "h": "حروف الجر المكانية Prepositions of place",
+      "points": [
+        "in في — on على — under تحت",
+        "next to بجانب — between بين — behind خلف",
+        "in front of أمام — above فوق (دون ملامسة) — near قرب",
+        "The cat is under the table. / The lamp is next to the bed."
+      ],
+      "tip": "on تعني «على» مع ملامسة السطح، أما above فتعني «فوق» دون ملامسة: The clock is above the door."
+    },
+    {
+      "h": "السؤال والجواب",
+      "points": [
+        "Is there a TV in the living room? — Yes, there is. / No, there isn't.",
+        "Are there any chairs? — Yes, there are. / No, there aren't.",
+        "Where is the ball? — It's behind the sofa.",
+        "Where are the books? — They're on the shelf."
+      ]
+    },
+    {
+      "h": "القصة والمحادثة: المفاتيح الضائعة",
+      "body": "تبحث العائلة عن مفاتيح البيت الجديد في كل غرفة، ويستخدم الأطفال حروف الجر ليخبروا بعضهم أين بحثوا.",
+      "points": [
+        "keys مفاتيح — lost ضائع — look for يبحث عن — found وجد",
+        "Are they on the table? — No, they aren't.",
+        "Look under the cushion! — Here they are!",
+        "في المحادثة: اسأل Where…? واستمع لحرف الجر في الجواب"
+      ],
+      "tip": "عند الاستماع ركّز على كلمات المكان الصغيرة: on, in, under… فهي مفتاح فهم الجملة."
+    }
+  ],
+  "vocab": [
+    { "t": "between", "d": "بين: في الوسط بين شيئين" },
+    { "t": "behind", "d": "خلف: وراء الشيء" },
+    { "t": "in front of", "d": "أمام: قدّام الشيء" },
+    { "t": "next to", "d": "بجانب: قريب جداً وملاصق" },
+    { "t": "above", "d": "فوق الشيء دون أن يلمسه" },
+    { "t": "keys", "d": "مفاتيح: نفتح بها الأبواب" }
+  ],
+  "checks": [
+    {
+      "q": "أكمل: ...... two beds in the bedroom.",
+      "opts": ["There is", "There are", "It is", "They is"],
+      "correct": 1
+    },
+    {
+      "q": "كلمة between تعني؟",
+      "opts": ["خلف", "بين", "تحت", "أمام"],
+      "correct": 1
+    },
+    {
+      "q": "Is there a TV? — الجواب الصحيح:",
+      "opts": ["Yes, it is.", "Yes, there are.", "Yes, there is.", "Yes, I do."],
+      "correct": 2
+    }
+  ],
+  "questions": [
+    {
+      "t": "mcq",
+      "q": "الجملة الصحيحة؟",
+      "opts": ["There is three chairs.", "There are a sofa.", "There is a lamp on the desk.", "There are a bed."],
+      "correct": 2
+    },
+    {
+      "t": "tf",
+      "q": "There isn't a garden تعني «لا توجد حديقة».",
+      "opts": ["صح", "خطأ"],
+      "correct": 0
+    },
+    {
+      "t": "mcq",
+      "q": "القطة تحت الطاولة: The cat is ...... the table.",
+      "opts": ["on", "under", "behind", "between"],
+      "correct": 1
+    },
+    {
+      "t": "fill",
+      "q": "The clock is ...... the door. (فوق الباب دون ملامسة)",
+      "ans": "above"
+    },
+    {
+      "t": "mcq",
+      "q": "Where are the books? — الجواب المناسب:",
+      "opts": ["It's on the shelf.", "They're on the shelf.", "Yes, there are.", "There is a book."],
+      "correct": 1
+    },
+    {
+      "t": "tf",
+      "q": "نستخدم There are مع الاسم المفرد.",
+      "opts": ["صح", "خطأ"],
+      "correct": 1
+    },
+    {
+      "t": "mcq",
+      "q": "«أمام» بالإنجليزية؟",
+      "opts": ["behind", "next to", "in front of", "near"],
+      "correct": 2
+    }
+  ],
+  "story": [
+    { "v": "🔑", "t": "صاح والد ريان: Where are the keys? فالعائلة تريد الخروج ومفاتيح البيت الجديد ضائعة!" },
+    { "v": "🛋️", "t": "ركض ريان إلى غرفة المعيشة: Are they on the sofa? No! Under the cushion? No! ثم صرخ: Behind the TV? No!" },
+    { "v": "🍽️", "t": "ذهبت أخته إلى المطبخ: There are plates on the table, but there aren't any keys!" },
+    { "v": "🛏️", "t": "في غرفة النوم نظر ريان بين السريرين: Between the beds? ثم فوق الرف: There is a book above the bed… no keys." },
+    { "v": "🚪", "t": "فجأة تذكّر ريان: The keys are next to the door! ركض إلى المدخل… وهناك كانت معلّقة بجانب الباب!" },
+    { "v": "😄", "t": "ضحك الجميع، وقال الأب: Where were they? أجاب ريان بفخر: Next to the door, in front of us all the time!" },
+    { "v": "🌟", "t": "من يعرف حروف الجر يجد ما يبحث عنه. أحسنت يا ريان!" }
+  ],
+  "activity": "ضع قلماً وممحاة وكتاباً على مكتبك في أماكن مختلفة، ثم اكتب خمس جمل تصف مكان كل شيء باستخدام on وunder وnext to وbetween وin front of، واقرأها لزميلك ليعيد ترتيب الأشياء كما وصفت.",
+  "summary": "تعلّمنا أن There is تأتي مع المفرد وThere are مع الجمع، وتعرّفنا على حروف الجر المكانية مثل on وunder وbetween وbehind، وتدرّبنا على السؤال بـ Is there…? وWhere is…? من خلال قصة المفاتيح الضائعة."
+}

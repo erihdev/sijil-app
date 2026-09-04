@@ -1,0 +1,130 @@
+{
+  "title": "قصة ومحادثة: ماذا يحب أصدقاؤك؟",
+  "unit": "الوحدة الأولى: Personal Interests (الاهتمامات الشخصية) — الصف الخامس",
+  "objectives": [
+    "أن يتحدث الطالب عن هوايات الآخرين باستخدام He / She likes… و doesn't like…",
+    "أن يسأل الطالب بـ Does he / she like…? ويجيب بـ Yes, he does / No, she doesn't",
+    "أن يعبّر الطالب عمّا يجيده باستخدام good at + الفعل مع -ing"
+  ],
+  "intro": "صديقك يحب الشطرنج، وأخوك يعشق كرة القدم، وابن عمك يجيد التصوير. كيف نخبر الآخرين عن هوايات من حولنا؟ اليوم نتحدث عن الآخرين لا عن أنفسنا فقط.",
+  "sections": [
+    {
+      "h": "القصة: يوم في المركز الشبابي",
+      "body": "طالب خجول ينضم إلى نادٍ جديد، فيكتشف أن لكل زميل هواية مختلفة، ويجد بمساعدة المدرّب ما يجيده.",
+      "points": [
+        "shy خجول — brave شجاع — coach مدرّب — team فريق",
+        "medal ميدالية — club نادٍ — practice يتدرّب — win يفوز",
+        "أحداث القصة: الوصول → التعارف → التجربة → النجاح",
+        "الدرس المستفاد: جرّب النشاط قبل أن تقول «لا أستطيع»"
+      ]
+    },
+    {
+      "h": "القاعدة: He / She likes…",
+      "points": [
+        "He likes swimming. / She likes painting.",
+        "النفي: He doesn't like cooking. / She doesn't like puzzles.",
+        "السؤال: Does she like chess? — Yes, she does. / No, she doesn't.",
+        "What does he like doing? — He likes taking photos."
+      ],
+      "tip": "مع He وShe وIt نضيف s للفعل like، وفي السؤال والنفي نستخدم does وdoesn't ويعود الفعل بلا s."
+    },
+    {
+      "h": "مفردات: good at",
+      "points": [
+        "I'm good at drawing. أنا جيد في الرسم",
+        "She's good at swimming. / He's good at chess.",
+        "النفي: He's not good at cooking.",
+        "السؤال: What are you good at? — I'm good at doing puzzles."
+      ],
+      "tip": "بعد good at يأتي الفعل مع -ing، أو يأتي اسم النشاط مباشرة مثل chess وfootball."
+    },
+    {
+      "h": "الاستماع والتحدث: تعبيرات المحادثة",
+      "points": [
+        "Really? حقاً؟ — Me too! وأنا أيضاً — That's cool! هذا رائع",
+        "Let's join the chess club! هيا ننضم إلى نادي الشطرنج — Good idea! فكرة جيدة",
+        "عند الاستماع: التقط الكلمات المفتاحية: الاسم، النشاط، like أو don't like",
+        "في المحادثة: انظر إلى زميلك وتحدث بصوت واضح ثم اسأله سؤالاً بدوره"
+      ]
+    }
+  ],
+  "vocab": [
+    { "t": "shy", "d": "خجول: يتردد في الكلام مع الغرباء" },
+    { "t": "coach", "d": "مدرّب: يعلّم اللاعبين ويدرّبهم" },
+    { "t": "team", "d": "فريق: مجموعة تلعب أو تعمل معاً" },
+    { "t": "good at", "d": "جيد في: يجيد شيئاً ويتقنه" },
+    { "t": "medal", "d": "ميدالية: قطعة معدنية تُمنح للفائز" },
+    { "t": "club", "d": "نادٍ: مجموعة تجتمع لممارسة هواية واحدة" }
+  ],
+  "checks": [
+    {
+      "q": "الجملة الصحيحة؟",
+      "opts": ["She like painting.", "She likes painting.", "She likes paint.", "She liking painting."],
+      "correct": 1
+    },
+    {
+      "q": "Does he like chess? — الجواب الصحيح:",
+      "opts": ["Yes, he do.", "Yes, he is.", "Yes, he does.", "Yes, he likes."],
+      "correct": 2
+    },
+    {
+      "q": "كلمة coach تعني؟",
+      "opts": ["فريق", "مدرّب", "ميدالية", "نادٍ"],
+      "correct": 1
+    }
+  ],
+  "questions": [
+    {
+      "t": "mcq",
+      "q": "نفي الجملة He likes cooking هو",
+      "opts": ["He don't like cooking.", "He doesn't likes cooking.", "He doesn't like cooking.", "He not like cooking."],
+      "correct": 2
+    },
+    {
+      "t": "tf",
+      "q": "في السؤال Does she like…؟ يأتي الفعل like بلا s.",
+      "opts": ["صح", "خطأ"],
+      "correct": 0
+    },
+    {
+      "t": "mcq",
+      "q": "«أنا جيد في الرسم» بالإنجليزية؟",
+      "opts": ["I'm good at drawing.", "I'm good in draw.", "I good at drawing.", "I'm like drawing."],
+      "correct": 0
+    },
+    {
+      "t": "fill",
+      "q": "What does she like doing? — She ...... swimming.",
+      "ans": "likes"
+    },
+    {
+      "t": "mcq",
+      "q": "عندما يقول زميلك I like chess وأنت تحبه أيضاً تقول",
+      "opts": ["Really?", "Me too!", "Good night!", "No, I don't."],
+      "correct": 1
+    },
+    {
+      "t": "tf",
+      "q": "كلمة shy تعني «شجاع».",
+      "opts": ["صح", "خطأ"],
+      "correct": 1
+    },
+    {
+      "t": "mcq",
+      "q": "السؤال المناسب للجواب: He likes taking photos.",
+      "opts": ["What do you like doing?", "What does he like doing?", "Does she like photos?", "What is he good at?"],
+      "correct": 1
+    }
+  ],
+  "story": [
+    { "v": "🚪", "t": "وقف جود عند باب نادي الكاراتيه خجولاً، فكل الأولاد يعرفون بعضهم وهو لا يعرف أحداً." },
+    { "v": "🥋", "t": "اقترب المدرّب وقال: Hi! I'm Coach Ali. What are you good at? همس جود: I'm good at running… I think." },
+    { "v": "👦", "t": "قدّم المدرّب زميلاً: This is Nasser. He likes karate, and he's good at jumping. ابتسم ناصر: Let's practice together!" },
+    { "v": "🤔", "t": "سأل جود: Does Nasser like chess? أجاب المدرّب: No, he doesn't. He likes karate and football." },
+    { "v": "💪", "t": "تدرّب جود أسبوعاً كاملاً، وكان يقول لنفسه كل يوم: I'm good at karate now!" },
+    { "v": "🏅", "t": "في نهاية الشهر نال جود ميدالية، وقال المدرّب للجميع: He was shy, but now he's brave. That's cool!" },
+    { "v": "🌟", "t": "جرّب قبل أن تقول لا أستطيع. أحسنت يا جود!" }
+  ],
+  "activity": "اسأل زميلك: What do you like doing? وWhat are you good at? ثم قدّمه للصف بجملتين: He likes… وHe's good at…، وليفعل هو الشيء نفسه عنك.",
+  "summary": "تعلّمنا الحديث عن هوايات الآخرين بـ He/She likes وdoesn't like، والسؤال بـ Does he/she like…?، والتعبير عمّا نجيده بـ good at. وتدرّبنا على تعبيرات المحادثة مثل Me too وThat's cool."
+}

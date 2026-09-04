@@ -1,0 +1,129 @@
+{
+  "title": "Make your favorite snack — الطعام والأسماء المعدودة",
+  "unit": "الوحدة الرابعة: Glorious Food (طعام شهي) — الصف الخامس",
+  "objectives": [
+    "أن يسمّي الطالب مكوّنات الأطعمة والوجبات الخفيفة بالإنجليزية",
+    "أن يميّز الطالب بين الأسماء المعدودة وغير المعدودة",
+    "أن يسأل الطالب بـ How many…? و How much…? في الموضع الصحيح"
+  ],
+  "intro": "عدت من المدرسة جائعاً وتريد أن تصنع وجبة خفيفة بنفسك: خبز وجبن وطماطم وقليل من الزيت. لكن هل نقول «كم تفاحة» أم «كم خبزاً»؟ اليوم نتعلّم مفردات الطعام وسرّ الأسماء المعدودة.",
+  "sections": [
+    {
+      "h": "مكوّنات الوجبة الخفيفة Snack ingredients",
+      "points": [
+        "bread خبز — cheese جبن — butter زبدة — jam مربى — honey عسل",
+        "egg بيضة — tomato طماطم — cucumber خيار — lettuce خس — olive زيتون",
+        "apple تفاحة — banana موزة — orange برتقالة — dates تمر",
+        "milk حليب — juice عصير — water ماء — rice أرز — sugar سكر — salt ملح"
+      ]
+    },
+    {
+      "h": "الأسماء المعدودة Countable nouns",
+      "points": [
+        "يمكن عدّها ولها مفرد وجمع: an egg → two eggs، an apple → three apples",
+        "a tomato → tomatoes، a sandwich → sandwiches",
+        "نستخدم معها a / an في المفرد وsome في الجمع: a banana، some bananas",
+        "There are five eggs in the fridge."
+      ]
+    },
+    {
+      "h": "الأسماء غير المعدودة Uncountable nouns",
+      "points": [
+        "لا تُعدّ ولا تُجمع: bread, cheese, milk, rice, sugar, water, honey",
+        "لا نضع معها a / an: نقول some bread وليس a bread",
+        "نعدّها بوحدات: a slice of bread شريحة خبز، a glass of milk كوب حليب، a cup of tea",
+        "There is some cheese on the plate."
+      ],
+      "tip": "السوائل والحبوب الصغيرة والمساحيق غالباً غير معدودة: water, rice, sugar, flour."
+    },
+    {
+      "h": "القاعدة: How many…? / How much…?",
+      "points": [
+        "How many + معدود جمع: How many eggs do you need? — Three eggs.",
+        "How much + غير معدود: How much milk do you need? — One glass.",
+        "How many tomatoes are there? — There are two.",
+        "How much sugar is there? — There is a little."
+      ],
+      "tip": "اسأل نفسك: هل أستطيع أن أقول «واحد، اثنان» أمامه؟ إن نعم فهو معدود وسؤاله How many."
+    }
+  ],
+  "vocab": [
+    { "t": "snack", "d": "وجبة خفيفة نأكلها بين الوجبات الرئيسة" },
+    { "t": "ingredient", "d": "مكوّن: مادة تدخل في صنع الطعام" },
+    { "t": "countable", "d": "معدود: اسم يمكن عدّه مثل egg" },
+    { "t": "uncountable", "d": "غير معدود: اسم لا يُعدّ مثل milk" },
+    { "t": "slice", "d": "شريحة: قطعة رقيقة من الخبز أو الجبن" },
+    { "t": "lettuce", "d": "خس: ورق أخضر نأكله في السلطة" }
+  ],
+  "checks": [
+    {
+      "q": "أي الأسماء غير معدود؟",
+      "opts": ["egg", "apple", "milk", "tomato"],
+      "correct": 2
+    },
+    {
+      "q": "أكمل: How ...... eggs do you need?",
+      "opts": ["much", "many", "old", "long"],
+      "correct": 1
+    },
+    {
+      "q": "كلمة ingredient تعني؟",
+      "opts": ["وجبة خفيفة", "مكوّن", "شريحة", "كوب"],
+      "correct": 1
+    }
+  ],
+  "questions": [
+    {
+      "t": "mcq",
+      "q": "الجملة الصحيحة؟",
+      "opts": ["I want a bread.", "I want some bread.", "I want two breads.", "I want an bread."],
+      "correct": 1
+    },
+    {
+      "t": "tf",
+      "q": "الأسماء غير المعدودة مثل rice لا تُجمع.",
+      "opts": ["صح", "خطأ"],
+      "correct": 0
+    },
+    {
+      "t": "mcq",
+      "q": "«كوب حليب» بالإنجليزية؟",
+      "opts": ["a slice of milk", "a glass of milk", "a milk", "many milk"],
+      "correct": 1
+    },
+    {
+      "t": "fill",
+      "q": "How ...... sugar is there? (غير معدود)",
+      "ans": "much"
+    },
+    {
+      "t": "mcq",
+      "q": "جمع كلمة tomato هو",
+      "opts": ["tomatos", "tomatoes", "tomatoies", "tomato"],
+      "correct": 1
+    },
+    {
+      "t": "tf",
+      "q": "نستخدم How many مع الأسماء غير المعدودة.",
+      "opts": ["صح", "خطأ"],
+      "correct": 1
+    },
+    {
+      "t": "mcq",
+      "q": "«عسل» بالإنجليزية؟",
+      "opts": ["jam", "butter", "honey", "cheese"],
+      "correct": 2
+    }
+  ],
+  "story": [
+    { "v": "🏠", "t": "عاد فهد من المدرسة جائعاً، وقررت أمه أن يصنع وجبته الخفيفة بنفسه: Make your favorite snack!" },
+    { "v": "🧊", "t": "فتح الثلاجة وعدّ: There are four eggs and two tomatoes. ثم رأى الجبن: There is some cheese." },
+    { "v": "🍞", "t": "أراد خبزاً فقال: I want a bread. صحّحته أمه: Bread is uncountable. Say: some bread or a slice of bread." },
+    { "v": "❓", "t": "سألها: How many eggs do I need? أجابت: Two eggs. ثم سأل: How much milk? أجابت: One glass." },
+    { "v": "🥪", "t": "وضع الجبن والطماطم بين شريحتي خبز، وصبّ كوب حليب: My snack has a lot of ingredients!" },
+    { "v": "😋", "t": "أكل فهد الشطيرة وقال: Delicious! ثم كتب في دفتره: eggs معدود، milk غير معدود." },
+    { "v": "🌟", "t": "من يعرف ما يُعدّ يعرف كيف يسأل. أحسنت يا فهد!" }
+  ],
+  "activity": "افتح ثلاجة بيتك واكتب عشرة أطعمة بالإنجليزية في جدول: عمود Countable وعمود Uncountable، ثم اكتب سؤالين أحدهما بـ How many والآخر بـ How much عن محتوياتها.",
+  "summary": "تعلّمنا مفردات الطعام ومكوّنات الوجبة الخفيفة، والفرق بين الأسماء المعدودة مثل egg وغير المعدودة مثل milk، ووحدات القياس مثل a slice of وa glass of، والسؤال بـ How many مع المعدود وHow much مع غير المعدود."
+}
