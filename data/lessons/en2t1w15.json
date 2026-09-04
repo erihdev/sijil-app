@@ -1,0 +1,135 @@
+{
+  "title": "Words in Action: هو يلعب بالكرة",
+  "unit": "Friends, Actions, Things — الصف الثاني",
+  "objectives": [
+    "أن يصف الطالب ما يفعله زميله بجملة He is + الفعل مع ing",
+    "أن يربط الطالب الفعل بالشيء: He is playing with a ball",
+    "أن يمثّل الطالب الجملة التي يسمعها ويخمّن جملة زميله"
+  ],
+  "intro": "صديقنا يجري بالكرة، وأخونا يقرأ كتاباً. اليوم نصف ما يفعله الآخرون بالأشياء التي معهم، ونمثّل ذلك بأجسامنا.",
+  "sections": [
+    {
+      "h": "الفعل مع ing",
+      "body": "عندما يفعل شخص شيئاً الآن نضيف ing.",
+      "points": [
+        "run → running = يجري",
+        "jump → jumping = يقفز",
+        "read → reading = يقرأ",
+        "draw → drawing = يرسم",
+        "play → playing = يلعب",
+        "sing → singing = يغنّي"
+      ],
+      "tip": "في run نكرّر حرف n قبل ing: running."
+    },
+    {
+      "h": "الفعل مع الشيء",
+      "body": "نربط ما يفعله بما معه.",
+      "points": [
+        "He is playing with a ball. = هو يلعب بالكرة",
+        "He is reading a book. = هو يقرأ كتاباً",
+        "She is drawing a flower. = هي ترسم زهرة",
+        "He is riding a bike. = هو يركب دراجة",
+        "He is flying a kite. = هو يطيّر طائرة ورقية"
+      ]
+    },
+    {
+      "h": "Words in Action: مثّل وخمّن",
+      "points": [
+        "المعلم يقول: He is jumping! والطلاب يقفزون",
+        "طالب يمثّل والفصل يقول: He is reading a book!",
+        "الأشياء: ball و book و kite و bike و pen",
+        "من يخمّن أولاً يمثّل بعده"
+      ],
+      "tip": "قل الجملة كاملة: He is + الفعل + الشيء."
+    },
+    {
+      "h": "أسأل وأجيب",
+      "points": [
+        "What is he doing? = ماذا يفعل؟",
+        "He is playing with a ball.",
+        "What is she doing? = ماذا تفعل؟",
+        "She is singing.",
+        "Is he running? Yes, he is. / No, he isn't."
+      ]
+    }
+  ],
+  "vocab": [
+    { "t": "playing", "d": "يلعب الآن" },
+    { "t": "reading", "d": "يقرأ الآن" },
+    { "t": "drawing", "d": "يرسم الآن" },
+    { "t": "book", "d": "كتاب" },
+    { "t": "kite", "d": "طائرة ورقية" },
+    { "t": "bike", "d": "دراجة" }
+  ],
+  "checks": [
+    {
+      "q": "He is reading a book معناها:",
+      "opts": ["هو يقرأ كتاباً", "هو يرسم كتاباً", "معه كتاب"],
+      "correct": 0
+    },
+    {
+      "q": "الفعل play مع ing يصبح:",
+      "opts": ["plaing", "playing", "played"],
+      "correct": 1
+    },
+    {
+      "q": "هو يطيّر طائرة ورقية:",
+      "opts": ["He is riding a bike", "He is drawing a kite", "He is flying a kite"],
+      "correct": 2
+    }
+  ],
+  "questions": [
+    {
+      "t": "mcq",
+      "q": "زميلي يقفز الآن، أقول:",
+      "opts": ["He is jumping", "He is reading", "He is singing"],
+      "correct": 0
+    },
+    {
+      "t": "mcq",
+      "q": "معنى She is drawing a flower:",
+      "opts": ["هي تقرأ كتاباً", "هي ترسم زهرة", "هي تلعب بالكرة"],
+      "correct": 1
+    },
+    {
+      "t": "tf",
+      "q": "في run نكرّر حرف n: running.",
+      "opts": ["صح", "خطأ"],
+      "correct": 0
+    },
+    {
+      "t": "mcq",
+      "q": "He is riding a ......",
+      "opts": ["book", "pen", "bike"],
+      "correct": 2
+    },
+    {
+      "t": "fill",
+      "q": "He is playing with a ...... = هو يلعب بالكرة.",
+      "ans": "ball"
+    },
+    {
+      "t": "tf",
+      "q": "What is she doing? معناها: ماذا معها؟",
+      "opts": ["صح", "خطأ"],
+      "correct": 1
+    },
+    {
+      "t": "mcq",
+      "q": "Is he running? أجيب بنعم:",
+      "opts": ["Yes, I am", "Yes, he is", "Yes, I can"],
+      "correct": 1
+    }
+  ],
+  "story": [
+    { "v": "🎲", "t": "بدأت لعبة «مثّل وخمّن». وقف ريان أمام الفصل ومثّل أنه يمسك مقوداً ويدوس." },
+    { "v": "🚲", "t": "صاح سلطان: He is riding a bike! قال المعلم: Yes, he is! جاء دور سلطان." },
+    { "v": "📖", "t": "فتح سلطان يديه كالكتاب وحرّك عينيه. قال عمر: He is reading a book!" },
+    { "v": "🎨", "t": "ثم مثّل عمر أنه يمسك قلماً ويرسم في الهواء. سأل المعلم: What is he doing? He is drawing!" },
+    { "v": "🪁", "t": "رفع تركي يده كأنه يشدّ خيطاً وينظر للسماء. صاح الفصل: He is flying a kite!" },
+    { "v": "⚽", "t": "وأخيراً ركل ريان كرة خيالية. سأل المعلم: Is he reading? قال الجميع: No, he isn't! He is playing with a ball!" },
+    { "v": "🌟", "t": "في البيت شاهد ريان أخاه يقرأ فقال لأمه: He is reading a book! تعلّم الجملة كاملة. أحسنت!" }
+  ],
+  "activity": "العب «مثّل وخمّن» مع زملائك: مثّل فعلاً مع شيء (كرة، كتاب، دراجة، طائرة ورقية) والفصل يقول الجملة كاملة: He is … a … وفي البيت اكتب ثلاث جمل عن أفراد أسرتك بـ He is و She is.",
+  "summary": "نصف ما يفعله شخص الآن بـ He is / She is + الفعل مع ing، ونربطه بالشيء: He is playing with a ball، He is reading a book، He is flying a kite."
+}

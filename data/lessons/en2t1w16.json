@@ -1,0 +1,134 @@
+{
+  "title": "Phonics: Qq Rr Ss Tt + مراجعة الفصل",
+  "unit": "Friends, Actions, Things — الصف الثاني",
+  "objectives": [
+    "أن ينطق الطالب أصوات الحروف q و r و s و t",
+    "أن يرتّب الطالب الحروف من Aa إلى Tt ويربط كل حرف بكلمته",
+    "أن يراجع الطالب جمل الوحدات الخمس ويستعملها في حوار قصير"
+  ],
+  "intro": "وصلنا إلى آخر أسبوع في الفصل الأول. اليوم أربعة حروف جديدة، ثم نراجع كل ما تعلمناه ونستعد للاختبار بثقة.",
+  "sections": [
+    {
+      "h": "Phonics: Qq و Rr",
+      "points": [
+        "Qq صوته /kw/ كما في queen = ملكة",
+        "Rr صوته /r/ كما في rabbit = أرنب",
+        "run و read و river تبدأ بـ Rr!",
+        "حرف q يأتي دائماً ومعه u: qu"
+      ],
+      "tip": "صوت /r/ نقوله والشفتان مدوّرتان قليلاً."
+    },
+    {
+      "h": "Phonics: Ss و Tt",
+      "points": [
+        "Ss صوته /s/ كما في sun = شمس",
+        "Tt صوته /t/ كما في tiger = نمر",
+        "sad و sick و socks و star تبدأ بـ Ss",
+        "tired و tree تبدأ بـ Tt"
+      ],
+      "tip": "صوت /s/ مثل صوت الثعبان: sss."
+    },
+    {
+      "h": "الحروف من Aa إلى Tt",
+      "body": "عشرون حرفاً تعلمناها هذا الفصل.",
+      "points": [
+        "Aa apple, Bb ball, Cc cat, Dd dog",
+        "Ee egg, Ff fish, Gg goat, Hh hat",
+        "Ii ink, Jj jam, Kk kite, Ll lion",
+        "Mm moon, Nn nest, Oo octopus, Pp pen",
+        "Qq queen, Rr rabbit, Ss sun, Tt tiger"
+      ]
+    },
+    {
+      "h": "مراجعة الفصل الأول",
+      "body": "جملة واحدة من كل وحدة.",
+      "points": [
+        "Feelings: How are you? I'm happy. Are you sad? No, I'm not.",
+        "Things we wear: I'm wearing a shirt. Put on your hat.",
+        "Things we do: Can you swim? Yes, I can.",
+        "Beautiful Nature: What can you see? I can see a tree.",
+        "Friends: This is my friend. He is running. He has a ball."
+      ],
+      "tip": "في الاختبار اقرأ السؤال كاملاً ثم اختر الجواب."
+    }
+  ],
+  "vocab": [
+    { "t": "queen", "d": "ملكة، تبدأ بحرف Qq" },
+    { "t": "rabbit", "d": "أرنب، يبدأ بحرف Rr" },
+    { "t": "sun", "d": "شمس، تبدأ بحرف Ss" },
+    { "t": "tiger", "d": "نمر، يبدأ بحرف Tt" },
+    { "t": "letter", "d": "حرف" },
+    { "t": "sound", "d": "صوت الحرف" }
+  ],
+  "checks": [
+    {
+      "q": "كلمة تبدأ بحرف Rr:",
+      "opts": ["sun", "rabbit", "tiger"],
+      "correct": 1
+    },
+    {
+      "q": "الحرف الأول في كلمة tree:",
+      "opts": ["Tt", "Ss", "Rr"],
+      "correct": 0
+    },
+    {
+      "q": "الحرف الذي يأتي بعد Rr:",
+      "opts": ["Qq", "Tt", "Ss"],
+      "correct": 2
+    }
+  ],
+  "questions": [
+    {
+      "t": "mcq",
+      "q": "كلمة تبدأ بحرف Ss:",
+      "opts": ["tiger", "queen", "star"],
+      "correct": 2
+    },
+    {
+      "t": "mcq",
+      "q": "الحرف الذي يأتي دائماً ومعه u:",
+      "opts": ["Qq", "Rr", "Tt"],
+      "correct": 0
+    },
+    {
+      "t": "tf",
+      "q": "كلمة run تبدأ بحرف Rr.",
+      "opts": ["صح", "خطأ"],
+      "correct": 0
+    },
+    {
+      "t": "mcq",
+      "q": "مراجعة: جواب What are you wearing?",
+      "opts": ["I can see a tree", "I'm wearing a jacket", "He has a ball"],
+      "correct": 1
+    },
+    {
+      "t": "fill",
+      "q": "Tt — t, t, ...... (نمر)",
+      "ans": "tiger"
+    },
+    {
+      "t": "tf",
+      "q": "مراجعة: He is my friend معناها: هي صديقتي.",
+      "opts": ["صح", "خطأ"],
+      "correct": 1
+    },
+    {
+      "t": "mcq",
+      "q": "مراجعة: Are you hungry? أجيب بنعم:",
+      "opts": ["Yes, I can", "Yes, he is", "Yes, I am"],
+      "correct": 2
+    }
+  ],
+  "story": [
+    { "v": "👑", "t": "آخر أسبوع في الفصل. رفع المعلم صورة ملكة بتاج: /kw/ /kw/ queen. قال سلطان: Qq ومعها u دائماً!" },
+    { "v": "🐇", "t": "ثم أرنب يقفز: /r/ /r/ rabbit. قال سلطان: مثل run و read!" },
+    { "v": "☀️", "t": "وشمس مشرقة: /s/ /s/ sun. همس سلطان كالثعبان: sss… sun!" },
+    { "v": "🐯", "t": "وأخيراً نمر مخطّط: /t/ /t/ tiger. صار عند سلطان عشرون حرفاً!" },
+    { "v": "🔤", "t": "لعب الفصل سباق الحروف: من Aa apple إلى Tt tiger. سلطان أكمل السلسلة بلا توقف." },
+    { "v": "💬", "t": "في المراجعة تحاور سلطان مع عمر: How are you? I'm happy. Can you run? Yes, I can! This is my friend!" },
+    { "v": "🌟", "t": "قال المعلم: أنتم جاهزون للاختبار! خرج سلطان وهو يردّد الحروف بفرح. أحسنت!" }
+  ],
+  "activity": "اكتب الحروف من Aa إلى Tt في دفترك، وبجانب كل حرف كلمته. ثم اجلس مع زميلك وتحاورا بخمس جمل: واحدة من كل وحدة (المشاعر، الملابس، الأفعال، الطبيعة، الأصدقاء).",
+  "summary": "نتعلم Qq queen و Rr rabbit و Ss sun و Tt tiger لنكمل عشرين حرفاً، ونراجع جمل الوحدات الخمس: I'm happy، I'm wearing، I can، I can see، He is."
+}

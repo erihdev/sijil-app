@@ -1,0 +1,135 @@
+{
+  "title": "My Friend: هذا صديقي",
+  "unit": "Friends, Actions, Things — الصف الثاني",
+  "objectives": [
+    "أن يقدّم الطالب صديقه بجملة This is my friend",
+    "أن يستعمل الطالب He و She للحديث عن شخص آخر",
+    "أن يسأل الطالب ويجيب: What is he doing? He is running"
+  ],
+  "intro": "لدينا أصدقاء نلعب معهم كل يوم. اليوم نتعلم كيف نقدّم صديقنا ونتحدث عمّا يفعله وما معه.",
+  "sections": [
+    {
+      "h": "أقدّم صديقي",
+      "body": "نعرّف الآخرين بصديقنا.",
+      "points": [
+        "friend = صديق",
+        "This is my friend Omar. = هذا صديقي عمر",
+        "Who is he? = من هو؟",
+        "He is my friend. = هو صديقي",
+        "She is my sister. = هي أختي"
+      ],
+      "tip": "He للولد والرجل، و She للبنت والمرأة."
+    },
+    {
+      "h": "Talk Time: ماذا يفعل؟",
+      "body": "نسأل عمّا يفعله شخص آخر.",
+      "points": [
+        "What is he doing? = ماذا يفعل؟",
+        "He is running. = هو يجري",
+        "He is reading. = هو يقرأ",
+        "She is drawing. = هي ترسم",
+        "A: What is he doing? B: He is jumping!"
+      ],
+      "tip": "نضيف ing في آخر الفعل: run → running، read → reading."
+    },
+    {
+      "h": "ماذا معه؟",
+      "points": [
+        "What does he have? = ماذا معه؟",
+        "He has a ball. = معه كرة",
+        "He has a book. = معه كتاب",
+        "She has a kite. = معها طائرة ورقية",
+        "a bike = دراجة"
+      ]
+    },
+    {
+      "h": "Rhythms and Listening",
+      "points": [
+        "This is my friend, my friend, my friend! (أشر إلى زميلك)",
+        "He is running, running, running! (اجرِ في مكانك)",
+        "He has a ball, a ball, a ball! (مثّل إمساك الكرة)",
+        "Listen and point: من يجري؟ من يقرأ؟",
+        "Listen and circle: ما الذي معه؟"
+      ]
+    }
+  ],
+  "vocab": [
+    { "t": "friend", "d": "صديق" },
+    { "t": "He", "d": "هو (للولد)" },
+    { "t": "She", "d": "هي (للبنت)" },
+    { "t": "running", "d": "يجري الآن" },
+    { "t": "has", "d": "معه، يملك" },
+    { "t": "ball", "d": "كرة" }
+  ],
+  "checks": [
+    {
+      "q": "This is my friend معناها:",
+      "opts": ["هذا صديقي", "هو يجري", "معه كرة"],
+      "correct": 0
+    },
+    {
+      "q": "للحديث عن الولد نستعمل:",
+      "opts": ["She", "He", "I"],
+      "correct": 1
+    },
+    {
+      "q": "جواب What is he doing?",
+      "opts": ["He has a ball", "He is my friend", "He is reading"],
+      "correct": 2
+    }
+  ],
+  "questions": [
+    {
+      "t": "mcq",
+      "q": "معنى He has a book:",
+      "opts": ["هو يقرأ كتاباً", "معه كتاب", "هذا كتابي"],
+      "correct": 1
+    },
+    {
+      "t": "mcq",
+      "q": "للحديث عن الأخت نستعمل:",
+      "opts": ["He", "You", "She"],
+      "correct": 2
+    },
+    {
+      "t": "tf",
+      "q": "Who is he? معناها: من هو؟",
+      "opts": ["صح", "خطأ"],
+      "correct": 0
+    },
+    {
+      "t": "mcq",
+      "q": "run بعد إضافة ing تصبح:",
+      "opts": ["running", "runs", "ran"],
+      "correct": 0
+    },
+    {
+      "t": "fill",
+      "q": "This is my ...... Saud. = هذا صديقي سعود.",
+      "ans": "friend"
+    },
+    {
+      "t": "tf",
+      "q": "She is drawing معناها: هو يجري.",
+      "opts": ["صح", "خطأ"],
+      "correct": 1
+    },
+    {
+      "t": "mcq",
+      "q": "كيف أسأل: ماذا معه؟",
+      "opts": ["Who is he?", "What does he have?", "What is he doing?"],
+      "correct": 1
+    }
+  ],
+  "story": [
+    { "v": "🏠", "t": "جاء سعود لزيارة فهد في البيت. قال فهد لأمه: This is my friend Saud!" },
+    { "v": "👦", "t": "سأل سعود عن ولد يلعب في الفناء: Who is he? أجاب فهد: He is my brother Turki." },
+    { "v": "🏃", "t": "كان تركي يجري وراء الكرة. قال سعود: What is he doing? فأجاب فهد: He is running!" },
+    { "v": "⚽", "t": "ثم سأل: What does he have? فقال فهد: He has a ball. هيا نلعب معه!" },
+    { "v": "📚", "t": "في الداخل كانت أخت فهد الصغيرة تقرأ. همس فهد: She is reading. She has a book." },
+    { "v": "🪁", "t": "بعد اللعب أخرج فهد طائرة ورقية: I have a kite! وطاروا بها معاً في الفناء." },
+    { "v": "🌟", "t": "في المساء قال سعود لأبيه: Fahd is my friend. He has a kite! أحسنت!" }
+  ],
+  "activity": "قف مع زميلك أمام الفصل وقل: This is my friend … ثم يمثّل زميلك فعلاً والفصل يقول: He is running / He is reading. وأعطه شيئاً وقل: He has a book.",
+  "summary": "نقدّم صديقنا بـ This is my friend، ونستعمل He للولد و She للبنت، ونسأل What is he doing? He is running، و What does he have? He has a ball."
+}

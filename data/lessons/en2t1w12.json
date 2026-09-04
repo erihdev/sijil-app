@@ -1,0 +1,135 @@
+{
+  "title": "Beautiful Nature: الطبيعة الجميلة",
+  "unit": "Beautiful Nature — الصف الثاني",
+  "objectives": [
+    "أن يسمّي الطالب عناصر الطبيعة: sun و moon و star و tree و flower و river",
+    "أن يسأل الطالب ويجيب: What can you see? I can see a tree",
+    "أن يردّد الطالب أنشودة الطبيعة ويستمع ويشير إلى الصورة"
+  ],
+  "intro": "عندما نخرج إلى البر نرى الشمس والشجر والزهور، وفي الليل نرى القمر والنجوم. اليوم نتعلم أسماء ما نراه في الطبيعة.",
+  "sections": [
+    {
+      "h": "في السماء",
+      "body": "أشياء نراها عندما ننظر إلى الأعلى.",
+      "points": [
+        "sun = شمس",
+        "moon = قمر",
+        "star = نجمة",
+        "sky = سماء",
+        "cloud = سحابة"
+      ],
+      "tip": "الشمس في النهار والقمر والنجوم في الليل."
+    },
+    {
+      "h": "على الأرض",
+      "points": [
+        "tree = شجرة",
+        "flower = زهرة",
+        "river = نهر",
+        "mountain = جبل",
+        "bird = طائر"
+      ]
+    },
+    {
+      "h": "Talk Time: ماذا ترى؟",
+      "body": "نسأل عمّا نراه ونجيب.",
+      "points": [
+        "What can you see? = ماذا ترى؟",
+        "I can see a tree. = أرى شجرة",
+        "I can see the sun. = أرى الشمس",
+        "Look at the sky! = انظر إلى السماء",
+        "It's beautiful! = إنها جميلة"
+      ],
+      "tip": "نقول the sun و the moon لأن لدينا شمساً واحدة وقمراً واحداً."
+    },
+    {
+      "h": "Rhythms and Listening",
+      "points": [
+        "Sun, sun, I can see the sun! (ارفع ذراعيك دائرة)",
+        "Tree, tree, I can see a tree! (قف كالشجرة)",
+        "Star, star, I can see a star! (افتح أصابعك)",
+        "Listen and point to the river.",
+        "Listen and circle the flower."
+      ]
+    }
+  ],
+  "vocab": [
+    { "t": "sun", "d": "الشمس" },
+    { "t": "moon", "d": "القمر" },
+    { "t": "star", "d": "نجمة" },
+    { "t": "tree", "d": "شجرة" },
+    { "t": "flower", "d": "زهرة" },
+    { "t": "river", "d": "نهر، ماء يجري" }
+  ],
+  "checks": [
+    {
+      "q": "نراه في الليل:",
+      "opts": ["sun", "moon", "flower"],
+      "correct": 1
+    },
+    {
+      "q": "معنى tree:",
+      "opts": ["شجرة", "زهرة", "جبل"],
+      "correct": 0
+    },
+    {
+      "q": "جواب What can you see?",
+      "opts": ["Yes, I can", "I'm happy", "I can see a bird"],
+      "correct": 2
+    }
+  ],
+  "questions": [
+    {
+      "t": "mcq",
+      "q": "معنى flower:",
+      "opts": ["زهرة", "سحابة", "نهر"],
+      "correct": 0
+    },
+    {
+      "t": "mcq",
+      "q": "ماء يجري بين الجبال:",
+      "opts": ["sky", "river", "star"],
+      "correct": 1
+    },
+    {
+      "t": "tf",
+      "q": "cloud معناها: سحابة.",
+      "opts": ["صح", "خطأ"],
+      "correct": 0
+    },
+    {
+      "t": "mcq",
+      "q": "Look at the sky! معناها انظر إلى:",
+      "opts": ["الشجرة", "الجبل", "السماء"],
+      "correct": 2
+    },
+    {
+      "t": "fill",
+      "q": "I can ...... the moon. = أرى القمر.",
+      "ans": "see"
+    },
+    {
+      "t": "tf",
+      "q": "mountain معناها: طائر.",
+      "opts": ["صح", "خطأ"],
+      "correct": 1
+    },
+    {
+      "t": "mcq",
+      "q": "تظهر في السماء ليلاً وتلمع:",
+      "opts": ["star", "tree", "sun"],
+      "correct": 0
+    }
+  ],
+  "story": [
+    { "v": "🚙", "t": "خرج جود مع أبيه إلى البر يوم الجمعة. نظر من النافذة وقال: Look! I can see a mountain!" },
+    { "v": "🌳", "t": "نزلوا عند شجرة كبيرة. قال أبوه: What can you see? أجاب جود: I can see a tree!" },
+    { "v": "🌸", "t": "بين الصخور وجد زهرة صفراء صغيرة: I can see a flower! It's beautiful!" },
+    { "v": "🐦", "t": "طار طائر فوقهم. رفع جود رأسه: A bird! Look at the sky! It's blue!" },
+    { "v": "🌅", "t": "عند الغروب قال أبوه: Look at the sun! وشاهدا الشمس تختفي خلف الجبل." },
+    { "v": "🌙", "t": "في الليل نظر جود إلى الأعلى وعدّ: I can see the moon… and a star… and a star!" },
+    { "v": "🌟", "t": "نام جود سعيداً. تعلّم اليوم أن الطبيعة كلها كلمات جميلة. أحسنت!" }
+  ],
+  "activity": "اخرج إلى فناء المدرسة أو انظر من النافذة وقل لزميلك ثلاث جمل: I can see a … ثم في البيت ارسم منظراً فيه sun و tree و flower و river واكتب الكلمة بجانب كل شيء.",
+  "summary": "الطبيعة: sun و moon و star و sky و cloud في الأعلى، و tree و flower و river و mountain و bird على الأرض. نسأل What can you see? ونجيب I can see a …"
+}

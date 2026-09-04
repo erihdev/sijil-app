@@ -1,0 +1,131 @@
+{
+  "title": "Talk Time: هل أنت جائع؟",
+  "unit": "Feelings — الصف الثاني",
+  "objectives": [
+    "أن يسأل الطالب زميله بجملة Are you … ?",
+    "أن يجيب الطالب بـ Yes, I am أو No, I'm not",
+    "أن يؤدّي الطالب حواراً قصيراً عن المشاعر مع زميله"
+  ],
+  "intro": "صديقك يبدو حزيناً أو متعباً، كيف تسأله عن شعوره بالإنجليزية؟ اليوم نتعلم السؤال والجواب في حوار قصير.",
+  "sections": [
+    {
+      "h": "أسأل عن الشعور",
+      "body": "نبدأ السؤال بـ Are you ثم كلمة الشعور.",
+      "points": [
+        "Are you hungry? = هل أنت جائع؟",
+        "Are you tired? = هل أنت متعب؟",
+        "Are you sad? = هل أنت حزين؟",
+        "How are you? = كيف حالك؟"
+      ],
+      "tip": "ارفع صوتك قليلاً في آخر السؤال."
+    },
+    {
+      "h": "أجيب بنعم أو لا",
+      "points": [
+        "Yes, I am. = نعم، أنا كذلك",
+        "No, I'm not. = لا، لست كذلك",
+        "No, I'm not. I'm thirsty. = لا، أنا عطشان"
+      ],
+      "tip": "لا نقول Yes, I'm وحدها؛ نقول Yes, I am كاملة."
+    },
+    {
+      "h": "حوار Talk Time",
+      "body": "اقرأ الحوار مع زميلك ثم بدّلا الأدوار.",
+      "points": [
+        "A: How are you?",
+        "B: I'm sad.",
+        "A: Oh! Are you sick?",
+        "B: No, I'm not. I'm hungry.",
+        "A: Here, have an apple!",
+        "B: Thank you!"
+      ]
+    },
+    {
+      "h": "كلمات مفيدة للحوار",
+      "points": [
+        "Oh! = تعبير عن الدهشة",
+        "Great! = رائع",
+        "Thank you! = شكراً",
+        "You're welcome. = عفواً"
+      ]
+    }
+  ],
+  "vocab": [
+    { "t": "Are you … ?", "d": "سؤال معناه: هل أنت …؟" },
+    { "t": "Yes, I am", "d": "جواب بالإيجاب: نعم، أنا كذلك" },
+    { "t": "No, I'm not", "d": "جواب بالنفي: لا، لست كذلك" },
+    { "t": "Thank you", "d": "شكراً" },
+    { "t": "Great", "d": "رائع" }
+  ],
+  "checks": [
+    {
+      "q": "كيف أسأل: هل أنت متعب؟",
+      "opts": ["Are you tired?", "I'm tired", "You're welcome"],
+      "correct": 0
+    },
+    {
+      "q": "الجواب بنعم على Are you happy?",
+      "opts": ["No, I'm not", "Yes, I am", "Thank you"],
+      "correct": 1
+    },
+    {
+      "q": "معنى No, I'm not:",
+      "opts": ["نعم أنا كذلك", "شكراً", "لا، لست كذلك"],
+      "correct": 2
+    }
+  ],
+  "questions": [
+    {
+      "t": "mcq",
+      "q": "سؤال يبدأ به الحوار عن الحال:",
+      "opts": ["Thank you", "How are you?", "Sit down"],
+      "correct": 1
+    },
+    {
+      "t": "tf",
+      "q": "نقول Yes, I am عندما يكون الجواب بنعم.",
+      "opts": ["صح", "خطأ"],
+      "correct": 0
+    },
+    {
+      "t": "mcq",
+      "q": "Are you sick? — أنا لست مريضاً، أجيب:",
+      "opts": ["Yes, I am", "I'm sick", "No, I'm not"],
+      "correct": 2
+    },
+    {
+      "t": "fill",
+      "q": "Are ...... hungry? Yes, I am.",
+      "ans": "you"
+    },
+    {
+      "t": "mcq",
+      "q": "صديقي أعطاني تفاحة، أقول له:",
+      "opts": ["Thank you!", "Are you sad?", "No, I'm not"],
+      "correct": 0
+    },
+    {
+      "t": "tf",
+      "q": "Great! معناها: حزين.",
+      "opts": ["صح", "خطأ"],
+      "correct": 1
+    },
+    {
+      "t": "mcq",
+      "q": "معنى Are you cold?",
+      "opts": ["هل أنت جائع؟", "هل أنت بردان؟", "هل أنت متعب؟"],
+      "correct": 1
+    }
+  ],
+  "story": [
+    { "v": "🏫", "t": "في الفسحة رأى ريان صديقه عمر جالساً على الدرج ووجهه ليس كعادته." },
+    { "v": "🤔", "t": "اقترب وسأله: How are you? أجاب عمر بصوت خافت: I'm sad." },
+    { "v": "🤒", "t": "قلق ريان وسأل: Are you sick? هزّ عمر رأسه: No, I'm not." },
+    { "v": "🍎", "t": "سأل ريان: Are you hungry? ابتسم عمر: Yes, I am! نسيت فطوري في البيت." },
+    { "v": "🤲", "t": "فتح ريان حقيبته وقال: Here, have an apple! فقال عمر: Thank you!" },
+    { "v": "😄", "t": "بعد قليل سأله ريان: Are you happy now? فقفز عمر: Yes, I am! Great!" },
+    { "v": "🌟", "t": "تعلّم ريان أن سؤالاً واحداً Are you …? يكشف شعور صديقه ويساعده. أحسنت!" }
+  ],
+  "activity": "اختر شعوراً سراً ومثّله بوجهك. زميلك يسأل: Are you tired? Are you hungry? وأنت تجيب Yes, I am أو No, I'm not حتى يعرف الكلمة. ثم بدّلا الأدوار.",
+  "summary": "نسأل عن الشعور بـ Are you …? ونجيب Yes, I am أو No, I'm not، ونستعمل Thank you و Great في الحوار."
+}

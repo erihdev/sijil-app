@@ -1,0 +1,131 @@
+{
+  "title": "Hello! التحية والتعارف",
+  "unit": "Feelings — الصف الثاني",
+  "objectives": [
+    "أن يلقي الطالب التحية بالإنجليزية بكلمتي Hello و Good morning",
+    "أن يعرّف الطالب بنفسه بجملة My name is",
+    "أن ينفّذ الطالب تعليمات الفصل: Stand up و Sit down و Listen"
+  ],
+  "intro": "أول يوم في الفصل نقابل أصدقاء جدداً. كيف نقول لهم مرحباً بالإنجليزية؟ وكيف نخبرهم بأسمائنا؟",
+  "sections": [
+    {
+      "h": "نلقي التحية",
+      "body": "نبدأ كل لقاء بكلمة تحية مع ابتسامة.",
+      "points": [
+        "Hello! = مرحباً",
+        "Hi! = أهلاً (تحية قصيرة)",
+        "Good morning! = صباح الخير",
+        "Goodbye! / Bye! = مع السلامة"
+      ],
+      "tip": "نلوّح باليد عندما نقول Hello ونقول Bye عند الخروج."
+    },
+    {
+      "h": "أعرّف بنفسي",
+      "points": [
+        "What's your name? = ما اسمك؟",
+        "My name is Saud. = اسمي سعود",
+        "I'm Fahd. = أنا فهد",
+        "Nice to meet you. = سعدت بلقائك"
+      ]
+    },
+    {
+      "h": "كيف حالك؟",
+      "body": "نسأل عن حال صديقنا، وهذا مدخل وحدتنا Feelings.",
+      "points": [
+        "How are you? = كيف حالك؟",
+        "I'm fine, thank you. = أنا بخير، شكراً",
+        "I'm happy! = أنا سعيد"
+      ],
+      "tip": "ارفع إبهامك عندما تقول I'm fine."
+    },
+    {
+      "h": "لغة الفصل",
+      "points": [
+        "Stand up. = قف",
+        "Sit down. = اجلس",
+        "Listen. = استمع",
+        "Look. = انظر",
+        "Open your book. = افتح كتابك"
+      ]
+    }
+  ],
+  "vocab": [
+    { "t": "Hello", "d": "كلمة نقولها عندما نقابل أحداً: مرحباً" },
+    { "t": "Good morning", "d": "تحية الصباح: صباح الخير" },
+    { "t": "name", "d": "الاسم" },
+    { "t": "How are you?", "d": "سؤال نسأل به عن الحال: كيف حالك؟" },
+    { "t": "fine", "d": "بخير" },
+    { "t": "Stand up", "d": "أمر معناه: قف" }
+  ],
+  "checks": [
+    {
+      "q": "تحية نقولها في الصباح:",
+      "opts": ["Good morning", "Goodbye", "Sit down"],
+      "correct": 0
+    },
+    {
+      "q": "جواب سؤال What's your name?",
+      "opts": ["I'm fine", "My name is Fahd", "Hello"],
+      "correct": 1
+    },
+    {
+      "q": "معنى Sit down:",
+      "opts": ["قف", "استمع", "اجلس"],
+      "correct": 2
+    }
+  ],
+  "questions": [
+    {
+      "t": "mcq",
+      "q": "كلمة معناها «مرحباً»:",
+      "opts": ["Bye", "Hello", "Listen"],
+      "correct": 1
+    },
+    {
+      "t": "tf",
+      "q": "Goodbye نقولها عندما نغادر.",
+      "opts": ["صح", "خطأ"],
+      "correct": 0
+    },
+    {
+      "t": "mcq",
+      "q": "جواب How are you?",
+      "opts": ["I'm fine, thank you", "My name is Saud", "Open your book"],
+      "correct": 0
+    },
+    {
+      "t": "mcq",
+      "q": "المعلم يقول Stand up فماذا أفعل؟",
+      "opts": ["أجلس", "أفتح الكتاب", "أقف"],
+      "correct": 2
+    },
+    {
+      "t": "fill",
+      "q": "My ...... is Rayan.",
+      "ans": "name"
+    },
+    {
+      "t": "tf",
+      "q": "Good morning معناها: مع السلامة.",
+      "opts": ["صح", "خطأ"],
+      "correct": 1
+    },
+    {
+      "t": "mcq",
+      "q": "Nice to meet you معناها:",
+      "opts": ["سعدت بلقائك", "افتح كتابك", "انظر"],
+      "correct": 0
+    }
+  ],
+  "story": [
+    { "v": "🎒", "t": "أول يوم في الصف الثاني. دخل سعود الفصل وقلبه يدق. المعلم ابتسم وقال: Hello!" },
+    { "v": "👋", "t": "لوّح سعود بيده وقال بصوت خافت: Hello! ثم قال المعلم للجميع: Good morning!" },
+    { "v": "🙋", "t": "سأل المعلم: What's your name? فأجاب سعود: My name is Saud." },
+    { "v": "🤝", "t": "جلس بجانبه ولد جديد. قال له سعود: I'm Saud. فقال الولد: I'm Fahd. Nice to meet you!" },
+    { "v": "💬", "t": "سأل فهد: How are you? أجاب سعود ورفع إبهامه: I'm fine, thank you. I'm happy!" },
+    { "v": "🧍", "t": "لعبوا لعبة: Stand up! فوقف الجميع. Sit down! فجلسوا. Listen! فسكتوا وأنصتوا." },
+    { "v": "🌟", "t": "انتهت الحصة وقال سعود لفهد: Goodbye! صار له صديق جديد من أول يوم. أحسنت!" }
+  ],
+  "activity": "قف أمام زميلك، لوّح بيدك وقل: Hello! My name is … ثم اسأله: What's your name? How are you? وبدّلا الأدوار. في البيت: قل Good morning لأسرتك في الصباح.",
+  "summary": "نحيّي بـ Hello و Good morning ونودّع بـ Goodbye، ونعرّف بأنفسنا بـ My name is، ونسأل عن الحال بـ How are you? ونجيب I'm fine. وننفّذ تعليمات الفصل Stand up و Sit down و Listen."
+}

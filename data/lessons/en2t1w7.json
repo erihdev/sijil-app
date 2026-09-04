@@ -1,0 +1,134 @@
+{
+  "title": "Things We Wear: ماذا نلبس؟",
+  "unit": "Things we wear — الصف الثاني",
+  "objectives": [
+    "أن يسمّي الطالب الملابس: shirt و pants و shoes و socks و hat و jacket",
+    "أن يسأل الطالب ويجيب: What are you wearing? I'm wearing a …",
+    "أن يردّد الطالب أنشودة الملابس مع الإيقاع ويستمع ويشير"
+  ],
+  "intro": "كل صباح نختار ما نلبسه: قميص للمدرسة، وجاكيت في البرد. اليوم نتعلم أسماء الملابس بالإنجليزية ونتحدث عنها.",
+  "sections": [
+    {
+      "h": "أسماء الملابس",
+      "body": "ست كلمات نلبسها كل يوم.",
+      "points": [
+        "shirt = قميص",
+        "pants = بنطال",
+        "shoes = حذاء",
+        "socks = جوارب",
+        "hat = قبعة",
+        "jacket = جاكيت"
+      ],
+      "tip": "shoes و socks و pants فيها حرف s في آخرها لأنها زوج."
+    },
+    {
+      "h": "Talk Time: ماذا تلبس؟",
+      "body": "نسأل ونجيب عن الملابس.",
+      "points": [
+        "What are you wearing? = ماذا تلبس؟",
+        "I'm wearing a shirt. = ألبس قميصاً",
+        "I'm wearing shoes. = ألبس حذاءً",
+        "A: What are you wearing? B: I'm wearing a hat and a jacket."
+      ],
+      "tip": "نضع a قبل الكلمة المفردة: a hat، ولا نضعها قبل shoes و socks."
+    },
+    {
+      "h": "Rhythms: أنشودة الملابس",
+      "points": [
+        "Shirt, shirt, I'm wearing a shirt! (أشر إلى قميصك)",
+        "Shoes, shoes, I'm wearing shoes! (اضرب بقدميك)",
+        "Hat, hat, I'm wearing a hat! (يدك على رأسك)",
+        "What are you wearing? What are you wearing?"
+      ]
+    },
+    {
+      "h": "Listening: أستمع وأشير",
+      "points": [
+        "Listen and point to the socks.",
+        "Listen and circle the jacket.",
+        "Listen and number: 1 shirt, 2 pants, 3 shoes.",
+        "Listen and touch: المس قطعة الملابس التي تسمعها"
+      ],
+      "tip": "المس ملابسك الحقيقية عندما تسمع الكلمة."
+    }
+  ],
+  "vocab": [
+    { "t": "shirt", "d": "قميص" },
+    { "t": "pants", "d": "بنطال" },
+    { "t": "shoes", "d": "حذاء" },
+    { "t": "socks", "d": "جوارب" },
+    { "t": "hat", "d": "قبعة" },
+    { "t": "jacket", "d": "جاكيت نلبسه في البرد" }
+  ],
+  "checks": [
+    {
+      "q": "معنى shoes:",
+      "opts": ["قميص", "حذاء", "قبعة"],
+      "correct": 1
+    },
+    {
+      "q": "الجو بارد، ألبس:",
+      "opts": ["jacket", "socks", "hat"],
+      "correct": 0
+    },
+    {
+      "q": "جواب What are you wearing?",
+      "opts": ["Yes, I am", "I'm happy", "I'm wearing a shirt"],
+      "correct": 2
+    }
+  ],
+  "questions": [
+    {
+      "t": "mcq",
+      "q": "نلبسها على الرأس:",
+      "opts": ["hat", "pants", "socks"],
+      "correct": 0
+    },
+    {
+      "t": "mcq",
+      "q": "معنى socks:",
+      "opts": ["بنطال", "جوارب", "جاكيت"],
+      "correct": 1
+    },
+    {
+      "t": "tf",
+      "q": "What are you wearing? معناها: ماذا تلبس؟",
+      "opts": ["صح", "خطأ"],
+      "correct": 0
+    },
+    {
+      "t": "mcq",
+      "q": "نلبسها في القدمين قبل الحذاء:",
+      "opts": ["shirt", "jacket", "socks"],
+      "correct": 2
+    },
+    {
+      "t": "fill",
+      "q": "I'm ...... a jacket. = ألبس جاكيت.",
+      "ans": "wearing"
+    },
+    {
+      "t": "tf",
+      "q": "pants معناها: قميص.",
+      "opts": ["صح", "خطأ"],
+      "correct": 1
+    },
+    {
+      "t": "mcq",
+      "q": "Listen and point to the shirt: أشير إلى:",
+      "opts": ["القميص", "الحذاء", "القبعة"],
+      "correct": 0
+    }
+  ],
+  "story": [
+    { "v": "🌅", "t": "استيقظ سعود في صباح شتوي بارد. قالت أمه: الجو بارد اليوم يا سعود!" },
+    { "v": "👕", "t": "لبس سعود قميصه وقال: shirt! ثم بنطاله: pants! كما تعلّم في الفصل." },
+    { "v": "🧦", "t": "بحث عن جواربه تحت السرير: socks! ثم لبس حذاءه: shoes!" },
+    { "v": "🧥", "t": "قبل الخروج أعطته أمه الجاكيت والقبعة: jacket و hat. صار دافئاً." },
+    { "v": "🚌", "t": "في الحافلة سأله فهد: What are you wearing? أجاب سعود: I'm wearing a jacket and a hat!" },
+    { "v": "🎶", "t": "في الحصة غنّوا: Hat, hat, I'm wearing a hat! ووضع سعود يده على قبعته." },
+    { "v": "🌟", "t": "عندما قال المعلم: Listen and point to the socks، أشار سعود إلى جواربه أولاً. أحسنت!" }
+  ],
+  "activity": "انظر إلى ملابسك الآن وقل لزميلك: I'm wearing a … وعدّد ثلاث قطع. ثم اسأله: What are you wearing? وفي البيت ارسم ما تلبسه في يوم بارد واكتب اسم كل قطعة.",
+  "summary": "الملابس: shirt و pants و shoes و socks و hat و jacket. نسأل What are you wearing? ونجيب I'm wearing a … ونحفظها بالأنشودة والاستماع."
+}

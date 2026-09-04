@@ -1,0 +1,129 @@
+{
+  "title": "Put On, Take Off + Phonics: Ee Ff Gg Hh",
+  "unit": "Things we wear — الصف الثاني",
+  "objectives": [
+    "أن ينفّذ الطالب أمري Put on و Take off مع الملابس",
+    "أن ينطق الطالب أصوات الحروف e و f و g و h",
+    "أن يربط الطالب كل حرف بكلمة: egg و fish و goat و hat"
+  ],
+  "intro": "نلبس القبعة ونخلع الحذاء كل يوم. اليوم نتعلم أمرين للملابس، ثم أربعة حروف جديدة أحدها في كلمة hat.",
+  "sections": [
+    {
+      "h": "Words in Action: البس واخلع",
+      "body": "أمران نستعملهما مع كل الملابس.",
+      "points": [
+        "Put on = البس",
+        "Take off = اخلع",
+        "Put on your hat! = البس قبعتك",
+        "Take off your shoes! = اخلع حذاءك",
+        "your = ـك (ملكك)"
+      ],
+      "tip": "نخلع الحذاء قبل دخول المسجد: Take off your shoes."
+    },
+    {
+      "h": "لعبة الأوامر",
+      "points": [
+        "المعلم يقول: Put on your jacket! والطلاب يمثّلون اللبس",
+        "Take off your socks! يمثّلون الخلع",
+        "من يخطئ يجلس، والفائز آخر من يبقى واقفاً",
+        "نضيف: Touch your shirt! = المس قميصك"
+      ]
+    },
+    {
+      "h": "Phonics: Ee و Ff",
+      "points": [
+        "Ee صوته /e/ كما في egg = بيضة",
+        "Ff صوته /f/ كما في fish = سمكة",
+        "E e — F f: تذكّر شكل الحرف الكبير والصغير"
+      ],
+      "tip": "صوت /f/ يخرج بوضع الأسنان على الشفة السفلى."
+    },
+    {
+      "h": "Phonics: Gg و Hh",
+      "points": [
+        "Gg صوته /g/ كما في goat = ماعز",
+        "Hh صوته /h/ كما في hat = قبعة",
+        "hat من كلمات وحدتنا! وأيضاً happy و hungry و hot تبدأ بـ Hh"
+      ]
+    }
+  ],
+  "vocab": [
+    { "t": "Put on", "d": "البس" },
+    { "t": "Take off", "d": "اخلع" },
+    { "t": "egg", "d": "بيضة، تبدأ بحرف Ee" },
+    { "t": "fish", "d": "سمكة، تبدأ بحرف Ff" },
+    { "t": "goat", "d": "ماعز، يبدأ بحرف Gg" },
+    { "t": "hat", "d": "قبعة، تبدأ بحرف Hh" }
+  ],
+  "checks": [
+    {
+      "q": "معنى Take off:",
+      "opts": ["البس", "اخلع", "المس"],
+      "correct": 1
+    },
+    {
+      "q": "كلمة تبدأ بحرف Ff:",
+      "opts": ["fish", "goat", "egg"],
+      "correct": 0
+    },
+    {
+      "q": "الحرف الأول في hat:",
+      "opts": ["Ee", "Gg", "Hh"],
+      "correct": 2
+    }
+  ],
+  "questions": [
+    {
+      "t": "mcq",
+      "q": "قبل دخول المسجد نقول:",
+      "opts": ["Put on your hat", "Take off your shoes", "Touch your shirt"],
+      "correct": 1
+    },
+    {
+      "t": "mcq",
+      "q": "صوت حرف Gg كما في:",
+      "opts": ["goat", "hat", "fish"],
+      "correct": 0
+    },
+    {
+      "t": "tf",
+      "q": "Put on your jacket معناها: البس جاكيتك.",
+      "opts": ["صح", "خطأ"],
+      "correct": 0
+    },
+    {
+      "t": "mcq",
+      "q": "كلمة تبدأ بحرف Ee:",
+      "opts": ["hat", "fish", "egg"],
+      "correct": 2
+    },
+    {
+      "t": "fill",
+      "q": "Hh — h, h, ...... (قبعة)",
+      "ans": "hat"
+    },
+    {
+      "t": "tf",
+      "q": "كلمة happy تبدأ بحرف Ff.",
+      "opts": ["صح", "خطأ"],
+      "correct": 1
+    },
+    {
+      "t": "mcq",
+      "q": "معنى your في Put on your hat:",
+      "opts": ["قبعتي", "قبعتك", "قبعته"],
+      "correct": 1
+    }
+  ],
+  "story": [
+    { "v": "🧢", "t": "قال المعلم: Put on your hat! فوضع فهد قبعة خيالية على رأسه وضحك." },
+    { "v": "👟", "t": "ثم قال: Take off your shoes! فمثّل فهد خلع حذائه ببطء كأنه أمام باب المسجد." },
+    { "v": "🏆", "t": "في لعبة الأوامر أخطأ كثيرون، لكن فهد بقي واقفاً حتى النهاية وفاز!" },
+    { "v": "🥚", "t": "بعدها رفع المعلم صورة بيضة: /e/ /e/ egg. وسمكة: /f/ /f/ fish." },
+    { "v": "🐐", "t": "ثم ماعز صغير: /g/ /g/ goat. قال فهد: عندنا في المزرعة goat!" },
+    { "v": "🎩", "t": "وأخيراً رفع المعلم قبعة حقيقية: /h/ /h/ hat! صاح فهد: مثل happy و hot!" },
+    { "v": "🌟", "t": "في البيت قال فهد لأخيه الصغير: Put on your socks! فلبسها. المعلم الصغير. أحسنت!" }
+  ],
+  "activity": "العب مع زميلك لعبة الأوامر: قل Put on your … أو Take off your … وهو يمثّل. ثم اكتب الحروف Ee Ff Gg Hh وارسم بجانبها: egg و fish و goat و hat.",
+  "summary": "Put on = البس و Take off = اخلع مع أسماء الملابس. وأصوات الحروف: Ee egg و Ff fish و Gg goat و Hh hat."
+}
