@@ -1,0 +1,90 @@
+rules_version = '2';
+// قواعد أمان Firestore — سجل المتابعة الرقمي (مشروع sijil-app-de556)
+// المبدأ: القراءة لأي جهاز مصادَق (الموقع يصادق مجهولاً تلقائياً)، والكتابة مقيّدة بشكل البيانات
+// الذي يرسله الموقع فقط، ولا حذف لأي شيء، ولا كتابة على البيانات الأساسية (المعلمون/الفصول/الجدول).
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function signedIn() { return request.auth != null; }
+    // معرّف الرصد: معلم_فصل مثل t11_c4a
+    function isPairKey(id) { return id.matches('^[A-Za-z0-9]{1,12}_[A-Za-z0-9]{1,12}$'); }
+    // مفتاح درس: مادة+صف+فصل+أسبوع مثل dg4t1w12
+    function isLessonKey(id) { return id.matches('^[a-z]{2}[2-6]t[12]w[0-9]{1,2}$'); }
+    function isCurrCode(id) { return id.matches('^[a-z]{2}[2-6]t[12]$'); }
+    function stamped() {
+      return request.resource.data.ts is number
+          && request.resource.data.tn is string
+          && request.resource.data.tn.size() <= 80;
+    }
+
+    // ── بيانات أساسية تُزرع بالسكربت فقط: قراءة نعم، كتابة لا ──
+    match /meta/{doc}      { allow read: if signedIn(); allow write: if false; }
+    match /teachers/{tid}  { allow read: if signedIn(); allow write: if false; }
+    match /classes/{cid}   { allow read: if signedIn(); allow write: if false; }
+    match /schedule/{doc}  { allow read: if signedIn(); allow write: if false; }
+
+    // ── رصد المعلم لفصله: {d: خريطة الأيام, tn, ts} ──
+    match /recs/{id} {
+      allow read: if signedIn();
+      allow create, update: if signedIn() && isPairKey(id) && stamped()
+          && request.resource.data.d is map
+          && request.resource.data.keys().hasOnly(['d', 'tn', 'ts']);
+      allow delete: if false;
+    }
+
+    // ── الدرجات: {g: خريطة الطلاب, tn, ts} ──
+    match /grades/{id} {
+      allow read: if signedIn();
+      allow create, update: if signedIn() && isPairKey(id) && stamped()
+          && request.resource.data.g is map
+          && request.resource.data.keys().hasOnly(['g', 'tn', 'ts']);
+      allow delete: if false;
+    }
+
+    // ── سجل التواصل مع أولياء الأمور: {c: قائمة, tn, ts} ──
+    match /comms/{id} {
+      allow read: if signedIn();
+      allow create, update: if signedIn() && isPairKey(id) && stamped()
+          && request.resource.data.c is list
+          && request.resource.data.c.size() <= 500
+          && request.resource.data.keys().hasOnly(['c', 'tn', 'ts']);
+      allow delete: if false;
+    }
+
+    // ── رابط يوتيوب المحفوظ للدرس: {url, tn, ts} — يوتيوب فقط ──
+    match /lessonyt/{key} {
+      allow read: if signedIn();
+      allow create, update: if signedIn() && isLessonKey(key) && stamped()
+          && request.resource.data.url is string
+          && request.resource.data.url.size() <= 300
+          && request.resource.data.url.matches('^https://(www\\.|m\\.)?(youtube\\.com|youtu\\.be)/.*')
+          && request.resource.data.keys().hasOnly(['url', 'tn', 'ts']);
+      allow delete: if false;
+    }
+
+    // ── تعديل توزيع المنهج أونلاين: {rows: خريطة, tn, ts} ──
+    match /curredits/{code} {
+      allow read: if signedIn();
+      allow create, update: if signedIn() && isCurrCode(code) && stamped()
+          && request.resource.data.rows is map
+          && request.resource.data.keys().hasOnly(['rows', 'tn', 'ts']);
+      allow delete: if false;
+    }
+
+    // ── الدروس المؤلَّفة أونلاين لكل المواد ──
+    match /lessons/{key} {
+      allow read: if signedIn();
+      allow create, update: if signedIn() && isLessonKey(key) && stamped()
+          && request.resource.data.title is string
+          && request.resource.data.title.size() > 0
+          && request.resource.data.title.size() <= 120
+          && request.resource.data.story is list
+          && request.resource.data.questions is list
+          && request.resource.data.by is string;
+      allow delete: if false;
+    }
+
+    // ── أي شيء آخر ممنوع ──
+    match /{document=**} { allow read, write: if false; }
+  }
+}
