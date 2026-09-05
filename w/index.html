@@ -1,0 +1,243 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#0E2033">
+<title>ورقة عمل — سجل المتابعة الرقمي</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800&display=swap">
+<style>
+:root{--navy:#0E2033;--navy2:#142A44;--gold:#D7A93F;--goldl:#F0D99A;--cream:#F8F5EF;
+  --card:#fff;--ink:#1B2A3A;--muted:#7c8794;--line:#e8e2d5;--ok:#2e9e5b;--bad:#d64545}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;padding:0;background:var(--cream);color:var(--ink);
+  font-family:'Tajawal',system-ui,sans-serif;font-size:17px;line-height:1.7}
+.bar{background:var(--navy);color:var(--goldl);padding:12px 16px;display:flex;
+  justify-content:space-between;align-items:center;font-weight:800;font-size:15px;
+  position:sticky;top:0;z-index:5}
+.bar small{color:#9FB0C4;font-weight:500;font-size:12px}
+.wrap{max-width:560px;margin:0 auto;padding:16px 14px 40px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:18px 16px;
+  box-shadow:0 4px 18px rgba(27,42,58,.06)}
+h1{font-size:21px;font-weight:800;color:var(--navy);margin:0 0 4px;line-height:1.35}
+.sub{color:var(--muted);font-size:13.5px;margin:0 0 16px}
+.lbl{font-size:13px;color:var(--muted);margin:0 0 8px}
+button{font-family:inherit;font-size:16px}
+.name{display:block;width:100%;text-align:right;background:#fff;border:2px solid var(--line);
+  border-radius:13px;padding:13px 15px;margin-bottom:9px;color:var(--ink);font-weight:600}
+.name.on{border-color:var(--gold);background:#FDF8EC}
+.go{display:block;width:100%;background:var(--navy);color:var(--goldl);border:0;border-radius:14px;
+  padding:15px;font-weight:800;margin-top:14px}
+.go[disabled]{opacity:.45}
+.go.gold{background:var(--gold);color:var(--navy)}
+.prog{height:8px;background:#E8E2D5;border-radius:99px;overflow:hidden;margin-bottom:16px}
+.prog i{display:block;height:100%;background:var(--gold);border-radius:99px;transition:width .35s}
+.qn{font-size:13px;color:var(--muted);margin:0 0 6px;display:flex;justify-content:space-between}
+.q{font-size:19px;font-weight:800;margin:0 0 16px;line-height:1.6}
+.opt{display:block;width:100%;text-align:right;background:#fff;border:2px solid var(--line);
+  border-radius:13px;padding:14px 15px;margin-bottom:10px;color:var(--ink)}
+.opt.on{border-color:var(--gold);background:#FDF8EC;font-weight:700}
+.fill{width:100%;border:2px dashed var(--gold);border-radius:13px;padding:14px 15px;
+  font-family:inherit;font-size:17px;background:#FDF8EC;color:var(--ink);text-align:center;font-weight:700}
+.fill:focus{outline:none;border-style:solid}
+.hint{font-size:12.5px;color:var(--muted);margin:8px 0 0;text-align:center}
+.nav{display:flex;gap:9px;margin-top:16px}
+.nav button{flex:1;border-radius:13px;padding:14px;font-weight:800;border:0}
+.back{background:#EFE9DC;color:#6B5B33}
+.ring{width:132px;height:132px;margin:6px auto 14px;border-radius:50%;display:flex;
+  align-items:center;justify-content:center}
+.ring b{background:#fff;width:104px;height:104px;border-radius:50%;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;font-size:31px;line-height:1;color:var(--navy)}
+.ring b i{font-size:12px;font-style:normal;color:var(--muted);font-weight:500;margin-top:3px}
+.rev{background:#fff;border:1px solid var(--line);border-radius:12px;padding:11px 13px;margin-top:9px;font-size:14px}
+.rev .x{color:var(--bad);font-weight:800} .rev .v{color:var(--ok);font-weight:800}
+.rev .a{color:var(--ok);font-weight:700}
+.mid{text-align:center}
+.big{font-size:56px;line-height:1;margin-bottom:6px}
+.timer{background:#FDF8EC;border:1.5px solid var(--gold);border-radius:99px;padding:3px 13px;
+  font-weight:800;font-size:14px;color:var(--navy);font-variant-numeric:tabular-nums}
+.timer.hot{background:#FBE9E9;border-color:var(--bad);color:var(--bad)}
+.late{background:#FFF3E0;border:1px solid #E8A23D;color:#8A5A00;border-radius:10px;
+  padding:9px 12px;font-size:13.5px;margin-bottom:12px}
+.err{text-align:center;padding:40px 16px;color:var(--muted)}
+.err b{display:block;color:var(--ink);font-size:19px;margin-bottom:6px}
+</style>
+</head>
+<body>
+<div class="bar"><span id="bar-t">ورقة عمل</span><small id="bar-s"></small></div>
+<div class="wrap" id="app"><div class="err">جارِ التحميل…</div></div>
+
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-check-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
+<script src="../js/fb.js?v=1"></script>
+<script>
+(function () {
+  "use strict";
+  const $ = (s) => document.querySelector(s);
+  const esc = (s) => String(s == null ? "" : s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+  const app = $("#app");
+  const AID = new URLSearchParams(location.search).get("a") || "";
+  const MODE_T = { ws: "ورقة عمل", quiz: "اختبار", race: "تحدٍّ" };
+  let db = null, A = null, C = null, si = -1, sname = "", answers = [], qi = 0, t0 = 0, tIv = null, left = 0;
+
+  const fail = (t, s) => { app.innerHTML = `<div class="err"><b>${esc(t)}</b>${esc(s || "")}</div>`; };
+  // تطبيع إجابة «أكمل الفراغ»: تشكيل، ألف/ياء/تاء، «الـ»، مسافات
+  const norm = (s) => String(s || "").trim().replace(/[ً-ْـ]/g, "")
+    .replace(/[إأآا]/g, "ا").replace(/ى/g, "ي").replace(/ة/g, "ه")
+    .replace(/^ال/, "").replace(/\s+/g, " ").toLowerCase();
+
+  async function boot() {
+    if (!AID) return fail("رابط غير مكتمل", "اطلب من معلمك إرسال الرابط كاملاً.");
+    try {
+      firebase.initializeApp(window.FIREBASE_CONFIG);
+      try { if (firebase.appCheck && window.APPCHECK_SITE_KEY) firebase.appCheck().activate(new firebase.appCheck.ReCaptchaEnterpriseProvider(window.APPCHECK_SITE_KEY), true); } catch (e) { }
+      await firebase.auth().signInAnonymously();
+      db = firebase.firestore();
+      const s = await db.doc("assign/" + AID).get();
+      if (!s.exists) return fail("الورقة غير موجودة", "تأكد من الرابط، أو اسأل معلمك.");
+      A = s.data();
+      const c = await db.doc("classes/" + A.cid).get();
+      C = c.exists ? c.data() : { students: [] };
+      $("#bar-t").textContent = MODE_T[A.mode] || "ورقة عمل";
+      $("#bar-s").textContent = A.cname || "";
+      answers = A.qs.map(() => null);
+      pickName();
+    } catch (e) {
+      fail("تعذّر فتح الورقة", "تحقق من اتصال الإنترنت ثم أعد المحاولة.");
+    }
+  }
+
+  function isLate() { return !!(A.due && Date.now() > new Date(A.due).getTime()); }
+
+  function pickName() {
+    const saved = localStorage.getItem("sijil.stu." + A.cid);
+    const list = (C.students || []).map((s, i) => ({ i, n: s.n }));
+    app.innerHTML = `<div class="card">
+      <h1>${esc(A.t)}</h1>
+      <p class="sub">${esc(A.subj)} · ${esc(A.tn)} · ${A.qs.length} أسئلة</p>
+      ${isLate() ? `<div class="late">⏰ انتهى موعد التسليم، وسيُسجَّل حلّك متأخراً.</div>` : ""}
+      <p class="lbl">اختر اسمك من فصل ${esc(A.cname)}</p>
+      <div id="names">${list.map(s => `<button class="name${String(s.i) === saved ? " on" : ""}" data-i="${s.i}">${esc(s.n)}</button>`).join("")}</div>
+      <button class="go" id="start" ${saved === null ? "disabled" : ""}>ابدأ الحل</button></div>`;
+    if (saved !== null) { si = +saved; sname = (C.students[si] || {}).n || ""; }
+    app.querySelectorAll(".name").forEach(b => b.onclick = () => {
+      app.querySelectorAll(".name").forEach(x => x.classList.remove("on"));
+      b.classList.add("on"); si = +b.dataset.i; sname = (C.students[si] || {}).n || "";
+      localStorage.setItem("sijil.stu." + A.cid, String(si));
+      $("#start").disabled = false;
+    });
+    $("#start").onclick = async () => {
+      const prev = await db.doc("subs/" + AID + "_" + si).get();
+      if (prev.exists && A.mode !== "ws") { return done(prev.data(), true); }
+      t0 = Date.now(); qi = 0;
+      if (A.mode !== "ws" && A.secs) { left = A.secs; startTimer(); }
+      draw();
+    };
+  }
+
+  function startTimer() {
+    if (tIv) clearInterval(tIv);
+    tIv = setInterval(() => {
+      left--;
+      const el = $("#tm");
+      if (el) { el.textContent = Math.floor(left / 60) + ":" + String(left % 60).padStart(2, "0"); el.classList.toggle("hot", left <= 30); }
+      if (left <= 0) { clearInterval(tIv); tIv = null; submit(); }
+    }, 1000);
+  }
+
+  function draw() {
+    const q = A.qs[qi];
+    const pct = Math.round((qi) / A.qs.length * 100);
+    const cur = answers[qi];
+    let body = "";
+    if (q.t === "fill") {
+      body = `<input class="fill" id="fl" inputmode="text" autocomplete="off" placeholder="اكتب الإجابة" value="${esc(cur || "")}">
+        <p class="hint">كلمة واحدة تكفي. التشكيل و«الـ» لا يؤثران.</p>`;
+    } else {
+      body = (q.opts || []).map((o, k) => o ? `<button class="opt${cur === k ? " on" : ""}" data-k="${k}">${q.t === "tf" ? "" : ["أ. ", "ب. ", "ج. ", "د. "][k]}${esc(o)}</button>` : "").join("");
+    }
+    app.innerHTML = `<div class="card">
+      <div class="prog"><i style="width:${pct}%"></i></div>
+      <div class="qn"><span>السؤال ${qi + 1} من ${A.qs.length}</span>
+        <span>${A.mode !== "ws" && A.secs ? `<span class="timer" id="tm">${Math.floor(left / 60)}:${String(left % 60).padStart(2, "0")}</span>` : esc(sname)}</span></div>
+      <p class="q">${esc(q.q)}</p>
+      ${body}
+      <div class="nav">
+        ${qi > 0 ? `<button class="back" id="prev">السابق</button>` : ""}
+        <button class="go gold" id="next" style="margin-top:0">${qi === A.qs.length - 1 ? "إرسال الحل ✓" : "التالي ←"}</button>
+      </div></div>`;
+    app.querySelectorAll(".opt").forEach(b => b.onclick = () => {
+      answers[qi] = +b.dataset.k;
+      app.querySelectorAll(".opt").forEach(x => x.classList.remove("on"));
+      b.classList.add("on");
+    });
+    const fl = $("#fl"); if (fl) { fl.oninput = () => answers[qi] = fl.value; setTimeout(() => fl.focus(), 60); }
+    const pv = $("#prev"); if (pv) pv.onclick = () => { qi--; draw(); };
+    $("#next").onclick = () => {
+      const q2 = A.qs[qi];
+      if (answers[qi] === null || answers[qi] === "" || answers[qi] === undefined) {
+        if (!confirm("لم تجب على هذا السؤال. هل تتخطاه؟")) return;
+      }
+      if (q2.t === "fill" && fl) answers[qi] = fl.value;
+      if (qi < A.qs.length - 1) { qi++; draw(); } else submit();
+    };
+  }
+
+  function grade() {
+    let sc = 0; const detail = [];
+    A.qs.forEach((q, i) => {
+      const a = answers[i];
+      let ok = false, right = "";
+      if (q.t === "fill") { right = q.ans || ""; ok = a != null && norm(a) === norm(right) && norm(right) !== ""; }
+      else { right = (q.opts || [])[q.correct] || ""; ok = a === q.correct; }
+      if (ok) sc++;
+      detail.push({ i, ok, right, q: q.q });
+    });
+    return { sc, detail };
+  }
+
+  async function submit() {
+    if (tIv) { clearInterval(tIv); tIv = null; }
+    app.innerHTML = `<div class="err">جارِ الإرسال…</div>`;
+    const { sc, detail } = grade();
+    const rec = {
+      a: AID, si: si, n: sname, cid: A.cid, tid: A.tid,
+      ans: answers.map(x => x === null || x === undefined ? "" : x),
+      sc: sc, mx: A.qs.length, secs: Math.round((Date.now() - t0) / 1000),
+      late: isLate(), ts: Date.now()
+    };
+    try { await db.doc("subs/" + AID + "_" + si).set(rec); } catch (e) { }
+    done(rec, false, detail);
+  }
+
+  function done(rec, again, detail) {
+    if (!detail) detail = grade().detail;
+    const pct = Math.round(rec.sc / rec.mx * 100);
+    const wrong = detail.filter(d => !d.ok);
+    const face = pct >= 90 ? "🏆" : pct >= 70 ? "🌟" : pct >= 50 ? "👍" : "💪";
+    const word = pct >= 90 ? "ممتاز" : pct >= 70 ? "أحسنت" : pct >= 50 ? "جيد" : "حاول مرة أخرى";
+    const showAns = A.mode !== "quiz" || rec.late || true;
+    app.innerHTML = `<div class="card mid">
+      <div class="big">${face}</div>
+      <div class="ring" style="background:conic-gradient(${pct >= 50 ? "var(--ok)" : "var(--gold)"} 0 ${pct}%, #E8E2D5 ${pct}%)"><b>${rec.sc} <i>من ${rec.mx}</i></b></div>
+      <p style="font-weight:800;font-size:20px;color:var(--navy);margin:0">${word} يا ${esc((sname || rec.n || "").split(" ")[0])}</p>
+      <p class="sub" style="margin:4px 0 0">${again ? "سبق أن أرسلت هذه الورقة" : "أُرسلت إلى معلمك ✓"}${rec.late ? " · تسليم متأخر" : ""}</p>
+      ${showAns && wrong.length ? `<div style="text-align:right;margin-top:16px">
+        <p class="lbl">راجع هذه فقط:</p>
+        ${wrong.map(d => `<div class="rev"><span class="x">✗</span> ${esc(d.q)}<div class="a">الصحيح: ${esc(d.right)}</div></div>`).join("")}
+      </div>` : ""}
+      ${showAns && !wrong.length ? `<p style="color:var(--ok);font-weight:800;margin-top:14px">كل إجاباتك صحيحة! 🎉</p>` : ""}
+      ${A.mode === "ws" && !again ? `<button class="go" id="retry" style="margin-top:18px">↺ حاول مرة أخرى</button>` : ""}
+    </div>`;
+    const rt = $("#retry"); if (rt) rt.onclick = () => { answers = A.qs.map(() => null); qi = 0; t0 = Date.now(); draw(); };
+  }
+
+  boot();
+})();
+</script>
+</body>
+</html>

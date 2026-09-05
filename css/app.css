@@ -466,3 +466,15 @@ button{font-family:inherit}
 .pg-bar{flex:1; height:100%; display:flex; flex-direction:column; justify-content:flex-end; position:relative}
 .pg-bar > div{border-radius:4px 4px 0 0; min-height:3px}
 .pg-bar small{position:absolute; bottom:-18px; left:0; right:0; text-align:center; font-size:9px; color:var(--muted); direction:ltr}
+
+/* 📤 إرسال الأوراق التفاعلية */
+.as-modes{display:grid; grid-template-columns:repeat(3,1fr); gap:7px}
+.as-mode{background:#fff; border:1.5px solid var(--line); border-radius:12px; padding:10px 4px;
+  font-family:inherit; font-size:12.5px; color:var(--ink); cursor:pointer; text-align:center; line-height:1.5}
+.as-mode span{display:block; font-size:20px; margin-bottom:2px}
+.as-mode.on{border-color:var(--gold); background:#FDF8EC; font-weight:800}
+.as-link{display:flex; gap:8px; align-items:center; background:#FDF8EC; border:1.5px dashed var(--gold);
+  border-radius:12px; padding:9px 12px; margin-top:10px}
+.as-link code{flex:1; font-size:12.5px; font-weight:600; color:var(--navy); direction:ltr; unicode-bidi:isolate; word-break:break-all}
+.ar-bar{display:inline-block; width:100%; min-width:60px; height:9px; background:#e8e2d5; border-radius:99px; overflow:hidden; vertical-align:middle}
+.ar-bar i{display:block; height:100%; border-radius:99px}

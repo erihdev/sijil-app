@@ -84,6 +84,33 @@ service cloud.firestore {
       allow delete: if false;
     }
 
+    // ── الأوراق التفاعلية المرسلة للطلاب: ينشئها المعلم ويقرأها الطالب بالرابط ──
+    match /assign/{id} {
+      allow read: if signedIn();
+      allow create, update: if signedIn() && id.matches('^[a-z0-9]{4,12}$') && stamped()
+          && request.resource.data.t is string && request.resource.data.t.size() <= 160
+          && request.resource.data.qs is list && request.resource.data.qs.size() <= 40
+          && request.resource.data.cid is string && request.resource.data.tid is string
+          && request.resource.data.mode in ['ws', 'quiz', 'race'];
+      allow delete: if false;
+    }
+
+    // ── تسليم الطالب: يُكتب مرة من جهاز الطالب، ولا يُحذف ──
+    match /subs/{id} {
+      allow read: if signedIn();
+      allow create, update: if signedIn()
+          && id.matches('^[a-z0-9]{4,12}_[0-9]{1,3}$')
+          && request.resource.data.ts is number
+          && request.resource.data.a is string
+          && request.resource.data.si is int
+          && request.resource.data.n is string && request.resource.data.n.size() <= 80
+          && request.resource.data.ans is list && request.resource.data.ans.size() <= 40
+          && request.resource.data.sc is int && request.resource.data.mx is int
+          && request.resource.data.sc >= 0 && request.resource.data.sc <= request.resource.data.mx
+          && request.resource.data.keys().hasOnly(['a','si','n','cid','tid','ans','sc','mx','secs','late','ts']);
+      allow delete: if false;
+    }
+
     // ── أي شيء آخر ممنوع ──
     match /{document=**} { allow read, write: if false; }
   }
