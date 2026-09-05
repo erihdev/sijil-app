@@ -364,6 +364,17 @@ button{font-family:inherit}
   .live-wrap{flex-direction:column} .live-board{width:auto; max-width:none; max-height:40vh}
   .live-roster{grid-template-columns:repeat(auto-fill,minmax(110px,1fr))}
 }
+/* شريط الحصة الحية على الشاشات الضيقة: العنوان في سطر كامل والأزرار شبكة تحته (الشاشات العريضة/البروجكتر بلا تغيير) */
+@media (max-width:720px){
+  .live-top{display:grid; grid-template-columns:repeat(4,1fr); gap:8px; padding:10px 12px}
+  .live-top .live-title{grid-column:1/-1; order:-1; min-width:0; font-size:18px; line-height:1.4}
+  /* حاوية الأزرار الثلاثة تحمل display:flex كنمط مضمّن في app.js، لذا !important ضروري لتفكيكها إلى خلايا الشبكة */
+  .live-top>div:not(.live-title){display:contents !important}
+  .live-top .live-btn{padding:8px 6px; font-size:13px; white-space:nowrap; min-width:0; overflow:hidden; text-overflow:ellipsis}
+}
+@media (max-width:600px){
+  .live-top{grid-template-columns:repeat(2,1fr)}
+}
 
 @media (min-width:760px){
   .tabs{position:sticky; top:0; bottom:auto; border-top:none; border-bottom:1px solid var(--line)}
