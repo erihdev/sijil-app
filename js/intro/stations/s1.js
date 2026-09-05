@@ -83,7 +83,7 @@
         if (media && typeof media.screen === 'function') {
           this._scr = media.screen({
             width: 6, height: 3.375,
-            poster: null, video: null,
+            poster: null, video: null, clip: 'sd-courtyard',
             frame: 'none',
             open: 1, openFromProgress: false,
             base: COLORS.navy,

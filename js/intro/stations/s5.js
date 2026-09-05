@@ -331,7 +331,7 @@
     try {
       if (S.media && typeof S.media.screen === 'function') {
         S.screen = S.media.screen({
-          width: 4, height: 2.6, procedural: drawSky, frame: 'none',
+          width: 4, height: 2.6, procedural: drawSky, frame: 'none', clip: 'sd-flight',
           open: 0, openFromProgress: false, base: '#1B3A5C', name: 's5-window'
         });
         S.screen.mesh.position.set(-3.94, 2.0, -58);

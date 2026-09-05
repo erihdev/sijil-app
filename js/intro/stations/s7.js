@@ -114,7 +114,7 @@
       if (media && typeof media.screen === 'function') {
         /* لقطة admin-more تُطلب في load() لا هنا (القسم 4) */
         R.screen = media.screen({
-          width: BOARD.w, height: BOARD.h, poster: null, frame: 'none', fit: 'contain',
+          width: BOARD.w, height: BOARD.h, poster: null, frame: 'none', fit: 'contain', clip: 'sd-aerial',
           open: 0, openFromProgress: false, bright: 1.04, procedural: drawLevels, name: 's7-admin'
         });
         R.boardMesh = R.screen.mesh;

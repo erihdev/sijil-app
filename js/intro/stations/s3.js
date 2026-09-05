@@ -160,7 +160,7 @@
           /* الملصق يُطلب في load() لا هنا (القسم 4) */
           this._scr = media.screen({
             width: 4, height: 2.25,
-            poster: null, video: null,
+            poster: null, video: null, clip: 'sd-board',
             fit: 'contain', frame: 'none',
             open: 1, openFromProgress: false,
             base: BOARD_HEX,

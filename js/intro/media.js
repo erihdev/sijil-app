@@ -304,9 +304,34 @@
     return true;
   }
 
+  /* ---------- مقاطع الفيديو: assets/intro/video/manifest.json ---------- */
+  var clipsPromise = null, clipsMap = null;
+  function loadClips() {
+    if (clipsPromise) return clipsPromise;
+    clipsPromise = new Promise(function (resolve) {
+      var done = function (m) { clipsMap = m || {}; resolve(clipsMap); };
+      try {
+        if (typeof fetch !== 'function') return done({});
+        fetch('assets/intro/video/manifest.json?v=38', { cache: 'no-cache' })
+          .then(function (r) { return r.ok ? r.json() : null; })
+          .then(function (j) { done(j && j.clips ? j.clips : {}); }, function () { done({}); });
+      } catch (e) { done({}); }
+    });
+    return clipsPromise;
+  }
+  function isMobileCtx() { try { return !!(NS.ctx && NS.ctx.isMobile); } catch (e) { return false; } }
+
   /* ---------- الشاشة ---------- */
   function screen(opts) {
     opts = opts || {};
+    if (opts.clip && !opts.video) {
+      loadClips().then(function (map) {
+        var k = map && map[opts.clip];
+        if (!k || !k.mp4 || !s || s.disposed) return;
+        opts.video = (isMobileCtx() && k.mobile) ? k.mobile : k.mp4;
+        if (s.active) { try { startVideo(); } catch (e) {} }
+      });
+    }
     var width = opts.width || 6, height = opts.height || 3.375;
     var fit = opts.fit || ((opts.poster || opts.texture) ? 'contain' : 'stretch');
     var uniforms = {
@@ -552,6 +577,7 @@
     atlasUV: atlasUV,
     canvasTexture: canvasTexture,
     screen: screen,
+    clips: loadClips,
     tick: tick,
     onReady: onReady,
     whenFonts: whenFonts,
