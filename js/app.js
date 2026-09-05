@@ -1881,6 +1881,9 @@
       <div class="field"><label>الفصل</label><div class="class-chips" id="as-cls">${cls.map(c => `<button class="chip ${c.id === cur ? "on" : ""}" data-c="${c.id}">${esc(c.name)}</button>`).join("")}</div></div>
       <div class="field"><label>الوضع</label><div class="as-modes" id="as-modes">${MODES.map(m => `<button class="as-mode ${m.k === "ws" ? "on" : ""}" data-m="${m.k}"><span>${m.ic}</span>${m.n}</button>`).join("")}</div>
         <div class="empty-note" id="as-desc" style="padding:6px 2px 0;text-align:right">${MODES[0].d}</div></div>
+      <div class="field" id="as-try-w"><label>المحاولات</label>
+        <label class="as-chk"><input type="checkbox" id="as-retry" checked> يسمح بإعادة المحاولة للتدريب
+        <small>الدرجة المسجّلة تبقى دائماً من المحاولة الأولى، ويرى المعلم عدد المحاولات.</small></label></div>
       <div class="field" id="as-secs-w" style="display:none"><label>مدة الاختبار (دقائق)</label><input class="search-box" id="as-secs" style="margin:0" inputmode="numeric" value="10"></div>
       <div class="field"><label>موعد التسليم</label><input type="datetime-local" class="search-box" id="as-due" style="margin:0" value="${dueLocal(28)}"></div>
       <div id="as-out"></div>
@@ -1890,6 +1893,7 @@
         mode = b.dataset.m; o.querySelectorAll(".as-mode").forEach(x => x.classList.toggle("on", x === b));
         o.querySelector("#as-desc").textContent = (MODES.find(m => m.k === mode) || {}).d || "";
         o.querySelector("#as-secs-w").style.display = mode === "ws" ? "none" : "block";
+        o.querySelector("#as-try-w").style.display = mode === "ws" ? "block" : "none";
       });
       o.querySelector("#as-make").onclick = async () => {
         const btn = o.querySelector("#as-make"); btn.disabled = true; btn.textContent = "جارِ الإنشاء…";
@@ -1902,7 +1906,8 @@
           t: title, subj: TE.subject, tid: TE.id, tn: TE.name, cid: cur, cname: c.name,
           mode, due: o.querySelector("#as-due").value || "", code, wk,
           secs: mode === "ws" ? 0 : Math.max(60, (+o.querySelector("#as-secs").value || 10) * 60),
-          qs: clean, n: clean.length, ts: Date.now()
+          qs: clean, n: clean.length, ts: Date.now(),
+          retry: mode === "ws" ? !!o.querySelector("#as-retry").checked : false
         };
         try { await fdb.doc("assign/" + id).set(doc); } catch (e) { btn.disabled = false; btn.textContent = "🔗 أنشئ الرابط"; alert("تعذّر الإنشاء — تحقق من الاتصال"); return; }
         const url = ASSIGN_BASE + id;
@@ -1961,32 +1966,40 @@
       body.innerHTML = `
         <div class="statrow"><div class="stat"><div class="v">${donerows.length}</div><div class="l">سلّموا من ${rows.length}</div></div>
           <div class="stat"><div class="v">${donerows.length ? avg.toFixed(1) : "—"}</div><div class="l">متوسط من ${A.n}</div></div>
-          <div class="stat"><div class="v">${donerows.filter(r => r.s.late).length}</div><div class="l">متأخر</div></div>
+          <div class="stat"><div class="v">${donerows.filter(r => (r.s.att || 1) > 1).length}</div><div class="l">أعادوا المحاولة</div></div>
           <div class="stat"><div class="v">${worst && worst.w ? "س" + (worst.k + 1) : "—"}</div><div class="l">أكثر خطأً</div></div></div>
-        <div class="table-scroll"><table class="report-table"><tr><th>الطالب</th><th>الحالة</th><th>الدرجة</th><th>الوقت</th></tr>
-        ${rows.sort((a, b) => (b.s ? b.s.sc : -1) - (a.s ? a.s.sc : -1)).map(r => `<tr><td class="nm">${esc(r.n)}</td>
-          <td>${r.s ? `<span class="cc" style="background:var(--ok);font-size:11px">سلّم${r.s.late ? " متأخراً" : ""}</span>` : `<span style="color:var(--muted);font-size:12px">لم يفتح</span>`}</td>
-          <td><b>${r.s ? r.s.sc + " / " + r.s.mx : "—"}</b></td><td>${r.s ? Math.max(1, Math.round(r.s.secs / 60)) + " د" : "—"}</td></tr>`).join("")}
+        <div class="table-scroll"><table class="report-table"><tr><th>الطالب</th><th>الحالة</th><th>الدرجة</th><th>محاولات</th><th>الأفضل</th><th>الوقت</th></tr>
+        ${rows.sort((a, b) => (b.s ? b.s.sc : -1) - (a.s ? a.s.sc : -1)).map(r => { const v = r.s, at = v ? (v.att || 1) : 0, bs = v ? (v.best != null ? v.best : v.sc) : 0; return `<tr><td class="nm">${esc(r.n)}</td>
+          <td>${v ? `<span class="cc" style="background:var(--ok);font-size:11px">سلّم${v.late ? " متأخراً" : ""}</span>` : `<span style="color:var(--muted);font-size:12px">لم يفتح</span>`}</td>
+          <td><b>${v ? v.sc + " / " + v.mx : "—"}</b></td>
+          <td>${v ? (at > 3 ? `<span class="cc" style="background:var(--st2);font-size:11px">${at}</span>` : at) : "—"}</td>
+          <td>${v ? (bs > v.sc ? `<b style="color:var(--ok)">${bs}</b>` : "—") : "—"}</td>
+          <td>${v ? Math.max(1, Math.round(v.secs / 60)) + " د" : "—"}</td></tr>`; }).join("")}
         </table></div>
+        <div class="empty-note" style="text-align:right;padding:6px 2px 0">الدرجة من <b>المحاولة الأولى</b> دائماً، وعمود «الأفضل» يظهر إن تحسّن بالتدريب.</div>
         ${donerows.length ? `<div style="font-weight:800;color:var(--navy);margin:14px 0 6px">نسبة الخطأ في كل سؤال</div>
         <div class="table-scroll"><table class="report-table">${order.map(x => `<tr><td style="width:46px">س${x.k + 1}</td>
           <td class="nm" style="font-weight:500">${esc(x.q)}</td>
           <td style="width:120px"><span class="ar-bar"><i style="width:${Math.round(x.w / donerows.length * 100)}%;background:${x.w / donerows.length > .4 ? "var(--bad)" : "var(--ok)"}"></i></span></td>
           <td style="width:74px">${x.w} من ${donerows.length}</td></tr>`).join("")}</table></div>
         ${worst && worst.w / donerows.length > .4 ? `<div class="empty-note" style="text-align:right;padding:10px 2px 0">💡 أعد شرح «${esc(worst.q)}» في بداية الحصة القادمة.</div>` : ""}
-        <button class="btn-gold" id="ar-grade" style="width:100%;margin-top:14px">💯 اعتماد الدرجات في تبويب الدرجات</button>` : ""}`;
-      const gb = body.querySelector("#ar-grade");
-      if (gb) gb.onclick = () => {
+        <div style="display:flex;gap:8px;margin-top:14px"><button class="btn-gold" id="ar-grade" style="flex:1">💯 اعتماد المحاولة الأولى</button>
+        <button class="btn-soft" id="ar-grade-b" style="flex:1">🌟 اعتماد الأفضل</button></div>` : ""}`;
+      const applyG = (useBest, btn) => {
         const a = ASSESS.find(x => x.k === "sheets") || ASSESS[1];
         DB.grades[A.cid] = DB.grades[A.cid] || {};
         let n = 0;
         donerows.forEach(r => {
+          const v = useBest ? (r.s.best != null ? r.s.best : r.s.sc) : r.s.sc;
           DB.grades[A.cid][r.i] = DB.grades[A.cid][r.i] || {};
-          DB.grades[A.cid][r.i][a.k] = Math.round(r.s.sc / r.s.mx * a.max * 10) / 10; n++;
+          DB.grades[A.cid][r.i][a.k] = Math.round(v / r.s.mx * a.max * 10) / 10; n++;
         });
         save("grades:" + A.cid); renderGrades();
-        gb.textContent = `✔ اعتُمدت ${n} درجة في «${a.n}»`; gb.disabled = true;
+        btn.textContent = `✔ اعتُمدت ${n} درجة`;
+        body.querySelectorAll("#ar-grade,#ar-grade-b").forEach(x => x.disabled = true);
       };
+      const gb = body.querySelector("#ar-grade"); if (gb) gb.onclick = () => applyG(false, gb);
+      const gb2 = body.querySelector("#ar-grade-b"); if (gb2) gb2.onclick = () => applyG(true, gb2);
     });
   }
   const normAr = (s) => String(s || "").trim().replace(/[ً-ْـ]/g, "").replace(/[إأآا]/g, "ا").replace(/ى/g, "ي").replace(/ة/g, "ه").replace(/^ال/, "").replace(/\s+/g, " ").toLowerCase();

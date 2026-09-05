@@ -91,7 +91,8 @@ service cloud.firestore {
           && request.resource.data.t is string && request.resource.data.t.size() <= 160
           && request.resource.data.qs is list && request.resource.data.qs.size() <= 40
           && request.resource.data.cid is string && request.resource.data.tid is string
-          && request.resource.data.mode in ['ws', 'quiz', 'race'];
+          && request.resource.data.mode in ['ws', 'quiz', 'race']
+          && (!('retry' in request.resource.data) || request.resource.data.retry is bool);
       allow delete: if false;
     }
 
@@ -107,7 +108,7 @@ service cloud.firestore {
           && request.resource.data.ans is list && request.resource.data.ans.size() <= 40
           && request.resource.data.sc is int && request.resource.data.mx is int
           && request.resource.data.sc >= 0 && request.resource.data.sc <= request.resource.data.mx
-          && request.resource.data.keys().hasOnly(['a','si','n','cid','tid','ans','sc','mx','secs','late','ts']);
+          && request.resource.data.keys().hasOnly(['a','si','n','cid','tid','ans','sc','mx','best','lsc','att','secs','late','ts','lts']);
       allow delete: if false;
     }
 

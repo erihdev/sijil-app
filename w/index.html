@@ -63,6 +63,9 @@ button{font-family:inherit;font-size:16px}
   padding:9px 12px;font-size:13.5px;margin-bottom:12px}
 .err{text-align:center;padding:40px 16px;color:var(--muted)}
 .err b{display:block;color:var(--ink);font-size:19px;margin-bottom:6px}
+.note2{background:#FDF8EC;border:1.5px solid var(--gold);border-radius:12px;padding:11px 13px;
+  margin-top:14px;font-size:13.5px;line-height:1.75;text-align:center;color:var(--ink)}
+.note2 b{color:var(--navy)}
 </style>
 </head>
 <body>
@@ -73,7 +76,7 @@ button{font-family:inherit;font-size:16px}
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-check-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
-<script src="../js/fb.js?v=1"></script>
+<script src="../js/fb.js?v=36"></script>
 <script>
 (function () {
   "use strict";
@@ -83,6 +86,7 @@ button{font-family:inherit;font-size:16px}
   const AID = new URLSearchParams(location.search).get("a") || "";
   const MODE_T = { ws: "ورقة عمل", quiz: "اختبار", race: "تحدٍّ" };
   let db = null, A = null, C = null, si = -1, sname = "", answers = [], qi = 0, t0 = 0, tIv = null, left = 0;
+  let PREV = null;   // تسليم سابق: المحاولة الأولى هي المعتمدة
 
   const fail = (t, s) => { app.innerHTML = `<div class="err"><b>${esc(t)}</b>${esc(s || "")}</div>`; };
   // تطبيع إجابة «أكمل الفراغ»: تشكيل، ألف/ياء/تاء، «الـ»، مسافات
@@ -132,7 +136,8 @@ button{font-family:inherit;font-size:16px}
     });
     $("#start").onclick = async () => {
       const prev = await db.doc("subs/" + AID + "_" + si).get();
-      if (prev.exists && A.mode !== "ws") { return done(prev.data(), true); }
+      if (prev.exists && (A.mode !== "ws" || A.retry === false)) { return done(prev.data(), true); }
+      if (prev.exists) { PREV = prev.data(); }
       t0 = Date.now(); qi = 0;
       if (A.mode !== "ws" && A.secs) { left = A.secs; startTimer(); }
       draw();
@@ -204,34 +209,52 @@ button{font-family:inherit;font-size:16px}
     if (tIv) { clearInterval(tIv); tIv = null; }
     app.innerHTML = `<div class="err">جارِ الإرسال…</div>`;
     const { sc, detail } = grade();
-    const rec = {
-      a: AID, si: si, n: sname, cid: A.cid, tid: A.tid,
-      ans: answers.map(x => x === null || x === undefined ? "" : x),
-      sc: sc, mx: A.qs.length, secs: Math.round((Date.now() - t0) / 1000),
-      late: isLate(), ts: Date.now()
-    };
-    try { await db.doc("subs/" + AID + "_" + si).set(rec); } catch (e) { }
-    done(rec, false, detail);
+    const now = Date.now(), secs = Math.round((now - t0) / 1000);
+    let rec;
+    if (PREV) {
+      // المحاولة الأولى تبقى هي المسجَّلة؛ نضيف عدد المحاولات وأفضل نتيجة
+      rec = {
+        a: AID, si: si, n: PREV.n || sname, cid: A.cid, tid: A.tid,
+        ans: PREV.ans || [], sc: PREV.sc, mx: A.qs.length,
+        best: Math.max(PREV.best != null ? PREV.best : PREV.sc, sc),
+        lsc: sc, att: Math.min(99, (PREV.att || 1) + 1),
+        secs: PREV.secs || secs, late: !!PREV.late, ts: PREV.ts || now, lts: now
+      };
+    } else {
+      rec = {
+        a: AID, si: si, n: sname, cid: A.cid, tid: A.tid,
+        ans: answers.map(x => x === null || x === undefined ? "" : x),
+        sc: sc, mx: A.qs.length, best: sc, lsc: sc, att: 1,
+        secs: secs, late: isLate(), ts: now, lts: now
+      };
+    }
+    if ((rec.att || 1) <= 12) { try { await db.doc("subs/" + AID + "_" + si).set(rec); } catch (e) { } }
+    PREV = rec;
+    done(rec, false, detail, sc);
   }
 
-  function done(rec, again, detail) {
+  function done(rec, again, detail, thisSc) {
     if (!detail) detail = grade().detail;
-    const pct = Math.round(rec.sc / rec.mx * 100);
+    const cur = thisSc == null ? rec.sc : thisSc;      // درجة هذه المحاولة
+    const att = rec.att || 1, repeat = att > 1;
+    const pct = Math.round(cur / rec.mx * 100);
     const wrong = detail.filter(d => !d.ok);
     const face = pct >= 90 ? "🏆" : pct >= 70 ? "🌟" : pct >= 50 ? "👍" : "💪";
     const word = pct >= 90 ? "ممتاز" : pct >= 70 ? "أحسنت" : pct >= 50 ? "جيد" : "حاول مرة أخرى";
     const showAns = A.mode !== "quiz" || rec.late || true;
     app.innerHTML = `<div class="card mid">
       <div class="big">${face}</div>
-      <div class="ring" style="background:conic-gradient(${pct >= 50 ? "var(--ok)" : "var(--gold)"} 0 ${pct}%, #E8E2D5 ${pct}%)"><b>${rec.sc} <i>من ${rec.mx}</i></b></div>
+      <div class="ring" style="background:conic-gradient(${pct >= 50 ? "var(--ok)" : "var(--gold)"} 0 ${pct}%, #E8E2D5 ${pct}%)"><b>${cur} <i>من ${rec.mx}</i></b></div>
       <p style="font-weight:800;font-size:20px;color:var(--navy);margin:0">${word} يا ${esc((sname || rec.n || "").split(" ")[0])}</p>
       <p class="sub" style="margin:4px 0 0">${again ? "سبق أن أرسلت هذه الورقة" : "أُرسلت إلى معلمك ✓"}${rec.late ? " · تسليم متأخر" : ""}</p>
+      ${repeat ? `<div class="note2">هذه محاولتك رقم ${att} · درجتك المسجّلة عند المعلم <b>${rec.sc} من ${rec.mx}</b> من المحاولة الأولى${rec.best > rec.sc ? ` · أفضل نتيجة لك ${rec.best}` : ""}<br><span style="color:var(--muted)">أعد المحاولة كما تشاء، فكل مرة تزيد فهمك 💪</span></div>` : ""}
       ${showAns && wrong.length ? `<div style="text-align:right;margin-top:16px">
         <p class="lbl">راجع هذه فقط:</p>
         ${wrong.map(d => `<div class="rev"><span class="x">✗</span> ${esc(d.q)}<div class="a">الصحيح: ${esc(d.right)}</div></div>`).join("")}
       </div>` : ""}
       ${showAns && !wrong.length ? `<p style="color:var(--ok);font-weight:800;margin-top:14px">كل إجاباتك صحيحة! 🎉</p>` : ""}
-      ${A.mode === "ws" && !again ? `<button class="go" id="retry" style="margin-top:18px">↺ حاول مرة أخرى</button>` : ""}
+      ${A.mode === "ws" && A.retry !== false && !again && att < 12 ? `<button class="go" id="retry" style="margin-top:18px">↺ تدرّب مرة أخرى</button>` : ""}
+      ${att >= 12 ? `<p class="hint" style="margin-top:14px">وصلت إلى أقصى عدد للمحاولات. راجع الدرس مع معلمك 🌱</p>` : ""}
     </div>`;
     const rt = $("#retry"); if (rt) rt.onclick = () => { answers = A.qs.map(() => null); qi = 0; t0 = Date.now(); draw(); };
   }
