@@ -11,11 +11,36 @@
 <meta name="mobile-web-app-capable" content="yes">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800&display=swap" rel="stylesheet">
+<script>
+(function(){var W=window,D=document,f=/[?&]intro=1(&|$)/.test(location.search),s=0,m;
+try{s=localStorage.getItem('sijil.intro.seen')==='1';['sijil.v1','sijil.cloud.v1','sijil.db'].forEach(function(k){var r=localStorage.getItem(k);if(r&&r.indexOf('"session":"t')>-1)s=1})}catch(e){}
+if(s&&!f)m='skip';else{var g=0,n=navigator,r=0;try{var c=D.createElement('canvas');g=!!(c.getContext('webgl2')||c.getContext('webgl'))}catch(e){}try{r=W.matchMedia('(prefers-reduced-motion: reduce)').matches}catch(e){}
+m=(r||!g||(n.connection&&n.connection.saveData)||(n.deviceMemory&&n.deviceMemory<=2))?'posters':'full'}
+var N=W.SIJIL_INTRO=W.SIJIL_INTRO||{};N.mode=m;if(m!=='skip'){try{D.documentElement.classList.add('intro-bar')}catch(e){}}
+if(m==='full'){var a=function(){if(D.body){D.body.classList.add('has-intro');return 1}};if(!a()){try{new MutationObserver(function(x,o){if(a())o.disconnect()}).observe(D.documentElement,{childList:true})}catch(e){}D.addEventListener('DOMContentLoaded',a)}}
+try{var t=D.createElement('script');t.src='js/intro-boot.js?v=37';t.async=false;D.head.appendChild(t)}catch(e){}
+})();
+</script>
+<link href="https://fonts.googleapis.com/css2?family=Changa:wght@600;700;800&family=Tajawal:wght@400;500;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="css/app.css?v=37">
+<link rel="stylesheet" href="css/intro.css?v=37">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='46' fill='%230E2033'/><text x='50' y='68' font-size='52' text-anchor='middle' fill='%23D7A93F'>س</text></svg>">
 </head>
 <body>
+
+<!-- ═══════════ الجولة السينمائية ═══════════ -->
+<div id="intro" hidden>
+  <canvas id="intro-gl"></canvas>
+  <div id="intro-ui">
+    <div id="intro-texts"></div>
+    <div id="intro-counter" hidden></div>
+    <div id="intro-hint">مرّر</div>
+  </div>
+</div>
+<div id="intro-track" hidden></div>
+<div id="intro-bar" hidden><span class="brand">سجل المتابعة الرقمي</span><a class="enter" href="#view-login">دخول</a></div>
+<div id="intro-posters" hidden></div>
+<div id="intro-stamp" hidden><div class="seal"><svg viewBox="0 0 100 100" aria-hidden="true"><path d="M50 4L61 27L84 16L73 39L96 50L73 61L84 84L61 73L50 96L39 73L16 84L27 61L4 50L27 39L16 16L39 27Z"/></svg><b>سُجِّل</b></div></div>
 
 <!-- ═══════════ الدخول ═══════════ -->
 <section id="view-login">
@@ -43,6 +68,7 @@
       <b>رقم الدخول التجريبي لأي معلم: 1234</b>
     </div>
     <div class="login-foot">تم برمجته بواسطة <a href="https://erihdev.com">ERIHDEV.COM</a> — أ. ضيف الله أحمد مشني</div>
+    <button id="intro-replay" class="btn-ghost" hidden>🎬 شاهد الجولة</button>
   </div>
 </section>
 
@@ -89,8 +115,8 @@
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-check-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
-<script src="js/fb.js?v=36"></script>
-<script src="js/demo-data.js?v=36"></script>
-<script src="js/app.js?v=36"></script>
+<script src="js/fb.js?v=37"></script>
+<script src="js/demo-data.js?v=37"></script>
+<script src="js/app.js?v=37"></script>
 </body>
 </html>

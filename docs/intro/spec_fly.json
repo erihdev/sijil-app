@@ -1,0 +1,425 @@
+{
+ "title": "سجل المتابعة الرقمي — الطيران داخل المدرسة (المواصفة النهائية v1)",
+ "tagline": "من بوابة المدرسة صباحاً إلى زجاجها المضاء ليلاً: رحلة واحدة، كاميرا واحدة، ثمانِ محطات، والدخول آخرها.",
+ "concept": "الصفحة كلها مدرسة الإمام علي بن أبي طالب الابتدائية مبنية داخل three.js من أشكال هندسية بمقياس حقيقي (1 وحدة = 1 متر)، والمعلم يطير فيها بكاميرا واحدة على مسار CatmullRom واحد مربوط بشريط تمرير واحد (spacer) عبر ScrollTrigger واحد بـscrub، بلا pin إطلاقاً. الافتتاح «كشف»: ما يبدو فيديو ملء الشاشة يتراجع مع أول تمرير ليتضح أنه لوحة LED فوق بوابة المدرسة. ثم ننزل إلى فناء الطابور حيث الطلاب (كبسولات بزي مدرسي بلا وجوه) وطائرات ورقية، وجوال المعلم يُحضّر الطابور فتقفز النجوم فوق الرؤوس؛ ندخل الفصل فتخرج عجلة الأسماء من السبورة وتختار طالباً يختار من بعده؛ ندولي على جدار 782 بلاطة درس بصور حقيقية؛ نقف أمام نافذة الممر فتطير أوراق العمل طائرات ورقية إلى حي واتساب وتعود علامات صح؛ تُفتح خزانة الطالب على ملفه وتطير التقارير للبيوت؛ نصعد فجأة عبر كوّة السقف (الكسر الإيقاعي الوحيد) إلى سطح المدرسة عند الغروب ونرى لوحة المدير؛ ثم نهبط ليلاً أمام زجاج البوابة المضاء بالذهب، وهناك تنتظر بطاقة الدخول الحقيقية (#view-login كقسم عادي في التدفق) فيُختم عليها ختم «سُجِّل» عند النقر. كل فيديو Seedance شيء موجود داخل العالم (لوحة البوابة، السبورة، زجاج النافذة، لوح المدير) وكل شاشة تطبيق حقيقية تُعرض على شاشة داخل العالم (جوال المعلم، جوال الطالب، لوح المدير). الإيقاع ثابت في كل محطة: استلام 0–0.15، نهوض 0.15–0.55، ذروة 0.55–0.75، تسليم 0.75–1، حيث يتحول عنصر المحطة إلى أول عنصر في التالية. لا صوت، لا pin، لا backdrop-filter على الجوال، لا timeline يعتمد على الفيديو، ولا مكتبة واحدة تُحمَّل للمعلم العائد.",
+ "palette": [
+  {
+   "name": "كحلي الليل",
+   "hex": "#0E2033",
+   "use": "لون clear/الضباب ليلاً (s7 نهاية، s8)، خلفية HTML خارج الكانفس، الخزائن، قوائم النوافذ، سماء القبة في الأعلى، حروف على الكريمي."
+  },
+  {
+   "name": "كحلي الفجر",
+   "hex": "#142A44",
+   "use": "الوجوه المظللة (لون أرضية HemisphereLight)، الأرضيات الداخلية، إطار التابلت، الحقائب المدرسية، أعمدة السبورة."
+  },
+  {
+   "name": "ذهب المصباح",
+   "hex": "#D7A93F",
+   "use": "البطل: العناوين، إطار السبورة والنوافذ (نجمة ثمانية)، النجوم فوق الرؤوس، المقاعد عند إضاءتها، مؤشر العجلة، زر الدخول، الختم، الجزيئات."
+  },
+  {
+   "name": "ذهب فاتح",
+   "hex": "#F0D99A",
+   "use": "emissive للعناصر الفاعلة (×0.35)، ضوء النوافذ ليلاً، النص الثانوي على الكحلي، هالات Sprite."
+  },
+  {
+   "name": "كريمي الجدران",
+   "hex": "#F8F5EF",
+   "use": "جدران المدرسة والفصل، ثوب الطلاب، الطائرات الورقية، بطاقة الطالب، لون سماء HemisphereLight نهاراً، خلفية بطاقة الدخول (0.94)."
+  },
+  {
+   "name": "طين الفناء",
+   "hex": "#B3541E",
+   "use": "أرضية الفناء، درجات المدخل، سقف القرميد المبسط على الجناحين، رفوف جدار الدروس بديلاً عن الذهب في الخلفية (مطفأ 20%)."
+  },
+  {
+   "name": "أخضر الصح",
+   "hex": "#2E9E5B",
+   "use": "لون st0 في التطبيق: علامات ✓ العائدة من النافذة، الأعمدة الخضراء في لوحة المدير، العلم الأخضر (#1E6B3A مظلل)، سعف النخلة (#3E7A4A)."
+  }
+ ],
+ "fonts": {
+  "display": "Changa — Google Fonts، أوزان 600/700/800، للعناوين والعدّاد ٠→٧٨٢ وشرائح «دورك»؛ preload لوزن 800 فقط (subset arabic)، font-display:swap، والبديل المؤقت Tajawal 800 بنفس المقاس.",
+  "body": "Tajawal 400/500/700/800 — كما في التطبيق ودون تغيير — لكل النصوص والأزرار وبطاقة الدخول والشرائح المُسقطة.",
+  "why": "Changa يحمل تشكيلاً كاملاً (الشدّة في «ملفّ» و«يُجب» لا تسقط كما في Reem Kufi)، وأرقاماً عربية-هندية واضحة ومتساوية العرض تقريباً فيثبت عرض العدّاد ٧٨٢ أثناء العدّ، وأكتافه الحادة وبنيته الهندسية العريضة تتكلم لغة العالم الـlow-poly (زوايا ومستويات) وتقرأ بقوة من 40 إلى 88px على الكحلي بالذهب. Cairo استُبعد لأنه قريب جداً من Tajawal فيضيع التباين بين العنوان والنص؛ Amiri نسخي ناعم يصطدم بالحدّة الهندسية؛ Marhey/Lalezar يميلان للإعلان التجاري ويقللان هيبة «سجل». Tajawal يبقى للنص لأن التطبيق كله عليه فيصير الانتقال من الجولة إلى التطبيق بلا قطع بصري."
+ },
+ "scenes": [
+  {
+   "id": "s1-gate",
+   "headline": "صباحك يبدأ من البوابة",
+   "copy": "سجل المتابعة الرقمي — مدرسة الإمام علي بن أبي طالب الابتدائية. تحضير، حصة حيّة، ٧٨٢ درساً، وتقارير أولياء الأمور… كلها في هاتفك.",
+   "scroll_choreography": "عند التحميل (قبل أي تمرير): الكاميرا عند cameraPoint (0, 6.2, 34.8) على المكتب / (0, 6.8, 33.3) على الجوال تنظر إلى مركز لوحة LED (0, 6.2, 30.0) وهي plane 8×4.5م فوق قوس البوابة؛ المسافة محسوبة d = 4.5 / (2·tan(fov/2)) فتملأ اللوحة ارتفاع الشاشة بالضبط (المكتب fov 50 → عرضها يطابق 16:9؛ الجوال fov 68 → الجانبان مقصوصان طبيعياً بالإطار الطولي بلا أي repeat/offset). اللوحة تعرض poster sd-courtyard (webp) فوراً مع Ken Burns إجرائي (uniform uScale 1→1.06 خلال 8 ثوانٍ) وغبار ذهبي؛ عند canplay تُمزج VideoTexture فوق الملصق (uniform uMix 0→1 خلال 400ms) — الكشف لا يعتمد على الفيديو إطلاقاً. 0→0.15 (استلام = الكشف): الكاميرا تتراجع على المسار إلى (0, 8.5, 46) مع easeInOut فيظهر الإطار الأسود الرفيع للوحة ثم القوس الكريمي وسور المدرسة وسارية العلم يميناً والنخلة يساراً؛ العنوان يظهر بـChanga 800 كلمة كلمة (span لكل كلمة، clip-path) خلال 700ms؛ زر «دخول» الثابت ظاهر منذ 1.4s بلا انتظار. 0.15→0.55 (نهوض): drift 4سم فقط؛ العلم يتموج، الغبار الذهبي يطفو في شعاع الشمس (Points 1200/300)، وطائرتان ورقيتان تعبران فوق السور من اليسار. 0.55→0.75 (ذروة): النص يظهر؛ الضباب ينخفض 0.030→0.022 فتتضح المدرسة. 0.75→1 (تسليم): العنوان يتلاشى، الكاميرا تعبر فوق السور عبر waypoint (3, 10.5, 28) وتهبط نحو الفناء إلى (2, 3.2, 14)؛ إحدى الطائرات الورقية تسبق الكاميرا وتصبح أول عنصر في s2.",
+   "three_elements": "قوس البوابة، لوحة LED (plane + إطار)، بابا زجاج تحت القوس (mesh زجاجي كحلي opacity 0.5 — سيُضاء في s8)، السور، السارية + العلم (شادر)، النخلة، أرضية الفناء الطينية، 3 مقاعد، الطائرتان (InstancedMesh)، قبة السماء، DirectionalLight فجر + HemisphereLight، FogExp2 #566B8C 0.030.",
+   "media": "seedance:sd-courtyard",
+   "mobile": "fov 68 وارتفاع الكاميرا +0.6م على المسار نفسه؛ العنوان في الثلث العلوي (44px) والنص في الثلث السفلي على شريط كحلي 0.55 بلا blur؛ الجزيئات 300؛ الفيديو يُحمَّل بعد أول لمسة أو بعد 1.2s أيهما أسبق ويُحاول play() عند أول touchstart/wheel."
+  },
+  {
+   "id": "s2-assembly",
+   "headline": "الطابور حاضر… والنجوم تُرصد",
+   "copy": "افتح الفصل واضغط اسم الطالب: حاضر، شارك، نجمة. ينتهي التحضير قبل أن يدخل الطلاب فصولهم.",
+   "scroll_choreography": "0→0.15 (استلام): الكاميرا تستقر عند (2, 3.2, 14) تنظر إلى (0, 1.2, 4): أمامها طابور الصباح — 24 طالباً (InstancedMesh كبسولات ثوب كريمي + رؤوس كرات بلا ملامح + حقائب كحلية) في 3 صفوف × 8 على بلاط الفناء، ومعلم كبسولة كحلية أطول يميناً بيده جوال؛ الطائرة الورقية القادمة من s1 تهبط بخيطها على كتف الطالب الأول وتبقى. 0.15→0.55 (نهوض): الكاميرا تنزلق يميناً وتنخفض إلى (3.2, 1.7, 8) لتقرّب جوال المعلم (صندوق مستدير 0.07×0.15 + شاشة plane بلقطة webp حقيقية لقائمة التحضير من التطبيق، 512×1024، على مادة MeshBasic غير متأثرة بالإضاءة)؛ من 0.20 مع كل 1/24 من المقطع يُعاد رسم صف واحد ذهبياً على canvas فوق اللقطة (CanvasTexture طبقة علوية شفافة، تحديث فقط عند عبور العتبة، لا كل إطار) وفي اللحظة نفسها يرفع الطالب المقابل رأسه 4سم (instanceMatrix) وتقفز فوقه نجمة Octahedron ذهبية بمقياس elastic 0→1 مع دوران 0.4 rad/s؛ الترتيب صف صف من اليمين (RTL). 0.55→0.75 (ذروة): 24 نجمة معلّقة، الطائرات الورقية الست ترتفع دفعة واحدة فوق الطابور، PointLight ذهبي فوق الجوال يشتد 0→1.6، شريحة HTML مُسقطة فوق الطابور: «٢٤ حاضر». 0.75→1 (تسليم): الطابور ينفض — الكبسولات تتحرك على مسارات فردية (24 QuadraticBezier) نحو باب الفصل الكريمي في جدار الجناح (باب Group بمحور دوران ينفتح 0→-100°)، النجوم تتبعها وتنطفئ عند العتبة، والكاميرا تتبع آخر طالب إلى الداخل عبر waypoint (0, 1.7, 1.5).",
+   "three_elements": "24 طالباً InstancedMesh (كبسولة CapsuleGeometry(0.22,0.55,2,6) + كرة Icosahedron(0.16,1) + حقيبة Box — 3 InstancedMesh بمواد مشتركة)، معلم، جوال + لقطة، 24 نجمة Octahedron في Group واحد (draw call واحد عبر InstancedMesh)، 6 طائرات ورقية (InstancedMesh معين 2 مثلث + خيوط LineSegments)، باب الفصل، PointLight واحد.",
+   "media": "procedural:لقطة webp حقيقية لشاشة التحضير + طبقة canvas تُلوّن الصفوف ذهبياً عند العتبات",
+   "mobile": "الجوال يملأ 60% من العرض في الثلث الأوسط والطابور خلفه في الثلث العلوي؛ 12 نجمة (نجمة كل طالبين)؛ الطائرات 4؛ الشريحة «٢٤ حاضر» تصبح نصاً ثابتاً أسفل الشاشة بدل الإسقاط."
+  },
+  {
+   "id": "s3-board",
+   "headline": "حصة حيّة لا ينام فيها أحد",
+   "copy": "عجلة الأسماء، مسابقة، مؤقت، قصة مصوّرة، و7 ألعاب: خمّن، الذاكرة، لغز، ترتيب، فرق، توصيل، سلّم. من يُجب يختار من بعده — فيشارك الجميع.",
+   "scroll_choreography": "0→0.15 (استلام): الكاميرا تدخل الفصل وتستقر عند (0, 1.7, -4) تنظر إلى السبورة (0, 1.8, -9.9)؛ الطلاب الـ24 يجلسون على المقاعد (نفس InstancedMesh بمقياس y 0.75 ومواضع المقاعد 4×6)؛ السبورة plane كحلي-أخضر #1E3A34 بإطار ذهبي بنمط النجمة الثمانية (شادر الإطار) تعرض sd-board (ملصق أولاً). 0.15→0.55 (نهوض): عجلة الأسماء تخرج من سطح السبورة نحو الغرفة (z -9.9→-7.5): Cylinder(1.1, 1.1, 0.08, 24) بـ24 قطاعاً بألوان متناوبة كحلي/ذهبي/كريمي عبر vertex colors (لا نسيج) + Torus ذهبي للحافة + مؤشر Cone ثابت أعلاها؛ الدوران = localP × 8π بمنحنى power3.out فتبطئ طبيعياً مع التمرير؛ عند 0.45 تتوقف على قطاع يتوهج (emissive #F0D99A)؛ 0.45→0.55: شعاع Cone رفيع additive من القطاع إلى طالب في الصف الثالث يرتفع 10سم ويتوهج ثوبه ذهبياً (instanceColor)، وشريحة مُسقطة فوقه: «دورك»؛ اهتزاز كاميرا 0.02 وحدة 180ms وPointLight السبورة 1→2.4. 0.55→0.75 (ذروة): من الطالب المختار ينطلق شعاع ثانٍ إلى طالب آخر (يختار من بعده) ثم ثالث — سلسلة 3 قفزات بتباعد 0.05؛ في الوقت نفسه 7 رموز الألعاب (Icosahedron لخمّن، مكعبان للذاكرة، لوح 4 قطع للغز، درج 5 صناديق للترتيب، مستطيلان للفرق، كرتان بينهما أسطوانة للتوصيل، سلّم أسطوانات لسلّم — كلها low-poly ذهبي/كريمي) تدور حول العجلة على مدار r=1.6 ثم يهبط كل رمز فوق مقعد مختلف مع شريحة مُسقطة باسم اللعبة؛ حلقة المؤقت RingGeometry بـthetaLength = localP×2π تُرسم في زاوية السبورة. 0.75→1 (تسليم): الرموز والشعاعات تنطفئ، العجلة تعود إلى السبورة وتنطبع كدائرة مرسومة، الكاميرا تدور 90° يساراً (lookAt ينزلق إلى (-9, 1.8, -6)) نحو الجدار الجانبي الذي تبدأ بلاطاته بالإضاءة صفاً صفاً — أول عنصر في s4.",
+   "three_elements": "الفصل (جدران كريمية + أرضية كحلي فجر + نافذة جانبية بشعاع plane additive 0.15)، 24 مقعد+طاولة InstancedMesh، الطلاب جالسين، طاولة المعلم، السبورة + إطار النجمة الثمانية + VideoTexture، العجلة (~1.2k مثلث) + مؤشر، 2 Cone شعاع، 7 رموز (<1.5k مجتمعة)، حلقة المؤقت، PointLight ذهبي فوق السبورة، ظل واحد 1024 على المكتب فقط محصور بالفصل.",
+   "media": "seedance:sd-board",
+   "mobile": "السبورة تملأ العرض في الثلث العلوي، العجلة تخرج إلى منتصف الشاشة بقطر 60% من العرض؛ أسماء الألعاب السبع كصف شرائح HTML أفقي قابل للتمرير أسفل الشاشة بدل الإسقاط فوق المقاعد؛ شعاع واحد بدل سلسلة ثلاثة؛ لا ظلال."
+  },
+  {
+   "id": "s4-library",
+   "headline": "٧٨٢ درساً جاهزاً للعرض",
+   "copy": "11 مادة، الصفوف 2–6، الفصل الأول، طبعة 1448هـ. بصور وصوت، يُفتح على السبورة بضغطة.",
+   "scroll_choreography": "0→0.15 (استلام): الكاميرا عند (-6.4, 1.7, -6) تنظر إلى الجدار الجانبي x=-8.6؛ الجدار 11 رفّاً ذهبياً مطفأً (#B3541E ×0.8) بطول 18م على z من -14 إلى +4، وعليها 782 بلاطة: 742 بلاطة PlaneGeometry 0.6×0.4 بـinstanceColor من لوحة 11 مادة (كحلي/ذهبي/كريمي/طين/أخضر متدرجة) + 40 بلاطة بطلة BoxGeometry 0.66×0.44×0.05 تحمل صوراً حقيقية من data/lessons/img/<dg4t1w1..dg5t1w17>/s0.jpg مصغّرة مسبقاً إلى 256px في img/intro/lessons/*.webp ومرصوفة في أطلس canvas 2048 (8×5) على المكتب / 1024 (5×4، 20 صورة) على الجوال؛ الإزاحة عبر InstancedBufferAttribute uvOffset (vec2) وتعديل onBeforeCompile لـMeshLambertMaterial (سطران: vUv = uv*uvScale + uvOffset). البلاطات تضيء صفاً صفاً (emissive 0→0.3) بتتابع مع الاستلام. 0.15→0.55 (نهوض): الكاميرا تدولي بموازاة الجدار (z من -13 إلى +3) على بعد 2.2م فيحدث parallax بين الرفوف والبلاطات البطلة البارزة؛ عدّاد HTML كبير بـChanga 800 (88px مكتب / 56px جوال) يعدّ من ٠ إلى ٧٨٢ بأرقام عربية-هندية (Number.toLocaleString('ar-EG')) مربوطاً خطياً بالمقطع 0.15→0.70؛ أسماء المواد الـ11 تظهر شرائح مُسقطة على بداية كل رف عند مرور الكاميرا؛ وتحت العدّاد 11 شريط مادة ذهبي ينمو تباعاً (stagger 0.03) بأطوال نسبية لعدد دروس كل مادة. 0.55→0.75 (ذروة): بلاطة بطلة واحدة (mesh منفصل يحمل صورة درس حقيقية 512px) تنفصل من الجدار وتطير بمسار QuadraticBezier إلى السبورة خلف الكاميرا (الكاميرا تدور 120° لتتبعها) وتتمدد إلى صفحة درس 16:9 بعرض 3.2م مع زر تشغيل ذهبي ينبض (scale 1↔1.08) وشريط تقدم صوتي يُملأ؛ شريحة «طبعة ١٤٤٨هـ» تُختم بضغطة ذهبية. 0.75→1 (تسليم): الصفحة تنكمش وتصبح ورقة عمل كريمية A4 تطير أمام الكاميرا وتسبقها إلى الممر عبر باب الفصل — أول عنصر في s5.",
+   "three_elements": "InstancedMesh 742 plane (1.5k مثلث) + InstancedMesh 40 box (0.5k)، أطلس واحد، 11 رفّاً مدمجة في mesh واحد، البلاطة الطائرة، السبورة المعاد استخدامها، PointLight واحد؛ لا RectAreaLight.",
+   "media": "procedural:صور الدروس الحقيقية عبر أطلس + بلاطة طائرة بصورة 512px",
+   "mobile": "الجدار يُقرأ عمودياً: الكاميرا تتحرك على y (من 3.2 إلى 0.8) بدل z فتمر الرفوف الـ11 من فوق لتحت على المسار نفسه بإزاحة ارتفاع فقط؛ الأطلس 1024 و20 صورة بطلة؛ العدّاد أعلى الشاشة والشرائح تظهر رفّاً رفّاً كنص ثابت لا مُسقط."
+  },
+  {
+   "id": "s5-window",
+   "headline": "ورقة عمل تصل عبر واتساب",
+   "copy": "أوراق عمل واختبارات وسباقات تُرسل للطلاب عبر واتساب، وتُصحَّح آلياً مع تحليل الأخطاء. المحاولة الأولى هي المعتمدة.",
+   "scroll_choreography": "0→0.15 (استلام): الكاميرا في الممر عند (2, 1.7, 4) تنظر إلى نافذة كبيرة 4×2.6م في الجدار الخارجي (x=+5)؛ إطار النافذة كحلي بشادر النجمة الثمانية الذهبية، الزجاج plane يعرض sd-flight (ملصق أولاً)؛ ورقة العمل القادمة من s4 تهبط على جوال المعلم في أسفل الإطار (لقطة webp حقيقية لصفحة أوراق العمل). 0.15→0.55 (نهوض): من الجوال تنطلق 20 طائرة ورقية (InstancedMesh 4 مثلثات لكل واحدة، كريمي بحافة ذهبية) على منحنيات QuadraticBezier فردية إلى خارج النافذة بتأخير 0.02 بينها، كل واحدة بذيل جزيئات ذهبية قصير العمر (Points 600/200 في BufferGeometry واحد)؛ لحظة العبور يصير الزجاج opacity 0.6 فتبدو الطائرات تدخل الفيديو. 0.55→0.75 (ذروة): تعود الطائرات من النافذة كعلامات ✓ (صندوقان رفيعان بزاوية، #2E9E5B) تتراكم على الجدار المجاور مشكّلة مخطط 8 أعمدة (سؤال لكل عمود) ترتفع بتدرّج؛ عمود واحد أحمر #d64545 ينبض وشريحة «هنا يتكرر الخطأ»؛ قفل ذهبي low-poly (Torus نصف + صندوق) يُغلق (قوس 30°→0) مع شريحة «المحاولة الأولى هي المعتمدة». 0.75→1 (تسليم): علامات ✓ الثماني تنكمش إلى بطاقة طالب كريمية واحدة تطير إلى صف الخزائن في عمق الممر وتدخل خزانة في المنتصف، والكاميرا تلتف 120° نحو الخزائن.",
+   "three_elements": "نافذة (إطار شادر + زجاج VideoTexture)، جوال معاد استخدامه بلقطة جديدة، 20 طائرة InstancedMesh، ذيل جزيئات، 8 أعمدة InstancedMesh، قفل، جدار الممر كريمي وأرضيته كحلية بخط ذهبي، أول 10 خزائن مرئية.",
+   "media": "seedance:sd-flight",
+   "mobile": "النافذة تملأ العرض، 8 طائرات بدل 20، مخطط الأعمدة يستقر في الثلث السفلي فوق النص مباشرة، الجوال يظهر جزئياً من الحافة السفلى؛ الذيل 200 نقطة."
+  },
+  {
+   "id": "s6-lockers",
+   "headline": "كل طالب… ملفّ يكبر معه",
+   "copy": "تقدّم الطالب في كل المواد في مكان واحد، وتقرير ولي الأمر بضغطة واتساب — لكل ولي أمر أو لقروب الفصل. وللطالب بوابته الخاصة.",
+   "scroll_choreography": "0→0.15 (استلام): الكاميرا تتحرك بموازاة 30 خزانة كحلية (InstancedMesh) بلوحات ذهبية صغيرة وتستقر عند (-1.5, 1.6, -2) تنظر إلى الخزانة الوسطى؛ بقع ضوء كوّات السقف بقع ذهبية باهتة (planes additive على الأرض، لا SpotLight على الجوال؛ SpotLight واحد على المكتب). 0.15→0.55 (نهوض): باب الخزانة الوسطى (mesh منفصل بمحور جانبي) ينفتح 0→-110° وتطفو منه بطاقة الطالب (plane كريمي بـCanvasTexture: دائرة رمزية بلا وجه + اسم وهمي بـTajawal، تُرسم مرة واحدة بعد document.fonts.ready) وحولها 11 حلقة تقدّم RingGeometry بـthetaLength مربوط بالمقطع، ألوانها st0..st6 من التطبيق، تُملأ بتتابع 0.03. 0.55→0.75 (ذروة): البطاقة تنسخ نفسها إلى فقاعة تقرير كريمية بذيل تطير على مسار منحنٍ إلى نهاية الممر المفتوح حيث 4 بيوت low-poly صغيرة (صندوق + منشور سقف) خلف السور؛ عند الوصول تضيء نافذة البيت الأول بذهب فاتح، ثم تتفرّع 3 فقاعات إلى البيوت الثلاثة (قروب الفصل) وشريحة «تقرير الفترة — أُرسل»؛ في الجهة المقابلة طالب كبسولة واحد يجلس على مقعد الممر بيده جوال شاشته لقطة webp حقيقية لبوابة الطالب وشريحة «بوابة الطالب» فوقه. 0.75→1 (تسليم = تمهيد الكسر): الفقاعات تنطفئ، الطالب يرفع رأسه إلى الأعلى، الكاميرا تميل 60° نحو كوّة زجاجية في السقف بإطار ذهبي يدخل منها ضوء الغروب البرتقالي — أول عنصر في s7.",
+   "three_elements": "30 خزانة InstancedMesh (≈3.6k)، باب متحرك، بطاقة + 11 حلقة، 4 فقاعات planes مستديرة، 4 بيوت (~40 مثلث للبيت)، طالب واحد + جوال، كوّة زجاجية، SpotLight واحد (مكتب فقط).",
+   "media": "none",
+   "mobile": "الخزانة المفتوحة تملأ الإطار، الحلقات الـ11 في صفين حول البطاقة، البيوت تظهر أعلى الشاشة صغيرة والفقاعات تطير للأعلى بدل العمق؛ الطالب وجواله يظهران في الثلث السفلي بعد الفقاعات لا معها."
+  },
+  {
+   "id": "s7-roof",
+   "headline": "المدير يرى المدرسة كلّها",
+   "copy": "مستويات الطلاب حسب المادة والصف، وعلى مستوى المدرسة كاملة، في لوحة واحدة تتحدّث مع كل رصد يسجّله المعلمون.",
+   "scroll_choreography": "الكسر الإيقاعي المقصود الوحيد: لا استلام هادئ. 0→0.35: الكاميرا تندفع عمودياً عبر الكوّة بمنحنى power2.in (y من 1.6 إلى 22 خلال هذا المقطع فقط)، السقف ينحسر، وتتكشف المدرسة كاملة من الأعلى: جناحان بسقف طيني + فناء الطابور بمقاعده ونخلته + البوابة ولوحتها؛ الضباب يتحول من #223349 إلى غروب #2B3A55 والشمس الاتجاهية تنخفض وتحمرّ (#FFB070) والعنوان لا يظهر إلا عند 0.35 (تأخير مقصود يعزز المفاجأة). 0.35→0.75 (نهوض+ذروة مدمجان): فوق سطح كل فصل ترتفع أعمدة InstancedMesh 55 (5 صفوف × 11 مادة، شبكة 0.5م) بألوان مستويات التطبيق (#2E9E5B/#D7A93F/#d64545) وارتفاعات متدرجة بـstagger 0.01؛ على الجانب لوح المدير: إطار تابلت كحلي 3×2م يطفو على بعد 3م بإطار شادر النجمة الثمانية ويعرض sd-aerial (ملصق أولاً)، وفوقه شريحتان مُسقطتان: «مستوى المدرسة» و«حسب المادة»؛ الكاميرا تدور 30° حول الأعمدة. 0.75→1 (تسليم): السماء تدكن إلى كحلي الليل، تظهر النجوم (Points 800/250) وأضواء الحي البعيدة، الأعمدة تبقى مضاءة كإضاءة السطح، والكاميرا تهبط بمنحنى واسع من السطح إلى أمام البوابة من الداخل عبر waypoint (-6, 9, 22) — تشتعل نوافذ الجناحين ذهبياً تباعاً ونضيء زجاج البوابة — أول عنصر في s8.",
+   "three_elements": "جسم المدرسة مبني من هندسة الجدران نفسها (إعادة استخدام)، 55 عموداً InstancedMesh، إطار التابلت + VideoTexture، نجوم Points، أضواء الحي Points، DirectionalLight تتحول ذهبي→أزرق بارد عبر lerp للّون والشدة، قبة السماء بتدرج vertex colors يتغير.",
+   "media": "seedance:sd-aerial",
+   "mobile": "الكاميرا أعلى بـ4م على المسار نفسه (fov 68) لتدخل المدرسة كلها في الإطار الطولي، التابلت يظهر أسفل الإطار بعرض 90% بدل الجانب، الأعمدة 55 كما هي، النجوم 250، لا شريحتان مُسقطتان بل نص ثابت."
+  },
+  {
+   "id": "s8-login",
+   "headline": "ادخل… الحصة تنتظرك",
+   "copy": "بطاقة الدخول الحقيقية (#view-login بعناصرها الحالية) وتحتها سطر: آمن بـ Firebase — App Check وقواعد وصول — ويعمل دون اتصال.",
+   "scroll_choreography": "هذه المحطة لا pin: نهاية spacer تُطابق وصول الكاميرا، ثم يبدأ <section id=\"view-login\"> كقسم عادي في التدفق تحت الـspacer مباشرة بخلفية شفافة (body.has-intro #view-login{background:transparent}) فيبقى العالم الليلي ظاهراً خلفه من الكانفس الثابت. 0→0.15 (استلام): الكاميرا تستقر ليلاً عند (0, 2.4, 22.5) تنظر إلى زجاج البوابة (0, 2.2, 30): البابان الزجاجيان مضاءان من الداخل بذهب فاتح (emissive 0.8 + Sprite هالة)، لوحة LED فوقهما تعرض الإطار الأخير من sd-courtyard مجمّداً بصبغة ذهبية (uniform uTint) أو sd-night-gate إن توفر، قمر Icosahedron كريمي، نجوم، الطائرات الورقية الست راسية على السور، العلم يتموج بعيداً. 0.15→0.55 (نهوض): مع دخول #view-login إلى الشاشة (ScrollTrigger منفصل بلا scrub، toggleClass 'is-in') تدخل .login-card بـCSS فقط: translateY 40px→0 + opacity 0→1 خلال 600ms ثم transform:none عند الاكتمال (قبل أن يلمس المعلم الحقول)؛ خلفية البطاقة rgba(248,245,239,.94) + حافة ذهبية 1px؛ لا backdrop-filter على الجوال، وعلى المكتب (hover:hover و≥900px) blur 12px فقط؛ الكاميرا مُؤطرة بحيث يقع الباب المضاء خلف مركز البطاقة تقريباً على كلا الجهازين (ضبط بالـfov والارتفاع فقط). 0.55→0.75 (ذروة): درع أمان low-poly (Octahedron داخل حلقة ذهبية) يدور ببطء يمين البوابة، وسحابة صغيرة من 5 كرات تنقسم نصفين ثم تلتئم بينما يبقى الباب مضاءً — إشارة العمل دون اتصال — مع شريحتين HTML ثابتتين تحت البطاقة: «App Check + قواعد» و«يعمل دون اتصال». 0.75→1: لا حركة كاميرا؛ جزيئات ذهبية تصعد ببطء. عند النقر على #lg-btn ونجاح الدخول (app.js يضيف hidden على #view-login؛ MutationObserver يلتقطه وstate.clickLogin=true من مستمع capture على #lg-btn): الختم — نجمة ثمانية ذهبية SVG بقطر 120px بداخلها «سُجِّل» بـChanga تهبط من الأعلى وتطبع بـsquash (scaleY 1→0.86→1 خلال 220ms) مع رذاذ 40 نقطة ذهبية CSS وnavigator.vibrate(8) إن دُعم، ثم fade-out للكانفس 400ms، dispose، إزالة #intro-root، إزالة body.has-intro، ScrollTrigger.killAll()، window.scrollTo(0,0)، localStorage sijil.intro.seen=1 — الإجمالي 900ms. الدخول التلقائي من جلسة محفوظة (DB.session في app.js يستدعي enter() عند الإقلاع): intro-boot يجد #view-login.hidden أصلاً فلا يُنشئ شيئاً ولا يحمّل مكتبة ولا ختم.",
+   "three_elements": "إعادة استخدام كل عناصر s1 ليلاً (تغيير ألوان الإضاءة والضباب والقبة فقط)، بابا الزجاج المضاءان + هالة Sprite، قمر، درع، سحابة، Points للجزيئات، نوافذ الجناحين المضاءة (instanceColor على InstancedMesh النوافذ).",
+   "media": "none",
+   "mobile": "البطاقة بعرض 100% - 32px في منتصف الشاشة مع padding-bottom: env(safe-area-inset-bottom)، المشهد خلفها معتم 40% بطبقة كحلية (لا blur)، لوحة المفاتيح تدفع الصفحة طبيعياً لأن البطاقة DOM في التدفق ولا سلف لها عليه transform؛ الدرع والسحابة تختفي على الجوال."
+  }
+ ],
+ "motion": {
+  "load": "0ms: خلفية كحلي الليل فوراً (CSS في intro.css المحمّل مع app.css) مع «س» ذهبية 24px تنبض في المنتصف وشريط تقدم ذهبي 2px أسفل الشاشة يعكس: three → gsap → world → poster الأول. ≤1.4s: زر «دخول» الثابت أعلى اليسار وزر «شاهد الجولة» (للعائد) يظهران بانزلاق 8px حتى لو فشل WebGL أو لم تُحمَّل أي مكتبة. 0.6s بعد جهوز المشهد: poster sd-courtyard على لوحة LED يملأ الشاشة بتدرّج 500ms (LCP). 1.0s: العنوان بـChanga كلمة كلمة من اليمين (clip-path، 700ms) ثم النص (400ms). 1.9s: مؤشر تمرير — سهم ذهبي رفيع يعلوه «مرّر لتدخل» يهتز عمودياً كل 1.6s ويختفي بعد 3% تمرير. الفيديو الافتتاحي يُحمَّل بعد أول تفاعل (touchstart/wheel/keydown) أو بعد 1.2s أيهما أسبق، وعند canplay يُمزج فوق الملصق 400ms. المعلم العائد (sijil.intro.seen) أو reduced-motion أو لا WebGL: صفر مكتبات، #view-login يظهر فوراً (<300ms) بخلفية app.css الأصلية وزر «شاهد الجولة 🎬» أسفل البطاقة؛ الضغط عليه يحذف المفتاح ويعيد التحميل (location.reload) — أبسط وأضمن من إعادة البناء؛ وتحت reduced-motion يعرض «شاهد الجولة» طبقة الملصقات HTML (8 ملصقات + عناوين) بدل الثلاثي.",
+  "scroll": "spacer واحد #intro-spacer بارتفاع 8 × 160svh (الجوال 8 × 140svh) وScrollTrigger واحد فقط بـscrub 0.9 (trigger: #intro-spacer, start: top top, end: bottom bottom, onUpdate → state.progress) بلا pin وبلا Lenis؛ ScrollTrigger.config({ignoreMobileResize:true}) وnormalizeScroll فقط على اللمس. remap قطعي: المحطة i تملك [s_i, e_i] = [i/8, (i+1)/8]؛ الكاميرا تطير فقط في «التسليم/الاستلام» (0.75→1 من i ثم 0→0.15 من i+1 = نافذة موحدة بعرض 0.4 محطة) بمنحنى power2.inOut من anchor_i إلى anchor_{i+1} عبر waypoint_i على منحنى CatmullRomCurve3 واحد للموضع (16 نقطة: anchor + waypoint لكل محطة) ومنحنى مستقل للـlookAt (16 نقطة)، وتثبت في «النهوض/الذروة» (0.15→0.75) مع drift 4سم بدالة sin بطيئة؛ الاستثناء s7 حيث الطيران يشغل 0→0.35. في حلقة الرسم: camera.position.lerp(target, 0.12) وlookAt.lerp(…, 0.12) لامتصاص قفزات التمرير؛ localP = clamp((progress - s_i)/(e_i - s_i)) يُمرَّر إلى timeline(p) لكل محطة ضمن ±1 من الحالية. النصوص HTML لكل محطة عناصر fixed داخل #intro-ui تُظهَر بـScrollTrigger منفصل بلا scrub (toggleActions) وتتحرك 24px عكس اتجاه التمرير. الشرائح المُسقطة تُحدَّث في حلقة الرسم فقط عندما تكون محطتها فعّالة. الفيديوهات تُحمَّل onEnter للمحطة السابقة (lookahead محطة واحدة) وتتوقف وتُفرَّغ onLeave بمحطتين، وتُعلَّق أي محاولة تحميل بينما |velocity| > 2.5 محطة/ثانية (fast-forward زر «دخول»). الرسم عند الطلب: dirty عند التمرير/resize/requestVideoFrameCallback/الميل بالمؤشر، وإلا لا رسم؛ وتتوقف الحلقة كلياً عند إخفاء التبويب وبعد الدخول.",
+  "micro": "زر «دخول» الثابت: hover ينزلق خط ذهبي تحت النص؛ النقر gsap.to(window,{scrollTo:{y:'max'},duration:1.6,ease:'power2.inOut'}) عبر ScrollToPlugin فتمر الرحلة كـfast-forward مع تعليق تحميل الفيديو. الميل بالمؤشر ±1.2° على المكتب (lerp 0.06)، وعلى الجوال gyroscope ±0.8° فقط إن كان الإذن ممنوحاً مسبقاً (لا نطلبه ولا نظهر نافذة). الشرائح المُسقطة تظهر scale 0.92→1 + opacity خلال 260ms. s2: كل صف يتحول ذهبياً مع نبضة scale 1.06 للنجمة المقابلة ورفع رأس الطالب. s3: اهتزاز الكاميرا 0.02/180ms وشدة PointLight 1→2.4 عند توقف العجلة. s4: العدّاد ينبض scale 1.03 كل 100 درس. s5: ✓ تُختم بـovershoot 0.6→1.2→1. البطاقة في s8: التركيز يرفع الحافة الذهبية 1→2px، #lg-err يهز البطاقة ±4px ثلاث مرات، #lg-btn يحتفظ بسلوكه الأصلي مع تموّج ذهبي radial 400ms، ونجاح الدخول بالنقر = الختم + vibrate(8). prefers-reduced-motion: لا ثلاثي إطلاقاً — طبقة الملصقات فقط، بلا جزيئات وبلا ميل وبلا فيديو."
+ },
+ "tech": "المكتبات (cdnjs فقط، إصدارات مثبتة، UMD كلاسيكي ينسجم مع app.js بلا modules): https://cdnjs.cloudflare.com/ajax/libs/three.js/0.160.0/three.min.js (آخر إصدار يوفر three.min.js على cdnjs — لا r161+)، https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js + ScrollTrigger.min.js + ScrollToPlugin.min.js. لا Lenis (غير موجود على cdnjs). لا examples/jsm: mergeGeometries وCapsule helper وشادرات العلم/إطار النجمة الثمانية تُكتب يدوياً في intro-world.js. الترتيب في index.html: Tajawal + Changa (preload 800) → css/app.css → css/intro.css → firebase → fb.js → demo-data.js → app.js → js/intro-boot.js (defer). intro-boot.js لا يعتمد على أي مكتبة: يقرأ localStorage sijil.intro.seen، matchMedia(prefers-reduced-motion)، اختبار WebGL (canvas.getContext('webgl2'||'webgl'))، وحالة #view-login.classList.contains('hidden') (دخول تلقائي من DB.session) — إن تحقق أي منها: لا يُضيف body.has-intro ولا يحقن شيئاً، ويُظهر زر «شاهد الجولة 🎬» داخل .login-card (بعد #lg-demo) عند وجود المفتاح؛ وإلا يضيف body.has-intro، يحقن #intro-root (canvas#intro-gl ثابت z-index 0، #intro-spacer، #intro-ui z-index 1، الزر الثابت z-index 2) ويحقن وسوم <script> للمكتبات ثم intro-core.js ثم world/media/ui/stations بالتوازي (Promise.all) ويستدعي Intro.start(). DOM: #view-login يبقى في مكانه الأصلي في index.html (قسم عادي بعد #intro-root في التدفق) بلا نقل وبلا أي سلف عليه transform/perspective/filter؛ intro.css يجعله شفاف الخلفية تحت body.has-intro فقط، وعند إزالة الفئة يعود التطبيق كما هو. بنية three: Scene واحد، PerspectiveCamera(fov 50 مكتب / 68 جوال، near 0.1، far 160)، WebGLRenderer{antialias: DPR<2, powerPreference:'high-performance', alpha:false}، outputColorSpace SRGB، toneMapping ACESFilmic exposure 1.05. الإضاءة: HemisphereLight(sky #F8F5EF, ground #142A44, 0.9 نهاراً / 0.35 ليلاً) + DirectionalLight واحدة (نهاراً #FFE7B8 شدة 1.6 من (30,40,20)؛ غروباً #FFB070 1.1 من (40,12,10)؛ ليلاً #8FA6D6 0.35 من (-20,30,-10)) — الشدة/اللون/الموضع lerp حسب المحطة؛ الظلال فقط على المكتب: shadow.mapSize 1024، shadow.camera محصورة بالفصل (±10م)، وعلى الجوال لا ظلال بل بقع مخبوزة (plane دائري بتدرج radial 64px، opacity 0.35) تحت كل جسم مهم. الضباب FogExp2 بلون يطابق renderer clear color دائماً، وتُغيَّر (لون, كثافة) per-station: s1 (#566B8C, .030)، s2 (#7C8FAE, .026)، s3–s4 (#2A3A55, .020)، s5–s6 (#223349, .022)، s7 (#2B3A55→#0E2033, .018)، s8 (#0E2033, .030). قبة سماء SphereGeometry(150, 16, 8) BackSide بـvertex colors (أعلى كحلي الليل، أفق يتغير من ذهبي الفجر إلى برتقالي الغروب إلى كحلي) بلا نسيج. المواد: 9 مواد MeshLambertMaterial مشتركة فقط (كريمي، كحلي ليل، كحلي فجر، ذهب emissive ×0.25، طين، أخضر سعف، أخضر علم، أبيض ثوب، زجاج transparent 0.5) كلها flatShading:true وvertexColors حيث يلزم لتنويع اللون ±4% لومينانس لكل وجه («طلاء غير متساوٍ» يمنع البلاستيك)؛ الاستثناءات النسيجية الوحيدة: شاشات الفيديو، أطلس الدروس، لقطات التطبيق webp، بقع الظل. المقياس: 1 وحدة = 1م؛ الفناء 40×30، البوابة عند z=+30 على المحور x=0، الجناح الرئيسي عند z من -2 إلى -16، الممر بمحاذاة x من -12 إلى +12، السطح y=7.5. التنظيم: Group لكل محطة باسمها وعليه userData.visRange=[i-1,i+1]، يُخفى خارج المدى؛ الهندسة الثابتة داخل كل Group تُدمج بـmergeGeometries (تسلسل position/normal/uv/color، non-indexed) إلى mesh واحد لكل مادة؛ InstancedMesh للطلاب (3)، المقاعد، البلاطات (2)، الخزائن، الأعمدة، الطائرات، النوافذ. واجهة المحطة (stations/sN.js): Intro.register({id, index, group, cameraPoint:Vector3, waypoint:Vector3, lookAt:Vector3, fog:{color,density}, light:{color,intensity,pos}, media:[ids], load(ctx), unload(ctx), timeline(p, ctx)}) حيث ctx = {THREE, scene, mobile, tier, mats, geo, project(v3)→{x,y,z,visible}, chip(id,text,v3|null), counter(id,value), video(id)→{plane, play, stop}, dirty()}؛ intro-core يبني المنحنيين من cameraPoint/waypoint/lookAt بترتيب index — مسار واحد لكلا الجهازين، والجوال يضيف offset ارتفاع ثابت (+0.6م عام، +4م في s7، +y بدل z في s4 كما هو محدد) وfov 68 فقط. حلقة الرسم: renderer.setAnimationLoop مع شرط dirty؛ القياس التكيّفي (intro-core/adaptive): يقيس FPS كل 500ms؛ تحت 45 لثانيتين → DPR -0.25 (حتى 1.0) → ثم الجزيئات نصفاً ثم صفراً → ثم الفيديو يُستبدل بالملصقات → تحت 30 لثانيتين → «وضع خفيف»: DPR 1، بلا جزيئات/فيديو/ظلال، والانتقالات بين المحطات قفز بتلاشٍ 300ms مع بقاء الرحلة كاملة؛ لا يعود للأعلى أبداً (hysteresis). الفيديو (intro-media): لكل مقطع <video muted playsinline loop preload=\\\"none\\\" poster> يُنشأ في JS بلا src؛ التحميل src+load() عند onEnter للمحطة السابقة؛ VideoTexture (minFilter Linear، بلا mipmaps، colorSpace SRGB) تُنشأ عند أول canplay وتُمزج فوق الملصق عبر ShaderMaterial screen (uniforms: tPoster, tVideo, uMix, uTint, uScale) — VideoTexture واحدة نشطة في أي لحظة (الجديدة تُنشأ بعد تفريغ السابقة)؛ onLeave بمحطتين: pause، removeAttribute('src')، load()، dispose؛ رفض play() أو 404 → يبقى الملصق ويُفعَّل الفولباك الإجرائي؛ لا timeline يعتمد على أي حدث فيديو. الأطلس: 40 (20 جوال) webp 256px من img/intro/lessons/ تُرسم بـcreateImageBitmap على canvas 2048/1024 بعد أول رسم (لا يؤخر LCP) → CanvasTexture + InstancedBufferAttribute uvOffset + onBeforeCompile. لقطات التطبيق: 4 ملفات webp (التحضير، أوراق العمل، بوابة الطالب، لوحة المدير للفولباك) 512×1024 ≤80KB على شاشات داخل العالم بمادة MeshBasicMaterial. الأنسجة النصية (بطاقة الطالب، الطبقة الذهبية فوق التحضير): canvas تُرسم مرة واحدة بعد document.fonts.ready وتُعاد عند اكتماله، needsUpdate فقط عند عبور عتبات progress. الشرائح المُسقطة: عناصر HTML داخل #intro-ui تُحرَّك بـtransform translate3d من camera.project. تدفق الدخول: مستمع capture على #lg-btn يرفع state.clickLogin؛ MutationObserver(attributes:class) على #view-login → عند إضافة hidden: إن clickLogin → ختم 900ms ثم teardown، وإلا teardown فوري؛ teardown = gsap.to(canvas,{opacity:0,duration:.4}) → renderer.dispose + dispose لكل geometry/material/texture → إزالة #intro-root → body.classList.remove('has-intro') → ScrollTrigger.killAll() → window.scrollTo(0,0) → localStorage sijil.intro.seen=1. #ab-logout يعيد التحميل (كما في app.js) فيرى المعلم الدخول مباشرة لأن المفتاح موجود. علَم لكل محطة (Intro.flags.sN=false) يخفيها ويطوي مسار الكاميرا على المحطات المكتملة فتبقى الصفحة قابلة للنشر من اليوم الأول بترتيب البناء s1 → s8 → s2 → s3 → s4 → s5 → s6 → s7. RTL: dir=\\\"rtl\\\" على html، الشرائح والعناوين تُرصف من اليمين، مسار الكاميرا الأفقي يبدأ من اليمين، وأي حركة «للداخل» في CSS تُعكس بثابت DIR=-1.",
+ "performance": "الميزانية المرئية في أي محطة (renderer.info.render.triangles): ≤ 25k على المكتب و≤ 15k على الجوال؛ الإجمالي في الذاكرة ~42k موزعاً: s1/s8 بوابة+فناء ~4.5k، s2 طلاب 24×140 ≈ 3.4k + طائرات + جوال ~1k، s3 فصل: مقاعد 24×110 = 2.6k + طلاب جالسون 3.4k + عجلة 1.2k + رموز 1.5k + سبورة/جدران 0.4k ≈ 9.1k (الأثقل)، s4: 742 plane ×2 + 40 box ×12 = 1.96k + رفوف 0.3k، s5: ~2k، s6: خزائن 3.6k + بيوت 0.2k + حلقات 0.6k ≈ 4.5k، s7: جسم المدرسة 2k + أعمدة 55×12 = 0.7k + نجوم (نقاط) ≈ 3k. Draw calls ≤ 40 في أي محطة عبر mesh مدمج لكل مادة لكل Group + InstancedMesh + 9 مواد مشتركة + VideoTexture واحدة. DPR = min(devicePixelRatio, 2) مكتب / min(devicePixelRatio, 1.5) جوال، ينزل تكيّفياً كما في tech. لا post-processing إطلاقاً؛ التوهج بـplanes/Sprite additive، عمق الحقل بالضباب. الظلال: 0 على الجوال، خريطة واحدة 1024 على المكتب محصورة بالفصل. الفيديو: 4 ملفات mp4 h264 baseline 720p 24fps ≤ 2.5Mbps (≈1.5MB لكل 5 ثوانٍ) + ملصق webp ≤ 60KB لكل مقطع؛ مقطع واحد يُفكّ في أي لحظة؛ لا نسخة 540p في الإطلاق الأول (تُضاف لاحقاً إن أظهر القياس حاجة). الصور: 40 webp 256px ≤ 12KB لكل واحدة (≈0.5MB) + 4 لقطات تطبيق ≤ 80KB + 8 ملصقات محطات للفولباك ≤ 60KB تُحمَّل فقط في طبقة الملصقات. الشبكة الأولى: HTML+CSS ≈ 35KB، three.min.js ≈ 650KB (gz ~160KB)، gsap+ScrollTrigger+ScrollTo ≈ 80KB، Changa وزن واحد ≈ 40KB؛ LCP هو ملصق s1 (يظهر قبل three). الذاكرة: dispose للفيديو غير الفعّال، Points في BufferGeometry واحد يُحدَّث للمحطة الفعّالة فقط، أنسجة canvas تُحرَّر بعد محطتين. الرسم عند الطلب يوقف الحلقة عند السكون ويلغيها عند إخفاء التبويب. iOS: 100svh للمحطات، ignoreMobileResize، normalizeScroll على اللمس فقط، autoplay محاولة عند أول تفاعل والفولباك الإجرائي جاهز دائماً. المعلم العائد: صفر مكتبات، صفر canvas. الهدف: ≥ 45fps وسيطاً على Galaxy A34 / iPhone 11 عبر الرحلة كاملة، ≥ 58fps على المكتب. hud ?debug يعرض FPS/المثلثات/الاستدعاءات/DPR/tier/المحطة.",
+ "seedance_clips": [
+  {
+   "id": "sd-courtyard",
+   "purpose": "أولوية 1 — الافتتاح على لوحة LED فوق البوابة؛ ويعود إطاره الأخير مجمّداً بصبغة ذهبية ليلاً في s8.",
+   "prompt_en": "Cinematic slow forward dolly through the open front gate of a Saudi primary school at golden hour, early morning. Sunlit sandy-terracotta courtyard, a tall date palm on the left casting a long shadow, a flagpole on the right with a green flag gently waving, cream-colored low school building with navy-blue doors in the background, two small paper kites drifting high in the sky. Warm rim light, soft haze, dust motes glowing in sunbeams. Wide 24mm lens, smooth steady movement, no people, no faces, no text or signage, no logos. Photoreal, 16:9, muted navy and gold color grade.",
+   "duration": 5,
+   "aspect": "16:9",
+   "fallback": "ملصق webp ثابت مع Ken Burns عبر uniform uScale 1→1.06 خلال 8 ثوانٍ + ظل نخلة يتحرك ببطء كـsilhouette مرسوم على canvas فوق الملصق + جزيئات غبار ذهبية Points أمام اللوحة."
+  },
+  {
+   "id": "sd-board",
+   "purpose": "أولوية 2 — السبورة في s3: طباشير ذهبي يرسم نفسه ليجسد الحصة الحية قبل أن تخرج منه عجلة الأسماء.",
+   "prompt_en": "Close-up of a dark navy-green classroom chalkboard, seen straight on. Glowing golden chalk lines draw themselves across the board: a rising sun, a simple orbiting-planet diagram, a growing bar chart, a spinning wheel outline and playful abstract shapes, with soft chalk-dust particles drifting and catching warm side light. Slow subtle push-in, cinematic, magical yet minimal, no letters, no numbers, no words, no hands, no people. Photoreal texture with a hand-drawn animated feel, 16:9, navy and gold palette.",
+   "duration": 5,
+   "aspect": "16:9",
+   "fallback": "CanvasTexture 1024×576 على السبورة تُرسم عليها أثناء المحطة فقط مسارات Bezier عشوائية بلون ذهبي بسمك متغير (طباشير) مع ذيل يتلاشى وجزيئات غبار Points فوق سطح السبورة."
+  },
+  {
+   "id": "sd-flight",
+   "purpose": "أولوية 3 — زجاج نافذة الممر في s5: ورق يتحول إلى ضوء يطير فوق حي سكني عند الغروب، معنى «تصل عبر واتساب» بلا أي واجهة.",
+   "prompt_en": "Aerial cinematic shot at dusk over a quiet Saudi residential neighborhood of cream and sand-colored houses with flat roofs, warm window lights beginning to glow. Several sheets of white paper lift from the foreground, fold into origami paper planes mid-air and turn into streaks of soft golden light that glide over the rooftops and descend toward different houses. Slow drone tracking forward, deep navy sky with orange horizon, gentle haze. No people, no faces, no text, no logos, no phone screens. Photoreal, 16:9, navy and gold grade.",
+   "duration": 5,
+   "aspect": "16:9",
+   "fallback": "خلف زجاج النافذة plane بتدرّج غروب (كحلي→برتقالي خافت) وصفوف بيوت low-poly بعيدة مع نوافذ تضيء تباعاً (instanceColor)، والطائرات الورقية الثلاثية نفسها تطير لمسافة أبعد؛ الزجاج بلمعة Fresnel بسيطة في شادر الإطار."
+  },
+  {
+   "id": "sd-aerial",
+   "purpose": "أولوية 4 — لوح المدير في s7: دوران جوي حول مدرسة عند الغروب تضيء نوافذها تباعاً — استعارة لوحة مستويات المدرسة كاملة.",
+   "prompt_en": "Slow cinematic aerial orbit around a modern two-wing primary school building with a central courtyard at blue hour, seen from above at a 40-degree angle. Classroom windows light up one after another in warm gold, wave by wave, as the camera circles. Deep navy sky, a few first stars, faint city lights on the horizon, soft mist. Photoreal architecture, calm and majestic, no people, no faces, no text, no signage, no logos. 16:9, navy and gold color grade.",
+   "duration": 5,
+   "aspect": "16:9",
+   "fallback": "داخل إطار التابلت CanvasTexture تُرسم عليها شبكة 5×11 مستطيلات مستديرة بألوان المستويات تُملأ تباعاً كخريطة حرارية للمدرسة، تُحدَّث عند عبور العتبات فقط."
+  },
+  {
+   "id": "sd-assembly",
+   "purpose": "اختياري 5 — يُعرض على لوحة LED في s2 بدل بقاء sd-courtyard: طابور الصباح من الخلف مع طائرات ورقية — يربط الطلاب بالمشهد.",
+   "prompt_en": "Wide shot from behind a morning assembly line of young students in white thobes standing in neat rows in a sunlit Saudi primary school courtyard, seen only from the back at a distance, no faces. A teacher figure far ahead seen from behind. Two colorful paper kites rise above the rows into a warm golden sky, long morning shadows on terracotta paving, gentle handheld drift, cinematic shallow depth of field, warm gold and navy grade, no text, no logos, no close-ups of children.",
+   "duration": 5,
+   "aspect": "16:9",
+   "fallback": "يبقى sd-courtyard على اللوحة (لا حاجة لبديل)."
+  },
+  {
+   "id": "sd-hands-phone",
+   "purpose": "اختياري 6 — شاشة جوال الطالب في s6 (بوابة الطالب): أيدي طالب من الأعلى تتصفح تقدمها؛ إن لم يتوفر تُعرض لقطة webp الحقيقية.",
+   "prompt_en": "Top-down overhead macro shot, camera locked off with a very slow 3% zoom in. A child's small hands holding a smartphone flat on a warm wooden school desk, thumb scrolling a cream-colored progress screen with navy-blue accents and small golden stars appearing (no readable text, abstract UI only). A pencil and a green notebook at the frame edge. Soft warm light from the top-right, gentle shadows, shallow depth of field, cinematic, calm mood. No faces, no text, no logos.",
+   "duration": 5,
+   "aspect": "16:9",
+   "fallback": "لقطة webp حقيقية لبوابة الطالب على شاشة الجوال (هي الأساس أصلاً)."
+  },
+  {
+   "id": "sd-night-gate",
+   "purpose": "اختياري 7 — حلقة على لوحة LED في s8 ليلاً بدل الإطار المجمّد: بوابة المدرسة ليلاً بمصابيح ذهبية وشعاع ضوء ينفتح من الباب.",
+   "prompt_en": "Static cinematic night shot of a cream-colored Saudi primary school front gate under a deep navy sky with a few stars, warm golden lamps on the gate pillars, a soft golden light spilling from the glass entrance doors and slowly brightening, a palm silhouette on the left, gentle warm haze, tiny golden dust drifting. Loop-friendly minimal motion, no people, no faces, no text, no signage, no logos, 16:9, navy and gold palette.",
+   "duration": 5,
+   "aspect": "16:9",
+   "fallback": "الإطار الأخير من sd-courtyard (أو ملصقه) بصبغة ذهبية uniform uTint 0.6 مع نبض بطيء 0.55↔0.65."
+  },
+  {
+   "id": "sd-chalk-games",
+   "purpose": "اختياري 8 — بديل ثانٍ للسبورة في نصف s3 الثاني (0.55→0.75): بطاقات ذاكرة ورموز ألعاب تُرسم بالطباشير وتنقلب.",
+   "prompt_en": "Straight-on close-up of a dark navy-green chalkboard where glowing golden chalk draws a row of small playing-card outlines that flip one by one to reveal simple geometric icons (star, circle, triangle, ladder, puzzle piece), a small countdown ring drawing itself in the corner, chalk dust catching warm light. Slow subtle push-in, hand-drawn animated feel, no letters, no numbers, no words, no hands, no people, 16:9, navy and gold palette.",
+   "duration": 5,
+   "aspect": "16:9",
+   "fallback": "يستمر sd-board (أو فولباكه الإجرائي) طوال المحطة."
+  }
+ ],
+ "world_build": [
+  {
+   "name": "البوابة + لوحة LED + بابا الزجاج",
+   "primitives": "قوس: عمودان Box 1.2×7×1.2 عند x=±4.6 + عارضة Box 10.4×1.4×1.2 عند y=7.7 + تاج مثلث (ExtrudeGeometry مثلث بارتفاع 1.2)؛ لوحة LED: Plane 8×4.5 عند (0,6.2,30.0) داخل إطار Box 8.3×4.8×0.12 كحلي أسود + حافة ذهبية 0.05؛ بابان: Box 1.8×3.2×0.06 ×2 زجاج كحلي شفاف 0.5 مع إطار ذهبي؛ درجتان طينيتان Box 6×0.18×0.6.",
+   "material": "الكريمي #F8F5EF Lambert flat roughness ~0.9 (Lambert لا يملك roughness — تُذكر للتناغم)؛ الذهب #D7A93F emissive #D7A93F×0.25؛ الزجاج #142A44 transparent 0.5، ليلاً emissive #F0D99A 0.8.",
+   "tris": 420,
+   "notes": "الحافة الذهبية الرفيعة على القوس والتاج المثلث يجعلانها «بوابة مدرسة سعودية» لا صندوقاً؛ لمعة Sprite ذهبية عند رأس كل عمود (مصباح) ليلاً؛ بقعة ظل مخبوزة أسفل القوس على الطين."
+  },
+  {
+   "name": "السور",
+   "primitives": "Box 44×2.2×0.5 على z=30 مع فجوة 10م للبوابة (قطعتان) + 12 عموداً Box 0.6×2.6×0.6 كل 4م بغطاء ذهبي Box 0.7×0.08×0.7 + سوران جانبيان 30م على x=±22.",
+   "material": "كريمي #F8F5EF مع vertex color ±4%؛ الأغطية ذهب.",
+   "tris": 600,
+   "notes": "الأعمدة المتكررة بغطاء ذهبي تُعطي إيقاعاً بصرياً أثناء العبور فوق السور في s1؛ الطائرات الورقية ترسو عليه في s8."
+  },
+  {
+   "name": "أرضية الفناء والبلاط",
+   "primitives": "Plane 44×32 طيني + شبكة خطوط بلاط LineSegments (كل 2م، لون #9A4618 opacity 0.35) + أرض بعيدة Plane 300×300 كحلي فجر خارج السور.",
+   "material": "طين #B3541E Lambert، vertex color تموّج ±5% كل مربع؛ الأرض البعيدة #142A44.",
+   "tris": 40,
+   "notes": "خطوط البلاط تُعطي مقياساً للعين وتظهر البارالاكس عند الهبوط؛ الضباب يذيب الأرض البعيدة فلا يظهر خط أفق حاد."
+  },
+  {
+   "name": "السارية والعلم",
+   "primitives": "Cylinder(0.05,0.07,9,8) عند (8,4.5,20) + قاعدة Box 0.8×0.4×0.8 + كرة ذهبية Sphere 0.12 أعلى + العلم PlaneGeometry 2.4×1.6 مقسم 24×12 بشادر vertex: z = sin(uv.x*6 + t*3)*0.12*uv.x (التموج يزيد نحو الطرف الحر).",
+   "material": "السارية كحلي فجر؛ الكرة ذهب؛ العلم ShaderMaterial أخضر #1E6B3A مع تظليل ذاتي بسيط (dot normal) بلا نسيج ولا نص.",
+   "tris": 650,
+   "notes": "يبقى العلم على بعد ≥12م من الكاميرا دائماً (المسار يمر يساره) فلا يُطلب عليه تفصيل الشهادة؛ الحركة المستمرة الوحيدة في s1/s8 تُبقي المشهد حياً."
+  },
+  {
+   "name": "النخلة",
+   "primitives": "جذع 7 أسطوانات متدرجة Cylinder(0.28→0.18, ارتفاع 0.9, 8) مكدسة بميل 3° تراكمي + عقد حلقية Torus صغيرة بين كل اثنتين؛ تاج: 7 سعفات PlaneGeometry 3.2×0.7 مقسمة 8×1 مع ثني vertex y = -0.35·x² (منحنية للأسفل) دوارة كل 51° وبزوايا رفع مختلفة 20–40°، DoubleSide؛ عنقود تمر Icosahedron(0.25,1) ×2 برتقالي #C9772B.",
+   "material": "الجذع #6B4E2E vertex color بتناوب فاتح/داكن لكل أسطوانة؛ السعف #3E7A4A مع vertex color أفتح عند الطرف؛ بلا alphaTest ولا نسيج.",
+   "tris": 900,
+   "notes": "الانحناء التربيعي للسعف والتناوب اللوني بين أسطوانات الجذع يقتلان مظهر «العصا والمراوح»؛ ظل مخبوز بيضوي طويل على الطين في اتجاه الشمس؛ عند (−9,0,18) على يسار المسار."
+  },
+  {
+   "name": "الطلاب والمعلم",
+   "primitives": "طالب = CapsuleGeometry(0.22,0.55,2,6) ثوب + Icosahedron(0.16,1) رأس + Box 0.28×0.32×0.12 حقيبة — 3 InstancedMesh ×24 مع matrices مشتركة؛ المعلم Capsule(0.26,0.85,2,6) كحلي + رأس + جوال Box 0.07×0.15×0.01 بشاشة Plane.",
+   "material": "الثوب أبيض كريمي #F8F5EF؛ الرأس تان دافئ #C89B6D flat بلا ملامح؛ الحقيبة كحلي ليل؛ المعلم كحلي فجر.",
+   "tris": 3700,
+   "notes": "بلا وجوه إطلاقاً؛ الحياة من الحركة: تمايل sin خفيف ±1° لكل كبسولة بطور مختلف، رفع الرأس عند التحضير، الجلوس بمقياس y 0.75 في s3؛ ألوان الحقائب تتناوب كحلي/ذهبي كل 3 طلاب."
+  },
+  {
+   "name": "الطائرات الورقية",
+   "primitives": "6 معينات PlaneGeometry (2 مثلث، 0.6×0.8) InstancedMesh بألوان instanceColor (ذهبي/كريمي/أخضر/طين) + ذيل LineSegments 6 قطع لكل طائرة + خيط Line إلى الطالب.",
+   "material": "MeshBasic DoubleSide (لا تتأثر بالإضاءة فتبدو ورقاً مضاءً)، الخيوط #F0D99A opacity 0.6.",
+   "tris": 12,
+   "notes": "تتموج بدالة sin على الدوران z ±8° وتعلو/تهبط 0.3م؛ تنطلق فوق الطابور في ذروة s2 وترسو على السور في s8 — خيط بصري يربط الطلاب بالخاتمة."
+  },
+  {
+   "name": "الفصل (جدران، أرضية، باب، نافذة)",
+   "primitives": "جدران 4 Box (12×3.4×0.25) بفتحة باب 1.1×2.4 ونافذة 3×1.6؛ أرضية Plane 12×9؛ باب Group بمحور عند الحافة (Box 1.1×2.4×0.06 كريمي + مقبض ذهبي)؛ نافذة إطار 4 Box كحلي + شعاع ضوء Plane مائل additive 0.15؛ سقف Plane كحلي فجر بمصباحين Box ذهبيين.",
+   "material": "كريمي للجدران مع شريط سفلي كحلي فجر 0.9م (لمسة مدرسة حقيقية)؛ الأرضية #142A44 مع خطوط بلاط خافتة.",
+   "tris": 300,
+   "notes": "الشريط الكحلي السفلي على الجدران + الحافة الذهبية حول السبورة يمنحان الفصل هوية التطبيق؛ الظل الوحيد على المكتب هنا."
+  },
+  {
+   "name": "المقاعد والطاولات",
+   "primitives": "وحدة = طاولة Box 0.7×0.04×0.5 + 4 أرجل Cylinder(0.02,0.02,0.7,5) + مقعد Box 0.4×0.04×0.4 + ظهر Box 0.4×0.35×0.03 + رجلا كرسي ≈ 110 مثلث؛ InstancedMesh ×24 في شبكة 4×6 بتباعد 1.1×1.2م؛ طاولة المعلم Box 1.4×0.05×0.7 + أرجل.",
+   "material": "سطح الطاولة كريمي مائل للبيج #EFE7D6، الأرجل والظهر كحلي فجر؛ instanceColor يتحول ذهبياً للمقعد المختار.",
+   "tris": 2700,
+   "notes": "الظهر المائل 8° والأرجل الأسطوانية الرفيعة (لا صناديق) يوحيان بأثاث مدرسة؛ بقعة ظل مخبوزة تحت كل وحدة على الجوال."
+  },
+  {
+   "name": "السبورة والعجلة ورموز الألعاب",
+   "primitives": "سبورة Plane 4×1.6 + إطار Box بشادر النجمة الثمانية الذهبية (نمط إجرائي في fragment: تكرار نجمة 8 رؤوس عبر دالة مسافة) + رف طباشير Box؛ العجلة Cylinder(1.1,1.1,0.08,24) vertex colors 24 قطاعاً + Torus(1.12,0.03,6,48) ذهبي + مؤشر Cone(0.08,0.2,4)؛ 7 رموز كما في s3 (<1.5k)؛ حلقة مؤقت Ring(0.25,0.3,32) بـthetaLength.",
+   "material": "سطح السبورة #1E3A34 (ShaderMaterial screen عند الفيديو)؛ الإطار ذهب emissive 0.3؛ العجلة كحلي/ذهبي/كريمي flat.",
+   "tris": 2800,
+   "notes": "إطار النجمة الثمانية (المأخوذ من الاتجاه الزجاجي) يُستخدم للسبورة والنافذة ولوح المدير فيصير توقيعاً سعودياً موحداً للشاشات داخل العالم."
+  },
+  {
+   "name": "جدار الدروس (782 بلاطة + 11 رفّاً)",
+   "primitives": "742 PlaneGeometry 0.6×0.4 InstancedMesh + 40 BoxGeometry 0.66×0.44×0.05 InstancedMesh مع uvOffset؛ 11 رفّاً Box 18×0.06×0.3 كل 0.55م على x=-8.6 (z من -14 إلى +4) مدمجة في mesh واحد؛ لوحة اسم مادة Box صغيرة ذهبية أول كل رف.",
+   "material": "البلاطات Lambert vertexColors=false مع instanceColor من لوحة 11 مادة (كحلي ليل، كحلي فجر، ذهب، ذهب فاتح، كريمي، طين، أخضر، وتدرجات بينها)؛ البطلة بأطلس webp؛ الرفوف #B3541E×0.8.",
+   "tris": 2300,
+   "notes": "البلاطات البطلة بارزة 5سم وبإطار كريمي فتلتقط الضوء أولاً؛ emissive 0→0.3 يضيء الصف عند مرور الكاميرا؛ التباين بين 742 لوناً مسطحاً و40 صورة حقيقية هو ما يجعل الجدار «مكتبة» لا خريطة حرارية."
+  },
+  {
+   "name": "الممر (أرضية، جدار، نافذة الشادر، الخزائن، الكوّة)",
+   "primitives": "أرضية Plane 24×3 كحلي فجر بخط ذهبي وسطي Box 24×0.01×0.05؛ جدار داخلي Box 24×3.4×0.25 كريمي؛ نافذة إطار 4 Box + زجاج Plane 4×2.6 (ShaderMaterial screen + إطار نجمة ثمانية)؛ 30 خزانة Box 0.4×1.8×0.45 InstancedMesh + لوحة ذهبية Box 0.1×0.04 ×30 (InstancedMesh ثانٍ) + باب متحرك منفصل؛ كوّة Box إطار ذهبي 1.6×1.6 + زجاج Plane؛ 4 بقع ضوء planes additive على الأرض؛ مقعد ممر Box.",
+   "material": "الخزائن كحلي ليل مع instanceColor يتناوب ±3%؛ اللوحات ذهب؛ الجدار كريمي بشريط كحلي سفلي.",
+   "tris": 4400,
+   "notes": "تناوب لوني طفيف بين الخزائن + بقع الضوء المتكررة من الكوّات يمنحان الممر عمقاً وإيقاعاً؛ الكوّة الذهبية في السقف تُرى من s6 مسبقاً فيصير الصعود مفهوماً لا مفاجئاً بالكامل."
+  },
+  {
+   "name": "البيوت الأربعة (الحيّ)",
+   "primitives": "كل بيت Box 2×1.6×2 + منشور سقف (ExtrudeGeometry مثلث) + نافذة Plane 0.5×0.5 emissive ذهب فاتح + باب Box؛ ×4 على مسافة 14–20م خلف السور الشرقي، ونوافذ InstancedMesh ×4.",
+   "material": "جدران كريمي/بيج #EFE7D6، الأسطح طين، النوافذ MeshBasic #F0D99A تشتعل عبر instanceColor.",
+   "tris": 160,
+   "notes": "صغيرة وبعيدة وفي الضباب فتقرأ كـ«حي» لا كصناديق؛ إضاءة النافذة عند وصول الفقاعة هي اللقطة العاطفية للمحطة."
+  },
+  {
+   "name": "جسم المدرسة من الأعلى (السطح والجناحان)",
+   "primitives": "جناحان Box 30×7.5×10 (يعاد استخدام geometry الجدران بالمقياس) عند z=-9 وz=+9 يحصران الفناء؛ سطح طيني Box بحافة (parapet) Box 0.3×0.6؛ 12 نافذة لكل جناح Plane 1.2×1.2 InstancedMesh ×24 (تُضاء ليلاً)؛ خزان ماء Cylinder + كوّتان + سلّم سطح.",
+   "material": "كريمي للجدران، طين للسطح، النوافذ MeshBasic كحلي فجر → ذهب فاتح ليلاً.",
+   "tris": 900,
+   "notes": "يُعرض فقط في s7/s8 من الأعلى/الخارج؛ الفناء والنخلة والبوابة نفسها تُرى بينهما فتكتمل «الخريطة الذهنية» للمعلم؛ الظل الطويل المخبوز للجناحين على الفناء عند الغروب."
+  },
+  {
+   "name": "أعمدة لوحة المدير ولوح التابلت",
+   "primitives": "InstancedMesh Box 0.4×1×0.4 ×55 (5×11) فوق سطح الجناح الرئيسي بمقياس y 0.2→2.6؛ التابلت إطار Box 3.2×2.2×0.08 كحلي + شاشة Plane 3×2 (ShaderMaterial screen + إطار نجمة ثمانية).",
+   "material": "instanceColor من #2E9E5B/#D7A93F/#d64545 مع emissive 0.35؛ الإطار كحلي ليل.",
+   "tris": 800,
+   "notes": "الأعمدة تلمع ليلاً كإضاءة السطح وتبقى مرئية عند الهبوط نحو البوابة في تسليم s7 — استمرارية بصرية."
+  },
+  {
+   "name": "السماء والنجوم والقمر وأضواء الحي",
+   "primitives": "قبة Sphere(150,16,8) BackSide vertex colors؛ نجوم Points 800/250 على نصف كرة r=140 بأحجام 1–2.5px؛ قمر Icosahedron(1.6,1) كريمي عند (-40,45,-60)؛ أضواء الحي Points 300 ذهبية على مستوى الأرض على مسافة 60–120م.",
+   "material": "PointsMaterial sizeAttenuation:false مع sprite دائري ناعم (canvas 32px) additive؛ القمر كريمي emissive 0.6.",
+   "tris": 260,
+   "notes": "القبة بتدرج vertex colors يتغير مع المحطة (فجر ذهبي → نهار مائل للأزرق الفاتح → غروب برتقالي → ليل كحلي) هي ما يُشعر بالزمن يمضي؛ النجوم تُفعَّل من 0.75 في s7."
+  },
+  {
+   "name": "الجزيئات والهالات",
+   "primitives": "Points غبار ذهبي 1200/300 في BufferGeometry واحد يُعاد تموضعه حول الكاميرا لكل محطة؛ Sprites هالة (canvas radial 64px) على المصابيح والباب المضاء والقطاع الفائز؛ نظام ذيل الطائرات 600/200 نقطة.",
+   "material": "PointsMaterial ذهب فاتح size 0.03 (sizeAttenuation) opacity 0.7 additive؛ Sprite additive 0.4.",
+   "tris": 0,
+   "notes": "هذه هي الطبقة التي تجعل الـlow-poly سينمائياً: غبار في شعاع الشمس، هالة على كل ضوء، لا bloom؛ تُطفأ أولاً عند هبوط FPS."
+  }
+ ],
+ "modules": [
+  {
+   "file": "js/intro-boot.js",
+   "exports": "window.IntroBoot = {decide(), inject(), showLoginNow(reason), addTourButton(), ready:Promise}",
+   "depends": "لا شيء (vanilla، يعمل بلا three/gsap)؛ يقرأ DOM #view-login وlocalStorage",
+   "owner_scope": "المالك A: البوابة الذكية — قرار seen/reduced-motion/WebGL/auto-login، حقن #intro-root والمكتبات من cdnjs بالترتيب، شريط التحميل، زر «دخول» الثابت خلال ≤1.4s، زر «شاهد الجولة 🎬» (location.reload بعد حذف المفتاح)، ربط طبقة الملصقات، وتمرير الحالة إلى Intro.start(). لا يلمس app.js ولا ids الدخول."
+  },
+  {
+   "file": "js/intro-core.js",
+   "exports": "window.Intro = {start(opts), register(station), state, ctx, remap(p), curvePos, curveLook, setStationEnv(i,blend), adaptive, flags, teardown(clickLogin)}",
+   "depends": "three.min.js, gsap + ScrollTrigger + ScrollToPlugin؛ يستقبل تسجيلات stations/*.js",
+   "owner_scope": "المالك B: renderer/camera/scene/fog/lights، بناء المنحنيين من cameraPoint/waypoint/lookAt، الـremap القطعي (0.75→1 + 0→0.15 طيران، والباقي رسوّ مع drift؛ استثناء s7)، ScrollTrigger الوحيد على #intro-spacer، حلقة الرسم عند الطلب، الميل بالمؤشر، المراقب التكيّفي (DPR→جزيئات→فيديو→وضع خفيف)، vis-range للمجموعات، resize، MutationObserver للدخول وteardown، hud ?debug. لا يعرف تفاصيل أي محطة."
+  },
+  {
+   "file": "js/intro-world.js",
+   "exports": "window.IntroWorld = {mats, palette, mergeGeometries(list), capsule(), palm(), flag(), starFrame(w,h), screenMaterial(), bakedShadow(r), buildStatic(scene)→{groups}}",
+   "depends": "three.min.js فقط؛ يُستدعى من intro-core قبل المحطات",
+   "owner_scope": "المالك C: كل الهندسة الثابتة للمدرسة بحسب world_build (بوابة، سور، فناء، سارية+علم، نخلة، فصل، ممر، خزائن، بيوت، جسم المدرسة، قبة، أرض) موزعة على Groups باسم المحطة مع visRange، و9 مواد مشتركة، وvertex-color noise، وشادرات العلم/إطار النجمة الثمانية/الشاشة (poster+video mix)، وmergeGeometries اليدوية. لا حركة ولا timeline هنا."
+  },
+  {
+   "file": "js/intro-media.js",
+   "exports": "window.IntroMedia = {clips, request(id), release(id), screen(id)→{material, setMix}, atlas(count)→Promise<{texture, uvFor(i)}>, screenshot(name)→Texture, posters}",
+   "depends": "three.min.js؛ يستخدم IntroWorld.screenMaterial؛ يُستدعى من المحطات عبر ctx.video/ctx.atlas",
+   "owner_scope": "المالك D: عناصر <video> (muted playsinline loop preload=none)، سياسة VideoTexture واحدة نشطة، lookahead/release، تعليق التحميل أثناء fast-forward، محاولة play عند أول تفاعل، فولباك إجرائي عند الرفض، بناء الأطلس 2048/1024 من img/intro/lessons/*.webp بعد أول رسم، لقطات التطبيق webp، الملصقات. لا يلمس timeline أي محطة."
+  },
+  {
+   "file": "js/intro-ui.js",
+   "exports": "window.IntroUI = {mount(), text(i,{headline,copy}), show(i)/hide(i), chip(id,text,v3|null), counter(id,n), bars(id,values), hint(), fixedButton(), seal()→Promise, posterLayer(), projector(camera)}",
+   "depends": "gsap + ScrollTrigger؛ DOM #intro-ui؛ يستقبل project() من intro-core",
+   "owner_scope": "المالك E: كل ما هو HTML فوق الكانفس — عناوين/نصوص المحطات بـChanga/Tajawal، parallax النصي، الشرائح المُسقطة، العدّاد بالأرقام العربية-الهندية، أشرطة المواد، مؤشر التمرير، شريط التحميل، الختم (نجمة ثمانية «سُجِّل» + squash + رذاذ + vibrate)، طبقة الملصقات للفولباك، تقسيم العناوين بـspan لكل كلمة. لا three هنا سوى استدعاء project()."
+  },
+  {
+   "file": "js/stations/s1-gate.js",
+   "exports": "Intro.register({id:'s1-gate', index:0, …})",
+   "depends": "Intro, IntroWorld.groups.gate/courtyard, IntroMedia.screen('sd-courtyard'), IntroUI",
+   "owner_scope": "المالك F: الكشف الافتتاحي (حساب مسافة البداية من fov)، Ken Burns، مزج الفيديو، الغبار، الطائرتان، تسليم الطائرة إلى s2."
+  },
+  {
+   "file": "js/stations/s2-assembly.js",
+   "exports": "Intro.register({id:'s2-assembly', index:1, …})",
+   "depends": "Intro, IntroWorld.capsule/groups.courtyard, IntroMedia.screenshot('attendance'), IntroUI",
+   "owner_scope": "المالك G: الطابور (InstancedMesh الطلاب + المعلم + الجوال)، طبقة canvas التحضير بعتبات 1/24، النجوم، الطائرات الست، مسارات الدخول إلى الفصل والباب. يملك أيضاً مواضع الجلوس المشتركة مع s3 (export seatMatrices)."
+  },
+  {
+   "file": "js/stations/s3-board.js",
+   "exports": "Intro.register({id:'s3-board', index:2, …})",
+   "depends": "Intro, IntroWorld.groups.classroom, s2.seatMatrices, IntroMedia.screen('sd-board'), IntroUI",
+   "owner_scope": "المالك H: العجلة وقطاعاتها، الشعاعات وسلسلة «يختار من بعده»، 7 رموز الألعاب، حلقة المؤقت، اهتزاز الكاميرا، دوران lookAt نحو الجدار الجانبي."
+  },
+  {
+   "file": "js/stations/s4-library.js",
+   "exports": "Intro.register({id:'s4-library', index:3, …})",
+   "depends": "Intro, IntroWorld.groups.library, IntroMedia.atlas, IntroUI.counter/bars",
+   "owner_scope": "المالك I: InstancedMesh البلاطات (742 plane + 40 box) مع uvOffset وonBeforeCompile، إضاءة الصفوف، دولي الكاميرا (z على المكتب / y على الجوال)، العدّاد ٠→٧٨٢، البلاطة الطائرة وصفحة الدرس، تسليم ورقة العمل."
+  },
+  {
+   "file": "js/stations/s5-window.js",
+   "exports": "Intro.register({id:'s5-window', index:4, …})",
+   "depends": "Intro, IntroWorld.groups.corridor/starFrame, IntroMedia.screen('sd-flight') + screenshot('worksheets'), IntroUI",
+   "owner_scope": "المالك J: 20 طائرة ورقية وذيولها، شفافية الزجاج، علامات ✓ ومخطط الأعمدة، القفل، تسليم بطاقة الطالب إلى الخزانة."
+  },
+  {
+   "file": "js/stations/s6-lockers.js",
+   "exports": "Intro.register({id:'s6-lockers', index:5, …})",
+   "depends": "Intro, IntroWorld.groups.corridor/houses, IntroMedia.screenshot('student'), IntroUI",
+   "owner_scope": "المالك K: باب الخزانة، بطاقة الطالب (canvas بعد fonts.ready) و11 حلقة، فقاعات التقارير ومسارات البيوت، الطالب وجواله (بوابة الطالب)، الميل نحو الكوّة."
+  },
+  {
+   "file": "js/stations/s7-roof.js + js/stations/s8-login.js",
+   "exports": "Intro.register({id:'s7-roof', index:6, …}); Intro.register({id:'s8-login', index:7, …})",
+   "depends": "Intro, IntroWorld.groups.roof/gate, IntroMedia.screen('sd-aerial'/'sd-night-gate'), IntroUI.seal, ScrollTrigger للقسم #view-login (toggleClass فقط)",
+   "owner_scope": "المالك L: s7 — الصعود الكاسر للإيقاع، تحول الضباب/الشمس/القبة، 55 عموداً، التابلت، النجوم، الهبوط إلى البوابة؛ s8 — الليل، الباب المضاء والهالة، الإطار المجمّد بصبغة ذهبية، الدرع والسحابة، ScrollTrigger دخول .login-card (CSS فقط، transform:none عند الاكتمال)، وربط الختم بحدث teardown(clickLogin)."
+  }
+ ],
+ "file_plan": [
+  "index.html — يبقى كما هو مع: وسم Changa (preload 800 + stylesheet)، css/intro.css بعد app.css، <div id=\"intro-root\"> فارغ قبل #view-login يملؤه intro-boot (canvas#intro-gl ثابت، #intro-spacer، #intro-ui، زر #intro-enter الثابت، طبقة #intro-posters)، و<script src=\"js/intro-boot.js?v=1\" defer> بعد app.js. #view-login وعناصره وids بلا أي تغيير أو نقل.",
+  "css/app.css — بلا تغيير.",
+  "css/intro.css — كل القواعد تحت body.has-intro (خلفية كحلية، الكانفس الثابت، #intro-ui fixed، العناوين Changa، الشرائح، العدّاد، شريط التحميل، الزر الثابت، #view-login{background:transparent} و.login-card.is-in، الختم، طبقة الملصقات، @media (hover:hover) and (min-width:900px) لـblur فقط، prefers-reduced-motion) + قواعد زر «شاهد الجولة» خارج has-intro.",
+  "js/intro-boot.js — البوابة بلا مكتبات (≤6KB).",
+  "js/intro-core.js — المحرك (renderer/camera/path/remap/loop/adaptive/teardown).",
+  "js/intro-world.js — المدرسة والمواد والشادرات وmergeGeometries.",
+  "js/intro-media.js — الفيديو/الملصقات/الأطلس/اللقطات.",
+  "js/intro-ui.js — النصوص/الشرائح/العدّاد/الختم/الملصقات.",
+  "js/stations/s1-gate.js, s2-assembly.js, s3-board.js, s4-library.js, s5-window.js, s6-lockers.js, s7-roof.js, s8-login.js — محطة لكل ملف بواجهة register الموحدة.",
+  "js/app.js, js/fb.js, js/demo-data.js — بلا تغيير.",
+  "media/sd-courtyard.mp4, sd-board.mp4, sd-flight.mp4, sd-aerial.mp4 (720p h264 ≤1.5MB) + media/*.webp ملصق لكل مقطع ≤60KB؛ لاحقاً sd-assembly/sd-hands-phone/sd-night-gate/sd-chalk-games.",
+  "img/intro/lessons/ — 40 صورة webp 256px مولّدة من data/lessons/img/<dgXtYwZ>/s0.jpg (سكربت tools/prep-assets.ps1 يعمل محلياً مرة واحدة، ليس جزءاً من الموقع).",
+  "img/intro/ui/attendance.webp, worksheets.webp, student.webp, principal.webp — لقطات حقيقية من التطبيق 512×1024 ≤80KB.",
+  "img/intro/posters/s1..s8.webp — 8 ملصقات لطبقة الفولباك (≤60KB لكل واحدة).",
+  "tools/prep-assets.ps1 — تصغير الصور وتحويلها webp (محلي فقط، خارج النشر).",
+  "النشر: العمل في نسخة Temp ثم النسخ إلى مجلد OneDrive مع cache-busting ?v= للملفات الجديدة كما هو متبع."
+ ],
+ "acceptance": [
+  "المعلم العائد (localStorage sijil.intro.seen='1'): لا يظهر أي طلب شبكة إلى cdnjs.cloudflare.com في Network، لا يوجد عنصر canvas في DOM، و#view-login مرئي خلال ≤300ms من DOMContentLoaded مع زر «شاهد الجولة 🎬» داخل .login-card.",
+  "prefers-reduced-motion أو فشل getContext('webgl'): نفس معيار 1، والضغط على «شاهد الجولة» يعرض طبقة الملصقات HTML بـ8 ملصقات وعناوين بلا تحميل three.js.",
+  "الزيارة الأولى: زر «دخول» الثابت مرئي وقابل للنقر خلال ≤1.4s من بدء التنقل حتى مع تعطيل JS للمكتبات (throttling 4G)، وLCP ≤2.5s على 4G حيث عنصر LCP هو ملصق s1 (webp ≤60KB).",
+  "ScrollTrigger.getAll().filter(t=>t.vars.scrub).length === 1 و ScrollTrigger.getAll().filter(t=>t.vars.pin).length === 0 طوال الرحلة.",
+  "في كل محطة من الثماني (بالوقوف عند مركز الرسوّ p = (i+0.45)/8) renderer.info.render.triangles ≤ 25000 على المكتب و≤ 15000 على الجوال، وrenderer.info.render.calls ≤ 40 — يُقرأ من hud ?debug.",
+  "document.querySelectorAll('video[src]').length ≤ 1 في أي لحظة، وكل video يحمل preload=\"none\" وmuted وplaysinline؛ وعند حجب مجلد media/ كلياً (404) تكتمل الرحلة الثماني محطات بلا توقف ويظهر الملصق أو الفولباك الإجرائي على كل شاشة.",
+  "العدّاد في s4 يعرض «٧٨٢» بأرقام عربية-هندية بالضبط عند localP ≥ 0.70 و«٠» عند localP ≤ 0.15، مع 11 شريط مادة مكتمل عند 0.75.",
+  "على Galaxy A34 (أو ما يعادله) وiPhone 11: وسيط FPS ≥ 45 عبر الرحلة كاملة بسرعة تمرير طبيعية، وسجل المراقب التكيّفي يُظهر أي تغيير tier في console عند ?debug؛ على المكتب ≥ 58fps.",
+  "لا سلف لـ#view-login (حتى html) له transform أو perspective أو filter أو backdrop-filter في getComputedStyle، وids الستة (#lg-teacher, #lg-pin, #lg-btn, #lg-err, #lg-demo, #lg-school) موجودة ووحيدة؛ على iOS تُفتح قائمة #lg-teacher الأصلية ولوحة المفاتيح تدفع الصفحة دون قفز الكاميرا.",
+  "على الشاشات < 900px لا يوجد أي عنصر computed backdrop-filter ≠ none داخل #intro-root أو #view-login.",
+  "الدخول بالنقر على #lg-btn برقم 1234: يظهر الختم (نجمة ثمانية «سُجِّل») خلال 900ms ثم يختفي كل شيء؛ الدخول التلقائي (DB.session محفوظ عند الإقلاع): لا ينشأ #intro-root ولا ختم ولا مكتبات.",
+  "بعد الدخول: لا #intro-root ولا canvas في DOM، body لا يحمل has-intro، ScrollTrigger.getAll().length === 0، window.scrollY === 0، localStorage.getItem('sijil.intro.seen') === '1'، و#view-app يظهر بنفس تخطيطه في النسخة الحالية (لقطة مقارنة بكسلية للشريط العلوي).",
+  "النقر على زر «دخول» الثابت من أعلى الصفحة يصل إلى #view-login خلال 1.6s ±0.1، وخلال هذا الـfast-forward يبدأ تحميل فيديو واحد على الأكثر (Network).",
+  "كل العناوين الثمانية عربية ≤ 6 كلمات ومرسومة بـChanga (document.fonts.check('800 40px Changa') === true بعد التحميل)، وكل النصوص المعروضة عربية بلا كلمة إنجليزية سوى «App Check» و«Firebase».",
+  "مسار الكاميرا واحد: JSON.stringify(Intro.curvePos.points) متطابق بين navigator.userAgent جوال ومكتب؛ الفارق الوحيد camera.fov (50/68) وoffset الارتفاع المعلن في cameraPoint.mobileY.",
+  "عند بدء الصفحة قبل أي تمرير: لوحة LED تملأ ارتفاع الشاشة بالضبط (ارتفاع إسقاط اللوحة = innerHeight ±2%) على 375×812 و1440×900؛ وبعد التمرير إلى p=0.02 يظهر إطار اللوحة وقوس البوابة (الكشف يعمل مع الملصق وحده بلا فيديو)."
+ ]
+}

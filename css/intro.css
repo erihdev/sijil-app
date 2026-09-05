@@ -1,0 +1,188 @@
+/* الجولة السينمائية «الطيران داخل المدرسة» — كل القواعد تحت body.has-intro أو #intro* */
+:root{
+  --in-night:#071322; --in-navy:#0E2033; --in-gold:#D7A93F; --in-goldl:#F0D99A;
+  --in-sky:#9FC4E8; --in-cream:#F8F5EF;
+}
+
+/* ═══ الحالة المخفية الافتراضية (سمة hidden) ═══ */
+#intro-bar[hidden],#intro-posters[hidden],#intro-stamp[hidden],#intro-counter[hidden],#intro-replay[hidden]{display:none!important}
+/* شريط «دخول» يظهر منذ أول رسم (بلا JS) حين يقرر سكربت الرأس أن الوضع ليس skip */
+html.intro-bar #intro-bar[hidden]{display:flex!important}
+#intro[hidden],#intro-track[hidden]{display:none}
+body:not(.has-intro) #intro,body:not(.has-intro) #intro-track{display:none!important}
+
+/* ═══ الصفحة أثناء الجولة ═══ */
+body.has-intro{background:var(--in-night); overflow-x:hidden; overscroll-behavior-y:none}
+body.has-intro #intro{display:block}
+body.has-intro #intro-track{display:block}
+/* شبكة أمان: إن دخل المعلم قبل اكتمال المكتبات يظهر التطبيق فوق الطبقة الثابتة */
+body.has-intro #view-app{position:relative; z-index:36}
+
+/* ═══ الطبقة الثابتة ═══ */
+#intro{
+  position:fixed; inset:0; z-index:30; overflow:hidden; contain:strict;
+  /* ملصق المحطة الأولى حتى أول إطار WebGL (عنصر LCP)؛ يُزال عند .is-live */
+  background:var(--in-night) url("../assets/intro/posters/s1.webp") center/cover no-repeat
+}
+#intro.is-live{background-image:none}
+#intro-gl{position:absolute; inset:0; width:100%; height:100%; display:block; touch-action:pan-y}
+#intro-ui{position:absolute; inset:0; pointer-events:none; overflow:hidden}
+
+/* الشريط في التدفق (ارتفاعه بالبكسل يُضبط من core مرة واحدة) */
+#intro-track{position:relative; min-height:100svh; pointer-events:none; visibility:hidden}
+
+/* ═══ نصوص المحطات ═══ */
+#intro-texts{position:absolute; inset:0; pointer-events:none}
+#intro-texts .scene-text{
+  position:absolute; inset-inline-start:6vw; top:12svh; width:min(88vw,480px);
+  opacity:0; will-change:opacity; pointer-events:none;
+  color:var(--in-cream); text-shadow:0 2px 6px rgba(7,19,34,.9),0 0 24px rgba(7,19,34,.6)
+}
+#intro-texts .scene-text h2{
+  margin:0 0 10px; font-family:'Changa','Tajawal',system-ui,sans-serif; font-weight:800;
+  font-size:clamp(28px,6vw,56px); line-height:1.15; color:var(--in-goldl)
+}
+#intro-texts .scene-text p{
+  margin:0; font-family:'Tajawal',system-ui,sans-serif; font-weight:500;
+  font-size:clamp(15px,2.4vw,20px); line-height:1.6; color:var(--in-cream);
+  display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden
+}
+/* قناع خافت خلف النص كي يبقى مقروءاً فوق الأجسام الفاتحة */
+#intro-texts .scene-text::before{
+  content:''; position:absolute; inset:-24px -32px; z-index:-1; pointer-events:none;
+  background:radial-gradient(60% 70% at 100% 50%,rgba(7,19,34,.55),transparent 75%)
+}
+@media (min-width:768px){
+  #intro-texts .scene-text{top:auto; bottom:18svh; inset-inline-start:7vw; width:min(38vw,520px)}
+  #intro-texts .scene-text p{-webkit-line-clamp:4; font-size:clamp(16px,1.5vw,20px)}
+}
+
+/* ═══ العدّاد الكبير (البنية من ui.counter: .num ثم .bars > .bar > i) ═══ */
+#intro-counter{position:absolute; inset-inline-end:6vw; top:14svh; text-align:center; pointer-events:none}
+#intro-counter .num{
+  font-family:'Changa','Tajawal',system-ui,sans-serif; font-weight:800;
+  font-size:clamp(56px,14vw,120px); line-height:1; color:var(--in-goldl);
+  text-shadow:0 0 28px rgba(215,169,63,.45),0 2px 8px rgba(7,19,34,.7); font-variant-numeric:tabular-nums
+}
+#intro-counter .bars{display:flex; flex-direction:column; gap:5px; margin-top:10px; width:min(260px,60vw); margin-inline:auto}
+#intro-counter .bar{display:block; height:5px; border-radius:3px; background:rgba(215,169,63,.18); overflow:hidden}
+#intro-counter .bar i{display:block; height:100%; border-radius:3px; background:var(--in-gold); transform-origin:100% 50%; transform:scaleX(0)}
+html[dir=ltr] #intro-counter .bar i{transform-origin:0 50%}
+@media (min-width:768px){ #intro-counter{top:auto; bottom:22svh; inset-inline-end:10vw} }
+
+/* ═══ تلميح التمرير ═══ */
+#intro-hint{
+  position:absolute; bottom:calc(64px + env(safe-area-inset-bottom)); inset-inline:0; margin-inline:auto; width:max-content;
+  text-align:center; pointer-events:none; padding:6px 14px; border-radius:999px; background:rgba(7,19,34,.45);
+  font-family:'Tajawal',system-ui,sans-serif; font-weight:700; font-size:16px; letter-spacing:.5px;
+  color:var(--in-goldl); opacity:.95; transition:opacity .4s ease
+}
+#intro-hint::before{
+  content:''; display:block; width:2px; height:36px; margin:0 auto 8px; border-radius:2px;
+  background:linear-gradient(180deg,rgba(215,169,63,0),var(--in-gold));
+  animation:intro-hint-pulse 1.6s ease-in-out infinite
+}
+#intro-hint.is-off{opacity:0}
+@keyframes intro-hint-pulse{0%,100%{transform:scaleY(.55); opacity:.5} 50%{transform:scaleY(1); opacity:1}}
+
+/* ═══ شريط «دخول» الثابت ═══ */
+#intro-bar{
+  position:fixed; top:0; inset-inline:0; z-index:40; min-height:56px; height:auto;
+  display:flex; align-items:center; justify-content:space-between; gap:12px;
+  padding:0 clamp(12px,3vw,28px); padding-top:env(safe-area-inset-top);
+  background:rgba(14,32,51,.72); border-bottom:1px solid rgba(215,169,63,.28);
+  opacity:0; transform:translateY(-100%);
+  animation:intro-bar-in .5s cubic-bezier(.2,.8,.2,1) .45s forwards;
+  transition:opacity .35s ease,transform .35s ease
+}
+#intro-bar.is-off,#intro-bar.is-hidden{opacity:0!important; transform:translateY(-100%)!important; pointer-events:none}
+#intro-bar .brand{
+  font-family:'Changa','Tajawal',system-ui,sans-serif; font-weight:700; font-size:clamp(15px,2.6vw,19px);
+  color:var(--in-goldl); white-space:nowrap; overflow:hidden; text-overflow:ellipsis
+}
+#intro-bar .enter{
+  height:40px; padding:0 22px; display:inline-flex; align-items:center; justify-content:center;
+  background:linear-gradient(135deg,var(--in-gold),#c2942e); color:var(--in-navy);
+  font-family:'Tajawal',system-ui,sans-serif; font-weight:800; font-size:16px; text-decoration:none;
+  border-radius:12px; box-shadow:0 4px 16px rgba(215,169,63,.35); flex:none
+}
+#intro-bar .enter:active{transform:scale(.97)}
+@media (min-width:768px){ #intro-bar{backdrop-filter:blur(8px); -webkit-backdrop-filter:blur(8px)} }
+@keyframes intro-bar-in{to{opacity:1; transform:translateY(0)}}
+
+/* ═══ الملصقات (فولباك بلا مكتبات) ═══ */
+#intro-posters{display:block; background:var(--in-night); color:var(--in-cream)}
+#intro-posters .poster{
+  position:relative; min-height:100svh; display:flex; align-items:flex-end;
+  background:linear-gradient(170deg,#142A44 0%,var(--in-navy) 45%,var(--in-night) 100%);
+  background-size:cover; background-position:center; overflow:hidden
+}
+#intro-posters .poster:nth-child(2n){background:linear-gradient(200deg,#1d3a5f 0%,var(--in-navy) 50%,var(--in-night) 100%)}
+#intro-posters .poster.has-img::before{
+  content:''; position:absolute; inset:0;
+  background:linear-gradient(180deg,rgba(7,19,34,.05) 30%,rgba(7,19,34,.85) 100%)
+}
+#intro-posters .poster-body{
+  position:relative; width:100%; max-width:720px; margin:0 auto;
+  padding:0 clamp(20px,6vw,48px) clamp(64px,12svh,120px)
+}
+#intro-posters .poster-num{
+  display:inline-block; font-family:'Changa','Tajawal',system-ui,sans-serif; font-weight:700; font-size:14px;
+  color:var(--in-gold); border:1px solid rgba(215,169,63,.5); border-radius:999px; padding:2px 12px; margin-bottom:14px
+}
+#intro-posters h2{
+  margin:0 0 10px; font-family:'Changa','Tajawal',system-ui,sans-serif; font-weight:800;
+  font-size:clamp(28px,6vw,56px); line-height:1.15; color:var(--in-goldl)
+}
+#intro-posters p{margin:0; font-family:'Tajawal',system-ui,sans-serif; font-weight:500; font-size:clamp(15px,2.4vw,20px); line-height:1.6; max-width:52ch}
+#intro-posters .poster-cta{
+  display:inline-flex; align-items:center; margin-top:22px; height:44px; padding:0 28px; border-radius:12px;
+  background:linear-gradient(135deg,var(--in-gold),#c2942e); color:var(--in-navy);
+  font-family:'Tajawal',system-ui,sans-serif; font-weight:800; font-size:17px; text-decoration:none
+}
+
+/* ═══ الختم عند الدخول (الأسماء مطابقة لـ ui.js: .is-on و.spray) ═══ */
+#intro-stamp{position:fixed; inset:0; z-index:60; display:flex; align-items:center; justify-content:center; pointer-events:none; background:rgba(7,19,34,.28)}
+#intro-stamp .seal{
+  position:relative; width:120px; height:120px; border-radius:50%;
+  background:radial-gradient(circle at 35% 30%,#f5dd9b,var(--in-gold) 60%,#b8891f);
+  border:4px solid var(--in-goldl); box-shadow:0 12px 40px rgba(215,169,63,.45), inset 0 0 0 3px var(--in-navy);
+  display:flex; flex-direction:column; align-items:center; justify-content:center; color:var(--in-navy);
+  transform:none; opacity:1
+}
+#intro-stamp .seal svg{width:44px; height:44px; fill:var(--in-navy); display:block}
+#intro-stamp .seal b{font-family:'Changa','Tajawal',system-ui,sans-serif; font-weight:800; font-size:22px; line-height:1; margin-top:2px}
+#intro-stamp.is-on .seal{animation:intro-stamp-in .45s cubic-bezier(.34,1.56,.64,1) both}
+#intro-stamp.fade{transition:opacity .2s ease; opacity:0}
+#intro-stamp .spray{
+  position:absolute; left:50%; top:50%; width:8px; height:8px; margin:-4px 0 0 -4px; border-radius:50%;
+  background:var(--in-goldl); opacity:0; pointer-events:none
+}
+@keyframes intro-stamp-in{0%{transform:scale(1.6) rotate(-12deg); opacity:0} 60%{transform:scale(.92) rotate(0); opacity:1} 100%{transform:scale(1) rotate(0); opacity:1}}
+
+/* ═══ HUD التصحيح (?debug=1) ═══ */
+#intro-hud{
+  position:fixed; inset-inline-start:8px; bottom:8px; z-index:70; pointer-events:none;
+  font:12px/1.5 ui-monospace,Consolas,monospace; direction:ltr; color:var(--in-goldl);
+  background:rgba(7,19,34,.75); padding:6px 10px; border-radius:8px; white-space:pre
+}
+
+/* ═══ قسم الدخول أثناء الجولة ═══ */
+body.has-intro #view-login{position:relative; z-index:35; min-height:100svh; scroll-margin-top:0; background:transparent}
+/* أثناء الجولة تصبح خلفية قسم الدخول شفافة فيظهر مشهد الليل (المحطة 8) خلف البطاقة؛ تعود خلفية app.css فور إزالة has-intro */
+body.has-intro .login-card{will-change:auto}
+body.has-intro .login-card.is-arriving{will-change:transform,opacity}
+#intro-replay{
+  display:block; width:100%; margin-top:14px; padding:10px 14px; border-radius:12px; cursor:pointer;
+  background:rgba(14,32,51,.06); color:var(--in-navy); border:1px solid rgba(14,32,51,.18);
+  font-family:'Tajawal',system-ui,sans-serif; font-weight:700; font-size:14px
+}
+#intro-replay:active{transform:scale(.98)}
+
+/* ═══ الحركة المخفّضة ═══ */
+@media (prefers-reduced-motion: reduce){
+  #intro-bar{animation:none; opacity:1; transform:none}
+  #intro-hint::before{animation:none}
+  #intro-stamp.is-on .seal{animation:none; transform:none; opacity:1}
+  #intro-texts .scene-text{transition:none}
+}
