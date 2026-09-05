@@ -1,6 +1,6 @@
 {
- "name": "سجل المتابعة الرقمي",
- "short_name": "سجل المتابعة",
+ "name": "سجلي — سجل المتابعة الرقمي",
+ "short_name": "سجلي",
  "start_url": "./",
  "scope": "./",
  "display": "standalone",
@@ -20,5 +20,6 @@
    "type": "image/png",
    "purpose": "any maskable"
   }
- ]
+ ],
+ "description": "سجل المتابعة الرقمي لمدرسة الإمام علي بن أبي طالب الابتدائية"
 }
