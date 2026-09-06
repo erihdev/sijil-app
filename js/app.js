@@ -604,7 +604,9 @@
           <tr class="tot"><td></td><td class="nm">المجموع</td>${STATES.map((s, k) => `<td>${tot.st[k] || ""}</td>`).join("")}<td>${tot.part || ""}</td><td>${tot.hwY || ""}</td><td>${tot.behP || ""}</td><td>${tot.behN || ""}</td><td></td><td></td></tr>
         </table></div></div>`;
     // لوحة شرف الفصل (قابلة للطباعة والتعليق)
-    const top = rows.slice().sort((a, b) => b.t.pts - a.t.pts).filter(r => r.t.pts > 0).slice(0, 10);
+    // آخر حالة مرصودة للطالب: الغائب/المستأذن/الغائب بعذر/الهارب لا يظهر في لوحة الشرف
+    const lastAway = (i) => { const cd = DB.recs[repClass] || {}; const dates = Object.keys(cd).sort().reverse(); for (const d of dates) { const e = cd[d][i]; if (e && e.a != null && STATES[e.a]) return /غائب|مستأذن|بعذر|هارب/.test(STATES[e.a].name || ""); } return false; };
+    const top = rows.slice().sort((a, b) => b.t.pts - a.t.pts).filter(r => r.t.pts > 0 && !lastAway(r.i)).slice(0, 10);
     const MED = ["🥇", "🥈", "🥉"];
     const honor = document.createElement("div");
     honor.className = "card";
@@ -1466,10 +1468,18 @@
     }).join("") + `</div>`;
     box.querySelectorAll(".rcard").forEach(el2 => el2.onclick = () => liveActions(+el2.dataset.i));
   }
+  // حالات لا تظهر في لوحة الشرف: غائب، مستأذن، غائب بعذر، هارب
+  function liveAway(i) {
+    const e = ((DB.recs[liveCid] || {})[liveDate] || {})[i];
+    if (!e || e.a == null || !STATES[e.a]) return false;
+    const n = STATES[e.a].name || "";
+    return /غائب|مستأذن|بعذر|هارب/.test(n);
+  }
   function drawLiveBoard(silent) {
     const c = classById(liveCid), calc = classCalc(liveCid), box = $("#live-board"); if (!box) return;
-    const rows = calc.slice().sort((a, b) => b.t.pts - a.t.pts || a.i - b.i);
-    box.innerHTML = `<div class="bhead">🏆 لوحة الشرف</div><div class="btip">اضغط اسم الطالب للتقييم اللحظي</div>` + rows.map((r, k) => {
+    const rows = calc.filter(r => !liveAway(r.i)).sort((a, b) => b.t.pts - a.t.pts || a.i - b.i);
+    const away = calc.length - rows.length;
+    box.innerHTML = `<div class="bhead">🏆 لوحة الشرف</div><div class="btip">اضغط اسم الطالب للتقييم اللحظي${away ? ` · الحاضرون ${rows.length} من ${calc.length}` : ""}</div>` + rows.map((r, k) => {
       const cls = k === 0 ? "t1" : k === 1 ? "t2" : k === 2 ? "t3" : "";
       const rk = k < 3 ? ["🥇", "🥈", "🥉"][k] : (k + 1);
       return `<div class="brow ${cls}" data-i="${r.i}"><span class="rk">${rk}</span><span class="bn">${esc(r.s.n)}</span><span class="bp">${r.t.pts}</span></div>`;
@@ -1481,17 +1491,24 @@
   }
   function liveActions(i, ev) {
     const c = classById(liveCid), calc = classCalc(liveCid);
-    const pos = behIndex("مميز", true), neg = behIndex("مخالف", false);
-    openLiveBox(`<h4>${esc(c.students[i].n)}</h4><div class="cur">النقاط الحالية: ${calc[i].t.pts} · الترتيب ${calc[i].rank}</div>
+    const e = ((DB.recs[liveCid] || {})[liveDate] || {})[i] || {};
+    const sign = (v) => (+v > 0 ? "+" : "") + (Math.round(+v * 10) / 10);
+    const ST_ICON = (n) => /حاضر/.test(n) ? "✅" : /متأخر/.test(n) ? "⏰" : /مستأذن/.test(n) ? "🚪" : /بعذر/.test(n) ? "📄" : /بعد/.test(n) ? "💻" : /هارب/.test(n) ? "🏃" : "❌";
+    const states = STATES.map((st, k) => `<button class="act ${(+st.pts || 0) > 0 ? "b" : (+st.pts || 0) < 0 ? "r" : "n"} ${e.a === k ? "on" : ""}" data-k="state" data-i="${k}">${ST_ICON(st.name || "")} ${esc(st.name)} <small>${sign(st.pts || 0)}</small></button>`).join("");
+    const behs = BEH.map((b, k) => `<button class="act ${(+b.pts || 0) > 0 ? "g" : (+b.pts || 0) < 0 ? "r" : "n"}" data-k="beh" data-i="${k}">${(+b.pts || 0) > 0 ? "⭐" : (+b.pts || 0) < 0 ? "⚠" : "•"} ${esc(b.name)} <small>${sign(b.pts || 0)}</small></button>`).join("");
+    openLiveBox(`<h4>${esc(c.students[i].n)}</h4><div class="cur">النقاط الحالية: ${calc[i].t.pts} · الترتيب ${calc[i].rank}${e.part ? ` · مشاركات اليوم ${e.part}` : ""}</div>
+      <div class="lsec">🙋 المشاركة والواجب</div>
       <div class="grid">
         <button class="act g" data-k="part">🙋 مشاركة <small>+${W.part}</small></button>
-        <button class="act g" data-k="star">⭐ تميّز <small>${pos >= 0 ? "+" + BEH[pos].pts : ""}</small></button>
-        <button class="act b" data-k="present">✅ حاضر</button>
-        <button class="act b" data-k="hw">📚 واجب ✓ <small>+${W.hw}</small></button>
-        <button class="act r" data-k="bad">⚠ مخالفة <small>${neg >= 0 ? BEH[neg].pts : ""}</small></button>
-        <button class="act r" data-k="absent">❌ غياب</button>
-        <button class="act close" data-k="x">إغلاق</button>
-      </div>`, (o) => o.querySelectorAll("[data-k]").forEach(b => b.onclick = () => { applyLive(i, b.dataset.k); closeLiveBox(); }));
+        <button class="act ${e.hw === 1 ? "on " : ""}b" data-k="hw">📚 واجب ✓ <small>+${W.hw}</small></button>
+        <button class="act ${e.hw === 0 ? "on " : ""}r" data-k="hwno">📚 لم يحلّ الواجب <small>0</small></button>
+      </div>
+      <div class="lsec">📌 الحالة</div>
+      <div class="grid g3">${states}</div>
+      <div class="lsec">⭐ السلوك</div>
+      <div class="grid g3">${behs}</div>
+      <div class="grid" style="margin-top:8px"><button class="act close" data-k="x" style="grid-column:1/-1">إغلاق</button></div>`,
+      (o) => o.querySelectorAll("[data-k]").forEach(b => b.onclick = () => { applyLive(i, b.dataset.k, b.dataset.i != null ? +b.dataset.i : null); closeLiveBox(); }));
   }
   function openLiveBox(html, mount) {
     const d = document.createElement("div"); d.className = "live-act"; d.id = "live-act";
@@ -1500,11 +1517,15 @@
     document.body.appendChild(d); if (mount) mount(d);
   }
   function closeLiveBox() { const d = $("#live-act"); if (d) d.remove(); }
-  function applyLive(i, k) {
+  function applyLive(i, k, idx) {
     const e = rec(liveCid, liveDate, i, true);
     const pos = behIndex("مميز", true), neg = behIndex("مخالف", false);
     let delta = 0;
-    if (k === "part") { e.part++; delta = W.part; }
+    if (k === "x") return;
+    if (k === "state" && STATES[idx]) { const had = e.a; e.a = idx; delta = (+STATES[idx].pts || 0) - (had != null && STATES[had] ? (+STATES[had].pts || 0) : 0); }
+    else if (k === "beh" && BEH[idx]) { e.beh = e.beh || []; e.beh.push(idx); delta = +BEH[idx].pts || 0; }
+    else if (k === "hwno") { const had = e.hw; e.hw = 0; delta = had === 1 ? -W.hw : 0; }
+    else if (k === "part") { e.part++; delta = W.part; }
     else if (k === "star" && pos >= 0) { e.beh = e.beh || []; e.beh.push(pos); delta = +BEH[pos].pts; }
     else if (k === "present") { const had = e.a; e.a = 0; delta = (STATES[0].pts || 0) - (had != null && STATES[had] ? STATES[had].pts : 0); }
     else if (k === "hw") { if (e.hw !== 1) { e.hw = 1; delta = W.hw; } }

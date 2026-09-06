@@ -497,3 +497,12 @@ button{font-family:inherit}
 /* درجات تلقائية من الرصد */
 .gr-in.auto{background:#F1EEE6; color:#6b7280; font-style:italic}
 .gr-in.auto::placeholder{color:#4b5563; opacity:1}
+
+/* التقييم اللحظي: مكتبة التقييمات كاملة */
+.live-act .box{max-height:92vh; overflow:auto}
+.live-act .lsec{color:var(--goldl); font-weight:800; font-size:13.5px; margin:12px 2px 6px}
+.live-act .grid.g3{grid-template-columns:repeat(3,1fr); gap:8px}
+.live-act .grid.g3 .act{font-size:13.5px; padding:10px 6px}
+.live-act .act.n{background:#2b3f5c; color:#e6edf5}
+.live-act .act.on{outline:3px solid var(--gold); outline-offset:-3px}
+@media(max-width:520px){ .live-act .grid.g3{grid-template-columns:repeat(2,1fr)} }
