@@ -3,7 +3,9 @@
    • teachers: جدول المعلمين (الاسم/المادة/الفصول/الجوال/حالة الدخول/آخر رصد/الرائد) + ✏️ تعديل + 🔑 إعادة تعيين رقم الدخول (توليد عشوائي)
                + ➕ إضافة معلم (معرّف tNN غير مستخدم) + 🎖️ رواد الفصول (رائد واحد لكل فصل يُحفظ في teachers/{tid}.lead)
                + تحذير أمني يُعرض مرة واحدة (localStorage sijil.adm.secwarn) + آخر عمليات المعلمين من adminlog.
-   • profile:  بطاقة الحساب + تعديل الجوال + تغيير رقم الدخول بالتحقق من الحالي محلياً sha256(pin|tid|SALT) — نفس صيغة الدخول في app.js.
+   • profile:  بطاقة الحساب + تعديل الجوال + تغيير رقم الدخول بالتحقق من الحالي محلياً sha256(pin|tid|SALT) — نفس صيغة الدخول في app.js
+               + 🏫 أسماء إدارة المدرسة (cfg/school: مدير المدرسة والوكيلان والمرشد) للمدير وحده، تُحفظ بزر واحد عبر SIJIL_ADMIN.saveStaff
+               (هو من يتحقق ويُسجّل في adminlog)، ويستعملها sigLine في تواقيع كل المطبوعات — المعلم لا يرى الحقول ويستفيد منها في مطبوعاته.
    • التصدير: SIJIL_ADMIN.profileCard(el, {flat}) و SIJIL_ADMIN.leadBadge(tid) — للاستخدام من الوحدات الأخرى ومن app.js
                (في «المزيد» للمعلم العادي: window.SIJIL_ADMIN && SIJIL_ADMIN.profileCard(box.querySelector('#me-slot'))).
    الكتابة في teachers/{tid}: مستند كامل مُنظَّف بالحقول name/subject/mob/phone/classes/pinHash/admin/lead/ts فقط (admin لا يتغير أبداً)
@@ -60,7 +62,13 @@
 .me-mobrow button{flex:0 0 auto;padding:8px 14px}
 .me-form .field input{font-size:16px;direction:ltr;text-align:right;letter-spacing:2px}
 .ab-lead{display:inline-block;background:var(--gold);color:var(--navy);border-radius:10px;padding:0 6px;font-size:11px;font-weight:800;margin-inline-start:6px}
-@media print{.tch-act,.tch-tools,.adm-alert,.me-form,.tch-lead{display:none!important}}`;
+.me-staff{margin-top:14px;border-top:1.5px dashed var(--line);padding-top:12px}
+.me-staff .hd{font-size:14.5px;font-weight:800;color:var(--navy);margin-bottom:4px}
+.me-staff .sb{font-size:12px;color:var(--muted);line-height:1.8;margin-bottom:10px}
+.me-staff .field{margin-bottom:9px}
+.me-staff .field input{padding:10px 12px;font-size:14.5px}
+.me-staff .btn-primary{width:100%}
+@media print{.tch-act,.tch-tools,.adm-alert,.me-form,.tch-lead,.me-staff{display:none!important}}`;
     document.head.appendChild(st);
   }
 
@@ -402,6 +410,37 @@
       { sub: "🎖️ رواد الفصول" });
   }
 
+  /* ═══ 🏫 أسماء إدارة المدرسة (cfg/school) — داخل «بياناتي» وللمدير وحده ═══
+     تُكتب مرة واحدة فتحلّ محل النقاط في سطر التواقيع بكل المطبوعات (SIJIL_ADMIN.sigLine).
+     الحفظ والتحقق والتسجيل في adminlog كلها في core.js (validateStaff/saveStaff). */
+  const staffOn = () => { const Ad = A(); return typeof Ad.saveStaff === "function" && Array.isArray(Ad.STAFF_KEYS); };
+  function staffHtml() {
+    const Ad = A(), cur = Ad.schoolStaff ? Ad.schoolStaff() : {};
+    return `<div class="me-staff">
+      <div class="hd">🏫 أسماء إدارة المدرسة</div>
+      <div class="sb">تُكتب مرة واحدة فتظهر في تواقيع كل المطبوعات (كشوف الدرجات والتقارير والشهادات وخطابات أولياء الأمور) بدل النقاط. اترك الحقل فارغاً لتبقى النقاط كما هي.</div>
+      ${Ad.STAFF_KEYS.map(k => `<div class="field"><label>${esc(Ad.STAFF_LBL[k] || k)}</label><input id="me-sf-${k}" maxlength="80" value="${esc(cur[k] || "")}" placeholder="..............." autocomplete="off"></div>`).join("")}
+      <div class="login-err" id="me-sf-err" style="margin-top:0"></div>
+      <button class="btn-primary" id="me-sf-save">💾 حفظ أسماء الإدارة</button>
+    </div>`;
+  }
+  function bindStaff(el, opts) {
+    const Ad = A(), btn = $("#me-sf-save", el); if (!btn) return;
+    btn.onclick = async () => {
+      const err = $("#me-sf-err", el), cfg = {};
+      Ad.STAFF_KEYS.forEach(k => { const i = $("#me-sf-" + k, el); cfg[k] = i ? String(i.value || "").trim() : ""; });
+      const bad = Ad.validateStaff(cfg);
+      if (bad) { err.textContent = "⚠️ " + bad; return; }
+      btn.disabled = true; err.textContent = "جارِ الحفظ…";
+      let r = null;
+      try { r = await Ad.saveStaff(cfg); } catch (e) { warn("staff", e); r = { ok: false, err: (e && e.message) || String(e) }; }
+      if (r && r.ok) {
+        Ad.toast("✔ حُفظت أسماء الإدارة — تظهر في تواقيع المطبوعات", 3400);
+        if (el.isConnected !== false) profileCard(el, opts);
+      } else { err.textContent = "⚠️ " + ((r && r.err) || "تعذّر الحفظ"); btn.disabled = false; }
+    };
+  }
+
   /* ═══ 👤 بياناتي — profileCard(el, {flat}) — تُستدعى من «الإدارة» ومن «المزيد» للمعلم العادي ═══ */
   function profileCard(el, opts) {
     opts = opts || {}; css(); hookHeader();
@@ -422,8 +461,10 @@
         <div class="empty-note" style="padding:0 2px 8px;text-align:right;min-height:0">سيُطلب الرقم الجديد على كل أجهزتك.${isDemo() ? " 🧪 في الوضع التجريبي يبقى الدخول برقم 1234." : ""}</div>
         <div class="login-err" id="me-err" style="margin-top:0"></div>
         <button class="btn-primary" id="me-pin-save">💾 حفظ الرقم الجديد</button>
-      </div>`;
+      </div>
+      ${me.admin && staffOn() ? staffHtml() : ""}`;
     el.innerHTML = opts.flat ? `<h4>👤 بياناتي</h4>${body}` : H.card("👤 بياناتي", body, 'id="me-card-in"');
+    if (me.admin && staffOn()) bindStaff(el, opts);
     // 📱 الجوال
     $("#me-mob-save", el).onclick = async () => {
       const raw = $("#me-mob", el).value.trim(), err = $("#me-mob-err", el), btn = $("#me-mob-save", el); let val = "";
@@ -522,7 +563,8 @@
       (docs.length ? H.table(cols, body, {}) : "<div>لا رصد بعد</div>").replace('<div class="table-scroll">', "<div>") +
       `<div class="tt" style="font-size:15px;margin-top:10px">🏆 لوحة الشرف</div><table class="compact"><tr><th>الترتيب</th><th>الطالب</th><th>النقاط</th></tr>${top.map((r, k) => `<tr><td>${MED[k]}</td><td class="nm">${esc(r.s.n)}</td><td>${r.agg.pts}</td></tr>`).join("") || '<tr><td colspan="3">لا رصد بعد</td></tr>'}</table>` +
       `<div class="tt" style="font-size:15px;margin-top:10px">⚠️ الغياب المتكرر</div><table class="compact"><tr><th>م</th><th>الطالب</th><th>أيام الغياب</th></tr>${absList.map((r, k) => `<tr><td>${k + 1}</td><td class="nm">${esc(r.s.n)}</td><td>${absN[r.i]}</td></tr>`).join("") || '<tr><td colspan="3">لا غياب متكرر</td></tr>'}</table>` +
-      `<div class="sig"><span>رائد الفصل: ${esc(me.name)}</span><span>مدير المدرسة: ..............</span></div>`,
+      (typeof Ad.sigLine === "function" ? Ad.sigLine([{ l: "رائد الفصل", v: me.name }, "principal"])
+        : `<div class="sig"><span>رائد الفصل: ${esc(me.name)}</span><span>مدير المدرسة: ..............</span></div>`),
       { land: cols.length > 8, sub: `🎖️ تقرير الفصل الشامل — ${c.name}`, cls: "compact" });
   }
 

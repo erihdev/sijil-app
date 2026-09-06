@@ -386,7 +386,10 @@
     let sedits = {};
     try { const se = await fdb.collection("sedits").get(); se.forEach(d2 => sedits[d2.id] = d2.data() || {}); } catch (e) { sedits = {}; }
     applySedits(classes, sedits);
-    D = { meta: metaS.data(), teachers, classes, schedule: (schS.data() || {}).rows || [], moves, sedits };
+    // إعدادات المدرسة: cfg/bell (جدول الأجراس) وcfg/school (أسماء الإدارة) — غيابهما أو تعذّر قراءتهما = الافتراضي ولا يُفشل الإقلاع
+    let bellCfg = null, schoolCfg = null;
+    try { const [bs, ss] = await Promise.all([fdb.doc("cfg/bell").get(), fdb.doc("cfg/school").get()]); if (bs.exists) bellCfg = bs.data() || null; if (ss.exists) schoolCfg = ss.data() || null; } catch (e) { }
+    D = { meta: metaS.data(), teachers, classes, schedule: (schS.data() || {}).rows || [], moves, sedits, bell: bellCfg, cfgSchool: schoolCfg };
     try { localStorage.setItem("sijil.cloudD", JSON.stringify(D)); } catch (e) { }
   }
   function bootOffline() {
@@ -408,6 +411,7 @@
       applyMoves(D.classes, DB.moves); D.moves = DB.moves;
       if (!DB.sedits || typeof DB.sedits !== "object" || Array.isArray(DB.sedits)) DB.sedits = {};
       applySedits(D.classes, DB.sedits); D.sedits = DB.sedits;
+      D.bell = DB.bell || null; D.cfgSchool = DB.cfgSchool || null;   // الوضع التجريبي: إعدادات المدرسة على هذا الجهاز
     }
     META = D.meta; W = META.weights; STATES = META.states; BEH = META.behaviors;
     ASSESS = (META.assess && META.assess.length) ? META.assess : DEFAULT_ASSESS;
@@ -469,10 +473,45 @@
   }
   $("#ab-logout").onclick = () => { DB.session = null; DB.srole = null; save(); setTimeout(() => location.reload(), 300); };
 
+  /* ═══════════ أوقات الحصص وسطر التواقيع — المصدر الوحيد: لوحة المدير (js/admin/core.js) ═══════════
+     BELL() تعيد محرك جدول الأجراس من SIJIL_ADMIN (أوقات مدرسة المستخدم من cfg/bell)، وإن لم تُحمَّل اللوحة
+     تعيد FALLBACK: الجدول الافتراضي القديم حرفياً (7:00 · 45 دقيقة · 7 حصص · فسحة 30 بعد الثالثة).
+     ولا يُكتب أي وقت ثابت في هذا الملف خارج هذه الكتلة.
+     sigLine(roles) سطر تواقيع المطبوعات: الاسم من cfg/school إن ضبطه المدير وإلا النقاط كما كانت. */
+  const SIG_LBL = { principal: "مدير المدرسة", vice: "وكيل الشؤون التعليمية", agent: "وكيل شؤون الطلاب", counselor: "المرشد الطلابي" };
+  const FALLBACK = (function () {
+    const ORD = ["", "الأولى", "الثانية", "الثالثة", "الرابعة", "الخامسة", "السادسة", "السابعة", "الثامنة", "التاسعة", "العاشرة", "الحادية عشرة", "الثانية عشرة"];
+    const hm = (m) => `${Math.floor(m / 60)}:${String(Math.round(m) % 60).padStart(2, "0")}`;
+    const LIST = [];
+    for (let p = 1, t = 420; p <= 7; p++) { LIST.push({ p, from: t, to: t + 45 }); t += 45; if (p === 3) { LIST.push({ brk: true, n: "الفسحة", from: t, to: t + 30 }); t += 30; } }
+    const at = (d, brk) => { const x = d || new Date(), m = x.getHours() * 60 + x.getMinutes(); return LIST.find(b => !!b.brk === brk && m >= b.from && m < b.to) || null; };
+    const cp = (b) => Object.assign({}, b);
+    const dots = (n) => new Array(Math.max(4, +n || 14) + 1).join(".");
+    const cell = (r) => {
+      if (typeof r === "string") r = SIG_LBL[r] ? { k: r } : { l: r };
+      r = r || {};
+      const cfg = (D && D.cfgSchool) || null;
+      const val = String((r.v != null ? r.v : (r.k && cfg ? (cfg[r.k] || "") : "")) || "").trim();
+      return `<span>${esc(r.l || SIG_LBL[r.k] || "")}: ${val ? esc(val) : dots(r.dots)}</span>`;
+    };
+    return {
+      hm, ord: (p) => ORD[p] || String(p),
+      periodsOf: () => LIST.map(cp),
+      periodsOnly: () => LIST.filter(b => !b.brk).map(cp),
+      periodNow: (d) => { const b = at(d, false); return b ? b.p : 0; },
+      breakNow: (d) => { const b = at(d, true); return b ? { n: b.n, from: b.from, to: b.to, ends: hm(b.to), toString() { return this.n; } } : null; },
+      periodTime: (p) => { const b = LIST.find(x => !x.brk && x.p === +p); return b ? hm(b.from) + "–" + hm(b.to) : ""; },
+      sigLine: (roles) => `<div class="sig">${(Array.isArray(roles) ? roles : [roles]).map(cell).join("")}</div>`
+    };
+  })();
+  const BELL = () => { const A = window.SIJIL_ADMIN; return (A && typeof A.periodsOf === "function" && typeof A.breakNow === "function") ? A : FALLBACK; };
+  const sigLine = (roles) => { const A = window.SIJIL_ADMIN; return (A && typeof A.sigLine === "function") ? A.sigLine(roles) : FALLBACK.sigLine(roles); };
+
   /* ═══ تبويبات المعلم ═══ */
   // لوحة المدير فعّالة؟ مدير + النواة محمَّلة + لم يختر «واجهتي كمعلم» (localStorage sijil.adminView === 'teacher')
   const adminView = () => { if (!TE || !TE.admin || !window.SIJIL_ADMIN) return false; try { return localStorage.getItem("sijil.adminView") !== "teacher"; } catch (e) { return true; } };
   function switchTab(name) {
+    stopBell();                                     // مؤقّت شريط «الحصة الحالية» يعمل في تبويب «اليوم» وحده
     document.querySelectorAll("#tabs button").forEach(b => b.classList.toggle("on", b.dataset.tab === name));
     const adm = adminView();
     ["today", "reg", "grades", "rep", "more"].forEach(n => $("#tab-" + n).classList.toggle("hidden", adm || n !== name));
@@ -490,8 +529,9 @@
   async function renderToday() {
     const box = $("#tab-today"), wk = curWeek(), today = DAYS[new Date().getDay()];
     const mine = D.schedule.filter(r => r.t === TE.name && r.d === today).sort((a, b) => a.p - b.p);
-    const per = [];
-    for (let p = 1; p <= 7; p++) { const s = mine.find(x => x.p === p); per.push(`<div class="period ${s ? "" : "empty"}"><span class="p">ح${p}</span><div class="c">${s ? esc(classById(s.c).name) : "—"}</div></div>`); }
+    // عدد حصص اليوم وأوقاتها من جدول أجراس المدرسة (لا رقم ثابت)
+    const B = BELL();
+    const per = B.periodsOnly(today).map(b => { const s = mine.find(x => x.p === b.p); const c = s ? classById(s.c) : null; return `<div class="period ${s ? "" : "empty"}" data-p="${b.p}"><span class="p">ح${b.p}</span><div class="c">${c ? esc(c.name) : "—"}</div><div class="tm">${esc(B.periodTime(b.p, today))}</div></div>`; });
     let all = []; myClasses().forEach(c => classCalc(c.id).forEach(r => { if (r.active) all.push({ c, r }); }));
     const low = all.slice().sort((a, b) => a.r.t.pts - b.r.t.pts).slice(0, 5);
     const high = all.slice().sort((a, b) => b.r.t.pts - a.r.t.pts).filter(x => x.r.t.pts > 0).slice(0, 5);
@@ -500,6 +540,7 @@
       <div class="card" style="background:linear-gradient(150deg,var(--navy),var(--navy2));color:#fff;border:none">
         <div style="font-size:13px;color:#c9d5e3">${esc(hijriLabel())}</div>
         <div style="font-size:19px;font-weight:800;color:var(--goldl);margin-top:2px">أهلاً أ. ${esc(TE.name.split(" ")[0])} 👋</div></div>
+      <div id="today-bell" class="bellbar"></div>
       <div class="kpis">
         <div class="kpi"><div class="v">${myClasses().length}</div><div class="l">فصولي</div></div>
         <div class="kpi"><div class="v">${all.length}</div><div class="l">طلابي</div></div>
@@ -511,6 +552,7 @@
         <div class="alert-list">${high.length ? high.map((x, k) => `<div class="al"><span><b style="font-size:16px">${MED[k]}</b> ${esc(x.r.s.n)} <small style="color:var(--muted)">— ${esc(x.c.name)}</small></span><span class="pts" style="color:var(--ok)">${x.r.t.pts}</span></div>`).join("") : '<div class="empty-note">ابدأ الرصد وستظهر أسماء المتميزين هنا 🌟</div>'}</div></div>
       <div class="card"><h3><span class="dot"></span>طلاب يحتاجون التفاتة (الأدنى نقاطاً)</h3>
         <div class="alert-list">${low.length ? low.map(x => `<div class="al"><span>${esc(x.r.s.n)} <small style="color:var(--muted)">— ${esc(x.c.name)}</small></span><span class="pts">${x.r.t.pts}</span></div>`).join("") : '<div class="empty-note">ابدأ التحضير أولاً وستظهر القائمة هنا</div>'}</div></div>`;
+    startBell();                                    // شريط «الحصة الحالية» + إبراز الحصة في الشبكة
     const tl = $("#today-live"); if (tl) tl.onclick = () => pickClassThen(liveSession);
     const sc = subjCode(TE.subject), grades = [...new Set(myClasses().map(c => c.gc))].sort();
     const LB = $("#today-lesson");
@@ -528,6 +570,48 @@
       if (cl) liveSession(cl.id, "lesson");
     });
   }
+
+
+  /* ═══ شريط «الحصة الحالية» في تبويب اليوم ═══
+     يعرض اسم الحصة ووقتها والدقائق المتبقية، أو اسم الفسحة ووقت انتهائها، أو «انتهى الدوام».
+     يُحدَّث عند بداية كل دقيقة، ويُلغى مؤقّته فور مغادرة التبويب (switchTab) أو دخول الحصة الحية. */
+  let bellTm = null;
+  const minsAr = (n) => n === 1 ? "دقيقة واحدة" : n === 2 ? "دقيقتان" : (n >= 3 && n <= 10) ? n + " دقائق" : n + " دقيقة";
+  function stopBell() { if (bellTm) { clearTimeout(bellTm); bellTm = null; } }
+  // أول رسم فوري، ثم إعادة رسم على المهمة التالية (قد تُحمَّل js/admin/core.js بعد app.js فتتغير أوقات المدرسة)
+  function startBell() { stopBell(); tickBell(); setTimeout(paintBell, 0); }
+  function tickBell() {
+    paintBell();
+    if (!$("#today-bell")) return;
+    const d = new Date();
+    bellTm = setTimeout(tickBell, Math.max(1000, (60 - d.getSeconds()) * 1000 - d.getMilliseconds()));
+  }
+  function paintBell() {
+    const el = $("#today-bell"); if (!el) { stopBell(); return; }
+    const B = BELL(), now = new Date(), day = DAYS[now.getDay()], m = now.getHours() * 60 + now.getMinutes();
+    const list = B.periodsOf(day), p = B.periodNow(now), br = p ? null : B.breakNow(now);
+    const cur = p ? list.find(x => !x.brk && x.p === p) : null;
+    let cls, html;
+    if (cur) {
+      const row = D.schedule.find(r => r.t === TE.name && r.d === day && +r.p === p), c = row ? classById(row.c) : null;
+      cls = "on";
+      html = `<span class="ic">🔔</span><span class="tx">الحصة الحالية: <b>${esc(B.ord(p))}</b> <span class="tm">(${esc(B.periodTime(p, day))})</span>${c ? ` · <b>${esc(c.name)}</b>` : ""}</span><span class="left">تبقّى ${esc(minsAr(Math.max(1, cur.to - m)))}</span>`;
+    } else if (br) {
+      cls = "brk";
+      html = `<span class="ic">☕</span><span class="tx"><b>${esc(String(br.n))}</b> — تنتهي <span class="tm">${esc(br.ends)}</span></span><span class="left">تبقّى ${esc(minsAr(Math.max(1, br.to - m)))}</span>`;
+    } else if (list.length && m < list[0].from) {
+      cls = "soon";
+      html = `<span class="ic">⏳</span><span class="tx">لم يبدأ الدوام بعد — الحصة <b>${esc(B.ord(list[0].p))}</b> <span class="tm">(${esc(B.periodTime(list[0].p, day))})</span></span>`;
+    } else {
+      cls = "off";
+      html = `<span class="ic">🌙</span><span class="tx"><b>انتهى الدوام</b>${list.length ? ` — نهايته <span class="tm">${esc(B.hm(list[list.length - 1].to))}</span>` : ""}</span>`;
+    }
+    el.className = "bellbar " + cls;
+    el.innerHTML = html;
+    document.querySelectorAll("#tab-today .periods .period").forEach(n => n.classList.toggle("now", p > 0 && +n.dataset.p === p));
+  }
+  // المدير يحفظ أوقاتاً جديدة (SIJIL_ADMIN.saveBell) → إعادة رسم فورية
+  try { window.addEventListener("sijil:bell", () => { paintBell(); try { if (!$("#tab-today").classList.contains("hidden")) renderToday(); } catch (e) { } }); } catch (e) { }
 
   /* ═══ التحضير ═══ */
   let regClass = null, regDate = new Date().toISOString().slice(0, 10);
@@ -628,7 +712,7 @@
       ${rows.map((r, k) => `<tr><td>${k + 1}</td><td class="nm">${esc(r.s.n)}</td>${ASSESS.map(a => `<td class="${r.man[a.k] == null && r.g[a.k] != null ? "auto" : ""}">${r.g[a.k] != null ? r.g[a.k] : ""}</td>`).join("")}<td><b>${r.tot}</b></td><td class="${r.lv ? "lv" + r.lv.i : ""}">${r.lv ? r.lv.t : "—"}</td></tr>`).join("")}
       <tr><td></td><td class="nm"><b>متوسط الفصل</b></td>${ASSESS.map(a => { const v = scored.map(r => +r.g[a.k]).filter(x => !isNaN(x)); return `<td>${v.length ? (v.reduce((x, y) => x + y, 0) / v.length).toFixed(1) : ""}</td>`; }).join("")}<td><b>${avg}</b></td><td></td></tr></table>
       <div class="note">التقدير من البنود المرصودة حتى الآن (لا من ${maxTot} قبل رصد الاختبارات). الدرجات الرمادية محسوبة تلقائياً من الرصد اليومي (الحضور والمشاركة، السلوك) والواجبات والأوراق التفاعلية، وما كتبه المعلم يدوياً مُثبت بالأسود.</div>
-      <div class="sig"><span>معلم المادة: ${esc(TE.name)}</span><span>مدير المدرسة: ..............</span></div>`, { land: ASSESS.length >= 6 });
+      ${sigLine([{ l: "معلم المادة", v: TE.name }, "principal"])}`, { land: ASSESS.length >= 6 });
   }
   // التقدير من البنود المرصودة حتى الآن (gradePct) لا من 100 — البنود التلقائية سقفها 40، فالنسبة من 100 تجعل المنتظم «دون المطلوب»
   function grRow(i, s, maxTot, n) {
@@ -818,7 +902,7 @@
       <div class="who">${esc(s.n)}</div>
       <div class="ctr">من ${esc(c.name)}، تقديراً لتميّزه وحرصه وتفاعله المستمر،<br>حيث جمع <b>${pts}</b> نقطة. فله منّا كل الفخر، ونسأل الله له دوام التوفّق والعلا.</div>
       <div class="stars">${stars}</div>
-      <div class="sig"><span>معلم المادة: ${esc(TE ? TE.name : "")}</span><span>مدير المدرسة: ..............</span></div>
+      ${sigLine([{ l: "معلم المادة", v: TE ? TE.name : "" }, "principal"])}
       <div class="ctr" style="color:#888;font-size:12px;margin-top:14px">${esc(hijriLabel())}</div>`, { land: true });
   }
   function printReport(cid, i) {
@@ -833,7 +917,7 @@
       <tr><td>عدد</td>${STATES.map((st, k) => `<td>${t.st[k] || 0}</td>`).join("")}</tr></table>
       <table><tr><th>المشاركة</th><td>${t.part}</td><th>الواجبات المنجزة</th><td>${t.hwY}</td><th>أيام الرصد</th><td>${t.days}</td></tr></table>
       <table><tr>${ASSESS.map(a => `<th>${esc(a.n)}</th>`).join("")}</tr><tr>${ASSESS.map(a => `<td>${g[a.k] != null ? g[a.k] : "—"}</td>`).join("")}</tr></table>
-      <div class="sig"><span>معلم المادة: ${esc(TE.name)}</span><span>مدير المدرسة: .....................</span></div>`);
+      ${sigLine([{ l: "معلم المادة", v: TE.name }, { k: "principal", dots: 21 }])}`);
   }
   function printLetter(cid, i) {
     const c = classById(cid), s = c.students[i], t = calcStudent(cid, i);
@@ -847,7 +931,7 @@
         ? `نحيطكم علماً بأن ابنكم بحاجة إلى مزيد من المتابعة في مادة ${esc(TE.subject)}؛ حيث بلغت نقاطه ${t.pts}، وسجّل ${t.st[1]} غياب و${t.hwN} واجب غير منجز. نأمل تعاونكم في متابعته وحثّه على الانتظام وأداء الواجبات.`
         : `يسعدنا إشعاركم بتميّز ابنكم في مادة ${esc(TE.subject)}؛ حيث بلغت نقاطه ${t.pts} مع انتظام في الحضور وأداء الواجبات. نشكر لكم حسن متابعتكم، ونسأل الله له دوام التوفيق.`}</p>
       <p>شاكرين لكم تعاونكم الدائم مع المدرسة.</p>
-      <div class="sig"><span>معلم المادة: ${esc(TE.name)}</span><span>توقيع ولي الأمر: ................</span></div>`);
+      ${sigLine([{ l: "معلم المادة", v: TE.name }, { l: "توقيع ولي الأمر", dots: 16 }])}`);
   }
 
   /* ═══ التقارير ═══ */
@@ -903,7 +987,7 @@
       <table class="compact"><tr><th>م</th><th style="min-width:150px">اسم الطالب</th>${STATES.map(st => `<th>${esc(st.name)}</th>`).join("")}<th>مشاركة</th><th>واجبات</th><th>سلوك+</th><th>سلوك−</th><th>النقاط</th><th>الترتيب</th></tr>
       ${rows.map((r, i) => `<tr><td>${i + 1}</td><td class="nm">${esc(r.s.n)}</td>${STATES.map((st, k) => `<td>${r.t.st[k] || ""}</td>`).join("")}<td>${r.t.part || ""}</td><td>${r.t.hwY || ""}</td><td>${r.t.behP || ""}</td><td>${r.t.behN || ""}</td><td><b>${r.t.pts}</b></td><td>${r.rank}</td></tr>`).join("")}
       <tr><td></td><td class="nm"><b>المجموع</b></td>${STATES.map((st, k) => `<td>${tot.st[k] || ""}</td>`).join("")}<td>${tot.part || ""}</td><td>${tot.hwY || ""}</td><td>${tot.behP || ""}</td><td>${tot.behN || ""}</td><td></td><td></td></tr></table>
-      <div class="sig"><span>معلم المادة: ${esc(TE.name)}</span><span>مدير المدرسة: ..............</span></div>`, { land: true });
+      ${sigLine([{ l: "معلم المادة", v: TE.name }, "principal"])}`, { land: true });
   }
   function printHonor(c, top, MED) {
     printDoc("لوحة شرف " + c.name, `
@@ -912,7 +996,7 @@
       <table><tr><th>الترتيب</th><th>الطالب المتميّز</th><th>النقاط</th></tr>
       ${top.map((r, k) => `<tr><td style="font-size:20px">${k < 3 ? MED[k] : k + 1}</td><td style="font-weight:800">${esc(r.s.n)}</td><td><b>${r.t.pts}</b></td></tr>`).join("")}</table>
       <p style="text-align:center;color:#666;margin-top:20px">نبارك لأبنائنا المتميّزين ونسأل الله لهم دوام التفوّق 🌟</p>
-      <div class="sig"><span>معلم المادة: ${esc(TE.name)}</span><span>مدير المدرسة: ..............</span></div>`);
+      ${sigLine([{ l: "معلم المادة", v: TE.name }, "principal"])}`);
   }
 
   /* ═══ المزيد (بحث + مدير + نسخة احتياطية) ═══ */
@@ -1233,6 +1317,7 @@
       (o) => o.querySelectorAll("[data-c]").forEach(b => b.onclick = () => { closeSheet(); cb(b.dataset.c); }));
   }
   function liveSession(cid, initialView) {
+    stopBell();
     liveCid = cid; liveDate = new Date().toISOString().slice(0, 10); livePrevTop = null; liveTurns = { done: new Set(), cur: null };
     const c = classById(cid);
     $("#view-app").classList.add("hidden");
@@ -1280,11 +1365,15 @@
       V.querySelectorAll(".live-tools button").forEach(x => x.classList.toggle("on", x === b));
       liveView(b.dataset.v);
     });
+    // وقت الحصة الجارية في عنوان الحصة الحية (من جدول أجراس المدرسة)
+    const LB0 = BELL(), lp = LB0.periodNow(), lbr = lp ? null : LB0.breakNow();
+    const when = lp ? `· الحصة ${LB0.ord(lp)} (${LB0.periodTime(lp)}) ` : (lbr ? `· ${lbr.n} (تنتهي ${lbr.ends}) ` : "");
+    const sub0 = $("#live-sub"); if (sub0) sub0.textContent = when.trim();
     (async () => {
       const sc = subjCode(TE.subject), wk = curWeek();
       let les = "";
       if (sc) { const rows = (await loadCurr(sc + c.gc + TERM)).filter(r => r.w === wk); const m = rows.find(r => r.lesson && !String(r.lesson).includes("تابع")) || rows[0]; les = m ? m.lesson : ""; }
-      const sub = $("#live-sub"); if (sub) sub.textContent = "· الأسبوع " + wk + (les ? " · " + les : "");
+      const sub = $("#live-sub"); if (sub) sub.textContent = when + "· الأسبوع " + wk + (les ? " · " + les : "");
     })();
     const startView = initialView || "roster";
     const tb = V.querySelector('.live-tools button[data-v="' + startView + '"]');

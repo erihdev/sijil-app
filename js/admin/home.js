@@ -8,7 +8,6 @@
   const esc = (s) => S().esc(s);
   const H = () => A().H;
   const $ = (q, root) => (root || document).querySelector(q);
-  const PER = [1, 2, 3, 4, 5, 6, 7];
   const WDAYS = ["الأحد", "الإثنين", "الثلاثاء", "الأربعاء", "الخميس"];
   const LV = ["ممتاز", "جيد جداً", "جيد", "مقبول", "دون المطلوب"];
   const MED = ["🥇", "🥈", "🥉"];
@@ -44,6 +43,11 @@
 .adm-grid th.now,.adm-grid td.now{background:#fdf6e3!important;box-shadow:inset 0 0 0 2px var(--gold)}
 .adm-grid th.now{background:var(--gold)!important;color:var(--navy)!important}
 .adm-grid .pt{display:block;font-size:9px;font-weight:500;opacity:.8}
+.adm-grid th .dot{display:none}.adm-grid th.now .dot{display:inline}
+.adm-grid th.brk,.adm-grid td.brk{background:#f3efe4;color:#8a7a4e;min-width:34px;width:34px;padding:2px 1px;text-align:center;font-size:10px}
+.adm-grid th.brk .pt{font-size:7.5px;line-height:1.2;opacity:.9;white-space:normal}
+.hm-brk{background:#fff8e6;border:1.5px solid #f0d9a0;color:#7a5a0d;border-radius:12px;padding:9px 12px;font-weight:800;font-size:13.5px;text-align:center;margin-bottom:8px}
+.hm-brk[hidden]{display:none!important}
 .adm-alerts{display:grid;grid-template-columns:1fr;gap:10px}@media(min-width:700px){.adm-alerts{grid-template-columns:1fr 1fr}}
 .adm-alerts .card{margin:0}.adm-alerts h3{justify-content:space-between}.adm-alerts h3 .n{background:var(--bad);color:#fff;border-radius:12px;padding:1px 9px;font-size:12px}
 .adm-alerts h3 .n.ok{background:var(--ok)}.adm-alerts .al span:first-child{line-height:1.5}
@@ -156,13 +160,53 @@
     return out;
   }
 
+  /* ═══ جدول اليوم من محرك الأجراس (core.js) — لا وقت ولا عدد حصص مثبّت هنا ═══ */
+  // أعمدة اليوم بالترتيب: حصص {p, t:"7:00–7:45"} وفسح {brk, n, t} — وأي حصة في الجدول المحفوظ خارج الإعداد تُضاف بلا وقت حتى لا تُخفى
+  function dayCols(day, rows) {
+    const Ad = A(), out = [], have = {};
+    (Ad.periodsOf(day) || []).forEach(x => {
+      const t = Ad.hm(x.from) + "–" + Ad.hm(x.to);
+      if (x.brk) out.push({ brk: true, n: x.n, t: t }); else { out.push({ p: x.p, t: t }); have[x.p] = 1; }
+    });
+    const ex = [];
+    (rows || []).forEach(r => { const p = Number(r.p) || 0; if (p > 0 && p <= 12 && !have[p] && ex.indexOf(p) < 0) ex.push(p); });
+    ex.sort((a, b) => a - b).forEach(p => out.push({ p: p, t: "" }));
+    return out;
+  }
+  // نص «الآن» في الترويسة: فسحة جارية ⇐ اسمها ووقت انتهائها، وإلا الحصة الحالية بوقتها
+  function nowText(tName, pNow, bNow) {
+    const Ad = A();
+    if (!WDAYS.includes(tName)) return "لا دوام اليوم";
+    if (bNow) return `☕ ${esc(String(bNow.n))} — تنتهي ${ltr(bNow.ends)}`;
+    return pNow ? `الآن: الحصة ${esc(Ad.ord(pNow))} ${ltr(Ad.periodTime(pNow))}` : "خارج وقت الحصص";
+  }
+  const brkBarTxt = (b) => `☕ ${esc(String(b.n))} — تنتهي ${ltr(b.ends)}`;
+  /* «الآن» يتحدّث كل نصف دقيقة بلا إعادة رسم: نص الترويسة وشريط الفسحة وعمود الحصة الجارية */
+  let nowTimer = null;
+  function startTicker(box, day, tName) {
+    if (nowTimer) { clearInterval(nowTimer); nowTimer = null; }
+    const upd = () => {
+      try {
+        const Ad = A(), nowEl = $("#hm-now", box);
+        if (!nowEl || !document.body.contains(nowEl)) { clearInterval(nowTimer); nowTimer = null; return; }
+        const pN = Ad.periodNow(), bN = Ad.breakNow(), isT = day === tName;
+        nowEl.innerHTML = "🕐 " + nowText(tName, pN, bN);
+        const bar = $("#hm-brk", box);
+        if (bar) { bar.hidden = !(isT && bN); if (isT && bN) bar.innerHTML = brkBarTxt(bN); }
+        box.querySelectorAll("#hm-grid [data-p]").forEach(el => el.classList.toggle("now", !!(isT && Number(el.dataset.p) === pN)));
+        box.querySelectorAll("#hm-grid th[data-brk]").forEach(el => el.classList.toggle("now", !!(isT && bN && el.dataset.brk === String(bN.n))));
+      } catch (e) { clearInterval(nowTimer); nowTimer = null; }
+    };
+    try { nowTimer = setInterval(upd, 30000); } catch (e) { }
+  }
+
   /* ═══════════ 🏫 المدرسة — لوحة القيادة ═══════════ */
   let homeDay = null, showAll = {};
   async function admHome(box) {
     css(); const s = S(), Ad = A(), h = H();
     loading(box, "🏫 المدرسة");
     const sd = await Ad.schoolDocs(), cx = ctx(sd);
-    const D = s.D, cls = Ad.sortedClasses(), tName = Ad.todayName(), td = today(), pNow = Ad.periodNow();
+    const D = s.D, cls = Ad.sortedClasses(), tName = Ad.todayName(), td = today(), pNow = Ad.periodNow(), bNow = Ad.breakNow();
     const day = homeDay || (WDAYS.includes(tName) ? tName : WDAYS[0]);
     // ── المؤشرات الستة
     const students = cls.reduce((a, c) => a + s.activeCount(c), 0), teachers = staff();
@@ -174,13 +218,18 @@
       { v: cls.length, l: "الفصول", id: "kp-classes" }, { v: students, l: "الطلاب النشطون", id: "kp-students" }, { v: teachers.length, l: "المعلمون", id: "kp-teachers" },
       { v: todayRows.length, l: "حصص اليوم", id: "kp-periods", title: tName }, { v: `${marked}<span style="font-size:13px;color:#c9d5e3">/${teachers.length}</span>`, l: "من رصد اليوم", id: "kp-marked" },
       { v: attToday == null ? "—" : attToday + "%", l: "حضور اليوم", id: "kp-att", title: allMarks ? `${present} حاضر من ${allMarks} مرصود` : "لا رصد اليوم بعد" }]).replace('class="kpis"', 'class="kpis six"');
-    // ── جدول اليوم: الحصص × الفصول
+    // ── جدول اليوم: الحصص × الفصول (الأعمدة كلها من محرك الأجراس، والفسح أعمدة فاصلة)
     const rowsDay = (D.schedule || []).filter(r => r.d === day);
-    const isNow = (p) => p === pNow && day === tName;
-    const cell = (c, p) => { const r = rowsDay.find(x => x.c === c.id && x.p === p); if (!r) return `<td class="${isNow(p) ? "now" : ""}" style="color:#ccc">—</td>`; const t = Ad.teacherByName(r.t); return `<td class="${isNow(p) ? "now" : ""}" title="${esc(r.t + (t ? " — " + t.subject : ""))}"><span class="sj">${esc(t ? t.subject : "—")}</span><span class="tn">${esc(shortName(r.t))}</span></td>`; };
-    const grid = `<div class="table-scroll" id="hm-grid"><table class="report-table adm-grid"><tr><th style="min-width:78px">الفصل</th>${PER.map(p => `<th class="${isNow(p) ? "now" : ""}">ح${p}${isNow(p) ? " ●" : ""}<span class="pt">${ltr(Ad.periodTime(p))}</span></th>`).join("")}</tr>
-      ${cls.map(c => `<tr><td class="nm">${esc(c.name)}</td>${PER.map(p => cell(c, p)).join("")}</tr>`).join("")}</table></div>`;
-    const nowTxt = !WDAYS.includes(tName) ? "لا دوام اليوم" : pNow ? `الآن: الحصة ${pNow} ${ltr(Ad.periodTime(pNow))}` : "خارج وقت الحصص";
+    const cols = dayCols(day, rowsDay), isToday = day === tName;
+    const isNow = (p) => p === pNow && isToday;
+    const brkOn = (x) => !!(isToday && bNow && x.n === bNow.n);
+    const cell = (c, p) => { const r = rowsDay.find(x => x.c === c.id && x.p === p); if (!r) return `<td class="${isNow(p) ? "now" : ""}" data-p="${p}" style="color:#ccc">—</td>`; const t = Ad.teacherByName(r.t); return `<td class="${isNow(p) ? "now" : ""}" data-p="${p}" title="${esc(r.t + (t ? " — " + t.subject : ""))}"><span class="sj">${esc(t ? t.subject : "—")}</span><span class="tn">${esc(shortName(r.t))}</span></td>`; };
+    const grid = `<div class="table-scroll" id="hm-grid"><table class="report-table adm-grid"><tr><th style="min-width:78px">الفصل</th>${cols.map(x => x.brk
+      ? `<th class="brk${brkOn(x) ? " now" : ""}" data-brk="${esc(x.n)}" title="${esc(x.n + " " + x.t)}">☕<span class="pt">${ltr(x.t)}</span></th>`
+      : `<th class="${isNow(x.p) ? "now" : ""}" data-p="${x.p}">ح${x.p}<span class="dot"> ●</span><span class="pt">${x.t ? ltr(x.t) : "&nbsp;"}</span></th>`).join("")}</tr>
+      ${cls.map(c => `<tr><td class="nm">${esc(c.name)}</td>${cols.map(x => x.brk ? `<td class="brk" data-brk="${esc(x.n)}"></td>` : cell(c, x.p)).join("")}</tr>`).join("")}</table></div>`;
+    const brkBar = `<div class="hm-brk" id="hm-brk"${(isToday && bNow) ? "" : " hidden"}>${(isToday && bNow) ? brkBarTxt(bNow) : ""}</div>`;
+    const nowTxt = nowText(tName, pNow, bNow);
     // ── التنبيهات الذكية الأربعة
     const abs = absentAlerts(cx), noRec = noRecClasses(cx), idle = idleTeachers(cx), low = lowStudents(cx);
     const list = (key, items, render, emptyMsg) => {
@@ -198,24 +247,28 @@
       <div class="card adm-hero"><div><div class="d">${esc(s.hijriLabel())}</div><div class="w">أهلاً بك يا مدير المدرسة 👋</div><div class="d" style="margin-top:3px">${esc(s.META.school.name)}</div></div><div class="now" id="hm-now">🕐 ${nowTxt}</div></div>
       ${kpis}
       ${demoNote(sd)}
-      ${h.card(`🗓️ جدول حصص ${esc(day === tName ? "اليوم" : "يوم")} (${esc(day)})`, `<div class="adm-sec"><div class="class-chips" id="hm-days" style="padding:0;margin:0">${WDAYS.map(d => `<button class="chip ${d === day ? "on" : ""}" data-k="${d}" style="padding:6px 12px;font-size:12.5px">${d}</button>`).join("")}</div>${h.printBtn("hm-print-grid", "🖨️ طباعة")}</div>${grid}<div class="adm-legend"><span>● الحصة الحالية</span><span>بداية 7:00 · 45 دقيقة للحصة · فسحة 30 دقيقة بعد الثالثة</span></div>`)}
+      ${h.card(`🗓️ جدول حصص ${esc(day === tName ? "اليوم" : "يوم")} (${esc(day)})`, `<div class="adm-sec"><div class="class-chips" id="hm-days" style="padding:0;margin:0">${WDAYS.map(d => `<button class="chip ${d === day ? "on" : ""}" data-k="${d}" style="padding:6px 12px;font-size:12.5px">${d}</button>`).join("")}</div>${h.printBtn("hm-print-grid", "🖨️ طباعة")}</div>${brkBar}${grid}<div class="adm-legend"><span>● الحصة الحالية</span><span>☕ فسحة</span><span>${esc(Ad.bellLine(day))}</span></div>`)}
       <div class="adm-sec"><div class="t">🔔 تنبيهات ذكية</div><button class="btn-plain" id="hm-refresh" style="flex:0 0 auto;padding:8px 12px">🔄 تحديث</button></div>
       ${alerts}
       ${h.card("⚡ إجراءات سريعة", `<div class="adm-acts"><button class="btn-gold" id="qa-moves">👥 نقل الطلاب</button><button class="btn-gold" id="qa-levels">📊 مستويات المدرسة</button><button class="btn-gold" id="qa-att">🖨️ تقرير حضور اليوم</button><button class="btn-gold" id="qa-backup">⬇️ نسخة احتياطية شاملة</button></div>`)}`;
     box.dataset.ready = "1";
+    startTicker(box, day, tName);
     h.bindChips($("#hm-days", box), (k) => { homeDay = k; admHome(box); });
     box.querySelectorAll("[data-more]").forEach(b => b.onclick = () => { showAll[b.dataset.more] = !showAll[b.dataset.more]; admHome(box); });
     $("#hm-refresh", box).onclick = async () => { Ad.invalidate(); delete box.dataset.ready; await admHome(box); Ad.toast("🔄 حُدِّثت البيانات"); };
-    $("#hm-print-grid", box).onclick = () => Ad.printHtml(`جدول حصص يوم ${day}`, gridPrint(cls, rowsDay, day === tName ? pNow : 0), { land: true, sub: "الجدول المدرسي" });
+    $("#hm-print-grid", box).onclick = () => Ad.printHtml(`جدول حصص يوم ${day}`, gridPrint(cls, rowsDay, cols, isToday ? pNow : 0) + `<div class="note">🔔 ${esc(Ad.bellLine(day))}</div>` + Ad.sigLine(["vice", "principal"]), { land: true, sub: "الجدول المدرسي" });
     $("#qa-moves", box).onclick = () => { if ((Ad.modules() || []).includes("students")) s.switchTab("students"); else s.adminMoves(); };
     $("#qa-levels", box).onclick = () => s.switchTab("levels");
     $("#qa-att", box).onclick = () => printAttendance(cx, "day");
     $("#qa-backup", box).onclick = () => fullBackup().catch(e => Ad.toast("⚠️ تعذّر إنشاء النسخة"));
   }
-  function gridPrint(cls, rows, pNow) {
+  function gridPrint(cls, rows, cols, pNow) {
     const Ad = A();
-    return `<table class="compact"><tr><th>الفصل</th>${PER.map(p => `<th${p === pNow ? ' style="background:#D7A93F;color:#0E2033"' : ""}>ح${p}<br><small dir="ltr">${Ad.periodTime(p)}</small></th>`).join("")}</tr>
-      ${cls.map(c => `<tr><td class="nm"><b>${esc(c.name)}</b></td>${PER.map(p => { const r = rows.find(x => x.c === c.id && x.p === p); if (!r) return "<td>—</td>"; const t = Ad.teacherByName(r.t); return `<td><b>${esc(t ? t.subject : "")}</b><br><small>${esc(shortName(r.t))}</small></td>`; }).join("")}</tr>`).join("")}</table>`;
+    const head = cols.map(x => x.brk
+      ? `<th style="background:#f3efe4;color:#7a6a44;width:30px;font-size:9px">☕<br><small dir="ltr" style="font-size:7px">${esc(x.t)}</small></th>`
+      : `<th${x.p === pNow ? ' style="background:#D7A93F;color:#0E2033"' : ""}>ح${x.p}<br><small dir="ltr">${esc(x.t)}</small></th>`).join("");
+    return `<table class="compact"><tr><th>الفصل</th>${head}</tr>
+      ${cls.map(c => `<tr><td class="nm"><b>${esc(c.name)}</b></td>${cols.map(x => { if (x.brk) return '<td style="background:#f7f3e8"></td>'; const r = rows.find(y => y.c === c.id && y.p === x.p); if (!r) return "<td>—</td>"; const t = Ad.teacherByName(r.t); return `<td><b>${esc(t ? t.subject : "")}</b><br><small>${esc(shortName(r.t))}</small></td>`; }).join("")}</tr>`).join("")}</table>`;
   }
 
   /* ═══════════ 📄 التقارير الأربعة ═══════════ */
@@ -247,7 +300,7 @@
   const absenteesHtml = (d, mode) => d.absentees.length ? `<div style="font-weight:800;color:var(--navy);margin:8px 0 4px">${mode === "day" ? "الغائبون اليوم" : "الأكثر غياباً هذا الأسبوع"} (${d.absentees.length})</div><div style="font-size:12.5px;line-height:1.9">${d.absentees.slice(0, 60).map(x => `${esc(x.s.n)} <small style="color:var(--muted)">(${esc(x.c.name)}${mode === "day" ? "" : ` · ${x.n}`})</small>`).join("، ")}${d.absentees.length > 60 ? " …" : ""}</div>` : `<div class="empty-note" style="padding:8px">${d.marked ? "لا غائبين 🌟" : "لا رصد في هذه الفترة بعد"}</div>`;
   function printAttendance(cx, mode) {
     const d = attendanceData(cx, mode);
-    A().printHtml(d.title, attendanceTable(d, true) + `<div class="note">${absenteesHtml(d, mode)}</div><div class="sig"><span>وكيل شؤون الطلاب: ..............</span><span>مدير المدرسة: ..............</span></div>`, { sub: d.psub, cls: "compact" });
+    A().printHtml(d.title, attendanceTable(d, true) + `<div class="note">${absenteesHtml(d, mode)}</div>` + A().sigLine(["agent", "principal"]), { sub: d.psub, cls: "compact" });
   }
   // 2) نشاط المعلمين
   function teacherRows(cx) { const ws = weekStart(); return staff().map(t => ({ t, st: teacherStats(cx, t.id, ws) })).sort((a, b) => b.st.weekDays - a.st.weekDays || (b.st.last || "").localeCompare(a.st.last || "")); }
@@ -298,9 +351,9 @@
     box.dataset.ready = "1";
     h.bindChips($("#rp-mode", box), (k) => { attMode = k; admReports(box); });
     $("#rp-p-att", box).onclick = () => printAttendance(cx, attMode);
-    $("#rp-p-teachers", box).onclick = () => Ad.printHtml("تقرير نشاط المعلمين", teacherTable(tr, true) + demoNoteP(sd) + `<div class="note">الأسبوع من ${esc(Ad.fmtDate(weekStart()))} إلى ${esc(Ad.fmtDate(today()))} — أيام الرصد = أيام مختلفة سُجّل فيها حضور أو نقاط.</div><div class="sig"><span>وكيل الشؤون التعليمية: ..............</span><span>مدير المدرسة: ..............</span></div>`, { sub: `نشاط المعلمين (${tr.length} معلماً)`, cls: "compact" });
-    $("#rp-p-top", box).onclick = () => { const p = topHtml(td, true); Ad.printHtml("أوائل المدرسة", p.table + `<div class="tt" style="font-size:16px;margin-top:10px">🎖️ لوحة شرف الفصول</div>` + p.honor + `<p style="text-align:center;color:#666;margin-top:10px">نبارك لأبنائنا المتميّزين ونسأل الله لهم دوام التفوّق 🌟</p><div class="sig"><span>رائد النشاط: ..............</span><span>مدير المدرسة: ..............</span></div>`, { sub: "أعلى 10 طلاب بالنقاط + لوحة شرف كل فصل", cls: "compact" }); };
-    $("#rp-p-weak", box).onclick = () => Ad.printHtml("الطلاب المتعثرون — للخطط العلاجية", strugglersTable(sg, true) + `<div class="note">الطالب المتعثر: دون 50% من الدرجة الفعلية (المرصودة والمحسوبة) في مادتين فأكثر. يُحوَّل إلى المرشد الطلابي ومعلمي المواد لإعداد خطة علاجية.</div><div class="sig"><span>المرشد الطلابي: ..............</span><span>مدير المدرسة: ..............</span></div>`, { sub: `الخطط العلاجية (${sg.length} طالباً)`, cls: "compact" });
+    $("#rp-p-teachers", box).onclick = () => Ad.printHtml("تقرير نشاط المعلمين", teacherTable(tr, true) + demoNoteP(sd) + `<div class="note">الأسبوع من ${esc(Ad.fmtDate(weekStart()))} إلى ${esc(Ad.fmtDate(today()))} — أيام الرصد = أيام مختلفة سُجّل فيها حضور أو نقاط.</div>` + Ad.sigLine(["vice", "principal"]), { sub: `نشاط المعلمين (${tr.length} معلماً)`, cls: "compact" });
+    $("#rp-p-top", box).onclick = () => { const p = topHtml(td, true); Ad.printHtml("أوائل المدرسة", p.table + `<div class="tt" style="font-size:16px;margin-top:10px">🎖️ لوحة شرف الفصول</div>` + p.honor + `<p style="text-align:center;color:#666;margin-top:10px">نبارك لأبنائنا المتميّزين ونسأل الله لهم دوام التفوّق 🌟</p>` + Ad.sigLine([{ l: "رائد النشاط" }, "principal"]), { sub: "أعلى 10 طلاب بالنقاط + لوحة شرف كل فصل", cls: "compact" }); };
+    $("#rp-p-weak", box).onclick = () => Ad.printHtml("الطلاب المتعثرون — للخطط العلاجية", strugglersTable(sg, true) + `<div class="note">الطالب المتعثر: دون 50% من الدرجة الفعلية (المرصودة والمحسوبة) في مادتين فأكثر. يُحوَّل إلى المرشد الطلابي ومعلمي المواد لإعداد خطة علاجية.</div>` + Ad.sigLine(["counselor", "principal"]), { sub: `الخطط العلاجية (${sg.length} طالباً)`, cls: "compact" });
   }
 
   /* ═══════════ 📊 المستويات (مضمّنة): حسب الفصل / حسب المادة / المدرسة كلها ═══════════ */
@@ -365,7 +418,7 @@
     const sel = $("#lv-subj", box); if (sel) sel.onchange = () => { lvSubject = sel.value; admLevels(box); };
     $("#lv-print", box).onclick = () => {
       const html = lvMode === "class" ? levelsClass(cx, lvClass, true) : lvMode === "subject" ? levelsSubject(cx, lvSubject, true) : levelsSchool(cx, true);
-      Ad.printHtml(title, html.replace(/<div class="table-scroll">/g, "<div>") + `<div class="sig"><span>وكيل الشؤون التعليمية: ..............</span><span>مدير المدرسة: ..............</span></div>`, { land: true, sub: "المستويات — " + sub, cls: "compact" });
+      Ad.printHtml(title, html.replace(/<div class="table-scroll">/g, "<div>") + Ad.sigLine(["vice", "principal"]), { land: true, sub: "المستويات — " + sub, cls: "compact" });
     };
   }
 

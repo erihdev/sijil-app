@@ -292,11 +292,228 @@
   const daysAgo = (dateStr) => dateStr ? Math.floor((Date.now() - new Date(dateStr + "T00:00:00Z").getTime()) / 864e5) : null;
   const fmtDate = (dateStr) => dateStr ? String(dateStr).slice(5).replace("-", "/") : "—";
   const fmtTs = (ts) => { if (!ts) return "—"; try { return new Intl.DateTimeFormat("ar-SA-u-ca-islamic-umalqura", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }).format(new Date(ts)); } catch (e) { return new Date(ts).toLocaleString("ar"); } };
-  // الحصة الحالية تقريباً: البداية 7:00، 45 دقيقة لكل حصة، فسحة 30 دقيقة بعد الثالثة — 0 خارج الدوام/في الفسحة
-  const PERIODS = (() => { const b = []; let t = 420; for (let p = 1; p <= 7; p++) { b.push({ p, from: t, to: t + 45 }); t += 45; if (p === 3) t += 30; } return b; })();
-  const hm = (m) => `${Math.floor(m / 60)}:${String(m % 60).padStart(2, "0")}`;
-  function periodNow(d) { const x = d || new Date(); const m = x.getHours() * 60 + x.getMinutes(); const hit = PERIODS.find(b => m >= b.from && m < b.to); return hit ? hit.p : 0; }
-  const periodTime = (p) => { const b = PERIODS[p - 1]; return b ? hm(b.from) + "–" + hm(b.to) : ""; };
+  /* ═══════════ جدول الأجراس: أوقات الحصص والفسح — المصدر الوحيد لأي وقت في التطبيق ═══════════
+     الإعداد مستند cfg/bell يقرؤه app.js عند الإقلاع (D.bell، وتجريبياً DB.bell):
+       { start:420, len:45, n:7, breaks:[{after,min,n}], lens:{"7":40}, days:{"الخميس":{n:5}}, tn, ts }
+     غياب المستند = السلوك التاريخي حرفياً: بداية 7:00 · حصة 45 دقيقة · 7 حصص · فسحة 30 دقيقة بعد الثالثة.
+     كل الأوقات بالدقائق من منتصف الليل، ولا يحسب أي ملف آخر وقتاً بنفسه:
+       bell() periodsOf(day) periodNow(d) breakNow(d) periodTime(p, day) bellLine(day) dayEnd(day) */
+  const BELL_DEF = { start: 420, len: 45, n: 7, breaks: [{ after: 3, min: 30, n: "الفسحة" }], lens: {}, days: {} };
+  const MAXDAY = 24 * 60;
+  const ORD = ["", "الأولى", "الثانية", "الثالثة", "الرابعة", "الخامسة", "السادسة", "السابعة", "الثامنة", "التاسعة", "العاشرة", "الحادية عشرة", "الثانية عشرة"];
+  const BRKW = ["بلا فسح", "فسحة واحدة", "فسحتان", "ثلاث فسح", "أربع فسح"];
+  const ord = (p) => ORD[p] || String(p);
+  const dayList = () => (S() && S().DAYS) || ["الأحد", "الإثنين", "الثلاثاء", "الأربعاء", "الخميس", "الجمعة", "السبت"];
+  const num = (v) => { const x = Math.round(Number(v)); return isFinite(x) ? x : NaN; };
+  const clamp = (v, lo, hi, d) => { const x = num(v); return isFinite(x) ? Math.min(hi, Math.max(lo, x)) : d; };
+  const hm = (m) => `${Math.floor(m / 60)}:${String(Math.round(m) % 60).padStart(2, "0")}`;                              // 7:05
+  const hhmm = (m) => `${String(Math.floor(m / 60)).padStart(2, "0")}:${String(Math.round(m) % 60).padStart(2, "0")}`;   // 07:05 — لحقل <input type="time">
+  const parseHM = (s) => { const m = /^(\d{1,2}):(\d{2})/.exec(String(s == null ? "" : s).trim()); if (!m) return NaN; const t = +m[1] * 60 + +m[2]; return (t >= 0 && t < MAXDAY) ? t : NaN; };
+
+  /* تطبيع أي إعداد خام إلى شكل صالح: يتجاهل ما لا يصلح ويكمل الناقص من الافتراضي */
+  function normLens(raw, n) {
+    const out = {}; if (!raw || typeof raw !== "object" || Array.isArray(raw)) return out;
+    Object.keys(raw).forEach(k => { const p = num(k), v = clamp(raw[k], 5, 120, 0); if (p >= 1 && p <= n && v) out[String(p)] = v; });
+    return out;
+  }
+  function normBreaks(raw, n) {
+    if (!Array.isArray(raw)) return [];
+    const seen = {}, out = [];
+    raw.forEach(b => {
+      if (!b || typeof b !== "object" || out.length >= 4) return;
+      const after = num(b.after), min = clamp(b.min, 1, 90, 0);
+      if (!(after >= 1) || after > n - 1 || !min || seen[after]) return;
+      seen[after] = 1;
+      out.push({ after, min, n: String(b.n == null ? "" : b.n).trim().slice(0, 40) || ("فسحة بعد الحصة " + ord(after)) });
+    });
+    return out.sort((a, b) => a.after - b.after);
+  }
+  function normBell(raw) {
+    const src = (raw && typeof raw === "object") ? raw : {};
+    const n = clamp(src.n, 1, 12, BELL_DEF.n);
+    const cfg = {
+      start: clamp(src.start, 0, MAXDAY - 1, BELL_DEF.start),
+      len: clamp(src.len, 5, 120, BELL_DEF.len), n,
+      breaks: normBreaks(("breaks" in src) ? src.breaks : BELL_DEF.breaks, n),
+      lens: normLens(src.lens, n), days: {}
+    };
+    if (src.days && typeof src.days === "object") dayList().forEach(d => {
+      const o = src.days[d]; if (!o || typeof o !== "object") return;
+      const dn = ("n" in o) ? clamp(o.n, 1, 12, cfg.n) : cfg.n;
+      cfg.days[d] = {
+        n: dn,
+        start: ("start" in o) ? clamp(o.start, 0, MAXDAY - 1, cfg.start) : cfg.start,
+        len: ("len" in o) ? clamp(o.len, 5, 120, cfg.len) : cfg.len,
+        breaks: normBreaks(("breaks" in o) ? o.breaks : cfg.breaks, dn),
+        lens: normLens(("lens" in o) ? o.lens : cfg.lens, dn)
+      };
+    });
+    return cfg;
+  }
+  const bellRaw = () => { const s = S(); if (!s) return null; return (s.D && s.D.bell) || (s.DB && s.DB.bell) || null; };
+  // الإعداد الفعّال (المخزَّن أو الافتراضي) — كائن جديد في كل نداء، آمن لتعديل المستدعي
+  const bell = () => normBell(bellRaw());
+  const defaultBell = () => normBell(null);
+  const effOf = (day) => { const c = bell(); return (day && c.days[day]) || c; };
+  // كل عناصر اليوم بالترتيب: حصص {p, from, to} وفسح {brk:true, n, from, to} — الأوقات بالدقائق
+  function periodsOf(day) {
+    const c = effOf(day == null ? todayName() : day), out = [];
+    let t = c.start;
+    for (let p = 1; p <= c.n; p++) {
+      const L = c.lens[String(p)] || c.len;
+      out.push({ p, from: t, to: t + L }); t += L;
+      const b = c.breaks.find(x => x.after === p);
+      if (b && p < c.n) { out.push({ brk: true, n: b.n, from: t, to: t + b.min }); t += b.min; }
+    }
+    return out;
+  }
+  const periodsOnly = (day) => periodsOf(day).filter(x => !x.brk);
+  const dayEnd = (day) => { const a = periodsOf(day); return a.length ? a[a.length - 1].to : effOf(day).start; };
+  const mOf = (d) => { const x = d || new Date(); return x.getHours() * 60 + x.getMinutes(); };
+  const dayOf = (d) => dayList()[(d || new Date()).getDay()];
+  // رقم الحصة الجارية أو 0 (خارج الدوام أو داخل فسحة)
+  function periodNow(d) { const x = d || new Date(), m = mOf(x), hit = periodsOf(dayOf(x)).find(b => !b.brk && m >= b.from && m < b.to); return hit ? hit.p : 0; }
+  /* الفسحة الجارية أو null — الكائن يُطبع باسمه مباشرة (`${breakNow()}` = «الفسحة الأولى») ويحمل from/to/ends */
+  function breakNow(d) {
+    const x = d || new Date(), m = mOf(x), b = periodsOf(dayOf(x)).find(z => z.brk && m >= z.from && m < z.to);
+    return b ? { n: b.n, from: b.from, to: b.to, ends: hm(b.to), toString() { return this.n; } } : null;
+  }
+  const periodTime = (p, day) => { const b = periodsOnly(day).find(x => x.p === num(p)); return b ? hm(b.from) + "–" + hm(b.to) : ""; };
+  // «بداية 7:00 · الحصة 45 دقيقة · 7 حصص · فسحتان: بعد الأولى 15د وبعد الرابعة 15د · نهاية الدوام 12:45»
+  function bellLine(day) {
+    const c = effOf(day == null ? todayName() : day);
+    const bl = c.breaks.length
+      ? (BRKW[c.breaks.length] || c.breaks.length + " فسح") + ": " + c.breaks.map(b => `بعد ${ord(b.after)} ${b.min}د`).join(" و")
+      : BRKW[0];
+    return `بداية ${hm(c.start)} · الحصة ${c.len} دقيقة · ${c.n} حصص · ${bl} · نهاية الدوام ${hm(dayEnd(day))}`;
+  }
+  /* تحقق قبل الحفظ — يعيد رسالة عربية أو null، ويفحص الشكل الخام كما أدخله المدير (لا المطبَّع) */
+  function checkOne(o, where) {
+    const w = where ? where + ": " : "";
+    const start = num(o.start), len = num(o.len), n = num(o.n);
+    if (!isFinite(start) || start < 0 || start > MAXDAY - 1) return w + "وقت بداية الدوام غير صحيح";
+    if (!isFinite(len) || len < 5 || len > 120) return w + "مدة الحصة يجب أن تكون بين 5 و120 دقيقة";
+    if (!isFinite(n) || n < 1 || n > 12) return w + "عدد الحصص يجب أن يكون بين 1 و12";
+    const br = (o.breaks == null) ? [] : o.breaks;
+    if (!Array.isArray(br)) return w + "قائمة الفسح غير صحيحة";
+    if (br.length > 4) return w + "لا يمكن تجاوز أربع فسح";
+    let prev = 0;
+    for (let i = 0; i < br.length; i++) {
+      const b = br[i] || {}, a = num(b.after), mn = num(b.min);
+      if (!isFinite(a) || a < 1) return w + "الفسحة " + (i + 1) + ": رقم الحصة التي تليها غير صحيح";
+      if (a >= n) return w + "لا يمكن وضع فسحة بعد الحصة الأخيرة (" + n + ")";
+      if (a <= prev) return w + "رتّب الفسح تصاعدياً بلا تكرار على نفس الحصة";
+      prev = a;
+      if (!isFinite(mn) || mn < 1 || mn > 90) return w + "مدة الفسحة " + (i + 1) + " يجب أن تكون بين 1 و90 دقيقة";
+      if (b.n != null && String(b.n).length > 40) return w + "اسم الفسحة طويل (40 حرفاً كحد أقصى)";
+    }
+    if (o.lens != null) {
+      if (typeof o.lens !== "object" || Array.isArray(o.lens)) return w + "مدد الحصص المخالفة غير صحيحة";
+      const ks = Object.keys(o.lens);
+      for (let i = 0; i < ks.length; i++) {
+        const p = num(ks[i]), v = num(o.lens[ks[i]]);
+        if (!isFinite(p) || p < 1 || p > n) return w + "مدة مخالفة لحصة غير موجودة (" + ks[i] + ")";
+        if (!isFinite(v) || v < 5 || v > 120) return w + "مدة الحصة " + ord(p) + " يجب أن تكون بين 5 و120 دقيقة";
+      }
+    }
+    let t = start;
+    for (let p = 1; p <= n; p++) {
+      t += ((o.lens && num(o.lens[String(p)])) || len);
+      const b = br.find(x => num((x || {}).after) === p);
+      if (b && p < n) t += num(b.min);
+    }
+    if (t > MAXDAY) return w + "الدوام يتجاوز منتصف الليل — راجع وقت البداية والمدد";
+    return null;
+  }
+  function validateBell(cfg) {
+    if (!cfg || typeof cfg !== "object" || Array.isArray(cfg)) return "لا توجد إعدادات للحفظ";
+    const e = checkOne(cfg, ""); if (e) return e;
+    if (cfg.days != null) {
+      if (typeof cfg.days !== "object" || Array.isArray(cfg.days)) return "تجاوزات الأيام غير صحيحة";
+      const ks = Object.keys(cfg.days), all = dayList();
+      for (let i = 0; i < ks.length; i++) {
+        if (all.indexOf(ks[i]) < 0) return "يوم غير معروف: " + ks[i];
+        const o = cfg.days[ks[i]];
+        if (!o || typeof o !== "object" || Array.isArray(o)) return "تجاوز يوم " + ks[i] + " غير صحيح";
+        const e2 = checkOne({
+          start: ("start" in o) ? o.start : cfg.start, len: ("len" in o) ? o.len : cfg.len, n: ("n" in o) ? o.n : cfg.n,
+          breaks: ("breaks" in o) ? o.breaks : cfg.breaks, lens: ("lens" in o) ? o.lens : cfg.lens
+        }, ks[i]);
+        if (e2) return e2;
+      }
+    }
+    return null;
+  }
+  /* الحفظ: cfg/bell + adminlog + تحديث فوري (D.bell وإعادة رسم اللوحة وحدث sijil:bell) → {ok:true} أو {ok:false, err} */
+  async function saveBell(cfg) {
+    const err = validateBell(cfg); if (err) return { ok: false, err };
+    const s = S(); if (!s || !s.TE) return { ok: false, err: "لا توجد جلسة" };
+    const c = normBell(cfg);
+    const rec = { start: c.start, len: c.len, n: c.n, breaks: c.breaks.map(b => ({ after: b.after, min: b.min, n: b.n })), tn: s.TE.name, ts: Date.now() };
+    if (Object.keys(c.lens).length) rec.lens = c.lens;
+    if (Object.keys(c.days).length) rec.days = c.days;
+    if (s.CLOUD && s.fdb) {
+      try { await s.fdb.doc("cfg/bell").set(rec); } catch (e) { warn("saveBell", e && e.message); return { ok: false, err: "تعذّر الحفظ في السحابة — تحقّق من الاتصال ثم أعد المحاولة" }; }
+      s.D.bell = rec;
+      try { localStorage.setItem("sijil.cloudD", JSON.stringify(s.D)); } catch (e) { }
+    } else { s.DB.bell = rec; s.D.bell = rec; s.save(); }
+    await adminlog("bell", "أوقات الحصص: " + bellLine());
+    cfgChanged();
+    return { ok: true };
+  }
+  function cfgChanged() {
+    try { window.dispatchEvent(new CustomEvent("sijil:bell")); } catch (e) { }
+    refresh();
+  }
+
+  /* ═══ أسماء إدارة المدرسة (cfg/school) — سطر التواقيع في كل مطبوع ═══ */
+  const STAFF_KEYS = ["principal", "vice", "agent", "counselor"];
+  const STAFF_LBL = { principal: "مدير المدرسة", vice: "وكيل الشؤون التعليمية", agent: "وكيل شؤون الطلاب", counselor: "المرشد الطلابي" };
+  // الأسماء المضبوطة فقط ({} إن لم يضبط المدير شيئاً فتبقى النقاط كما هي اليوم)
+  function schoolStaff() {
+    const s = S(), raw = s ? ((s.D && s.D.cfgSchool) || (s.DB && s.DB.cfgSchool) || null) : null, out = {};
+    if (raw && typeof raw === "object") STAFF_KEYS.forEach(k => { const v = String(raw[k] == null ? "" : raw[k]).trim().slice(0, 80); if (v) out[k] = v; });
+    return out;
+  }
+  const dots = (n) => new Array(Math.max(4, num(n) || 14) + 1).join(".");
+  /* sigLine(roles) → <div class="sig">…</div> — roles عنصر واحد أو مصفوفة:
+       "principal" | "vice" | "agent" | "counselor"   الاسم إن وُجد وإلا النقاط
+       {k:"principal", dots:21}                        نفسه بعدد نقاط مخصص
+       {l:"معلم المادة", v:"أ. فلان"}                    نص حر
+       {l:"توقيع ولي الأمر", dots:16}                    نقاط دائماً */
+  function sigCell(r) {
+    if (typeof r === "string") r = (STAFF_KEYS.indexOf(r) >= 0) ? { k: r } : { l: r };
+    r = r || {};
+    const lbl = r.l || STAFF_LBL[r.k] || "";
+    const val = String((r.v != null ? r.v : (r.k ? (schoolStaff()[r.k] || "") : "")) || "").trim();
+    return `<span>${esc(lbl)}: ${val ? esc(val) : dots(r.dots)}</span>`;
+  }
+  const sigLine = (roles) => `<div class="sig">${(Array.isArray(roles) ? roles : [roles]).map(sigCell).join("")}</div>`;
+  function validateStaff(cfg) {
+    if (!cfg || typeof cfg !== "object" || Array.isArray(cfg)) return "لا توجد بيانات للحفظ";
+    for (let i = 0; i < STAFF_KEYS.length; i++) {
+      const v = cfg[STAFF_KEYS[i]];
+      if (v == null) continue;
+      if (typeof v !== "string") return STAFF_LBL[STAFF_KEYS[i]] + ": القيمة غير نصية";
+      if (v.trim().length > 80) return STAFF_LBL[STAFF_KEYS[i]] + ": الاسم طويل (80 حرفاً كحد أقصى)";
+    }
+    return null;
+  }
+  // حفظ أسماء الإدارة: cfg/school + adminlog + تحديث فوري → {ok:true} أو {ok:false, err}
+  async function saveStaff(cfg) {
+    const err = validateStaff(cfg); if (err) return { ok: false, err };
+    const s = S(); if (!s || !s.TE) return { ok: false, err: "لا توجد جلسة" };
+    const rec = { tn: s.TE.name, ts: Date.now() };
+    STAFF_KEYS.forEach(k => { const v = String(cfg[k] == null ? "" : cfg[k]).trim().slice(0, 80); if (v) rec[k] = v; });
+    if (s.CLOUD && s.fdb) {
+      try { await s.fdb.doc("cfg/school").set(rec); } catch (e) { warn("saveStaff", e && e.message); return { ok: false, err: "تعذّر الحفظ في السحابة — تحقّق من الاتصال ثم أعد المحاولة" }; }
+      s.D.cfgSchool = rec;
+      try { localStorage.setItem("sijil.cloudD", JSON.stringify(s.D)); } catch (e) { }
+    } else { s.DB.cfgSchool = rec; s.D.cfgSchool = rec; s.save(); }
+    await adminlog("school", "أسماء الإدارة: " + (STAFF_KEYS.filter(k => rec[k]).map(k => STAFF_LBL[k] + " " + rec[k]).join("، ") || "مسح الكل"));
+    cfgChanged();
+    return { ok: true };
+  }
   // الجوال: تطبيع إلى 05xxxxxxxx (يقبل 9665… و5…) أو null إن لم يصلح
   const normMob = (p) => { let d = String(p || "").replace(/[^\d]/g, ""); if (/^9665\d{8}$/.test(d)) d = "0" + d.slice(3); else if (/^5\d{8}$/.test(d)) d = "0" + d; return /^05\d{8}$/.test(d) ? d : null; };
   const waPhone = (p) => { const n = normMob(p); return n ? "966" + n.slice(1) : ""; };
@@ -331,7 +548,12 @@
     adminlog, saveSedit,
     printHead, printHtml, printEl, printTable, cleanClone,
     H, toast, confirm,
-    sortedClasses, staff, allAccounts, showActiveTab, classTeachers, teacherOf, teacherByName, todayName, isoDate, daysAgo, fmtDate, fmtTs, PERIODS, periodNow, periodTime, normMob, waPhone, waHref, nextTeacherId
+    sortedClasses, staff, allAccounts, showActiveTab, classTeachers, teacherOf, teacherByName, todayName, isoDate, daysAgo, fmtDate, fmtTs, normMob, waPhone, waHref, nextTeacherId,
+    // جدول الأجراس (PERIODS = الحصص فقط بلا الفسح، محسوبة الآن من الإعداد — بنفس شكلها القديم [{p, from, to}])
+    bell, defaultBell, periodsOf, periodsOnly, periodNow, breakNow, periodTime, bellLine, dayEnd, validateBell, saveBell, hm, hhmm, parseHM, ord,
+    get PERIODS() { return periodsOnly(); },
+    // أسماء إدارة المدرسة وسطر التواقيع
+    schoolStaff, sigLine, saveStaff, validateStaff, STAFF_KEYS, STAFF_LBL
   };
 
   // إن كان app.js قد أعاد جلسة محفوظة قبل تحميل هذا الملف (الوضع التجريبي متزامن بلا await): هيّئ اللوحة الآن

@@ -1,6 +1,9 @@
 /* ═══════════ لوحة المدير — وحدة ⚙️ الإدارة (manage) — js/admin/manage.js ═══════════
    هيكل المدرسة والإعدادات، بطاقات مطوية (details) تعمل على الجوال أولاً:
    (1) 👤 بياناتي — تُعاد استخدام SIJIL_ADMIN.profileCard من teachers.js إن حُمّلت (وإلا بطاقة مختصرة للعرض فقط).
+   (1ب) ⏰ أوقات الحصص والفسح (جدول الأجراس، مستند cfg/bell) — بداية الدوام ومدة الحصة وعددها وحتى أربع فسح،
+        بمعاينة حية ونهاية دوام وطباعة صفحة واحدة وإرسال واتساب وإعادة الافتراضي. كل حساب للوقت في core.js
+        (bell/periodsOf/dayEnd/bellLine/validateBell/saveBell) ولا يُحسب وقت في هذا الملف ولا يُثبَّت فيه.
    (2) 👨‍🏫 المعلمون — بطاقة لكل معلم: المادة/الفصول/الجوال/آخر رصد (من schoolDocs)/حالة الدخول (pinHash) + 📞 تواصل (SIJIL.waLink).
    (3) 🏫 الفصول — الصف، النشطون، المنقولون، معلموه ومواده، ورائد الفصل (teachers[].lead).
    (4) 🗓️ الجدول الأسبوعي الكامل — مصفوفة (اليوم×الحصة) × الفصول + طباعة أفقية بصفحة واحدة.
@@ -21,7 +24,7 @@
   const PER = [1, 2, 3, 4, 5, 6, 7];
   const pad2 = (n) => String(n).padStart(2, "0");
   const isDemo = () => !(S().CLOUD && S().fdb);
-  const ACTS = { pin: "🔑 رقم دخول", edit: "✏️ تعديل", add: "➕ إضافة معلم", lead: "🎖️ رائد فصل", schedule: "🗓️ الجدول", move: "🔁 نقل طالب", sedit: "👤 بيانات طالب", backup: "⬇️ نسخة احتياطية", restore: "⬆️ استعادة" };
+  const ACTS = { pin: "🔑 رقم دخول", edit: "✏️ تعديل", add: "➕ إضافة معلم", lead: "🎖️ رائد فصل", schedule: "🗓️ الجدول", move: "🔁 نقل طالب", sedit: "👤 بيانات طالب", backup: "⬇️ نسخة احتياطية", restore: "⬆️ استعادة", bell: "⏰ أوقات الحصص", school: "🏫 أسماء الإدارة" };
   let curBox = null, logAll = false, busy = false, lastRestore = null;
 
   /* ═══ CSS الوحدة (مرة واحدة) ═══ */
@@ -70,6 +73,29 @@
 .mg-sum b{color:var(--navy)}
 .mg-about{font-size:13.5px;line-height:2;color:var(--muted)}
 .mg-about b{color:var(--navy)}
+.bl-g{display:grid;grid-template-columns:1fr;gap:2px 9px;margin-top:2px}
+@media(min-width:520px){.bl-g{grid-template-columns:repeat(3,1fr)}}
+.bl-g .field{margin-bottom:8px}
+.bl-g input{padding:10px 12px;font-size:15px;text-align:center}
+.bl-hd{display:flex;align-items:center;gap:8px;margin:4px 0 8px;font-weight:800;color:var(--navy);font-size:14px}
+.bl-hd b{color:var(--gold)}
+.bl-hd button{margin-inline-start:auto;flex:0 0 auto;padding:8px 12px;font-size:13px}
+.bl-hd button:disabled{opacity:.45;cursor:not-allowed}
+.bl-br{display:grid;grid-template-columns:1fr 1fr;gap:6px 8px;border:1.5px solid var(--line);border-radius:12px;padding:8px 10px;background:#fbf9f4;margin-bottom:8px}
+.bl-br .hd{grid-column:1/-1;display:flex;align-items:center;font-size:13px;font-weight:800;color:var(--navy)}
+.bl-br .hd .del{margin-inline-start:auto;border:1.5px solid var(--line);background:#fff;border-radius:9px;padding:3px 10px;font-size:15px;line-height:1.3;cursor:pointer}
+.bl-br .hd .del:hover{border-color:var(--bad);background:#fff5f5}
+.bl-br label{display:block;font-size:11.5px;font-weight:700;color:var(--muted)}
+.bl-br .nmf{grid-column:1/-1}
+.bl-br select,.bl-br input{width:100%;margin-top:3px;padding:9px 10px;border:1.5px solid var(--line);border-radius:10px;font-family:inherit;font-size:14px;background:#fff;color:var(--navy)}
+.bl-pv{margin-top:8px}
+.bl-pv .hd{display:flex;flex-wrap:wrap;gap:3px 8px;align-items:baseline;font-weight:800;color:var(--navy);font-size:13.5px;margin-bottom:6px}
+.bl-pv .hd .ln{font-weight:400;color:var(--muted);font-size:12px}
+.bl-pv .hd .un{color:var(--bad);font-weight:800;font-size:12px}
+.bl-tb td,.bl-tb th{font-size:12px;padding:5px 6px;white-space:nowrap}
+.bl-tb tr.brk td{background:#fdf6e3;color:#7a6520;font-weight:700}
+.mg-bd .adm-tools>a.bl-wa{text-decoration:none;text-align:center;color:var(--navy)}
+.bl-wa.off{opacity:.5;pointer-events:none}
 @media print{.mg-sec>summary .ar,.mg-it .wa{display:none!important}}`;
     document.head.appendChild(st);
   }
@@ -111,6 +137,204 @@
       h.row("الجوال", esc(Ad.normMob(mob) || mob || "—")) +
       h.row("حالة الدخول", `<span class="${st.c === "ok" ? "ok" : "no"}" style="font-weight:800;color:var(--${st.c === "ok" ? "ok" : "bad"})">${st.t}</span>`) +
       h.note("لتعديل الجوال أو تغيير رقم الدخول: تبويب «👨‍🏫 المعلمون» ← زر «👤 بياناتي»."));
+  }
+
+  /* ═══ (1ب) ⏰ أوقات الحصص والفسح — جدول الأجراس (cfg/bell) ═══
+     مسودة التحرير draft = {start, len, n, breaks[{after,min,n}], lens, days} تُبنى من SIJIL_ADMIN.bell()
+     (وlens/days من المستند الخام كما كتبها المدير حتى لا تتجمّد على قيم قديمة عند الحفظ).
+     لا يُحسب أي وقت هنا: المعاينة والطباعة والواتساب كلها من محرك core عبر withDraft() الذي يضع المسودة
+     لحظياً في D.bell/DB.bell ثم يستعيد القيمة الأصلية فوراً (متزامن بلا await بينهما). */
+  let draft = null, draftBase = "";
+  const isObj = (o) => !!o && typeof o === "object" && !Array.isArray(o);
+  const rawBell = () => { const s = S(); return (s.D && s.D.bell) || (s.DB && s.DB.bell) || null; };
+  const numOf = (v) => { const x = Math.round(Number(String(v == null ? "" : v).trim())); return isFinite(x) ? x : NaN; };
+  const autoNm = (i) => "الفسحة " + A().ord(i + 1);
+  const AUTO_RE = /^الفسحة(\s|$)/;
+  // شارة عدد الحصص بصيغة عربية سليمة: حصة واحدة · حصتان · 7 حصص · 11 حصة
+  const nPer = (n) => n === 1 ? "حصة واحدة" : n === 2 ? "حصتان" : n + (n <= 10 ? " حصص" : " حصة");
+  function newDraft() {
+    const c = A().bell(), raw = rawBell() || {};
+    return {
+      start: c.start, len: c.len, n: c.n,
+      breaks: c.breaks.map(b => ({ after: b.after, min: b.min, n: b.n })),
+      lens: isObj(raw.lens) ? Object.assign({}, raw.lens) : {},
+      days: isObj(raw.days) ? S().clone(raw.days) : {}
+    };
+  }
+  // الشكل الذي يُمرَّر إلى validateBell/saveBell (مدد الحصص المخالفة تُقصّ على عدد الحصص الحالي)
+  function cfgOf(d) {
+    const out = { start: d.start, len: d.len, n: d.n, breaks: (d.breaks || []).map(b => ({ after: b.after, min: b.min, n: b.n })) };
+    const lens = {}; Object.keys(d.lens || {}).forEach(k => { const p = numOf(k); if (p >= 1 && p <= d.n) lens[String(p)] = d.lens[k]; });
+    if (Object.keys(lens).length) out.lens = lens;
+    if (Object.keys(d.days || {}).length) out.days = d.days;
+    return out;
+  }
+  function withDraft(fn) {
+    const s = S(), D = s.D || {}, DB = s.DB || {};
+    const hD = ("bell" in D), hB = ("bell" in DB), oD = D.bell, oB = DB.bell;
+    const c = cfgOf(draft); c.days = {};                       // المعاينة للجدول العام لا لتجاوزات الأيام
+    D.bell = c; DB.bell = c;
+    try { return fn(); }
+    finally {
+      if (hD) D.bell = oD; else { try { delete D.bell; } catch (e) { } }
+      if (hB) DB.bell = oB; else { try { delete DB.bell; } catch (e) { } }
+    }
+  }
+  const bellErr = () => A().validateBell(cfgOf(draft));
+  const bellItems = () => withDraft(() => { const Ad = A(), day = Ad.todayName(); return { list: Ad.periodsOf(day), end: Ad.dayEnd(day), line: Ad.bellLine(day) }; });
+  const bellDirty = () => JSON.stringify(cfgOf(draft)) !== JSON.stringify(cfgOf(newDraft()));
+  const renumber = () => draft.breaks.forEach((b, i) => { if (!b.n || AUTO_RE.test(b.n)) b.n = autoNm(i); });
+  const sortBreaks = () => draft.breaks.sort((a, b) => (isFinite(a.after) ? a.after : 99) - (isFinite(b.after) ? b.after : 99));
+  // أول حصة تصلح لفسحة جديدة (بلا تكرار ولا فسحة بعد الأخيرة) أو 0 إن لم يبقَ موضع
+  function freeSlot() {
+    const d = draft;
+    if (!d || d.breaks.length >= 4 || !(isFinite(d.n) && d.n >= 2)) return 0;
+    const used = d.breaks.map(x => x.after);
+    for (let p = 1; p <= d.n - 1; p++) if (used.indexOf(p) < 0) return p;
+    return 0;
+  }
+  function breaksHtml() {
+    const h = H(), Ad = A(), d = draft;
+    if (!d.breaks.length) return h.note("لا فسح — اضغط «➕ إضافة فسحة» لإضافة فسحة بين حصتين.");
+    const top = (isFinite(d.n) && d.n >= 2) ? d.n - 1 : 0;
+    return d.breaks.map((b, i) => {
+      const others = d.breaks.filter((x, j) => j !== i).map(x => x.after);
+      const vals = [];
+      if (isFinite(b.after)) vals.push(b.after);
+      for (let p = 1; p <= top; p++) if (p !== b.after && others.indexOf(p) < 0) vals.push(p);
+      vals.sort((x, y) => x - y);
+      const opts = vals.map(p => `<option value="${p}"${p === b.after ? " selected" : ""}>بعد الحصة ${esc(Ad.ord(p))}</option>`).join("");
+      return `<div class="bl-br">
+        <div class="hd"><span>☕ ${esc(b.n || autoNm(i))}</span><button class="del" data-del="${i}" title="حذف هذه الفسحة" aria-label="حذف هذه الفسحة">🗑️</button></div>
+        <label>موضعها<select class="bl-af" data-i="${i}">${opts}</select></label>
+        <label>مدتها (دقيقة)<input type="number" class="bl-mn" data-i="${i}" min="1" max="90" inputmode="numeric" value="${isFinite(b.min) ? b.min : ""}"></label>
+        <label class="nmf">اسمها كما يظهر للمعلمين<input class="bl-nm" data-i="${i}" maxlength="40" value="${esc(b.n)}" placeholder="${esc(autoNm(i))}" autocomplete="off"></label>
+      </div>`;
+    }).join("");
+  }
+  function previewHtml() {
+    const h = H(), Ad = A(), err = bellErr();
+    if (err) return `<div class="bl-pv">` + h.alert("⚠️ " + esc(err) + "<br><span style=\"color:var(--muted)\">صحّح المدخلات لتظهر المعاينة.</span>", "bad") + `</div>`;
+    const p = bellItems();
+    const rows = p.list.map(x => `<tr${x.brk ? ' class="brk"' : ""}><td class="nm">${x.brk ? "☕ " + esc(x.n) : "الحصة " + esc(Ad.ord(x.p))}</td><td>${esc(Ad.hm(x.from))}</td><td>${esc(Ad.hm(x.to))}</td><td>${x.to - x.from}</td></tr>`);
+    return `<div class="bl-pv">
+      <div class="hd"><span>👁️ المعاينة</span><span class="ln">${esc(p.line)}</span>${bellDirty() ? '<span class="un">● تغييرات غير محفوظة</span>' : ""}</div>
+      ${h.table([{ t: "الحصة / الفسحة", w: 120 }, "من", "إلى", "دقيقة"], rows, { cls: "bl-tb", foot: ["🔚 نهاية الدوام", "", esc(Ad.hm(p.end)), ""] })}
+    </div>`;
+  }
+  // نص واتساب للمعلمين — كل الأوقات من المحرك
+  function bellText() {
+    const s = S(), Ad = A(), p = bellItems();
+    return [`⏰ جدول الأجراس — ${s.META.school.name}`, s.hijriLabel(), ""]
+      .concat(p.list.map(x => x.brk ? `☕ ${x.n}: ${Ad.hm(x.from)} – ${Ad.hm(x.to)}` : `${x.p}) الحصة ${Ad.ord(x.p)}: ${Ad.hm(x.from)} – ${Ad.hm(x.to)}`))
+      .concat(["", `🔚 نهاية الدوام: ${Ad.hm(p.end)}`, "", s.TE ? `إدارة المدرسة — ${s.TE.name}` : ""]).filter(x => x !== null).join("\n");
+  }
+  function printBell() {
+    const Ad = A(), err = bellErr();
+    if (err) { Ad.toast("⚠️ " + err, 3200); return; }
+    const p = bellItems();
+    const rows = p.list.map(x => `<tr><td class="nm">${x.brk ? "☕ " + esc(x.n) : "الحصة " + esc(Ad.ord(x.p))}</td><td>${esc(Ad.hm(x.from))}</td><td>${esc(Ad.hm(x.to))}</td><td>${x.to - x.from}</td></tr>`).join("");
+    Ad.printHtml("جدول الأجراس — أوقات الحصص والفسح",
+      `<table class="compact"><tr><th>الحصة / الفسحة</th><th>من</th><th>إلى</th><th>الدقائق</th></tr>${rows}` +
+      `<tr class="tot"><td class="nm"><b>🔚 نهاية الدوام</b></td><td colspan="3"><b>${esc(Ad.hm(p.end))}</b></td></tr></table>` +
+      `<div class="ctr">${esc(p.line)}</div>` +
+      (bellDirty() ? `<div class="note">هذه معاينة غير محفوظة — اضغط «💾 حفظ الأوقات» لاعتمادها في التطبيق.</div>` : "") +
+      Ad.sigLine(["principal", "vice"]),
+      { sub: "⏰ أوقات الحصص والفسح", cls: "compact" });
+  }
+  function bellHtml() {
+    const h = H(), Ad = A();
+    // إعادة رسم التبويب لسبب آخر (سجل الإدارة، حفظ أسماء الإدارة، العودة للتبويب) لا تُضيّع تحريراً غير محفوظ
+    const base = JSON.stringify(cfgOf(newDraft()));
+    if (!(draft && draftBase === base && bellDirty())) { draft = newDraft(); draftBase = base; }
+    return h.note("جدول الأجراس مصدر كل وقت في التطبيق: إبراز الحصة الجارية، وأوقات الحصص في الجدول، وشريط «الحصة الحالية» عند المعلمين. اضبطه مرة واحدة لمدرستك.") +
+      `<div class="bl-g">
+        <div class="field"><label>⏱️ بداية الدوام</label><input type="time" id="bl-start" value="${esc(Ad.hhmm(draft.start))}"></div>
+        <div class="field"><label>⌛ مدة الحصة (دقيقة)</label><input type="number" id="bl-len" min="5" max="120" inputmode="numeric" value="${draft.len}"></div>
+        <div class="field"><label>🔢 عدد الحصص</label><input type="number" id="bl-n" min="1" max="12" inputmode="numeric" value="${draft.n}"></div>
+      </div>
+      <div class="bl-hd"><span>☕ الفسح <b id="bl-bn">${draft.breaks.length}</b> من 4</span><button class="btn-plain" id="bl-add">➕ إضافة فسحة</button></div>
+      <div id="bl-brks">${breaksHtml()}</div>
+      <div id="bl-prev">${previewHtml()}</div>
+      <div class="login-err" id="bl-err" style="margin-top:4px"></div>` +
+      h.tools(`${h.btn("💾 حفظ الأوقات", 'id="bl-save"')}${h.btn("🖨️ طباعة جدول الأجراس", 'id="bl-print"', "btn-plain")}` +
+        `${h.btn("↺ إعادة الافتراضي", 'id="bl-def"', "btn-plain")}<a class="btn-plain bl-wa" id="bl-wa" target="_blank" rel="noopener">💬 إرسال للمعلمين</a>`);
+  }
+  /* ربط النموذج: كل تغيير يحدّث المسودة ثم المعاينة (بلا حفظ)، وتغيير الموضع/العدد يعيد بناء صفوف الفسح فقط */
+  function bindBell(b) {
+    const Ad = A(), q = (id) => $("#" + id, b);
+    const upPrev = () => {
+      const pv = q("bl-prev"); if (pv) pv.innerHTML = previewHtml();
+      const er = q("bl-err"); if (er) er.textContent = "";
+      const bn = q("bl-bn"); if (bn) bn.textContent = draft.breaks.length;
+      const add = q("bl-add"); if (add) add.disabled = !freeSlot();
+      const err = bellErr(), wa = q("bl-wa");
+      if (wa) { wa.classList.toggle("off", !!err); if (err) wa.removeAttribute("href"); else wa.href = S().waLink("", bellText()); }
+    };
+    const upBreaks = () => { const el = q("bl-brks"); if (el) { el.innerHTML = breaksHtml(); bindRows(); } upPrev(); };
+    function bindRows() {
+      const box = q("bl-brks"); if (!box) return;
+      box.querySelectorAll(".bl-af").forEach(sel => sel.onchange = () => { const i = +sel.dataset.i; draft.breaks[i].after = numOf(sel.value); sortBreaks(); renumber(); upBreaks(); });
+      box.querySelectorAll(".bl-mn").forEach(inp => inp.oninput = () => { draft.breaks[+inp.dataset.i].min = numOf(inp.value); upPrev(); });
+      box.querySelectorAll(".bl-nm").forEach(inp => inp.oninput = () => { draft.breaks[+inp.dataset.i].n = inp.value.slice(0, 40); upPrev(); });
+      box.querySelectorAll(".del").forEach(bt => bt.onclick = () => { draft.breaks.splice(+bt.dataset.del, 1); renumber(); upBreaks(); });
+    }
+    const st = q("bl-start"); if (st) st.oninput = () => { draft.start = Ad.parseHM(st.value); upPrev(); };
+    const ln = q("bl-len"); if (ln) ln.oninput = () => { draft.len = numOf(ln.value); upPrev(); };
+    const nn = q("bl-n"); if (nn) nn.oninput = () => {
+      draft.n = numOf(nn.value);
+      if (isFinite(draft.n) && draft.n >= 1) { draft.breaks = draft.breaks.filter(x => x.after >= 1 && x.after <= draft.n - 1); renumber(); }
+      upBreaks();
+    };
+    const ad = q("bl-add"); if (ad) ad.onclick = () => {
+      const p = freeSlot(); if (!p) { Ad.toast("لا يمكن إضافة فسحة أخرى — أربع فسح كحد أقصى، ولا فسحة بعد الحصة الأخيرة", 3200); return; }
+      const last = draft.breaks[draft.breaks.length - 1], def = (Ad.defaultBell().breaks[0] || {}).min || 15;
+      draft.breaks.push({ after: p, min: (last && isFinite(last.min) && last.min) || def, n: "" });
+      sortBreaks(); renumber(); upBreaks();
+    };
+    const df = q("bl-def"); if (df) df.onclick = () => {
+      const d = Ad.defaultBell();
+      draft = { start: d.start, len: d.len, n: d.n, breaks: d.breaks.map(x => ({ after: x.after, min: x.min, n: x.n })), lens: {}, days: {} };
+      const s1 = q("bl-start"), l1 = q("bl-len"), n1 = q("bl-n");
+      if (s1) s1.value = Ad.hhmm(draft.start); if (l1) l1.value = draft.len; if (n1) n1.value = draft.n;
+      upBreaks();
+      Ad.toast("↺ أُعيدت القيم الافتراضية في النموذج — اضغط «💾 حفظ الأوقات» لاعتمادها", 3600);
+    };
+    const pr = q("bl-print"); if (pr) pr.onclick = printBell;
+    const sv = q("bl-save"); if (sv) sv.onclick = async () => {
+      if (busy) return;
+      const er = q("bl-err"), err = bellErr();
+      if (err) { if (er) er.textContent = "⚠️ " + err; Ad.toast("⚠️ " + err, 3400); return; }
+      busy = true; sv.disabled = true; const lbl = sv.textContent; sv.textContent = "⏳ جارِ الحفظ…";
+      let r = null;
+      try { r = await Ad.saveBell(cfgOf(draft)); }
+      catch (e) { warn("saveBell", e); r = { ok: false, err: (e && e.message) || String(e) }; }
+      busy = false;
+      if (r && r.ok) Ad.toast("✔ حُفظت أوقات الحصص — تظهر للمعلمين عند فتح التطبيق", 3600);
+      else {
+        const m = (r && r.err) || "تعذّر الحفظ";
+        const er2 = $("#bl-err", b); if (er2) er2.textContent = "⚠️ " + m;
+        Ad.toast("⚠️ " + m, 3600);
+      }
+      const sv2 = $("#bl-save", b); if (sv2) { sv2.disabled = false; sv2.textContent = lbl; }
+    };
+    bindRows();
+    upPrev();
+  }
+  // يفتح البطاقة ويمرّر إليها (يستدعيها تبويب «🗓️ الجدول» عبر SIJIL_ADMIN.openBell)
+  function openBell() {
+    // البطاقة قد تكون في DOM لكن لوحة ⚙️ الإدارة مخفية، ولا تُرسم إلا بعد schoolDocs — لذلك ننتظرها
+    const go = () => {
+      const p = document.querySelector("#tab-adm-manage"), el = $("#mg-s-bell");
+      if (!p || p.classList.contains("hidden") || !el) return false;
+      el.open = true;
+      try { el.scrollIntoView({ behavior: "smooth", block: "start" }); } catch (e) { try { el.scrollIntoView(); } catch (e2) { } }
+      return true;
+    };
+    if (go()) return;
+    try { S().switchTab("manage"); } catch (e) { try { A().render("manage"); } catch (e2) { warn("openBell", e2); } }
+    let n = 0;
+    const t = setInterval(() => { if (go() || ++n > 14) clearInterval(t); }, 150);
   }
 
   /* ═══ (2) 👨‍🏫 المعلمون ═══ */
@@ -396,6 +620,7 @@
     const cls = Ad.sortedClasses(), tch = (s.D.teachers || []);
     b.innerHTML =
       `<div id="mg-profile"></div>` +
+      sec("mg-s-bell", "⏰ أوقات الحصص والفسح", bellHtml(), { open: true, n: nPer(A().bell().n) }) +
       sec("mg-s-tch", "👨‍🏫 المعلمون", teachersHtml(sd), { open: true, n: tch.length }) +
       sec("mg-s-cls", "🏫 الفصول", classesHtml(), { open: true, n: cls.length }) +
       sec("mg-s-sch", "🗓️ الجدول الأسبوعي", scheduleHtml(), { n: schedRows().length }) +
@@ -411,6 +636,8 @@
   function bind(b, sd) {
     const s = S(), Ad = A();
     const on = (id, fn) => { const el = $("#" + id, b); if (el) el.onclick = fn; };
+    // ⏰ أوقات الحصص والفسح
+    try { bindBell(b); } catch (e) { warn("bell", e); }
     // طباعة المعلمين
     on("mg-p-tch", () => {
       const last = lastMap(sd);
@@ -492,5 +719,5 @@
 
   /* ═══ التسجيل والتصدير ═══ */
   A().register("manage", render);
-  Object.assign(window.SIJIL_ADMIN, { backupAll, restoreSummary: summarize });
+  Object.assign(window.SIJIL_ADMIN, { backupAll, restoreSummary: summarize, openBell });
 })();

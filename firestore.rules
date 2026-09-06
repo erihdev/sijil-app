@@ -64,6 +64,33 @@ service cloud.firestore {
       allow create, delete: if false;
     }
 
+    // ── إعدادات المدرسة cfg/{doc}: يضبطها المدير من لوحته وتُقرأ عند إقلاع كل جهاز (meta/app غير قابل للكتابة) ──
+    //    cfg/bell   جدول الأجراس: {start, len, n, breaks[], lens?, days?, tn, ts}
+    //    cfg/school أسماء الإدارة: {principal?, vice?, agent?, counselor?, tn, ts}
+    function bellShape() {
+      return request.resource.data.keys().hasOnly(['start', 'len', 'n', 'breaks', 'lens', 'days', 'tn', 'ts'])
+          && request.resource.data.start is int && request.resource.data.start >= 0 && request.resource.data.start <= 1439
+          && request.resource.data.len is int && request.resource.data.len >= 5 && request.resource.data.len <= 120
+          && request.resource.data.n is int && request.resource.data.n >= 1 && request.resource.data.n <= 12
+          && request.resource.data.breaks is list && request.resource.data.breaks.size() <= 4
+          && (!('lens' in request.resource.data) || request.resource.data.lens is map)
+          && (!('days' in request.resource.data) || request.resource.data.days is map);
+    }
+    function nameField(f) {
+      return !(f in request.resource.data)
+          || (request.resource.data[f] is string && request.resource.data[f].size() <= 80);
+    }
+    function schoolShape() {
+      return request.resource.data.keys().hasOnly(['principal', 'vice', 'agent', 'counselor', 'tn', 'ts'])
+          && nameField('principal') && nameField('vice') && nameField('agent') && nameField('counselor');
+    }
+    match /cfg/{doc} {
+      allow read: if signedIn();
+      allow create, update: if signedIn() && stamped()
+          && ((doc == 'bell' && bellShape()) || (doc == 'school' && schoolShape()));
+      allow delete: if false;
+    }
+
     // ── رصد المعلم لفصله: {d: خريطة الأيام, tn, ts} ──
     match /recs/{id} {
       allow read: if signedIn();

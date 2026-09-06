@@ -12,7 +12,7 @@
   const QUOTA = 24;                                                            // النصاب الافتراضي (حصة/أسبوع) — تحذير فقط
   // أيام الدراسة: أول خمسة من SIJIL.DAYS (الأحد…الخميس) — نفس النص المخزَّن في D.schedule[].d
   const DAYS = (function () { try { const d = S().DAYS; if (Array.isArray(d) && d.length >= 5) return d.slice(0, 5); } catch (e) { } return ["الأحد", "الإثنين", "الثلاثاء", "الأربعاء", "الخميس"]; })();
-  let PER = [1, 2, 3, 4, 5, 6, 7];                                             // الحصص المعروضة (تتوسّع إن حوى الجدول حصة أكبر)
+  let PER = [];                                                                // الحصص المعروضة — من جدول الأجراس (core) وتتوسّع إن حوى الجدول حصة أكبر
   const esc = (s) => S().esc(s == null ? "" : String(s));
   const $ = (q, root) => (root || document).querySelector(q);
   const warn = (...a) => { try { console.warn("[admin/schedule]", ...a); } catch (e) { } };
@@ -22,14 +22,42 @@
   let mode = "class", sel = "";               // "class" | "teacher" — sel: cid أو اسم المعلم
   let box = null, saving = false;
 
+  /* ═══ الحصص والأوقات من محرك الأجراس في core.js — لا يحسب هذا الملف وقتاً بنفسه ═══ */
+  // أكبر عدد حصص بين أيام الدراسة (يوم الخميس قد يكون أقصر) — لا رقم مثبّت
+  function bellMax() {
+    let mx = 1;
+    try { DAYS.forEach(d => { const k = (A().periodsOnly(d) || []).length; if (k > mx) mx = k; }); } catch (e) { mx = 7; }
+    return Math.min(12, Math.max(1, mx));
+  }
+  // اليوم المرجعي لأوقات الترويسة: اليوم الحالي إن كان يوم دراسة وإلا أول أيام الأسبوع
+  const refDay = () => { try { const t = A().todayName(); return DAYS.indexOf(t) >= 0 ? t : DAYS[0]; } catch (e) { return DAYS[0]; } };
+  // أعمدة الشبكة: حصة {p, t:"7:00–7:45"} وبينها فسحة فاصلة {brk, n, t}
+  function gcols() {
+    const Ad = A(), d = refDay(), out = [], after = {};
+    let seq = []; try { seq = Ad.periodsOf(d) || []; } catch (e) { seq = []; }
+    seq.forEach((x, i) => { if (x.brk) { const prev = seq[i - 1]; if (prev && prev.p) after[prev.p] = x; } });
+    const last = PER.length ? PER[PER.length - 1] : 0;
+    PER.forEach(p => {
+      let t = ""; try { t = Ad.periodTime(p, d); } catch (e) { t = ""; }
+      out.push({ p: p, t: t });
+      const b = after[p];
+      if (b && p < last) out.push({ brk: true, n: b.n, t: Ad.hm(b.from) + "–" + Ad.hm(b.to) });
+    });
+    return out;
+  }
+  function calcPer(all) {
+    let mx = bellMax();
+    (all || []).forEach(r => { const p = Number(r.p) || 0; if (p > mx && p <= 12) mx = p; });
+    PER = []; for (let p = 1; p <= mx; p++) PER.push(p);
+  }
+
   const rowsNow = () => (S().D && Array.isArray(S().D.schedule)) ? S().D.schedule : [];
   const normRow = (r) => ({ t: String((r && r.t) || "").trim(), d: String((r && r.d) || "").trim(), p: Number(r && r.p) || 0, c: String((r && r.c) || "").trim() });
-  const inGrid = (r) => DAYS.indexOf(r.d) >= 0 && PER.indexOf(r.p) >= 0;
+  const inGrid = (r) => DAYS.indexOf(r.d) >= 0 && r.p >= 1 && r.p <= 12;
   function load(force) {
-    if (work && !force) return;
+    if (work && !force) { calcPer(work.concat(extra)); return; }               // الأعمدة تتبع جدول الأجراس ولو تغيّر بعد التحميل
     const all = rowsNow().map(normRow).filter(r => r.t && r.c && r.d && r.p > 0);
-    let mx = 7; all.forEach(r => { if (r.p > mx && r.p <= 12) mx = r.p; });     // لا نُسقط حصة موجودة في البيانات
-    PER = []; for (let p = 1; p <= mx; p++) PER.push(p);
+    calcPer(all);                                                              // حصص جدول الأجراس، ولا نُسقط حصة موجودة في البيانات
     const seen = {}, uniq = [];
     all.forEach(r => { const k = r.t + "|" + r.d + "|" + r.p + "|" + r.c; if (seen[k]) return; seen[k] = 1; uniq.push(r); });
     extra = uniq.filter(r => !inGrid(r));                                      // أيام خارج أيام الدراسة (الجمعة/السبت) — تُحفظ كما هي بلا تحرير
@@ -122,6 +150,10 @@
 .sch-grid td.cell.conf{background:#fff0f0;box-shadow:inset 0 0 0 2px var(--bad)}
 .sch-grid td.cell.conf .t{color:var(--bad)}
 .sch-grid td.cell.now{outline:2px dashed var(--gold);outline-offset:-3px}
+.sch-grid th.brk{background:#1b3148;color:#e6d9b8;padding:6px 2px;font-size:11px}
+.sch-grid td.brk{background:#f3efe4;border:1px solid var(--line);min-width:26px;width:26px;padding:0}
+.sch-grid th.brk div{line-height:1.2}
+.sch-grid td.brk.now{background:#fdf6e3;color:#7a5a0d;outline:2px dashed var(--gold);outline-offset:-3px}
 .sch-badge{display:inline-flex;align-items:center;gap:5px;border-radius:20px;padding:6px 12px;font-weight:800;font-size:13px;background:#eef8f0;color:var(--ok);border:1.5px solid #c6e6cf;white-space:nowrap}
 .sch-badge.bad{background:#fff0f0;color:var(--bad);border-color:#f3c2c2}
 .sch-badge.warn{background:#fff8e6;color:#8a6d1c;border-color:#f0d9a0}
@@ -173,7 +205,7 @@
       </div>
       <div id="sch-msg"></div>
       <div id="sch-grid"></div>
-      <div class="sch-legend"><span><i style="background:#eaf6ee;border-color:var(--ok)"></i>معدَّل (غير محفوظ)</span><span><i style="background:#fff0f0;border-color:var(--bad)"></i>تعارض</span><span><i style="background:#fff;border:2px dashed var(--gold)"></i>الحصة الحالية</span><span>انقر أي خلية لتغييرها</span></div>
+      <div class="sch-legend"><span><i style="background:#eaf6ee;border-color:var(--ok)"></i>معدَّل (غير محفوظ)</span><span><i style="background:#fff0f0;border-color:var(--bad)"></i>تعارض</span><span><i style="background:#fff;border:2px dashed var(--gold)"></i>الحصة الحالية</span><span><i style="background:#f3efe4"></i>☕ فسحة</span><span>انقر أي خلية لتغييرها</span></div>
       <div id="sch-sum"></div>
       <div class="adm-tools sch-tools" style="margin-top:12px">
         <button class="btn-primary" id="sch-save">💾 حفظ الجدول</button>
@@ -181,21 +213,40 @@
         ${mode === "teacher" ? `<button class="btn-plain" id="sch-auto" style="flex:0 0 auto">🪄 توزيع تلقائي لبقية الحصص</button>` : ""}
       </div>
       <div class="adm-tools sch-tools">
+        <button class="btn-plain" id="sch-bell">⏰ أوقات الحصص والفسح</button>
         <button class="btn-gold" id="sch-print-all">🖨️ طباعة الجدول العام</button>
         <button class="btn-gold" id="sch-print-one">🖨️ طباعة ${mode === "class" ? "جدول الفصل" : "جدول المعلم"}</button>
         ${mode === "teacher" ? `<button class="btn-gold" id="sch-wa">💬 إرسال جدول المعلم واتساب</button>` : ""}
       </div>
-      <div class="empty-note" id="sch-tot" style="padding:6px 4px;text-align:right;min-height:0;font-size:12px">${work.length + extra.length} حصة في الجدول · ${DAYS.length} أيام × ${PER.length} حصص · النصاب ${QUOTA} حصة${extra.length ? ` · ${extra.length} حصة خارج أيام الدراسة تُحفظ كما هي` : ""}</div>`, 'id="sch-card"');
+      <div class="empty-note" id="sch-tot" style="padding:6px 4px;text-align:right;min-height:0;font-size:12px">${totLine()}</div>`, 'id="sch-card"');
     H.bindChips(box, (k) => { mode = k; sel = ""; render(box); }, "mode");
     $("#sch-sel", box).onchange = (e) => { sel = e.target.value; drawGrid(); drawSummary(); };
     $("#sch-save", box).onclick = save;
     $("#sch-undo", box).onclick = undo;
     const au = $("#sch-auto", box); if (au) au.onclick = autoFill;
+    const bl = $("#sch-bell", box); if (bl) bl.onclick = openBell;
     $("#sch-print-all", box).onclick = printAll;
     $("#sch-print-one", box).onclick = () => mode === "class" ? printClass(sel) : printTeacher(sel);
     const wa = $("#sch-wa", box); if (wa) wa.onclick = () => waSheet(sel);
     drawGrid(); drawSummary(); drawMsg(cf);
     if (!tOpts.length && mode === "teacher") $("#sch-msg", box).innerHTML = A().H.empty("لا معلمين في المدرسة بعد");
+  }
+
+  // سطر الإجمالي: أعداد الجدول + سطر جدول الأجراس (بداية الدوام والحصة والفسح ونهاية الدوام)
+  function totLine() {
+    let bell = ""; try { bell = A().bellLine(refDay()); } catch (e) { bell = ""; }
+    return `${work.length + extra.length} حصة في الجدول · ${DAYS.length} أيام × ${PER.length} حصص · النصاب ${QUOTA} حصة`
+      + (extra.length ? ` · ${extra.length} حصة خارج أيام الدراسة تُحفظ كما هي` : "") + (bell ? ` · 🔔 ${bell}` : "");
+  }
+  // بطاقة «⏰ أوقات الحصص والفسح» في تبويب ⚙️ الإدارة
+  function openBell() {
+    const s = S(), Ad = A();
+    if ((Ad.modules() || []).indexOf("manage") < 0) { Ad.toast("⏰ أوقات الحصص والفسح تُضبط من تبويب ⚙️ الإدارة"); return; }
+    try { s.switchTab("manage"); } catch (e) { return; }
+    setTimeout(() => {
+      const el = document.querySelector("#mg-bell, #adm-bell, [data-bell-card]");
+      if (el && el.scrollIntoView) { try { el.scrollIntoView({ block: "start", behavior: "smooth" }); } catch (e) { } }
+    }, 350);
   }
 
   function drawMsg(cf) {
@@ -213,16 +264,21 @@
     const m = $("#sch-mod", box); if (m) { m.className = "sch-badge " + (nMod ? "warn" : "off"); m.textContent = `✏️ ${nMod} خلية معدَّلة`; }
     const sv = $("#sch-save", box); if (sv) { sv.disabled = !nMod || !!cf.hard.length || saving; sv.textContent = saving ? "⏳ جارِ الحفظ…" : `💾 حفظ الجدول${nMod ? ` (${nMod})` : ""}`; }
     const un = $("#sch-undo", box); if (un) un.disabled = !nMod || saving;
-    const tt = $("#sch-tot", box); if (tt) tt.textContent = `${work.length + extra.length} حصة في الجدول · ${DAYS.length} أيام × ${PER.length} حصص · النصاب ${QUOTA} حصة` + (extra.length ? ` · ${extra.length} حصة خارج أيام الدراسة تُحفظ كما هي` : "");
+    const tt = $("#sch-tot", box); if (tt) tt.textContent = totLine();
     drawMsg(cf);
   }
 
   /* ═══ الشبكة: الأيام × الحصص ═══ */
   function gridHtml() {
-    const cks = conflictRows(conflicts()), today = A().todayName(), pNow = A().periodNow();
-    let h = `<table class="sch-grid"><tr><th class="day">اليوم</th>${PER.map(p => `<th>ح${p}<div dir="ltr" style="font-weight:400;font-size:9.5px;color:#c9d5e3">${esc(A().periodTime(p))}</div></th>`).join("")}</tr>`;
+    const cks = conflictRows(conflicts()), today = A().todayName(), pNow = A().periodNow(), bNow = A().breakNow(), cl = gcols();
+    const brkOn = (x) => !!(bNow && x.n === bNow.n);
+    let h = `<table class="sch-grid"><tr><th class="day">اليوم</th>${cl.map(x => x.brk
+      ? `<th class="brk" title="${esc(x.n + " " + x.t)}">☕<div dir="ltr" style="font-weight:400;font-size:8.5px">${esc(x.t)}</div></th>`
+      : `<th>ح${x.p}<div dir="ltr" style="font-weight:400;font-size:9.5px;color:#c9d5e3">${esc(x.t)}</div></th>`).join("")}</tr>`;
     DAYS.forEach(d => {
-      h += `<tr><td class="day">${esc(d)}</td>` + PER.map(p => {
+      h += `<tr><td class="day">${esc(d)}</td>` + cl.map(x => {
+        if (x.brk) return `<td class="brk${(d === today && brkOn(x)) ? " now" : ""}" title="${esc(x.n + " " + x.t)}"></td>`;
+        const p = x.p;
         const r = mode === "class" ? cellC(d, p, sel) : cellT(sel, d, p);
         let tx, cls = "cell";
         if (mode === "class") tx = r ? `<span class="t">${esc(shortName(r.t))}</span><span class="s">${esc(subjOf(r.t) || "—")}</span>` : `<span class="t">—</span>`;
@@ -231,7 +287,7 @@
         if (cellModified(d, p)) cls += " mod";
         if (r && cks.has(r)) cls += " conf";
         if (d === today && p === pNow) cls += " now";
-        const ttl = `${d} — الحصة ${p}` + (r ? ` — ${r.t} / ${clsName(r.c)}` : " — فارغة");
+        const ttl = `${d} — الحصة ${p} ${x.t}` + (r ? ` — ${r.t} / ${clsName(r.c)}` : " — فارغة");
         return `<td class="${cls}" data-d="${esc(d)}" data-p="${p}" role="button" tabindex="0" title="${esc(ttl)}">${tx}</td>`;
       }).join("") + "</tr>";
     });
@@ -395,7 +451,11 @@
     .sd td.pn{font-weight:800;background:#fbf6ea;width:22px}.sd td .s{display:block;font-size:8.5px;color:#666}.sd .one td{font-size:13px;padding:7px 6px}.sd .one td .s{font-size:10.5px}
     .sd .foot{font-size:11px;color:#555;margin-top:6px;text-align:center;line-height:1.7}
     .sd table.all td,.sd table.all th{padding:1px 3px;font-size:11px;line-height:1.15}
-    .sd .lg{font-size:9px;color:#333;line-height:1.45;margin-top:4px;border-top:1px solid #e5dcc5;padding-top:3px}</style>`;
+    .sd .lg{font-size:9px;color:#333;line-height:1.45;margin-top:4px;border-top:1px solid #e5dcc5;padding-top:3px}
+    .sd th.br,.sd td.br{background:#f3efe4;color:#7a6a44;width:18px;padding:1px 2px;font-size:9px;text-align:center}
+    .sd table.all td.pn{width:auto;white-space:nowrap}
+    .sd table.all td.pn .tm{font-style:normal;font-weight:400;font-size:7.5px;color:#555;margin-right:3px}
+    .sd table.all td.br{width:auto;font-size:7.5px;line-height:1;padding:0 4px}</style>`;
   /* الجدول العام وحده: ترويسة وإطار مضغوطان حتى تبقى الشبكة (35 صفاً × 12 فصلاً) بحجم مقروء داخل صفحة واحدة
      — المقياس المطلوب ≥ 0.9 (نص 11px يُطبع بنحو 10px) بدل 0.44 قبل الإصلاح. */
   const PCSS_ALL = PCSS + `<style>
@@ -404,15 +464,18 @@
     .tt{font-size:16px;margin:4px 0}</style>`;
   const rowsForPrint = () => { load(); return work; };
   const unsavedNote = () => changeCount() ? " — (يشمل تعديلات غير محفوظة)" : "";
+  const bellNote = () => { try { return A().bellLine(refDay()); } catch (e) { return ""; } };
   /* الجدول العام: صفوف = اليوم×الحصة، أعمدة = الفصول — A4 أفقي في صفحة واحدة.
      35 صفاً × 12 فصلاً: سطر المادة تحت اسم المعلم كان يضاعف ارتفاع الصف فيهبط تصغير الملاءمة إلى 0.44
      (نص بحجم 5px غير مقروء) — فالمادة انتقلت إلى «دليل المعلمين» أسفل الجدول، والخلية اسم مختصر فقط. */
   function printAll() {
-    const cls = classes(), rows = rowsForPrint();
+    const cls = classes(), rows = rowsForPrint(), cl = gcols();
     let h = `<table class="all"><tr><th>اليوم</th><th>ح</th>${cls.map(c => `<th>${esc(c.name)}</th>`).join("")}</tr>`;
-    DAYS.forEach(d => PER.forEach((p, i) => {
-      h += `<tr>${i === 0 ? `<td class="dy" rowspan="${PER.length}">${esc(d)}</td>` : ""}<td class="pn">${p}</td>` +
-        cls.map(c => { const r = cellC(d, p, c.id, rows); return `<td>${r ? esc(shortName(r.t)) : ""}</td>`; }).join("") + "</tr>";
+    DAYS.forEach(d => cl.forEach((x, i) => {
+      h += `<tr>${i === 0 ? `<td class="dy" rowspan="${cl.length}">${esc(d)}</td>` : ""}`;
+      if (x.brk) { h += `<td class="br" colspan="${cls.length + 1}">☕ ${esc(x.n)} <span dir="ltr">${esc(x.t)}</span></td></tr>`; return; }
+      h += `<td class="pn">${x.p}<i class="tm" dir="ltr">${esc(x.t)}</i></td>` +
+        cls.map(c => { const r = cellC(d, x.p, c.id, rows); return `<td>${r ? esc(shortName(r.t)) : ""}</td>`; }).join("") + "</tr>";
     }));
     h += "</table>";
     const cf = conflicts(rows);
@@ -421,11 +484,14 @@
     rows.forEach(r => names[r.t] = (names[r.t] || 0) + 1);
     const key = Object.keys(names).sort((a, b) => String(a).localeCompare(String(b), "ar"));
     const legend = key.length ? `<div class="lg"><b>دليل المعلمين:</b> ${key.map(t => `${esc(shortName(t))}${subjOf(t) ? " — " + esc(subjOf(t)) : ""} (${names[t]})`).join(" · ")}</div>` : "";
-    A().printHtml("الجدول المدرسي العام", PCSS_ALL + `<div class="sd">${h}${legend}<div class="foot">${rows.length} حصة أسبوعياً — ${cls.length} فصلاً — ${key.length} معلماً${cf.hard.length ? ` — ⚠️ ${cf.hard.length} تعارض غير محلول` : ""}${unsavedNote()}</div></div>`, { land: true, sub: "الجدول المدرسي العام" });
+    A().printHtml("الجدول المدرسي العام", PCSS_ALL + `<div class="sd">${h}${legend}<div class="foot">${rows.length} حصة أسبوعياً — ${cls.length} فصلاً — ${key.length} معلماً${cf.hard.length ? ` — ⚠️ ${cf.hard.length} تعارض غير محلول` : ""}${unsavedNote()}<br>🔔 ${esc(bellNote())}</div></div>`, { land: true, sub: "الجدول المدرسي العام" });
   }
   function oneGrid(fnCell) {
-    let h = `<table class="one"><tr><th>اليوم</th>${PER.map(p => `<th>ح${p}<div dir="ltr" style="font-weight:400;font-size:9px">${esc(A().periodTime(p))}</div></th>`).join("")}</tr>`;
-    DAYS.forEach(d => { h += `<tr><td class="dy">${esc(d)}</td>${PER.map(p => `<td>${fnCell(d, p)}</td>`).join("")}</tr>`; });
+    const cl = gcols();
+    let h = `<table class="one"><tr><th>اليوم</th>${cl.map(x => x.brk
+      ? `<th class="br">☕<div dir="ltr" style="font-weight:400;font-size:8px">${esc(x.t)}</div></th>`
+      : `<th>ح${x.p}<div dir="ltr" style="font-weight:400;font-size:9px">${esc(x.t)}</div></th>`).join("")}</tr>`;
+    DAYS.forEach(d => { h += `<tr><td class="dy">${esc(d)}</td>${cl.map(x => x.brk ? `<td class="br">☕</td>` : `<td>${fnCell(d, x.p)}</td>`).join("")}</tr>`; });
     return h + "</table>";
   }
   function printClass(cid) {
@@ -433,14 +499,14 @@
     const rows = rowsForPrint(), cnt = {};
     rows.filter(r => r.c === cid).forEach(r => cnt[r.t] = (cnt[r.t] || 0) + 1);
     const body = oneGrid((d, p) => { const r = cellC(d, p, cid, rows); return r ? esc(r.t) + `<span class="s">${esc(subjOf(r.t))}</span>` : "—"; });
-    A().printHtml(`جدول ${c.name}`, PCSS + `<div class="sd">${body}<div class="foot">${Object.keys(cnt).map(t => `${esc(shortName(t))}${subjOf(t) ? " (" + esc(subjOf(t)) + ")" : ""} ${cnt[t]}`).join(" · ")}${unsavedNote()}</div></div>`, { land: true, sub: "الجدول الأسبوعي للفصل" });
+    A().printHtml(`جدول ${c.name}`, PCSS + `<div class="sd">${body}<div class="foot">${Object.keys(cnt).map(t => `${esc(shortName(t))}${subjOf(t) ? " (" + esc(subjOf(t)) + ")" : ""} ${cnt[t]}`).join(" · ")}${unsavedNote()}<br>🔔 ${esc(bellNote())}</div></div>`, { land: true, sub: "الجدول الأسبوعي للفصل" });
   }
   function printTeacher(name) {
     if (!name) return;
     const rows = rowsForPrint(), n = loadOf(name, rows), cnt = {};
     rows.filter(r => r.t === name).forEach(r => cnt[r.c] = (cnt[r.c] || 0) + 1);
     const body = oneGrid((d, p) => { const r = cellT(name, d, p, rows); return r ? esc(clsName(r.c)) : "—"; });
-    A().printHtml(`جدول حصص ${name}`, PCSS + `<div class="sd"><div style="text-align:center;font-size:13px;color:#555;margin-bottom:4px">${esc(subjOf(name) || "")} — ${n} حصة أسبوعياً</div>${body}<div class="foot">${Object.keys(cnt).map(c => `${esc(clsName(c))} ${cnt[c]}`).join(" · ")}${unsavedNote()}</div></div>`, { land: true, sub: "جدول حصص المعلم" });
+    A().printHtml(`جدول حصص ${name}`, PCSS + `<div class="sd"><div style="text-align:center;font-size:13px;color:#555;margin-bottom:4px">${esc(subjOf(name) || "")} — ${n} حصة أسبوعياً</div>${body}<div class="foot">${Object.keys(cnt).map(c => `${esc(clsName(c))} ${cnt[c]}`).join(" · ")}${unsavedNote()}<br>🔔 ${esc(bellNote())}</div></div>`, { land: true, sub: "جدول حصص المعلم" });
   }
 
   /* ═══ إرسال جدول المعلم واتساب (نص) ═══ */
@@ -482,6 +548,12 @@
     if (s && !s.CLOUD && s.D && Array.isArray(s.DB.schedule) && s.DB.schedule.length) { s.D.schedule = s.DB.schedule; if (s.TE) { try { s.rerenderTab(); } catch (e) { } } }
   } catch (e) { warn("demo schedule restore", e); }
   if (window.SIJIL_ADMIN && typeof window.SIJIL_ADMIN.register === "function") window.SIJIL_ADMIN.register("schedule", (b) => { render(b); });
+  // حفظ أوقات الحصص من بطاقة الإدارة ⇒ إعادة رسم الشبكة بأعمدتها الجديدة (بلا فقد التعديلات غير المحفوظة)
+  try {
+    window.addEventListener("sijil:bell", () => {
+      try { if (box && document.body.contains(box) && A().currentTab() === "schedule") render(box); } catch (e) { }
+    });
+  } catch (e) { warn("bell listener"); }
 
   window.SIJIL_ADMIN_SCHEDULE = {
     DAYS, QUOTA, get PERIODS() { return PER.slice(); },
