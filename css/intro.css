@@ -70,6 +70,51 @@ body.has-intro #view-app{position:relative; z-index:36}
 html[dir=ltr] #intro-counter .bar i{transform-origin:0 50%}
 @media (min-width:768px){ #intro-counter{top:auto; bottom:22svh; inset-inline-end:10vw} }
 
+/* ═══ الجوال العمودي (≤600px، عمودي): تكوين ثابت — النص في الثلث العلوي، العدّاد تحته على جهة البداية ═══
+   !important لأن بعض المحطات (s2/s4) تضبط top/bottom/font-size للعدّاد كأنماط مضمّنة للمكتب */
+@media (max-width:600px) and (orientation:portrait){
+  /* تدرج كحلي خفيف يغطي الثلث العلوي كي يُقرأ النص فوق أي مشهد */
+  #intro-texts::before{
+    content:''; position:absolute; top:0; inset-inline:0; height:32svh; pointer-events:none;
+    background:linear-gradient(180deg,rgba(14,32,51,.45) 0%,rgba(14,32,51,.32) 55%,rgba(14,32,51,0) 100%)
+  }
+  #intro-texts .scene-text{
+    top:calc(62px + env(safe-area-inset-top)); inset-inline-start:5vw; inset-inline-end:5vw; width:auto;
+    max-height:calc(30svh - 62px - env(safe-area-inset-top)); overflow:hidden
+  }
+  #intro-texts .scene-text::before{inset:-12px -16px; background:radial-gradient(70% 80% at 100% 40%,rgba(7,19,34,.35),transparent 75%)}
+  #intro-texts .scene-text h2{font-size:clamp(24px,7vw,32px); line-height:1.15; margin-bottom:6px}
+  #intro-texts .scene-text p{font-size:14.5px; line-height:1.5; -webkit-line-clamp:2}
+
+  /* العدّاد: مباشرة تحت كتلة النص على جهة البداية (top 23svh → ينتهي قبل 32svh)،
+     الرقم والأشرطة جنباً إلى جنب داخل رقاقة كحلية واحدة كي يُقرأ فوق أي مشهد ولا يقترب من الحزام الأوسط */
+  #intro-counter{
+    top:23svh!important; bottom:auto!important; inset-inline-start:5vw!important; inset-inline-end:auto!important;
+    width:auto; max-width:min(56vw,250px); text-align:start;
+    display:flex; flex-direction:row; align-items:center; gap:10px;
+    padding:6px 12px 6px 10px; border-radius:14px; background:rgba(14,32,51,.66); box-shadow:0 6px 20px rgba(7,19,34,.3)
+  }
+  #intro-counter .num{
+    font-size:clamp(40px,12vw,56px)!important; line-height:1; padding:0!important; min-width:0!important;
+    background:none!important; box-shadow:none!important; border-radius:0!important; flex:none
+  }
+  /* عرض ثابت للأشرطة: الرقاقة shrink-to-fit فلا تملك الشبكة عرضاً ذاتياً (كانت تنهار إلى صفر) */
+  #intro-counter .bars{
+    display:grid; grid-template-columns:1fr 1fr; gap:3px 6px; margin:0; width:clamp(72px,24vw,100px); flex:none
+  }
+  #intro-counter .bars:empty{display:none}
+  #intro-counter .bar{height:4px}
+
+  /* التلميح قريب من أسفل الشاشة، لا يقترب من النص */
+  #intro-hint{bottom:calc(36px + env(safe-area-inset-bottom)); font-size:14px; padding:4px 12px}
+  #intro-hint::before{height:26px; margin-bottom:6px}
+}
+/* الهواتف الضيقة (≤380px): نص المحطة قد يحتاج ثلاثة أسطر بدل سطرين حتى لا يُقصّ في منتصف الجملة؛
+   الكتلة تبقى تحت 21svh (62px + عنوان 28px + 3 أسطر × 21px) */
+@media (max-width:380px) and (orientation:portrait){
+  #intro-texts .scene-text p{-webkit-line-clamp:3; font-size:14px; line-height:1.5}
+}
+
 /* ═══ تلميح التمرير ═══ */
 #intro-hint{
   position:absolute; bottom:calc(64px + env(safe-area-inset-bottom)); inset-inline:0; margin-inline:auto; width:max-content;

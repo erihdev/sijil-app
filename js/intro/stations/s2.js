@@ -13,6 +13,12 @@
   var TABLET_POS = [2.4, 1.75, -10.6];
   var TABLET_SCALE = 0.85;
   var CAM_POS = [5, 2.4, -8], CAM_LOOK = [0, 1.2, -14];
+  /* الجوال العمودي: الكاميرا أبعد وأعلى خارج ركن الطابور (لا رأس على بعد < 1.2م)، واللوح أصغر (≈46% من العرض)
+     في الحزام الأوسط يمين الشاشة تحت شارة العدّاد التي تقع تحت كتلة النص (قاعدة ui) */
+  var P_CAM_POS = [7.6, 3.0, -5.2], P_CAM_LOOK = [0.4, 1.3, -14];
+  /* العمودي: اللوح ≈ 55% من العرض (حافته اليمنى ≤ 92%) تحت رقاقة العدّاد، ويُعاد حسابه كل إطار من الكاميرا
+     الفعلية (لا من نقطة ثابتة) حتى يبقى في الكادر وهو ينغلق بينما الكاميرا تعبر نحو الباب (0.72–1) */
+  var P_TABLET = { dist: 3.4, right: 0.12, up: -0.32, scale: 0.78 };
   var GOLD = '#D7A93F', GOLD_PALE = '#F0D99A';
   var UI_NAME = 'reg';
 
@@ -27,6 +33,22 @@
   var counterOn = false;
   var counterVal = -1;
   var tmpV = null;
+  var camFwd = null, camRight = null, camUp = null, yAxis = null;
+
+  /* العمودي: موضع اللوح في فضاء الكاميرا الفعلية كل إطار (أمام/يمين/أعلى بالمتر) */
+  function placeFromCamera(mesh, cam) {
+    if (!camFwd) return false;
+    cam.getWorldDirection(camFwd);
+    camRight.crossVectors(camFwd, yAxis);
+    if (camRight.lengthSq() < 1e-6) return false;
+    camRight.normalize();
+    camUp.crossVectors(camRight, camFwd).normalize();
+    mesh.position.copy(cam.position)
+      .addScaledVector(camFwd, P_TABLET.dist)
+      .addScaledVector(camRight, P_TABLET.right)
+      .addScaledVector(camUp, P_TABLET.up);
+    return true;
+  }
 
   function ease(n, x) { return NS.ease(n, x); }
   function lerp(a, b, t) { return NS.lerp(a, b, t); }
@@ -69,18 +91,38 @@
   }
 
   /* ---------- موضع اللوح: المكتب حسب العقد، والجوال يُقرَّب إلى وسط الشاشة ---------- */
+  function isPortrait(ctx) {
+    if (!ctx || !ctx.isMobile) return false;
+    if (typeof ctx.portrait === 'boolean') return ctx.portrait;
+    return (win.innerHeight || 0) > (win.innerWidth || 1);
+  }
+
   function computeTabletBase(THREE, ctx) {
     var v = new THREE.Vector3(TABLET_POS[0], TABLET_POS[1], TABLET_POS[2]);
     if (!ctx.isMobile) return v;
+    var portrait = isPortrait(ctx);
     try {
-      var cam = new THREE.Vector3(CAM_POS[0], CAM_POS[1] + 0.4, CAM_POS[2]);
-      var look = new THREE.Vector3(CAM_LOOK[0], CAM_LOOK[1], CAM_LOOK[2]);
+      var cp = portrait ? P_CAM_POS : CAM_POS, cl = portrait ? P_CAM_LOOK : CAM_LOOK;
+      var cam = new THREE.Vector3(cp[0], cp[1] + 0.4, cp[2]);
+      var look = new THREE.Vector3(cl[0], cl[1], cl[2]);
       var fwd = look.clone().sub(cam).normalize();
       var right = new THREE.Vector3().crossVectors(fwd, new THREE.Vector3(0, 1, 0)).normalize();
       var up = new THREE.Vector3().crossVectors(right, fwd).normalize();
-      v.copy(cam).addScaledVector(fwd, 3.4).addScaledVector(right, -0.05).addScaledVector(up, -0.3);
+      if (portrait) v.copy(cam).addScaledVector(fwd, P_TABLET.dist).addScaledVector(right, P_TABLET.right).addScaledVector(up, P_TABLET.up);
+      else v.copy(cam).addScaledVector(fwd, 3.4).addScaledVector(right, -0.05).addScaledVector(up, -0.3);
     } catch (e) {}
     return v;
+  }
+
+  var layoutPortrait = null;
+  function syncLayout(ctx) {
+    var por = isPortrait(ctx);
+    if (por === layoutPortrait) return;
+    layoutPortrait = por;
+    var THREE = ctx.THREE || win.THREE;
+    if (!THREE) return;
+    tabletBase = computeTabletBase(THREE, ctx);
+    tabletScale = ctx.isMobile ? (por ? P_TABLET.scale : 1) : TABLET_SCALE;
   }
 
   /* ---------- البناء ---------- */
@@ -88,8 +130,9 @@
     var THREE = ctx.THREE || win.THREE;
     if (!THREE || !group) return;
     tmpV = new THREE.Vector3();
-    tabletBase = computeTabletBase(THREE, ctx);
-    tabletScale = ctx.isMobile ? 1 : TABLET_SCALE;
+    camFwd = new THREE.Vector3(); camRight = new THREE.Vector3(); camUp = new THREE.Vector3(); yAxis = new THREE.Vector3(0, 1, 0);
+    layoutPortrait = null;
+    syncLayout(ctx);
 
     /* النجوم: واحدة فوق كل صف من الطابور */
     try {
@@ -209,7 +252,7 @@
     mesh.visible = vis;
     if (!vis) return;
     var time = ctx.time || 0;
-    mesh.position.copy(tabletBase);
+    if (!(layoutPortrait && ctx.camera && placeFromCamera(mesh, ctx.camera))) mesh.position.copy(tabletBase);
     mesh.position.y += 0.35 * leave + Math.sin(time * 1.2) * 0.03;
     var sc = tabletScale * lerp(0.6, 1, enter) * (1 - 0.45 * leave);
     mesh.scale.set(sc, sc, sc);
@@ -217,19 +260,33 @@
       tmpV.copy(ctx.camera.position);
       mesh.lookAt(tmpV);
     }
-    mesh.rotateY(ctx.isMobile ? -0.21 : -0.3);
+    mesh.rotateY(ctx.isMobile ? (layoutPortrait ? -0.16 : -0.21) : -0.3);
     mesh.rotateX(-0.06 + Math.sin(time * 0.8) * 0.015);
     tablet.setOpen(open);
   }
 
   /* العدّاد هنا شارة صغيرة (لا العدّاد البطل كما في المحطة 4): خلفية كحلية وحجم أصغر؛
      على المكتب أعلى يسار تحت الشريط (النص أسفل يمين)، وعلى الجوال أسفل الشاشة بعيداً عن نص المحطة. */
-  function styleCounter(host, on, isMobile) {
+  function styleCounter(host, on, ctx) {
     if (!host) return;
     var num = host.querySelector('.num');
+    var isMobile = !!(ctx && ctx.isMobile);
+    var portrait = isPortrait(ctx);
     try {
       if (on) {
         host.style.zIndex = '3';
+        if (portrait) {
+          /* الجوال العمودي: الموضع من قاعدة ui/css (تحت كتلة النص على جهة البداية) — لا نلمسه؛ الرقم بلا كبسولة
+             (css يصفّر الحشو هناك) واكتفاء بهالة داكنة كي يُقرأ فوق الفناء الفاتح */
+          host.style.top = ''; host.style.bottom = ''; host.style.insetInlineEnd = '';
+          if (num) {
+            num.style.fontSize = ''; num.style.padding = ''; num.style.borderRadius = ''; num.style.background = '';
+            num.style.minWidth = '';
+            num.style.textShadow = '0 2px 6px rgba(7,19,34,.95), 0 0 22px rgba(7,19,34,.75)';
+            num.style.boxShadow = '';
+          }
+          return;
+        }
         if (isMobile) { host.style.top = 'auto'; host.style.bottom = '7svh'; }
         else { host.style.top = '14svh'; host.style.bottom = 'auto'; host.style.insetInlineEnd = '6vw'; }
         if (num) {
@@ -239,10 +296,11 @@
           num.style.background = 'rgba(14,32,51,.78)';
           num.style.boxShadow = '0 8px 28px rgba(7,19,34,.35)';
           num.style.minWidth = '2.2em';
+          num.style.textShadow = '';
         }
       } else {
         host.style.zIndex = ''; host.style.top = ''; host.style.bottom = ''; host.style.insetInlineEnd = '';
-        if (num) { num.style.fontSize = ''; num.style.padding = ''; num.style.borderRadius = ''; num.style.background = ''; num.style.boxShadow = ''; num.style.minWidth = ''; }
+        if (num) { num.style.fontSize = ''; num.style.padding = ''; num.style.borderRadius = ''; num.style.background = ''; num.style.boxShadow = ''; num.style.minWidth = ''; num.style.textShadow = ''; }
       }
     } catch (e) {}
   }
@@ -254,13 +312,13 @@
     if (!ui || !ui.counter) return;
     var inWindow = p >= 0.28 && p < 0.85;
     if (!inWindow) {
-      if (counterOn) { counterOn = false; counterVal = -1; try { ui.counter.hide(); } catch (e) {} styleCounter(counterHost(), false, ctx.isMobile); }
+      if (counterOn) { counterOn = false; counterVal = -1; try { ui.counter.hide(); } catch (e) {} styleCounter(counterHost(), false, ctx); }
       return;
     }
     if (!counterOn) {
       counterOn = true; counterVal = -1;
       try { ui.counter.show(STUDENTS, []); } catch (e) {}
-      styleCounter(counterHost(), true, ctx.isMobile);
+      styleCounter(counterHost(), true, ctx);
     }
     var v = Math.round(STUDENTS * ease('out', seg(p, 0.3, 0.64)));
     if (v !== counterVal) { counterVal = v; try { ui.counter.set(v); } catch (e) {} }
@@ -269,6 +327,7 @@
   function update(p, ctx) {
     p = clamp(+p || 0, 0, 1);
     var time = ctx.time || 0;
+    syncLayout(ctx);
     ensureTablet(ctx);
     applyTablet(p, ctx);
     applyStars(p, time);
@@ -298,7 +357,7 @@
 
   function unload(ctx) {
     try { if (tablet) tablet.leave(); } catch (e) {}
-    if (counterOn) { counterOn = false; counterVal = -1; try { (ctx.ui || NS.ui).counter.hide(); } catch (e) {} styleCounter(counterHost(), false, ctx.isMobile); }
+    if (counterOn) { counterOn = false; counterVal = -1; try { (ctx.ui || NS.ui).counter.hide(); } catch (e) {} styleCounter(counterHost(), false, ctx); }
     applyBenches(0, 0);
     applyStars(0, 0);
     if (tablet) tablet.mesh.visible = false;
@@ -325,9 +384,10 @@
        (لا إطار ميت على قائم الباب) */
     cam: [
       { t: 0.0, pos: [0, 2.6, 0.6], look: [0.5, 1.6, -10] },
-      { t: 0.26, pos: [5, 2.4, -8], look: [0, 1.2, -14] },
-      { t: 0.72, pos: [4.85, 2.38, -8.2], look: [0.2, 1.15, -14.2] },
-      { t: 1.0, pos: [0.3, 2.3, -21], look: [0, 2, -30] }
+      /* mpos/mlook: الجوال العمودي فقط — خارج ركن الطابور وأعلى، ثم عبور فوق الرؤوس نحو الباب */
+      { t: 0.26, pos: [5, 2.4, -8], look: [0, 1.2, -14], mpos: P_CAM_POS, mlook: P_CAM_LOOK },
+      { t: 0.72, pos: [4.85, 2.38, -8.2], look: [0.2, 1.15, -14.2], mpos: [7.45, 2.98, -5.45], mlook: [0.5, 1.25, -14.2] },
+      { t: 1.0, pos: [0.3, 2.3, -21], look: [0, 2, -30], mpos: [3.0, 3.4, -21], mlook: [0, 2, -30] }
     ],
     build: function (ctx) { group = this.group; build(ctx); },
     load: load,

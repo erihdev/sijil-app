@@ -1,6 +1,9 @@
 /* سجل المتابعة الرقمي — الجولة السينمائية: المحطة 4 «جدار الدروس»
    الكاميرا تدولي على جدار الدروس: البلاطات الصغيرة تنبثق موجةً من اليمين، ثلاث بلاطات بطلة
-   تطير نحو الكاميرا وتستقر ثم تعود، عدّاد ٠→٧٨٢ مع 11 شريط مادة، وشريط أسماء المواد أسفل الجدار. */
+   تطير نحو الكاميرا وتستقر ثم تعود، عدّاد ٠→٧٨٢ مع 11 شريط مادة، وشريط أسماء المواد أسفل الجدار.
+   الجوال العمودي (ctx.portrait): الكاميرا أبعد وشبه عمودية على الجدار (mpos/mlook) فيظهر كشبكة
+   مستوية داخل الحزام الأوسط، البلاطات البطلة أصغر وتحت العدّاد،
+   وأسماء المواد على شريط قريب من الكاميرا (4 صفوف) داخل الكادر بدل الشريط الطويل على الجدار. */
 (function () {
   'use strict';
   var NS = window.SIJIL_INTRO = window.SIJIL_INTRO || {};
@@ -30,7 +33,7 @@
     { cell: 15, atlas: 30, pos: [3.93, 1.725, -51] },
     { cell: 23, atlas: 46, pos: [3.93, 0.975, -55] }
   ];
-  /* مواضع الاستقرار أمام الكاميرا (يمين/أعلى/بُعد/انعراج/حجم) */
+  /* مواضع الاستقرار أمام الكاميرا (يمين/أعلى/بُعد/انعراج/حجم) — بالمتر في فضاء الكاميرا */
   var SLOTS_DESKTOP = [
     { right: -0.92, up: 0.16, dist: 2.0, yaw: 0.16, size: 0.62 },
     { right: 0.0, up: 0.38, dist: 2.05, yaw: 0.0, size: 0.62 },
@@ -41,6 +44,15 @@
     { right: 0.05, up: -0.62, dist: 2.0, yaw: 0.0, size: 0.46 },
     { right: 0.24, up: -0.88, dist: 2.0, yaw: -0.12, size: 0.46 }
   ];
+  /* الجوال العمودي: كسور من عرض/ارتفاع الشاشة المرئي عند البُعد dist (sx يمين موجب، sy أعلى موجب)؛
+     حرف V صغير تحت العدّاد داخل الحزام 54%–78% من الارتفاع، وعرضه الكلي ≈ 83% من الشاشة */
+  var SLOTS_PORTRAIT = [
+    { sx: -0.27, sy: -0.10, dist: 2.0, yaw: 0.12, size: 0.25 },
+    { sx: 0.0, sy: -0.26, dist: 2.0, yaw: 0.0, size: 0.25 },
+    { sx: 0.27, sy: -0.10, dist: 2.0, yaw: -0.12, size: 0.25 }
+  ];
+  /* الشريط القريب (أسماء المواد) واللوحة الكحلية خلف العدّاد في العمودي — كسور شاشة */
+  var RIBBON_P = { sx: 0.0, sy: -0.375, dist: 2.4, w: 0.84, h: 0.097 };
   /* توقيت الطيران (p محلي): انطلاق، مدة الصعود، بدء العودة، مدة العودة */
   var FLIGHT = [
     { go: 0.44, up: 0.13, back: 0.77, down: 0.13 },
@@ -57,6 +69,19 @@
   function clamp(x, a, b) { return x < a ? a : (x > b ? b : x); }
   function remap(x, a, b) { return clamp((x - a) / ((b - a) || 1), 0, 1); }
   function lerp(a, b, t) { return a + (b - a) * t; }
+  function isPortrait(ctx) {
+    if (ctx && ctx.portrait != null) return !!ctx.portrait;
+    try { return !!(ctx && ctx.isMobile && window.innerHeight > window.innerWidth); } catch (e) { return false; }
+  }
+  function roundRect(c2d, x, y, w, h, r) {
+    c2d.beginPath();
+    c2d.moveTo(x + r, y);
+    c2d.lineTo(x + w - r, y); c2d.quadraticCurveTo(x + w, y, x + w, y + r);
+    c2d.lineTo(x + w, y + h - r); c2d.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+    c2d.lineTo(x + r, y + h); c2d.quadraticCurveTo(x, y + h, x, y + h - r);
+    c2d.lineTo(x, y + r); c2d.quadraticCurveTo(x, y, x + r, y);
+    c2d.closePath();
+  }
 
   NS.registerStation({
     id: 's4-library',
@@ -67,11 +92,15 @@
       headline: 'مكتبة دروس جاهزة للعرض',
       copy: '١١ مادة للصفوف ٢–٦، بصور وصوت، تُفتح على السبورة بضغطة.'
     },
-    /* look.y أخفض قليلاً ليدخل صف أسماء المواد في الكادر؛ نقطة تسليم تنظر نحو النافذة (لا فراغ رمادي) */
+    /* look.y أخفض قليلاً ليدخل صف أسماء المواد في الكادر؛ نقطة تسليم تنظر نحو النافذة (لا فراغ رمادي).
+       المكتب/الأفقي: النقاط الثلاث نفسها بلا تغيير (pos/look).
+       العمودي (mpos/mlook): دخول من قرب وسط الممر x≈−2.4 (الخط من نهاية المحطة 3 يعبر فتحة الفصل) ثم
+       انزياح بطيء إلى الجهة اليسرى x≈−3.3 (6.3→7.3م من الجدار) والنظر شبه عمودياً على الجدار مع رفع الهدف (y≈2.75) لينزل الجدار
+       تحت كتلة النص والعدّاد (ui: 23–30svh): قمّته ≈ 40% وقاعدته ≈ 75% من ارتفاع الشاشة. */
     cam: [
-      { t: 0.0, pos: [0, 1.8, -45], look: [3.9, 1.8, -49] },
-      { t: 0.86, pos: [0, 1.8, -55], look: [3.9, 1.8, -56] },
-      { t: 1.0, pos: [0, 1.8, -56.2], look: [-3.9, 2, -58] }
+      { t: 0.0, pos: [0, 1.8, -45], look: [3.9, 1.8, -49], mpos: [-2.4, 2.4, -44.9], mlook: [3.9, 2.85, -47.6] },
+      { t: 0.86, pos: [0, 1.8, -55], look: [3.9, 1.8, -56], mpos: [-3.3, 2.4, -50.7], mlook: [3.9, 2.75, -51.1] },
+      { t: 1.0, pos: [0, 1.8, -56.2], look: [-3.9, 2, -58], mpos: [-1.6, 2.0, -55.6], mlook: [-3.9, 2.0, -58] }
     ],
     posterTitle: 'مكتبة دروس جاهزة للعرض',
 
@@ -82,6 +111,7 @@
       st._tmp = null;
       st._heroes = [];
       st._strip = null;
+      st._ribbon = null;
       st._tiles = null;
       st._orig = null;
       st._lastP = -1;
@@ -107,7 +137,7 @@
           st._count = wall.tiles.count;
           if (wall.tiles.instanceMatrix.setUsage) wall.tiles.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
           /* لكل بلاطة: لحظة الظهور (موجة من اليمين z=−44 نحو −56 مع ميل طفيف بالارتفاع)*/
-          var starts = new Float32Array(st._count);
+          var starts = new Float32Array(st._count), startsP = new Float32Array(st._count);
           for (var i = 0; i < st._count; i++) {
             var o = i * 16;
             var y = st._orig[o + 13], z = st._orig[o + 14];
@@ -115,8 +145,13 @@
             var jitter = ((i * 7919) % 97) / 97 * 0.025;
             /* الموجة تبدأ بعد مرحلة الاستلام (0.15) وتكتمل قبل 0.65 فيبقى العدّاد «٠» حتى 0.15 و«٧٨٢» من 0.70 */
             starts[i] = 0.155 + az * 0.34 + ay * 0.04 + jitter;
+            /* العمودي: الكادر عند p≈0.2 يغطي z≈−46.6..−50.6 فتبدأ الموجة من أصل القسم المؤطَّر (z −46.6) لا من طرف الجدار
+               (تكتمل عند z −56 بحلول ≈0.56 كما في المكتب فلا يتغيّر إيقاع العدّاد) */
+            var azP = clamp((-46.6 - z) / 9.4, 0, 1);
+            startsP[i] = 0.155 + azP * 0.34 + ay * 0.04 + jitter;
           }
           st._starts = starts;
+          st._startsP = startsP;
         }
       } catch (e) { st._tiles = null; st._orig = null; }
 
@@ -166,10 +201,11 @@
         } catch (e) {}
       }
 
-      /* شريط أسماء المواد أسفل الجدار (نسيج canvas واحد، رسمة واحدة) */
+      var colors = (wall && wall.subjects && wall.subjects.length === 11) ? wall.subjects : FALLBACK_COLORS;
+
+      /* شريط أسماء المواد أسفل الجدار (نسيج canvas واحد، رسمة واحدة) — المكتب والجوال الأفقي */
       try {
         if (ctx.media && typeof ctx.media.canvasTexture === 'function') {
-          var colors = (wall && wall.subjects && wall.subjects.length === 11) ? wall.subjects : FALLBACK_COLORS;
           var W = 2048, H = 64;
           var ct = ctx.media.canvasTexture(W, H, function (c2d, w, hh) {
             var cw = w / SUBJECTS.length;
@@ -210,6 +246,63 @@
         }
       } catch (e) { st._strip = null; }
 
+      /* الجوال العمودي: شريط قريب من الكاميرا (فضاء الكاميرا) بأربعة صفوف × 3 خلايا؛
+         يُبنى فقط على الجوال (لا كلفة على المكتب) ويُحرَّك كل إطار في _placeOnScreen */
+      if (ctx.isMobile) {
+        try {
+          if (ctx.media && typeof ctx.media.canvasTexture === 'function') {
+            var RW = 768, RH = 192, ROWH = 48, COLS = 3;
+            var rt = ctx.media.canvasTexture(RW, RH, function (c2d, w, hh) {
+              try { c2d.clearRect(0, 0, w, hh); } catch (e) {}
+              var cw = w / COLS;
+              var rows = Math.ceil(SUBJECTS.length / COLS);
+              for (var k = 0; k < SUBJECTS.length; k++) {
+                var row = Math.floor(k / COLS), colI = k % COLS;
+                var inRow = Math.min(COLS, SUBJECTS.length - row * COLS);
+                var shift = (COLS - inRow) * cw / 2; /* الصف الأخير (خليتان) يتوسّط */
+                var x1 = w - colI * cw - shift, x0 = x1 - cw;
+                var y0 = row * ROWH, yc = y0 + ROWH / 2;
+                c2d.fillStyle = 'rgba(14,32,51,0.78)';
+                roundRect(c2d, x0 + 3, y0 + 3, cw - 6, ROWH - 6, 8); c2d.fill();
+                c2d.fillStyle = hex(colors[k]);
+                c2d.beginPath(); c2d.arc(x1 - 16, yc, 6, 0, Math.PI * 2); c2d.fill();
+                c2d.textBaseline = 'middle';
+                c2d.textAlign = 'right';
+                c2d.direction = 'rtl';
+                var cnt = arNum(SUBJECTS[k].value);
+                c2d.font = '500 20px Tajawal, system-ui, sans-serif';
+                var cntW = 0;
+                try { cntW = c2d.measureText(cnt).width; } catch (e) { cntW = 30; }
+                var fs = 30, maxW = cw - 44 - cntW - 8, name = SUBJECTS[k].name, tw = 0;
+                for (var tries = 0; tries < 8; tries++) {
+                  c2d.font = '700 ' + fs + 'px Tajawal, Changa, system-ui, sans-serif';
+                  try { tw = c2d.measureText(name).width; } catch (e) { tw = 0; }
+                  if (tw <= maxW || fs <= 18) break;
+                  fs -= 2;
+                }
+                c2d.fillStyle = '#F0D99A';
+                c2d.fillText(name, x1 - 30, yc);
+                c2d.fillStyle = 'rgba(248,245,239,0.72)';
+                c2d.font = '500 20px Tajawal, system-ui, sans-serif';
+                c2d.textAlign = 'left';
+                c2d.fillText(cnt, x0 + 12, yc + 1);
+              }
+              if (rows < 1) return;
+            });
+            st._ribbonTex = rt;
+            var ribbonMat = new THREE.MeshBasicMaterial({ map: rt.texture, transparent: true, opacity: 0, depthWrite: false, depthTest: false });
+            var ribbon = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), ribbonMat);
+            ribbon.name = 'subjectRibbon';
+            ribbon.visible = false;
+            ribbon.frustumCulled = false;
+            ribbon.renderOrder = 6;
+            st.group.add(ribbon);
+            st._ribbon = ribbon;
+
+          }
+        } catch (e) { st._ribbon = null; }
+      }
+
       st._bars = SUBJECTS.map(function (s) { return { name: s.name, value: s.value }; });
     },
 
@@ -243,6 +336,7 @@
       try { st._counter(ctx || NS.ctx, 0, false); } catch (e) {}
       for (var i = 0; i < (st._heroes ? st._heroes.length : 0); i++) { st._heroes[i].mesh.visible = false; st._heroes[i].k = 0; }
       if (st._strip) { st._strip.visible = false; st._strip.material.opacity = 0; }
+      if (st._ribbon) { st._ribbon.visible = false; st._ribbon.material.opacity = 0; }
     },
 
     /* حارس خفيف أثناء ظهور العدّاد: إن غادرت المحطة بقفزة دون المرور بمرحلة التسليم يُخفى كل شيء */
@@ -270,12 +364,12 @@
     },
 
     /* موجة البلاطات: تعيد عدد البلاطات الظاهرة (للعدّاد) */
-    _wave: function (p) {
+    _wave: function (p, portrait) {
       var st = this;
       if (!st._tiles || !st._orig) return Math.round(TOTAL * ease('out', remap(p, 0.155, 0.62)));
       var WAVE_END = 0.64;
       if (p >= WAVE_END && st._lastP >= WAVE_END) return st._count;
-      var arr = st._tiles.instanceMatrix.array, orig = st._orig, starts = st._starts;
+      var arr = st._tiles.instanceMatrix.array, orig = st._orig, starts = (portrait && st._startsP) ? st._startsP : st._starts;
       var shown = 0, DUR = 0.07;
       for (var i = 0; i < st._count; i++) {
         var o = i * 16;
@@ -300,12 +394,12 @@
         st._counterOn = true;
         st._counterA = -1;
         st._counterHost = ui.counter.show(TOTAL, st._bars) || document.getElementById('intro-counter');
-        /* على الجوال يتزاحم العدّاد مع نص المحطة في الثلث العلوي فنُنزله تحته؛
+        /* على الجوال الأفقي يتزاحم العدّاد مع نص المحطة في الثلث العلوي فنُنزله تحته (في العمودي يحكم css/intro.css: 23svh)؛
            على المكتب يقف أعلى اليمين فوق الجدار الفارغ لا فوق صور الدروس (النص أسفل اليمين) */
         if (st._counterHost) {
           try {
             var hs = st._counterHost.style;
-            if (ctx.isMobile) { hs.top = '32vh'; hs.top = '32svh'; }
+            if (ctx.isMobile) { if (!isPortrait(ctx)) { hs.top = '32vh'; hs.top = '32svh'; } }
             else { hs.top = '16svh'; hs.bottom = 'auto'; hs.insetInlineStart = '6vw'; hs.insetInlineEnd = 'auto'; }
           } catch (e) {}
         }
@@ -334,16 +428,41 @@
       }
     },
 
-    _flyHeroes: function (p, ctx) {
-      var st = this, T = st._tmp;
-      var cam = ctx.camera;
-      if (!T || !cam || !st._heroes.length) return;
-      var slots = ctx.isMobile ? SLOTS_MOBILE : SLOTS_DESKTOP;
+    /* يحسب محاور الكاميرا مرة لكل إطار (fwd/right/up/camQ) */
+    _camAxes: function (cam) {
+      var T = this._tmp;
       cam.updateMatrixWorld();
       cam.getWorldDirection(T.fwd);
       T.right.setFromMatrixColumn(cam.matrixWorld, 0).normalize();
       T.up.setFromMatrixColumn(cam.matrixWorld, 1).normalize();
       T.camQ.copy(cam.quaternion);
+    },
+
+    /* الأبعاد المرئية عند بُعد dist من الكاميرا: [عرض، ارتفاع] بالمتر */
+    _viewSize: function (cam, dist) {
+      var fov = (cam && +cam.fov) || 62, asp = (cam && +cam.aspect) || 0.46;
+      var hv = 2 * dist * Math.tan(fov * Math.PI / 360);
+      return [hv * asp, hv];
+    },
+
+    /* يضع لوحاً 1×1 في فضاء الكاميرا وفق كسور الشاشة (sx يمين، sy أعلى) وعرض/ارتفاع كسور المرئي */
+    _placeOnScreen: function (mesh, cam, spec) {
+      var T = this._tmp;
+      var vs = this._viewSize(cam, spec.dist);
+      mesh.position.copy(cam.position)
+        .addScaledVector(T.fwd, spec.dist)
+        .addScaledVector(T.right, spec.sx * vs[0])
+        .addScaledVector(T.up, spec.sy * vs[1]);
+      mesh.quaternion.copy(T.camQ);
+      mesh.scale.set(spec.w * vs[0], spec.h * vs[1], 1);
+    },
+
+    _flyHeroes: function (p, ctx, portrait) {
+      var st = this, T = st._tmp;
+      var cam = ctx.camera;
+      if (!T || !cam || !st._heroes.length) return;
+      var slots = portrait ? SLOTS_PORTRAIT : (ctx.isMobile ? SLOTS_MOBILE : SLOTS_DESKTOP);
+      var arcUp = portrait ? 0.10 : 0.22, arcSide = portrait ? 0.05 : 0.12;
       for (var i = 0; i < st._heroes.length; i++) {
         var hr = st._heroes[i], f = FLIGHT[i] || FLIGHT[0], sl = slots[i] || slots[0];
         var k;
@@ -355,18 +474,23 @@
         var vis = k > 0.002;
         hr.mesh.visible = vis;
         if (!vis) continue;
+        var rightM, upM, sizeM;
+        if (portrait) {
+          var vs = st._viewSize(cam, sl.dist);
+          rightM = sl.sx * vs[0]; upM = sl.sy * vs[1]; sizeM = sl.size * vs[0];
+        } else { rightM = sl.right; upM = sl.up; sizeM = sl.size; }
         T.tgt.copy(cam.position)
           .addScaledVector(T.fwd, sl.dist)
-          .addScaledVector(T.right, sl.right)
-          .addScaledVector(T.up, sl.up);
+          .addScaledVector(T.right, rightM)
+          .addScaledVector(T.up, upM);
         var arc = Math.sin(k * Math.PI);
         hr.mesh.position.copy(hr.rest).lerp(T.tgt, k)
-          .addScaledVector(T.up, arc * 0.22)
-          .addScaledVector(T.right, arc * (i - 1) * 0.12);
+          .addScaledVector(T.up, arc * arcUp)
+          .addScaledVector(T.right, arc * (i - 1) * arcSide);
         T.yawQ.setFromEuler(T.e.set(0, sl.yaw, 0));
         T.q.copy(T.camQ).multiply(T.yawQ);
         hr.mesh.quaternion.slerpQuaternions(T.wallQ, T.q, ease('inOut', k));
-        var s = lerp(hr.size, sl.size, k);
+        var s = lerp(hr.size, sizeM, k);
         hr.mesh.scale.set(s, s, 1);
         hr.frame.visible = k > 0.05;
         var fs = 1 + 0.07 * ease('out', remap(k, 0.05, 0.6));
@@ -379,22 +503,32 @@
       var st = this;
       p = clamp(+p || 0, 0, 1);
       if (!st._tmp && !st._tiles) { st._lastP = p; return; }
+      var portrait = isPortrait(ctx);
+      var cam = ctx.camera;
+      if (st._tmp && cam) st._camAxes(cam);
 
       /* 0–.15 استلام: العدّاد يدخل على «٠»؛ .15–.65 نهوض: موجة البلاطات تكتمل والعدّاد يعدّ حتى ٧٨٢؛
          .55–.75 ذروة: البلاطات البطلة أمام الكاميرا؛ .75–1 تسليم: تعود والعدّاد يخفت */
-      var shown = st._wave(p);
+      var shown = st._wave(p, portrait);
 
       var on = p > 0.03 && p < 0.93;
       var alpha = ease('out', remap(p, 0.04, 0.14)) * (1 - ease('in', remap(p, 0.80, 0.90)));
       st._counter(ctx, Math.min(TOTAL, shown), on, alpha);
 
+      var so = ease('out', remap(p, 0.08, 0.32)) * (1 - ease('in', remap(p, 0.80, 0.92)));
       if (st._strip) {
-        var so = ease('out', remap(p, 0.08, 0.32)) * (1 - ease('in', remap(p, 0.80, 0.92)));
-        st._strip.visible = so > 0.003;
-        st._strip.material.opacity = so;
+        var stripOn = !portrait && so > 0.003;
+        st._strip.visible = stripOn;
+        st._strip.material.opacity = stripOn ? so : 0;
+      }
+      if (st._ribbon) {
+        var ribOn = portrait && st._tmp && cam && so > 0.003;
+        st._ribbon.visible = ribOn;
+        st._ribbon.material.opacity = ribOn ? so : 0;
+        if (ribOn) st._placeOnScreen(st._ribbon, cam, RIBBON_P);
       }
 
-      st._flyHeroes(p, ctx);
+      st._flyHeroes(p, ctx, portrait);
       st._lastP = p;
     }
   });

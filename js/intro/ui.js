@@ -45,6 +45,17 @@
     ':where(#intro-texts .scene-text h2){font-family:Changa,Tajawal,sans-serif;font-weight:800;font-size:clamp(28px,6vw,56px);line-height:1.15;margin:0 0 .35em;color:' + COLORS.paleGold + ';will-change:transform}',
     ':where(#intro-texts .scene-text p){font-family:Tajawal,sans-serif;font-weight:500;font-size:clamp(16px,2.2vw,22px);line-height:1.6;margin:0;color:' + COLORS.cream + ';will-change:transform}',
     '@media (max-width:768px){:where(#intro-texts .scene-text){top:9svh;inset-inline-start:5vw;inset-inline-end:5vw;max-width:none}:where(#intro-texts .scene-text p){display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}}',
+    /* الجوال العمودي: النص في الثلث العلوي فوق تدرج كحلي، والعدّاد تحته على جهة البداية (القواعد الكاملة في intro.css؛ هذه احتياط بصفر خصوصية) */
+    '@media (max-width:600px) and (orientation:portrait){' +
+      ':where(#intro-texts)::before{content:"";position:absolute;top:0;inset-inline:0;height:32svh;pointer-events:none;background:linear-gradient(180deg,rgba(14,32,51,.45),rgba(14,32,51,0))}' +
+      ':where(#intro-texts .scene-text){top:calc(62px + env(safe-area-inset-top));max-height:calc(30svh - 62px - env(safe-area-inset-top));overflow:hidden}' +
+      ':where(#intro-texts .scene-text h2){font-size:clamp(24px,7vw,32px);margin-bottom:6px}' +
+      ':where(#intro-texts .scene-text p){font-size:14.5px;line-height:1.5}' +
+      ':where(#intro-counter){top:23svh;bottom:auto;inset-inline-start:5vw;inset-inline-end:auto;width:auto;max-width:min(56vw,250px);text-align:start;display:flex;flex-direction:row;align-items:center;gap:10px;padding:6px 12px 6px 10px;border-radius:14px;background:rgba(14,32,51,.66)}' +
+      ':where(#intro-counter .num){font-size:clamp(40px,12vw,56px)}' +
+      ':where(#intro-counter .bars){display:grid;grid-template-columns:1fr 1fr;gap:3px 6px;margin:0;width:clamp(72px,24vw,100px);flex:none}' +
+      ':where(#intro-counter .bars:empty){display:none}' +
+    '}',
     ':where(#intro-counter){position:absolute;inset-inline-end:6vw;bottom:14svh;text-align:center;pointer-events:none}',
     ':where(#intro-counter .num){font-family:Changa,Tajawal,sans-serif;font-weight:800;font-size:clamp(56px,14vw,120px);line-height:1;color:' + COLORS.paleGold + ';font-variant-numeric:tabular-nums;will-change:transform}',
     '#intro-counter .num.pulse{animation:introCounterPulse .28s ease-out}',

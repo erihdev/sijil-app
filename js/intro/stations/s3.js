@@ -98,9 +98,11 @@
       copy: 'عجلة الأسماء، مسابقة، مؤقت، قصة مصوّرة، و٧ ألعاب. من يُجب يختار من بعده.'
     },
     /* ثبات على السبورة حتى تختفي العجلة (.86) ثم نقطة تسليم عند فتحة الفصل تنظر نحو جدار الدروس (لا جدار أصم) */
+    /* الجوال العمودي (mpos/mlook): الكاميرا أبعد (≈5.3م عن العجلة) والهدف أعلى قليلاً حتى تدخل العجلة
+       وقوس البطاقات في الحزام الأوسط (32–82%) ويقلّ فراغ الأرض في الثلث السفلي */
     cam: [
-      { t: 0.0, pos: [-6.5, 1.9, -36], look: [-11.9, 2.2, -36] },
-      { t: 0.86, pos: [-6.8, 1.92, -36], look: [-11.9, 2.2, -36] },
+      { t: 0.0, pos: [-6.5, 1.9, -36], look: [-11.9, 2.2, -36], mpos: [-5.7, 1.9, -36], mlook: [-11.9, 2.62, -36] },
+      { t: 0.86, pos: [-6.8, 1.92, -36], look: [-11.9, 2.2, -36], mpos: [-5.9, 1.92, -36], mlook: [-11.9, 2.62, -36] },
       { t: 1.0, pos: [-4.6, 1.9, -38], look: [2, 2.1, -46] }
     ],
     posterTitle: 'حصة حيّة لا ينام فيها أحد',
@@ -131,6 +133,7 @@
     _wheelScale: 1,
     _cardScale: 1,
     _orbitR: 1.6,
+    _portrait: false,
     _spinExtra: 0,
     _lastTime: -1,
     _p: 0,
@@ -145,12 +148,8 @@
       this._mobile = !!(ctx && ctx.isMobile);
       this._quality = (ctx && ctx.quality) || 'high';
       /* المكتب: العجلة تزاح يساراً (نحو +z) بعيداً عن نص المحطة الذي يشغل يمين الشاشة؛ الجوال: في الوسط وأصغر */
-      this._restX = this._mobile ? -11.0 : -10.9;
       this._wheelZ = this._mobile ? BOARD_POS[2] : BOARD_POS[2] + 0.7;
-      this._wheelScale = this._mobile ? 0.78 : 0.9;
-      this._cardScale = this._mobile ? 0.72 : 1;
-      /* مدار أضيق حتى لا تُقطع البطاقات عند حافة الكادر */
-      this._orbitR = this._mobile ? 0.8 : 1.05;
+      this._applyLayout(this._isPortrait(ctx));
       this._tmp = { m: new THREE.Matrix4(), q: new THREE.Quaternion(), e: new THREE.Euler(), v: new THREE.Vector3(), s: new THREE.Vector3() };
       var media = (ctx && ctx.media) || NS.media;
 
@@ -186,6 +185,7 @@
         wheel.visible = false;
         this.group.add(wheel);
         this._wheel = wheel;
+        if (this._portrait) wheel.position.y += 0.15;
 
         var disk = new THREE.Group();
         disk.name = 's3-disk';
@@ -287,6 +287,31 @@
       } catch (e) { this._wheel = null; }
     },
 
+    /* الوضع العمودي على الجوال (ctx.portrait من core، أو الحساب المباشر) */
+    _isPortrait: function (ctx) {
+      if (ctx && typeof ctx.portrait === 'boolean') return ctx.portrait;
+      return !!(this._mobile && window.innerHeight > window.innerWidth);
+    },
+
+    /* مقاييس التكوين: المكتب/الأفقي كما كانا؛ العمودي: عجلة ≈70% من العرض وبطاقات في قوس واضح أسفلها */
+    _applyLayout: function (portrait) {
+      this._portrait = !!portrait;
+      this._restX = this._mobile ? -11.0 : -10.9;
+      /* العمودي: العجلة أعلى قليلاً من مركز السبورة حتى يبقى قوس البطاقات فوق 82% من الشاشة */
+      if (this._wheel) this._wheel.position.y = (this._mobile ? BOARD_POS[1] : BOARD_POS[1] - 0.15) + (portrait ? 0.15 : 0);
+      if (portrait) {
+        /* قوس أضيق (224°→316°) ومدار أقصر حتى تبقى بطاقتا الطرفين داخل 8%–92% من العرض */
+        this._wheelScale = 0.86;
+        this._cardScale = 0.76;
+        this._orbitR = 1.5;
+      } else {
+        this._wheelScale = this._mobile ? 0.78 : 0.9;
+        this._cardScale = this._mobile ? 0.72 : 1;
+        /* مدار أضيق حتى لا تُقطع البطاقات عند حافة الكادر */
+        this._orbitR = this._mobile ? 0.8 : 1.05;
+      }
+    },
+
     _makeGold: function (THREE, lambert) {
       var p = { color: 0xD7A93F, emissive: 0xD7A93F, emissiveIntensity: 0.28 };
       var m;
@@ -379,13 +404,19 @@
       this._lastTime = time;
       var vel = (ctx && typeof ctx.velocity === 'number') ? ctx.velocity : 0;
 
-      /* الشاشة: طباشير (0–.15) ← ملصق بفتح دائري (.15–.82) ← إغلاق (.82–.88) ← طباشير يُطبع (.88–1) */
+      /* تبدّل الاتجاه (عمودي ↔ أفقي) يعيد ضبط المقاييس */
+      var portrait = this._isPortrait(ctx);
+      if (portrait !== this._portrait) this._applyLayout(portrait);
+
+      /* الشاشة: طباشير (0–.15) ← ملصق بفتح دائري (.15–.82) ← إغلاق (.82–.88) ← طباشير يُطبع (.88–1)
+         العمودي: العجلة (65% من العرض) تغطي الملصق كله، ولا تبقى منه إلا حلقة القناع وأزرار الشاشة تحتها
+         فتبدو كخطأ تراكب؛ لذا تبقى السبورة طباشيرية داكنة طوال المحطة ولا يُعرض الملصق */
       var scr = this._scr;
       if (scr) {
         try {
           scr.setProgress(p);
           var mode, open;
-          if (p < 0.15) { mode = 'procedural'; open = 1; }
+          if (p < 0.15 || portrait) { mode = 'procedural'; open = 1; }
           else if (p < 0.82) { mode = 'poster'; open = ease('out', (p - 0.15) / 0.17); }
           else if (p < 0.88) { mode = 'poster'; open = 1 - ease('in', (p - 0.82) / 0.06); }
           else { mode = 'procedural'; open = 1; }
@@ -434,16 +465,29 @@
       var cards = this._cards, T = this._tmp, R = this._orbitR;
       var any = false, fades = this._cardFade;
       var orbit = HALF + (p - 0.33) * TAU * 1.1;
+      /* العمودي: قوس ثابت أسفل العجلة (224°→316°) بلا مدار حتى لا تتراكب البطاقات على الأسماء ولا تُقصّ عند الحافتين */
+      var arc0 = Math.PI * 224 / 180, arcSpan = Math.PI * 92 / 180;
+      var stag = portrait ? 0.016 : 0.025;
       for (var j = 0; j < GAMES.length; j++) {
-        var aIn = ease('back', smooth(0.33 + j * 0.025, 0.42 + j * 0.025, p));
+        var aIn = ease('back', smooth(0.33 + j * stag, 0.42 + j * stag, p));
         var aOut = ease('in', smooth(0.7 + j * 0.012, 0.8 + j * 0.012, p));
         var s = this._cardScale * aIn * (1 - aOut);
-        var fade = clamp(smooth(0.33 + j * 0.025, 0.4 + j * 0.025, p) * (1 - aOut), 0, 1);
-        var a = orbit + j * TAU / GAMES.length;
-        var r = R * (1 - aOut * 0.85);
-        var ca = Math.cos(a), sa = Math.sin(a);
-        T.v.set(r * ca, 0.55 * r * sa, 0.9 * sa * (r / R));
-        T.e.set(-sa * 0.12, ca * 0.18, 0);
+        var fade = clamp(smooth(0.33 + j * stag, 0.4 + j * stag, p) * (1 - aOut), 0, 1);
+        /* العمودي: تغادر البطاقات بالانكماش في مكانها (لا تنجذب إلى العجلة فتتراكب عليها) */
+        var r = portrait ? R : R * (1 - aOut * 0.85);
+        var a, ca, sa;
+        if (portrait) {
+          a = arc0 + arcSpan * j / (GAMES.length - 1);
+          ca = Math.cos(a); sa = Math.sin(a);
+          /* بطاقة مستوية أمام العجلة مع تمايل خفيف بحسب موضعها في القوس */
+          T.v.set(r * ca, r * sa + 0.05 * Math.sin(time * 1.6 + j), 0.28);
+          T.e.set(0, 0, (a - 3 * HALF) * 0.28);
+        } else {
+          a = orbit + j * TAU / GAMES.length;
+          ca = Math.cos(a); sa = Math.sin(a);
+          T.v.set(r * ca, 0.55 * r * sa, 0.9 * sa * (r / R));
+          T.e.set(-sa * 0.12, ca * 0.18, 0);
+        }
         T.q.setFromEuler(T.e);
         T.s.set(Math.max(s, 0.0001), Math.max(s, 0.0001), 1);
         T.m.compose(T.v, T.q, T.s);

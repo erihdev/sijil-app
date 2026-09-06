@@ -307,6 +307,78 @@
     return out;
   }
 
+  /* ───────────── التكوين (مكتب/أفقي مقابل الجوال العمودي) ───────────── */
+  function isPortrait(ctx) {
+    if (ctx && ctx.portrait != null) return !!ctx.portrait;
+    return !!(S.mobile && window.innerHeight > window.innerWidth);
+  }
+
+  /* الجوال العمودي (fov 62، الكاميرا +0.4): الورقة والفقاعة في منتصف الكادر أفقياً (z=−58)،
+     الفقاعة في النصف السفلي من النافذة وداخل الكادر كاملةً (≈64% من العرض)، الطائرات ×1.6 والعلامات ×1.4.
+     المكتب والجوال الأفقي يحتفظان بقيمهما السابقة حرفياً. */
+  function layout(portrait) {
+    var T = S.T;
+    var V = function (x, y, z) { return new T.Vector3(x, y, z); };
+    var m = S.mobile;
+    if (portrait) {
+      S.sheet0 = V(-2.25, 2.0, -58.0);
+      S.anchor = V(-2.35, 1.72, -58.0);
+      S.resultScale = 0.92;
+      S.planeScale = 1.8 * 1.6;
+      S.checkScale = 0.15 * 1.4;
+    } else {
+      /* الورقة يسار مركز الكادر (+z) بعيداً عن صندوق نص المحطة على اليمين */
+      S.sheet0 = m ? V(-2.25, 2.1, -57.5) : V(-2.35, 1.95, -57.2);
+      S.anchor = m ? V(-2.35, 1.40, -57.72) : V(-2.25, 1.50, -57.15);
+      S.resultScale = m ? 0.82 : 1;
+      S.planeScale = 1.8;
+      S.checkScale = 0.15;
+    }
+    S.portrait = !!portrait;
+  }
+
+  function buildPlanePaths() {
+    var T = S.T;
+    var V = function (x, y, z) { return new T.Vector3(x, y, z); };
+    S.planePaths = [];
+    /* في العمودي الكادر أضيق: يُضغط الانتشار الجانبي (z) حتى لا تُقطع الطائرات من الجانبين */
+    var zs = S.portrait ? 0.5 : 1;
+    for (var i = 0; i < PLANES; i++) {
+      var sp = (i - (PLANES - 1) / 2);
+      S.planePaths.push({
+        a: V(S.sheet0.x - 0.05, S.sheet0.y + 0.1 - 0.05 * i, S.sheet0.z + sp * 0.06),
+        b: V(-3.2, S.sheet0.y + 0.55 + (i % 3) * 0.18, -58 + (sp * 0.3 + (i % 2 ? 0.25 : -0.2)) * zs),
+        c: V(-6.6, 2.4 + (i % 3) * 0.28, -58 + sp * 0.55 * zs),
+        delay: 0.022 * i
+      });
+    }
+  }
+
+  function buildCheckPaths() {
+    var T = S.T;
+    var V = function (x, y, z) { return new T.Vector3(x, y, z); };
+    S.checkPaths = [];
+    for (var k = 0; k < CHECKS; k++) {
+      /* نقطة الانطلاق على الزجاج (عالمي) → محلي المجموعة (دوران y = 90°) */
+      var wx = -3.86, wy = 2.0 + ((k % 3) - 1) * 0.4, wz = -58 + ((k % 2) ? 0.55 : -0.55) + (k - 2.5) * 0.1;
+      var lx = -(wz - S.anchor.z) / S.resultScale, ly = (wy - S.anchor.y) / S.resultScale, lz = (wx - S.anchor.x) / S.resultScale;
+      var slot = V(-(k - (CHECKS - 1) / 2) * 0.15625, 0.4 - 250 / 640, 0.03);
+      S.checkPaths.push({
+        a: V(lx, ly, lz),
+        b: V((lx + slot.x) / 2 + (k % 2 ? 0.15 : -0.15), Math.max(ly, slot.y) + 0.55, (lz + slot.z) / 2 + 0.9),
+        c: slot, delay: 0.03 * k
+      });
+    }
+  }
+
+  /* تبدّل الاتجاه بعد البناء (عمودي ↔ أفقي): يُعاد التكوين والمسارات */
+  function relayout(portrait) {
+    layout(portrait);
+    buildPlanePaths();
+    buildCheckPaths();
+    if (S.result) { S.result.position.copy(S.anchor); S.result.scale.setScalar(S.resultScale); }
+  }
+
   function build(ctx) {
     var T = ctx.THREE;
     var g = this.group;
@@ -321,11 +393,8 @@
     S.tmpM = new T.Matrix4();
     S.tmpC = new T.Color();
 
-    var m = S.mobile;
-    /* الورقة يسار مركز الكادر (+z) بعيداً عن صندوق نص المحطة على اليمين */
-    S.sheet0 = m ? V(-2.25, 2.1, -57.5) : V(-2.35, 1.95, -57.2);
-    S.anchor = m ? V(-2.35, 1.40, -57.72) : V(-2.25, 1.50, -57.15);
-    S.resultScale = m ? 0.82 : 1;
+    S.portrait = isPortrait(ctx);
+    layout(S.portrait);
 
     /* 1) النافذة → شاشة سماء بعد الظهر */
     try {
@@ -385,15 +454,8 @@
       S.planes.name = 's5-planes';
       S.planes.frustumCulled = false;
       S.planes.visible = false;
-      S.planePaths = [];
+      buildPlanePaths();
       for (var i = 0; i < PLANES; i++) {
-        var sp = (i - (PLANES - 1) / 2);
-        S.planePaths.push({
-          a: V(S.sheet0.x - 0.05, S.sheet0.y + 0.1 - 0.05 * i, S.sheet0.z + sp * 0.06),
-          b: V(-3.2, S.sheet0.y + 0.55 + (i % 3) * 0.18, -58 + sp * 0.3 + (i % 2 ? 0.25 : -0.2)),
-          c: V(-6.6, 2.4 + (i % 3) * 0.28, -58 + sp * 0.55),
-          delay: 0.022 * i
-        });
         S.dummy.position.copy(S.planePaths[i].a);
         S.dummy.scale.setScalar(0.001);
         S.dummy.updateMatrix();
@@ -441,7 +503,6 @@
       S.checkMat = new T.SpriteMaterial({ color: 0xffffff, transparent: true, depthWrite: false });
       S.checkMat.name = 's5-check';
       S.checks = [];
-      S.checkPaths = [];
       for (var k = 0; k < CHECKS; k++) {
         var spr = new T.Sprite(S.checkMat);
         spr.name = 's5-check' + k;
@@ -449,16 +510,8 @@
         spr.visible = false;
         S.result.add(spr);
         S.checks.push(spr);
-        /* نقطة الانطلاق على الزجاج (عالمي) → محلي المجموعة (دوران y = 90°) */
-        var wx = -3.86, wy = 2.0 + ((k % 3) - 1) * 0.4, wz = -58 + ((k % 2) ? 0.55 : -0.55) + (k - 2.5) * 0.1;
-        var lx = -(wz - S.anchor.z) / S.resultScale, ly = (wy - S.anchor.y) / S.resultScale, lz = (wx - S.anchor.x) / S.resultScale;
-        var slot = V(-(k - (CHECKS - 1) / 2) * 0.15625, 0.4 - 250 / 640, 0.03);
-        S.checkPaths.push({
-          a: V(lx, ly, lz),
-          b: V((lx + slot.x) / 2 + (k % 2 ? 0.15 : -0.15), Math.max(ly, slot.y) + 0.55, (lz + slot.z) / 2 + 0.9),
-          c: slot, delay: 0.03 * k
-        });
       }
+      buildCheckPaths();
       S.result.scale.setScalar(S.resultScale);
     } catch (e) { S.result = null; }
 
@@ -520,6 +573,8 @@
     S.p = p;
     var time = (ctx && +ctx.time) || 0;
     var i;
+    var por = isPortrait(ctx);
+    if (por !== S.portrait) { try { relayout(por); } catch (e) {} }
 
     /* النافذة تُفتح في الاستلام وتبقى مفتوحة */
     if (S.screen) { try { S.screen.setOpen(ease('out', span(p, 0.0, 0.14))); } catch (e) {} }
@@ -563,8 +618,8 @@
           S.dummy.up.set(0, 1, 0);
           S.dummy.lookAt(S.tmpV3);
           S.dummy.rotateZ(Math.sin(u * PI * 2 + i) * 0.35);
-          /* أكبر ×1.8 حتى تُقرأ الطائرات في لحظة الذروة */
-          S.dummy.scale.setScalar(Math.max(0.001, 1.8 * lerp(0.45, 1, ease('out', span(u, 0, 0.3)))));
+          /* أكبر ×1.8 (×1.6 إضافية في العمودي) حتى تُقرأ الطائرات في لحظة الذروة */
+          S.dummy.scale.setScalar(Math.max(0.001, S.planeScale * lerp(0.45, 1, ease('out', span(u, 0, 0.3)))));
         }
         S.dummy.updateMatrix();
         S.planes.setMatrixAt(i, S.dummy.matrix);
@@ -605,10 +660,10 @@
           spr.visible = true;
           if (cu >= 1) {
             spr.position.copy(cp.c);
-            spr.scale.setScalar(0.15 + 0.006 * Math.sin(time * 3 + i));
+            spr.scale.setScalar(S.checkScale + 0.006 * Math.sin(time * 3 + i));
           } else {
             bezier(spr.position, cp.a, cp.b, cp.c, ease('inOut', cu));
-            var ssc = 0.15 * ease('out', span(cu, 0, 0.3)) * (1 + 0.35 * Math.sin(PI * cu));
+            var ssc = S.checkScale * ease('out', span(cu, 0, 0.3)) * (1 + 0.35 * Math.sin(PI * cu));
             spr.scale.setScalar(Math.max(0.001, ssc));
           }
         }
@@ -640,8 +695,10 @@
     },
     /* نقطة العقد عند t=0 ونقطة تثبيت شبه مطابقة عند .8 حتى تبقى الكاميرا على النافذة طوال الذروة ثم تلتف نحو الخزائن في التسليم */
     cam: [
-      { t: 0.0, pos: [0.5, 1.8, -58], look: [-3.9, 2, -58] },
-      { t: 0.8, pos: [0.42, 1.8, -58.08], look: [-3.9, 2, -58.06] },
+      /* العمودي (mpos/mlook): كاميرا أخفض قليلاً وهدف أعلى فتميل للأعلى ≈5° وينكمش الشريط السفلي الفارغ
+         (عتبة + جدار + أرض) من ≈26% إلى ≈18%، والنافذة/الفقاعة داخل الحزام 33%–82% */
+      { t: 0.0, pos: [0.5, 1.8, -58], look: [-3.9, 2, -58], mpos: [0.5, 1.55, -58], mlook: [-3.9, 2.15, -58] },
+      { t: 0.8, pos: [0.42, 1.8, -58.08], look: [-3.9, 2, -58.06], mpos: [0.42, 1.55, -58.08], mlook: [-3.9, 2.15, -58.06] },
       /* نقطة تسليم تنظر نحو الخزائن مباشرة (الالتفاف يمرّ بعمق الممر لا بالجدار الأصم) */
       { t: 1.0, pos: [0.4, 1.75, -60], look: [3.9, 1.6, -63] }
     ],

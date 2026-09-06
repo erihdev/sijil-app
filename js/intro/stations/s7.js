@@ -14,6 +14,14 @@
   var GREEN = 0x2F8F5B, GOLD = 0xD7A93F, GOLD_PALE = 0xF0D99A, NAVY = '#0E2033', NIGHT = '#071322';
   var ROOF_Y = 4.2;
   var GRID = { x0: 0, z0: -54.5, step: 0.5, w: 0.28, hMin: 0.25, hMax: 1.6 };
+  /* الوضع العمودي على الجوال: الصفوف تقترب من اللوح (نحو −z أقل) وتتراصّ قليلاً لتبقى تحت اللوح داخل الكادر،
+     وخطوة x أضيق (0.34) فيصير امتداد الأعمدة ≈3.7م ≈ 69% من العرض عند الصف الأقرب بدل 5.3م المقطوعة من الجانبين */
+  var GRID_P = { dz: 2.0, stepZ: 0.42, stepX: 0.34 };
+  function isPortrait(ctx) {
+    if (ctx && typeof ctx.portrait === 'boolean') return ctx.portrait;
+    var m = !!(ctx && ctx.isMobile) || R.isMobile;
+    return m && (window.innerHeight || 0) > (window.innerWidth || 1);
+  }
   var BOARD = { x: 0, y: 9.5, z: -52.005, w: 4, h: 2.25 };
   var LEVEL_COLORS = ['#2E9E5B', '#6FA36B', '#D7A93F', '#F0D99A', '#d64545'];
   var TABS = ['مستوى المدرسة', 'حسب المادة'];
@@ -262,12 +270,18 @@
     if (R.columns) {
       var breathe = seg(p, 0.5, 0.62) * (1 - seg(p, 0.8, 0.92));
       var maxH = 0;
+      var portrait = isPortrait(ctx);
       for (k = 0; k < COLS_N; k++) {
         var a0 = 0.15 + k * 0.006;
         var g = ease('out', seg(p, a0, a0 + 0.12));
         var h = R.heights[k] * g * (1 + 0.035 * breathe * Math.sin(time * 1.6 + R.phases[k]));
         if (h > maxH) maxH = h;
-        setColumn(k, R.colBase[k][0], R.colBase[k][1], h);
+        var cx = R.colBase[k][0], cz = R.colBase[k][1];
+        if (portrait) {
+          cz = GRID.z0 + GRID_P.dz - Math.floor(k / SUBJECTS) * GRID_P.stepZ;
+          cx = GRID.x0 + R.DIR * (5 - (k % SUBJECTS)) * GRID_P.stepX;
+        }
+        setColumn(k, cx, cz, h);
       }
       R.columns.instanceMatrix.needsUpdate = true;
       R.columns.visible = maxH > 0.004;
@@ -325,12 +339,14 @@
     weight: 1.2,
     text: { headline: HEADLINE, copy: COPY },
     /* صعود عمودي عبر الكوّة ثم اقتراب إلى ~6م من لوح المدير (يملأ نحو نصف العرض) قبل الالتفاف نحو الفناء */
+    /* العمودي (mpos/mlook، وcore يرفع y بـ 0.4 على الجوال): الكاميرا أبعد (~12م من اللوح) وأعلى قليلاً
+       ليصير اللوح ≈ 65% من العرض في الحزام الأوسط، والأعمدة تحته، والبوابة المضاءة بينهما */
     cam: [
       { t: 0.0, pos: [0, 3, -67], look: [0, 4, -68] },
-      { t: 0.2, pos: [0, 5.6, -67.6], look: [0, 7.6, -56] },
-      { t: 0.45, pos: [0, 7.2, -58], look: [0, 9.3, -52] },
-      { t: 0.68, pos: [0, 7.4, -58.6], look: [0, 9.2, -52.2] },
-      { t: 1.0, pos: [0, 12, -66], look: [0, 2, -30] }
+      { t: 0.2, pos: [0, 5.6, -67.6], look: [0, 7.6, -56], mpos: [0, 5.6, -67.6], mlook: [0, 7.2, -54] },
+      { t: 0.45, pos: [0, 7.2, -58], look: [0, 9.3, -52], mpos: [0, 8.2, -64], mlook: [0, 9.15, -52] },
+      { t: 0.68, pos: [0, 7.4, -58.6], look: [0, 9.2, -52.2], mpos: [0, 8.3, -64.3], mlook: [0, 9.1, -52] },
+      { t: 1.0, pos: [0, 12, -66], look: [0, 2, -30], mpos: [0, 11.5, -66], mlook: [0, 5.5, -32] }
     ],
     build: build,
     load: load,

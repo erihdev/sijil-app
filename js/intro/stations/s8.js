@@ -16,7 +16,9 @@
   /* مواضع نوافذ الواجهة (x) كما في world.js؛ ضوءها يظهر فوق حافة السطح عند z=−23.6 */
   var WINDOW_X = [-13.5, -10.5, -7.5, -4.5, 4.5, 7.5, 10.5, 13.5];
   var SPILL = { y: 5.05, z: -23.6, w: 3.4, h: 2.6 };
-  var MOON = { x: 14, y: 20, z: 12, size: 5.4, lift: 1.2 };
+  /* portraitRaiseA: رفع القمر مع كاميرا العمودي المنخفضة (0.15–0.7) ليبقى عند ≈12% فوق توهّج الأفق؛
+     portraitRaise: مع كاميرا النهاية العالية (بطاقة الدخول) */
+  var MOON = { x: 14, y: 20, z: 12, size: 5.4, lift: 1.2, portraitRaise: 4.4, portraitRaiseA: -1.0 };
   var SKYLIGHT = { x: 0, y: 4.23, z: -68, w: 2.1, d: 2.5, haloY: 4.9 };
   /* شريط أفق عريض وناعم تحت حافة السطح (لا خط حاد يقطع السماء) */
   var HORIZON = { y: 3.4, z: 128, w: 720, h: 28 };
@@ -241,9 +243,16 @@
   /* ---------- الحالة من p (دالة صرفة في p والزمن) ----------
      0–.15 استلام: الأفق والقمر يتنفّسان للظهور. .15–.55 نهوض: القمر يرتفع قليلاً، النوافذ تضيء تباعاً،
      ضوء الكوّة يصعد. .55–.75 ذروة: تنفّس هادئ. .75–1 تسليم: كل شيء يخفت قليلاً ويستقر كخلفية للبطاقة. */
+  function isPortrait(ctx) {
+    if (ctx && typeof ctx.portrait === 'boolean') return ctx.portrait;
+    return !!(R.isMobile && window.innerHeight > window.innerWidth);
+  }
+
   function apply(p, ctx) {
     var time = (ctx && typeof ctx.time === 'number') ? ctx.time : 0;
     var world = (ctx && ctx.world) || R.world;
+    /* العمودي: القمر يتبع الكاميرا (منخفضة أول المحطة ثم عالية عند النهاية) ليبقى فوق توهّج الأفق (≈12% من الشاشة) */
+    var moonBase = MOON.y + (isPortrait(ctx) ? lerp(MOON.portraitRaiseA, MOON.portraitRaise, ease('inOut', seg(p, 0.7, 1))) : 0);
     var recv = ease('out', seg(p, 0, 0.15));
     var rise = ease('inOut', seg(p, 0.15, 0.55));
     var peak = ease('inOut', seg(p, 0.5, 0.62)) * (1 - ease('inOut', seg(p, 0.72, 0.9)));
@@ -254,7 +263,7 @@
       v = recv * lerp(0.82, 1, rise) * lerp(1, 0.92, seg(p, 0.75, 1));
       R.moon.material.opacity = v;
       R.moon.visible = v > 0.004;
-      R.moon.position.y = MOON.y - MOON.lift * (1 - ease('out', seg(p, 0, 0.4)));
+      R.moon.position.y = moonBase - MOON.lift * (1 - ease('out', seg(p, 0, 0.4)));
       var ms = MOON.size * (1 + 0.025 * peak * Math.sin(time * 0.9));
       R.moon.scale.set(ms, ms, 1);
       if (R.moonHalo) {
@@ -286,7 +295,9 @@
     }
 
     if (R.skylight) {
-      var sk = ease('out', seg(p, 0.2, 0.5)) * calm * (0.92 + 0.08 * Math.sin(time * 2.2) * peak);
+      /* العمودي: الكوّة في الحزام منذ الاستلام فيبدأ توهّجها أبكر (0.1→0.4)؛ المكتب كما كان (0.2→0.5) */
+      var por = isPortrait(ctx);
+      var sk = ease('out', seg(p, por ? 0.1 : 0.2, por ? 0.4 : 0.5)) * calm * (0.92 + 0.08 * Math.sin(time * 2.2) * peak);
       R.skylight.material.opacity = 0.55 * sk;
       R.skylight.visible = sk > 0.004;
       if (R.halo) {
@@ -320,7 +331,15 @@
     text: { headline: '', copy: COPY },
     /* النظر نحو الفناء والبوابة المضاءة (لا بلاطة السطح)، وزاوية أوسع على المكتب في هذه المحطة فقط */
     cam: [
-      { t: 0.0, pos: [0, 14, -82], look: [0, 3.5, -26] }
+      /* المكتب/الأفقي: نقطة واحدة ثابتة (pos/look) كما كانت.
+         العمودي (mpos/mlook؛ النقطتان الأخيرتان بلا pos فهما للعمودي فقط ويُهملهما core في غيره):
+         0.15–0.7 كاميرا منخفضة (y≈9) خلف الكوّة تنظر نحو الفناء بميل ≈18°: القمر والأفق في أعلى الشاشة (≈10–23%)،
+         البوابة ولوح المدير المضاء صغيران في 17–33%، أعمدة المستويات ≈35–41%، والكوّة البطل متوهّجة في الحزام
+         (≈64–76%، ≈40% من العرض) مع انزياح بطيء؛ ثم 0.7–1 ترتفع الكاميرا إلى تكوين النهاية (كما كان) حيث تهبط
+         الكوّة إلى الشريط السفلي (≈93–99%) تحت حدّ بطاقة الدخول فلا تقطعها البطاقة */
+      { t: 0.0, pos: [0, 14, -82], look: [0, 3.5, -26], mpos: [0, 8.6, -76], mlook: [0, 0.5, -49.8] },
+      { t: 0.7, mpos: [0, 9.3, -76.6], mlook: [0, 0.7, -49.2] },
+      { t: 1.0, mpos: [0, 19.1, -81.9], mlook: [0, 4.15, -41.9] }
     ],
     fovDesktop: 50,
     build: build,

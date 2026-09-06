@@ -22,14 +22,33 @@
 
   /* ---------- مراجع المحطة ---------- */
   var R = {
-    built: false, THREE: null, isMobile: false, layout: null,
+    built: false, THREE: null, isMobile: false, portrait: false, layout: null,
     screen: null, panel: null, glow: null, glowTex: null, bars: null,
     bubble: null, bubbleTex: null, world: null, tmpM: null, tmpV: null, tmpS: null, tmpQ: null, tmpC: null,
     lastP: -1
   };
 
   /* تخطيط المكتب/الجوال: مواضع اللوح والأشرطة (الوحدة متر)؛ الأشرطة داخل ارتفاع جسم الخزائن (0.45..1.6) */
-  function makeLayout(isMobile) {
+  function makeLayout(isMobile, portrait) {
+    if (isMobile && portrait) {
+      /* الجوال العمودي (fov 62، الكاميرا +0.4): اللوح أصغر وأخفض حتى يبقى في الحزام الأوسط تحت نص المحطة،
+         والأشرطة عمود واحد على وجه الخزانة المجاورة يسار اللوح (داخل الكادر، لا تتقاطع مع اللوح ولا مع الباب المفتوح) */
+      return {
+        scale: 0.7,
+        home: [3.0, 1.27, -63.66],
+        doorOpen: 1.45,
+        start: [3.62, 1.05, -63.6],
+        tiltY: 0.22,
+        barH: 0.045, barD: 0.03, barX: 3.32,
+        bars: (function () {
+          var out = [], k;
+          for (k = 0; k < 11; k++) out.push({ z0: -64.2, len: 0.4, y: 1.5 - k * 0.085 });
+          return out;
+        })(),
+        /* الفقاعة تنطلق من قلب اللوح إلى ما فوقه قليلاً دون الدخول في ثلث النص العلوي */
+        bubbleFrom: [2.95, 1.25, -63.66], bubbleTo: [2.72, 1.72, -63.56], bubbleScale: 0.72
+      };
+    }
     if (isMobile) {
       return {
         scale: 0.66,
@@ -103,7 +122,8 @@
     R.built = true;
     R.THREE = THREE;
     R.isMobile = !!(ctx && ctx.isMobile);
-    R.layout = makeLayout(R.isMobile);
+    R.portrait = isPortrait(ctx);
+    R.layout = makeLayout(R.isMobile, R.portrait);
     R.world = ctx && ctx.world;
     R.tmpM = new THREE.Matrix4(); R.tmpV = new THREE.Vector3(); R.tmpS = new THREE.Vector3();
     R.tmpQ = new THREE.Quaternion(); R.tmpC = new THREE.Color();
@@ -178,7 +198,19 @@
   }
 
   /* ---------- الحالة من p (دالة صرفة في p والزمن) ---------- */
+  /* الوضع العمودي على الجوال (كما يحسبه core: ctx.portrait) مع احتياط محلي */
+  function isPortrait(ctx) {
+    if (ctx && typeof ctx.portrait === 'boolean') return ctx.portrait;
+    var mob = !!(ctx && ctx.isMobile);
+    return mob && (window.innerHeight || 0) > (window.innerWidth || 1);
+  }
+
   function apply(p, ctx) {
+    /* تبدّل الاتجاه (عمودي ↔ أفقي) يعيد بناء التخطيط؛ المكتب والجوال الأفقي لا يتغيّران */
+    if (R.isMobile) {
+      var por = isPortrait(ctx);
+      if (por !== R.portrait) { R.portrait = por; R.layout = makeLayout(true, por); }
+    }
     var L = R.layout;
     if (!L) return;
     var time = (ctx && typeof ctx.time === 'number') ? ctx.time : 0;
@@ -190,7 +222,8 @@
     var open = ease('inOut', seg(p, 0.0, 0.18)) * (1 - ease('inOut', seg(p, 0.86, 1)));
     try {
       var Lk = world && world.lockers && world.lockers[LOCKER];
-      if (Lk && Lk.door) Lk.door.rotation.y = open * 1.9;
+      /* العمودي: الباب يُفتح بزاوية أصغر حتى لا تُقصّ حافته الحرة عند طرف الكادر الأيمن */
+      if (Lk && Lk.door) Lk.door.rotation.y = open * (L.doorOpen || 1.9);
     } catch (e) {}
 
     /* النهوض: اللوح يخرج من الخزانة ويكبر ويميل نحو الكاميرا؛ التسليم: يعود */
@@ -303,8 +336,9 @@
     cam: [
       { t: 0.0, pos: [0.3, 1.5, -63], look: [3.9, 1.3, -64] },
       { t: 0.78, pos: [0.28, 1.5, -63.1], look: [3.9, 1.28, -64.05] },
-      /* التسليم: تقدّم على محور الممر ونظرة صاعدة نحو فتحة الكوّة المؤطّرة ذهبياً (لا مسح للسقف الأصم) */
-      { t: 0.9, pos: [0.24, 1.9, -65], look: [0.2, 3.2, -67] },
+      /* التسليم: تقدّم على محور الممر ونظرة صاعدة نحو فتحة الكوّة المؤطّرة ذهبياً (لا مسح للسقف الأصم)
+         العمودي (mpos/mlook): تبقى الكاميرا على اللوح حتى يعود إلى الخزانة، ثم تنعطف نحو الكوّة في العُشر الأخير */
+      { t: 0.9, pos: [0.24, 1.9, -65], look: [0.2, 3.2, -67], mpos: [0.27, 1.5, -63.2], mlook: [3.8, 1.4, -63.9] },
       { t: 1.0, pos: [0.2, 2.4, -66.4], look: [0.2, 3.9, -67.9] }
     ],
     build: build,

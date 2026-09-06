@@ -150,7 +150,12 @@
       var cam = Array.isArray(s.cam) ? s.cam.slice() : [];
       cam.sort(function (a, b) { return (+a.t || 0) - (+b.t || 0); });
       cam.forEach(function (c, ci) {
-        if (!c || !c.pos) return;
+        if (!c) return;
+        /* الجوال العمودي: تُستخدم mpos/mlook إن وُجدتا (تكوين خاص بالشاشة الطولية)؛
+           نقطة بلا pos (mpos فقط) خاصة بالعمودي وتُهمل في المكتب/الأفقي فلا يتغيّر مسارهما */
+        var portrait = ctx.portrait = !!(isMobile && (win.innerHeight || 0) > (win.innerWidth || 1));
+        var srcPos = (portrait && c.mpos) ? c.mpos : c.pos;
+        if (!srcPos) return;
         var tl = clamp(+c.t || 0, 0, 1);
         var tg = s.start + tl * s.span;
         if (ts.length && tg - ts[ts.length - 1] < 1e-5) {
@@ -162,8 +167,9 @@
           if (tg - ts[ts.length - 1] < 1e-5) return;
           log('cam collision', s.id, 'point moved to local t', tl);
         }
-        var pos = v3(c.pos);
-        var look = c.look ? v3(c.look) : pos.clone().add(new T.Vector3(0, -0.3, -6));
+        var pos = v3(srcPos);
+        var lk = (portrait && c.mlook) ? c.mlook : c.look;
+        var look = lk ? v3(lk) : pos.clone().add(new T.Vector3(0, -0.3, -6));
         pts.push(pos); looks.push(look); ts.push(tg); owners.push(s);
       });
     });
@@ -195,6 +201,7 @@
   var renderer, scene, camera, world;
   var intro, canvas, track, bar, login, card, lgBtn, hud;
   var isMobile = false, dprBase = 1, trackPx = 0, lastW = 0, lastH = 0;
+  var handoffPending = false;
   var camPos, camLook, tgtPos, tgtLook, fwd, right, upv;
   var tilt = ctx.tilt, tiltTarget = { x: 0, y: 0 }, lastTouch = null;
   var running = false, rafId = 0, idleTimer = 0, dirty = true, settling = false, snapNext = true, firstFrameDone = false;
@@ -376,6 +383,9 @@
     camera.aspect = w / h;
     fovBase = (isMobile && h > w) ? 62 : 45;
     camera.updateProjectionMatrix();
+    /* تبدّل الاتجاه (عمودي ↔ أفقي): تُعاد قراءة نقاط الكاميرا لأن mpos/mlook خاصة بالوضع العمودي */
+    var portraitNow = !!(isMobile && h > w);
+    if (portraitNow !== !!ctx.portrait) { ctx.portrait = portraitNow; try { buildCurves(); snapNext = true; } catch (e) {} }
     if (particles) particles.material.uniforms.uScale.value = state.dpr * h * 0.5;
     if (big) {
       lastW = w; lastH = h;
@@ -421,6 +431,8 @@
     var idx = clamp(n >= 1 ? n - 1 : 0, 0, Math.max(stations.length - 1, 0));
     var p = clamp(parseFloat(params.get('p') || '0') || 0, 0, 1);
     var t = stations.length ? stations[idx].start + p * stations[idx].span : p;
+    /* حالة الجيران بعد القفزة: المحطة السابقة تُستكمل (p=1) والتالية تُصفَّر (p=0) كما في التمرير الطبيعي */
+    handoffPending = true;
     jumpTo(t);
   }
 
@@ -765,6 +777,12 @@
     }
     var a = stations[r.i];
     state.active = a ? a.id : null;
+    if (handoffPending) {
+      handoffPending = false;
+      var pv = stations[r.i - 1], nx = stations[r.i + 1];
+      if (pv && pv._loaded && typeof pv.update === 'function') { try { pv.update(1, ctx); } catch (e) { warn('handoff ' + pv.id, e); } }
+      if (nx && nx._loaded && typeof nx.update === 'function') { try { nx.update(0, ctx); } catch (e) { warn('handoff ' + nx.id, e); } }
+    }
     /* زاوية الرؤية: 62 جوال عمودي، وإلا قيمة المحطة (fovDesktop) أو 45 */
     fovWant = (isMobile && win.innerHeight > win.innerWidth) ? 62 : ((a && +a.fovDesktop) || fovBase);
     if (a && typeof a.update === 'function') { try { a.update(r.p, ctx); } catch (e) { warn('update ' + a.id, e); } }
