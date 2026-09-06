@@ -177,6 +177,8 @@
     try {
       tablet = media.screen({
         width: TABLET_W, height: TABLET_H,
+        /* شاشة حيّة (الرصد اليومي ← لوحة الشرف)؛ لقطة reg تبقى ملصقاً احتياطياً للوضع الخفيف */
+        gen: 'attendance',
         texture: media.ui(UI_NAME),
         fit: 'cover',
         frame: 'navy', frameWidth: 0.05, frameDepth: 0.05,
@@ -251,6 +253,8 @@
     var vis = p > 0.12 && p < 0.95;
     mesh.visible = vis;
     if (!vis) return;
+    /* الشاشة الحيّة: الرصد اليومي ثم لوحة الشرف مع النجوم (تبديل بتلاشٍ من media) */
+    try { if (tablet.useGen) tablet.useGen(p < 0.66 ? 'attendance' : 'honor'); } catch (e) {}
     var time = ctx.time || 0;
     if (!(layoutPortrait && ctx.camera && placeFromCamera(mesh, ctx.camera))) mesh.position.copy(tabletBase);
     mesh.position.y += 0.35 * leave + Math.sin(time * 1.2) * 0.03;

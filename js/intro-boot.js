@@ -2,7 +2,7 @@
    نسخة مصغّرة من منطق القرار مضمّنة في <head> داخل index.html؛ هذا الملف يُكمل ما بعد القرار. */
 (function () {
   'use strict';
-  var W = window, D = document, V = '39';
+  var W = window, D = document, V = '40';
   var NS = W.SIJIL_INTRO = W.SIJIL_INTRO || {};
   var CDN = 'https://cdnjs.cloudflare.com/ajax/libs/';
   var LIBS = [
@@ -11,8 +11,12 @@
     CDN + 'gsap/3.12.5/ScrollTrigger.min.js',
     CDN + 'gsap/3.12.5/ScrollToPlugin.min.js'
   ];
-  var TOUR = ['core', 'media', 'ui', 'world', 'stations/s1', 'stations/s2', 'stations/s3', 'stations/s4',
+  /* screens.js مباشرة بعد media.js: مكتبة المولّدات (39KB) تصل ضمن الدفعة المرتّبة نفسها،
+     فلا تُبنى شاشة على المولّد الافتراضي ثم تُعاد من الصفر عند وصوله (rebindGens) */
+  var TOUR = ['core', 'media', 'screens', 'ui', 'world', 'stations/s1', 'stations/s2', 'stations/s3', 'stations/s4',
     'stations/s5', 'stations/s6', 'stations/s7', 'stations/s8'].map(function (n) { return 'js/intro/' + n + '.js?v=' + V; });
+  /* ميزانية زمن الوضع الكامل: بعدها تُسلَّم الملصقات المخبوزة بدل انتظار المكتبات على وصلة بطيئة */
+  var LOAD_BUDGET_MS = 8000;
   /* ملصق المحطة الأولى: خلفية #intro حتى أول إطار WebGL (عنصر LCP) */
   var FIRST_POSTER = 'assets/intro/posters/s1.webp';
 
@@ -210,6 +214,7 @@
   /* ─── الوضع الكامل: المكتبات وملفات الجولة دفعة واحدة، ثم start() فور جاهزية عناصر الجولة ─── */
   function startFull() {
     preloadImage(FIRST_POSTER);
+    var settled = false;
     var libs = loadAll(LIBS.concat(TOUR));
     whenIntroDom(function () {
       if (aborted) return;
@@ -218,8 +223,18 @@
       initBar();
       watchLogin();
     });
+    /* لا موعد نهائي في القرار 5، فوصلة بطيئة (لا saveData) كانت تنتظر ~34s قبل أول إطار.
+       الملصقات مبنية وجاهزة (17–81KB للواحد) فهي المخرج الصحيح عند تجاوز الميزانية. */
+    var budget = setTimeout(function () {
+      if (settled || aborted) return;
+      if (W.THREE && W.gsap && W.ScrollTrigger && typeof NS.start === 'function') return;
+      settled = true;
+      whenIntroDom(function () { fallbackToPosters('بطء الشبكة'); });
+    }, LOAD_BUDGET_MS);
     libs.then(function () {
-      if (aborted) return;
+      try { clearTimeout(budget); } catch (e) { }
+      if (aborted || settled) return;
+      settled = true;
       if (!W.THREE || !W.gsap || !W.ScrollTrigger) { whenIntroDom(function () { fallbackToPosters('مكتبة أساسية مفقودة'); }); return; }
       try { W.gsap.registerPlugin(W.ScrollTrigger); if (W.ScrollToPlugin) W.gsap.registerPlugin(W.ScrollToPlugin); } catch (e) { }
       if (typeof NS.start !== 'function') { whenIntroDom(function () { fallbackToPosters('SIJIL_INTRO.start غير متوفر'); }); return; }
@@ -230,8 +245,16 @@
         /* start() يعيد false عند تعذّر WebGL أو المكتبات؛ أما إن أنهى الجولة فوراً (جلسة محفوظة) فلا تراجع */
         if (ok === false && !(NS.state && NS.state.finished)) fallbackToPosters('start() لم يكتمل');
       });
-    }).catch(function (e) { whenIntroDom(function () { fallbackToPosters('خطأ في التحميل: ' + (e && e.message)); }); });
+    }).catch(function (e) {
+      try { clearTimeout(budget); } catch (e2) { }
+      if (aborted || settled) return;
+      settled = true;
+      whenIntroDom(function () { fallbackToPosters('خطأ في التحميل: ' + (e && e.message)); });
+    });
   }
+
+  /* يستدعيه core عند فقد سياق WebGL بعد بدء الجولة */
+  NS.fallbackToPosters = function (reason) { fallbackToPosters(reason || 'تعذّر العرض'); };
 
   function run() {
     try {

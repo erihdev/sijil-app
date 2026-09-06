@@ -207,11 +207,15 @@
   var running = false, rafId = 0, idleTimer = 0, dirty = true, settling = false, snapNext = true, firstFrameDone = false;
   var t0 = 0, lastFrame = 0, lastRender = -1, prevDrawn = false, hudStamp = 0;
   var velTarget = 0, velStamp = 0, lastTT = 0;
-  var fpsEma = 0, lowAcc = 0, lowAcc30 = 0, coolUntil = 0, warmDecided = false, warmSamples = 0;
+  var lowAcc = 0, coolUntil = 0, warmDecided = false, warmHidden = false;
+  /* نافذة قياس بساعة الحائط على الإطارات المتتالية المرسومة فقط: الإطارات ÷ الزمن = المعدّل الحقيقي.
+     (dt المُمرَّر للمشهد مقصوص عند 0.1s فلا يصلح للقياس: على جهاز بـ2fps يقول 10fps) */
+  var winFrames = 0, winT0 = 0, warmDt = [];
+  var WIN_SEC = 1;           /* أقصر نافذة يُحكم عليها */
   var proxy = { t: 0 }, scrubTween = null, loginTween = null, scrollTween = null;
   var io = null, mo = null, userClicked = false, finishing = false, cardDone = false;
   var particles = null, particleArr = null, particleN = 0, particleCount = 0, halvings = 0, particlesFresh = true;
-  var resizeTimer = 0, precompileTimer = 0, precompiled = false;
+  var resizeTimer = 0, precompileTimer = 0, precompiled = false, contextLost = false;
   var fovBase = 45, fovWant = 45;
 
   /* ───────────── البدء ───────────── */
@@ -260,6 +264,10 @@
         canvas: canvas, antialias: state.dpr < 2, alpha: false,
         powerPreference: 'high-performance', stencil: false
       });
+      try {
+        canvas.addEventListener('webglcontextlost', onContextLost, false);
+        canvas.addEventListener('webglcontextrestored', onContextRestored, false);
+      } catch (e) {}
       renderer.setClearColor(CLEAR_COLOR, 1);
       if ('outputColorSpace' in renderer) renderer.outputColorSpace = T.SRGBColorSpace;
       renderer.setPixelRatio(state.dpr);
@@ -601,7 +609,7 @@
     try { callOn(world, 'dispose'); } catch (e) {}
     try { if (renderer) { renderer.dispose(); if (renderer.forceContextLoss) renderer.forceContextLoss(); } } catch (e) {}
 
-    var ids = ['intro', 'intro-track', 'intro-bar', 'intro-hud'];
+    var ids = ['intro', 'intro-track', 'intro-bar', 'intro-hud', 'intro-posters'];
     if (!keepStamp) ids.push('intro-stamp');
     ids.forEach(function (id) {
       try { var el = doc.getElementById(id); if (el && el.parentNode) el.parentNode.removeChild(el); } catch (e) {}
@@ -669,9 +677,57 @@
     wake();
   }
 
+  /* ───────────── فقد سياق WebGL (إعادة ضبط الـGPU، استعادة تبويب، أجهزة ضعيفة) ─────────────
+     بلا معالج تبقى الحلقة تدور فوق طبقة كحلية فارغة وتُبلّغ HUD عن 60fps بينما لا يُرسم شيء.
+     المعالجة: أوقف كل شيء وسلّم الملصقات الثمانية المخبوزة (وهي مسار الفولباك المبني أصلاً). */
+  function onContextLost(ev) {
+    try { if (ev && ev.preventDefault) ev.preventDefault(); } catch (e) {}
+    if (contextLost || state.finished) return;
+    contextLost = true;
+    warn('فقد سياق WebGL — التحويل إلى الملصقات');
+    haltToPosters();
+  }
+  function onContextRestored() {
+    log('استُعيد سياق WebGL بعد التحويل إلى الملصقات — تبقى الملصقات لهذه الجلسة');
+  }
+  function haltToPosters() {
+    stopLoop();
+    try { clearTimeout(precompileTimer); } catch (e) {}
+    try { clearTimeout(resizeTimer); } catch (e) {}
+    try { if (scrollTween) scrollTween.kill(); } catch (e) {}
+    try { if (scrubTween) scrubTween.kill(); } catch (e) {}
+    try { if (loginTween) loginTween.kill(); } catch (e) {}
+    try { if (win.gsap) win.gsap.killTweensOf(win); } catch (e) {}
+    try {
+      var ST = win.ScrollTrigger;
+      if (ST) { if (typeof ST.killAll === 'function') ST.killAll(); else ST.getAll().forEach(function (t) { t.kill(); }); }
+    } catch (e) {}
+    try { if (io) io.disconnect(); } catch (e) {}
+    win.removeEventListener('resize', onResize);
+    win.removeEventListener('orientationchange', onResize);
+    win.removeEventListener('pointermove', onPointerMove);
+    win.removeEventListener('touchstart', onTouchStart);
+    win.removeEventListener('touchmove', onTouchMove);
+    /* لا ui.finish هنا: فهو يزيل #intro-posters نفسه — وهو الطبقة التي نسلّمها للمستخدم.
+       إزالة #intro تكفي (وفيها intro-texts وintro-counter وintro-hint)، ويبقى #intro-bar عاملاً. */
+    ['intro', 'intro-track', 'intro-hud'].forEach(function (id) {
+      try { var el = doc.getElementById(id); if (el && el.parentNode) el.parentNode.removeChild(el); } catch (e) {}
+    });
+    hud = null;
+    try { doc.body.classList.remove('has-intro'); } catch (e) {}
+    try { doc.documentElement.classList.remove('has-intro'); } catch (e) {}
+    try { win.scrollTo(0, 0); } catch (e) {}
+    /* الملصقات من intro-boot (نفس المسار الذي يسلكه الجهاز بلا WebGL) */
+    try {
+      if (typeof NS.fallbackToPosters === 'function') NS.fallbackToPosters('فقد سياق WebGL');
+      else { var pr = doc.getElementById('intro-posters'); if (pr) pr.hidden = false; }
+    } catch (e) {}
+    /* mo (مراقب #view-login) يبقى: الدخول ما يزال ينهي الجولة ويعلّم المفتاح */
+  }
+
   /* ───────────── الحلقة (رسم عند الطلب؛ تسكن في الخمول وتستيقظ بالأحداث) ───────────── */
   function startLoop() {
-    if (running || state.finished) return;
+    if (running || state.finished || contextLost) return;
     running = true;
     lastFrame = 0;
     prevDrawn = false;
@@ -697,7 +753,7 @@
   }
 
   function onVisibility() {
-    if (doc.hidden) stopLoop();
+    if (doc.hidden) { if (!warmDecided) warmHidden = true; stopLoop(); }
     else if (!finishing) startLoop();
   }
 
@@ -710,6 +766,15 @@
       if (typeof m.active === 'function') return !!m.active();
       return !!(m.activeVideo || m.playing || m.active);
     } catch (e) { return false; }
+  }
+
+  /* كم بقي حتى تطلب شاشة حيّة إعادة رسم (بالمللي ثانية)؛ Infinity = لا شيء ينتظر.
+     الشاشة الإجرائية هي بديل الفيديو، فلها الحق نفسه في إيقاظ الحلقة (القرار 9). */
+  function mediaWaitMs() {
+    var m = NS.media;
+    if (!m || typeof m.nextDue !== 'function') return Infinity;
+    try { var v = m.nextDue(); return (typeof v === 'number' && v === v) ? v : Infinity; }
+    catch (e) { return Infinity; }
   }
 
   function frame(ms) {
@@ -731,11 +796,14 @@
 
     if (hud && now - hudStamp > 0.25) { hudStamp = now; updateHud(); }
 
-    var need = dirty || settling || (ctx.time < WARM_SEC) || mediaActive() || (now - lastRender > IDLE_MS / 1000);
+    var mWait = mediaWaitMs();
+    var need = dirty || settling || (ctx.time < WARM_SEC) || mediaActive() || mWait <= 0 ||
+      (now - lastRender > IDLE_MS / 1000);
     if (!need) {
       prevDrawn = false;
-      /* سكون تام: لا rAF؛ رسمة السكون بعد 250ms أو فور أي حدث عبر wake() */
-      if (!idleTimer) idleTimer = setTimeout(function () { idleTimer = 0; schedule(); }, IDLE_MS);
+      /* سكون: لا rAF؛ الاستيقاظ عند موعد الشاشة الحيّة أو بعد 250ms أو فور أي حدث عبر wake() */
+      var waitMs = (mWait < IDLE_MS) ? (mWait < 4 ? 4 : mWait) : IDLE_MS;
+      if (!idleTimer) idleTimer = setTimeout(function () { idleTimer = 0; schedule(); }, waitMs);
       return;
     }
     dirty = false;
@@ -835,36 +903,48 @@
   }
 
   /* ───────────── المراقب التكيّفي (القرار 10) ─────────────
-     الإحماء (أول ثانيتين، رسم متواصل): يُراكم زمن الإطارات تحت 45/30fps ويقرر عند نهايته قبل أول تمرير.
-     بعدها: تُقاس الإطارات المتتالية المرسومة فقط (لا رسمات السكون) ويُقرَّر بعد ثانيتين من البطء. */
+     يقيس المعدّل الحقيقي بساعة الحائط (عدد الإطارات ÷ الزمن) على الإطارات المتتالية المرسومة فقط:
+     لا متوسطاً أسّياً تمحوه الإطارات السريعة بين التقطّعات، ولا رسمات السكون المتباعدة.
+     قرار نهاية الإحماء يُتخذ عند أول رسمة بعد ثانيتين، ولو توقّف التمرير تماماً. */
   function monitor(now, dt) {
-    if (!prevDrawn) { prevDrawn = true; return; }
-    var inst = 1 / dt;
-    fpsEma = fpsEma ? lerp(fpsEma, inst, 0.15) : inst;
-    state.fps = Math.round(fpsEma);
-    if (!adaptive) return;
-    if (ctx.time < WARM_SEC) {
-      if (ctx.time < WARM_SKIP) return;
-      warmSamples++;
-      if (inst < 45) lowAcc += dt;
-      if (inst < 30) lowAcc30 += dt;
-      return;
+    var cont = prevDrawn;                 /* الإطار السابق كان رسمة حقيقية متّصلة بهذه */
+    prevDrawn = true;
+    if (!cont) { winFrames = 0; winT0 = now; }
+    winFrames++;
+    if (cont) {
+      if (ctx.time < WARM_SEC && ctx.time >= WARM_SKIP && warmDt.length < 240) warmDt.push(dt);
     }
+    var span = now - winT0;
+    var mean = (winFrames > 1 && span > 0) ? (winFrames - 1) / span : 0;
+    if (winFrames > 1 && span >= 0.5) state.fps = Math.round(mean);
+    if (!adaptive || ctx.time < WARM_SEC) return;
+
+    /* قرار الإحماء: مرة واحدة، مستقلّ عن اتصال الإطارات ولا يُسقطه توقّف التمرير (القسم 10) */
     if (!warmDecided) {
       warmDecided = true;
-      var win45 = lowAcc >= (WARM_SEC - WARM_SKIP) * 0.5, win30 = lowAcc30 >= (WARM_SEC - WARM_SKIP) * 0.5;
-      if (win30 && state.quality !== 'light') { degrade(); setQuality('light'); log('adaptive(warm): quality → light', Math.round(fpsEma) + 'fps'); }
-      else if (win45) { degrade(); log('adaptive(warm): degrade', Math.round(fpsEma) + 'fps'); }
-      lowAcc = 0; lowAcc30 = 0;
+      /* الوسيط لا المتوسط: نافذة الإحماء تحوي حتماً وقفات ترجمة الشادرات ورفع النسيج (مرة واحدة
+         في العمر)، والمتوسط يجعلها تحكم على الجهاز. الوسيط يقيس القدرة المستقرة.
+         (المتوسط هو المقياس الصحيح لاحقاً أثناء التمرير، حيث التقطّع تجربةُ المستخدم نفسها.) */
+      var wm, a;
+      if (warmDt.length >= 8) { a = warmDt.slice().sort(function (x, y) { return x - y; }); wm = 1 / (a[a.length >> 1] || 1); }
+      else if (warmDt.length >= 2 || warmHidden) wm = 60;   /* عيّنة قصيرة أو تبويب مخفي: لا حكم */
+      else wm = warmDt.length / (WARM_SEC - WARM_SKIP);     /* إطار أو صفر في 1.4s = جهاز بطيء فعلاً */
+      warmDt.length = 0;
+      state.fps = Math.round(wm);
+      if (wm < 30 && state.quality !== 'light') { degrade(); setQuality('light'); log('adaptive(warm): quality → light', Math.round(wm) + 'fps'); }
+      else if (wm < 45) { degrade(); log('adaptive(warm): degrade', Math.round(wm) + 'fps'); }
+      lowAcc = 0; winFrames = 1; winT0 = now;
       coolUntil = now + 1.5;
       return;
     }
-    if (now < coolUntil) { lowAcc = 0; return; }
-    if (fpsEma < 45) lowAcc += dt; else lowAcc = 0;
+    if (now < coolUntil) { lowAcc = 0; if (span >= WIN_SEC) { winFrames = 1; winT0 = now; } return; }
+    if (span < WIN_SEC || winFrames < 2) return;
+    if (mean < 45) lowAcc += span; else lowAcc = 0;
+    winFrames = 1; winT0 = now;
     if (lowAcc >= 2) {
       lowAcc = 0;
       coolUntil = now + 1.5;
-      if (fpsEma < 30 && state.quality !== 'light') { degrade(); setQuality('light'); log('adaptive: quality → light', Math.round(fpsEma) + 'fps'); }
+      if (mean < 30 && state.quality !== 'light') { degrade(); setQuality('light'); log('adaptive: quality → light', Math.round(mean) + 'fps'); }
       else degrade();
     }
   }
@@ -878,7 +958,7 @@
     }
     halvings = Math.min(halvings + 1, 2);
     if (state.quality === 'high') setQuality('mid'); else applyParticleBudget();
-    log('adaptive: dpr', state.dpr, 'particles', particleCount, 'fps', Math.round(fpsEma));
+    log('adaptive: dpr', state.dpr, 'particles', particleCount, 'fps', state.fps);
   }
 
   function setQuality(q) {

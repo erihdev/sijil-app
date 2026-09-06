@@ -365,9 +365,11 @@
 
       // الطابور: 30 طالباً (جسم + رأس)
       var N = 30;
-      /* أوجه أنعم: الكاميرا تمر بينهم على بعد < 1م في المحطة 2 */
-      var bodyG = new THREE.CapsuleGeometry(0.22, 0.5, 2, 12);
-      var headG = new THREE.SphereGeometry(0.16, 12, 8);
+      /* أوجه أنعم: الكاميرا تمر بينهم على بعد < 1م في المحطة 2.
+         الجوال: ميزانية 15k مثلث (القسم 6) والطابور وحده كان 11,520 منها (384 لكل طالب).
+         8 أضلاع للجسم و8×6 للرأس = 224 لكل طالب (6,720 إجمالاً) بلا فرق مرئي على هذه المسافات. */
+      var bodyG = isMobile ? new THREE.CapsuleGeometry(0.22, 0.5, 2, 8) : new THREE.CapsuleGeometry(0.22, 0.5, 2, 12);
+      var headG = isMobile ? new THREE.SphereGeometry(0.16, 8, 6) : new THREE.SphereGeometry(0.16, 12, 8);
       var bodies = new THREE.InstancedMesh(bodyG, matRobe, N);
       var heads = new THREE.InstancedMesh(headG, matSkin, N);
       var feet = [], phases = [];
@@ -792,6 +794,8 @@
     /* ---------- الحركة: العلم والنخلة والطابور وأبواب الخزائن والنوافذ ---------- */
     var flagBase = world.flag.userData.base, flagPos = world.flag.geometry.attributes.position;
     var offBody = new THREE.Matrix4().makeTranslation(0, 0.47, 0), offHead = new THREE.Matrix4().makeTranslation(0, 1.08, 0);
+    /* مركز الطابور ومدى ظهوره: 40م يُبقيه ظاهراً طوال المحطتين 1 و2 (أبعد نقطة كاميرا 34م) */
+    var CROWD_AT = new THREE.Vector3(0, 0.8, -12), CROWD_FAR = 40;
     world.update = function (time, t) {
       time = +time || 0;
       var i, n;
@@ -810,6 +814,14 @@
       }
       // تمايل الطلاب ±1°
       var st = world.students;
+      if (st) {
+        /* الطابور في الفناء (z≈−12): من فوق السطح (المحطتان 7 و8) يبعد 55–70م وخلف المبنى،
+           فهو داخل هرم الرؤية لكن غير مرئي فعلياً — إخفاؤه يوفّر كل مثلثاته وتحديث مصفوفاته. */
+        var camNear = true;
+        try { if (ctx.camera) camNear = ctx.camera.position.distanceTo(CROWD_AT) < CROWD_FAR; } catch (e) {}
+        if (st.bodies.visible !== camNear) { st.bodies.visible = camNear; st.heads.visible = camNear; }
+        if (!camNear) { st = null; }
+      }
       if (st) {
         for (i = 0; i < st.count; i++) {
           var f = st.feet[i], ang = Math.sin(time * 1.3 + st.phases[i]) * 0.017;

@@ -134,6 +134,8 @@
       if (media && typeof media.screen === 'function') {
         R.screen = media.screen({
           width: 1.2, height: 2.13, texture: null, frame: 'navy', frameWidth: 0.05, frameDepth: 0.05,
+          /* شاشة حيّة: فقاعة واتساب لتقرير ولي الأمر تُكتب حرفاً حرفاً */
+          gen: 'parent',
           fit: 'cover', open: 0, openFromProgress: false, bright: 1.05, name: 's6-grades'
         });
         R.panel = R.screen.mesh;
@@ -305,7 +307,7 @@
   function load(ctx) {
     /* لقطة الدرجات تُطلب هنا عند الاقتراب (القسم 4) */
     try {
-      if (R.screen && typeof R.screen.setPoster === 'function') { R.screen.setPoster(UI_NAME); R.screen.setMode('poster'); }
+      if (R.screen && typeof R.screen.setPoster === 'function') { R.screen.setPoster(UI_NAME); R.screen.setMode('gen'); }
     } catch (e) {}
     try { if (R.screen) R.screen.enter(); } catch (e) {}
   }

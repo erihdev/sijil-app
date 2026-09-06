@@ -32,6 +32,8 @@
     return el;
   }
   function stationText(st) {
+    /* intro-boot يمرّر ['العنوان', 'النص']؛ المحطات تمرّر كائناً */
+    if (Array.isArray(st)) return { headline: st[0] || '', copy: st[1] || '' };
     var t = (st && st.text) || {};
     return {
       headline: t.headline || st.headline || st.posterTitle || st.title || '',
@@ -372,11 +374,11 @@
     injectCSS();
     var host = ensure('intro-posters', null);
     host.innerHTML = '';
-    var items = (list || []).slice().sort(function (a, b) { return (a.index || 0) - (b.index || 0); });
+    var items = (list || []).slice().sort(function (a, b) { return ((a && a.index) || 0) - ((b && b.index) || 0); });
     items.forEach(function (item, k) {
-      var n = (typeof item.index === 'number' ? item.index : k) + 1;
+      var n = (item && typeof item.index === 'number' ? item.index : k) + 1;
       var t = stationText(item);
-      var src = item.src || item.poster || ('assets/intro/posters/s' + n + '.webp');
+      var src = (item && (item.src || item.poster)) || ('assets/intro/posters/s' + n + '.webp');
       var sec = doc.createElement('section');
       sec.className = 'poster';
       sec.setAttribute('data-i', n);

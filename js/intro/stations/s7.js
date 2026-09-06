@@ -123,6 +123,8 @@
         /* لقطة admin-more تُطلب في load() لا هنا (القسم 4) */
         R.screen = media.screen({
           width: BOARD.w, height: BOARD.h, poster: null, frame: 'none', fit: 'contain', clip: 'sd-aerial',
+          /* شاشة حيّة: أعمدة المستويات ثم الجدول العام مع إبراز الحصة الحالية */
+          gen: 'levels',
           open: 0, openFromProgress: false, bright: 1.04, procedural: drawLevels, name: 's7-admin'
         });
         R.boardMesh = R.screen.mesh;
@@ -256,6 +258,7 @@
     /* لوح المدير: يُفتح بقناع ذهبي مع صعود الكاميرا فوق السطح، ويبقى مفتوحاً للمحطة الأخيرة */
     if (R.screen) {
       try { R.screen.setOpen(ease('out', seg(p, 0.16, 0.44))); } catch (e) {}
+      try { if (R.screen.useGen) R.screen.useGen(p < 0.68 ? 'levels' : 'schedule'); } catch (e) {}
     }
     if (R.caption) {
       var ca = ease('out', seg(p, 0.3, 0.44)) * (1 - ease('in', seg(p, 0.8, 0.93)));
@@ -304,7 +307,7 @@
   function load(ctx) {
     try { if (R.placeholder) R.placeholder.visible = false; } catch (e) {}
     try {
-      if (R.screen && typeof R.screen.setPoster === 'function') { R.screen.setPoster('admin-more'); R.screen.setMode('poster'); }
+      if (R.screen && typeof R.screen.setPoster === 'function') { R.screen.setPoster('admin-more'); R.screen.setMode('gen'); }
     } catch (e) {}
     try { if (R.screen) R.screen.enter(); } catch (e) {}
   }

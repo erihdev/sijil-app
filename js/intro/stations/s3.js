@@ -161,6 +161,8 @@
             width: 4, height: 2.25,
             poster: null, video: null, clip: 'sd-board',
             fit: 'contain', frame: 'none',
+            /* شاشة حيّة (سؤال تفاعلي ← لوحة الحصة الحية)؛ الطباشير يبقى للطرفين */
+            gen: 'quiz', hi: true,
             open: 1, openFromProgress: false,
             base: BOARD_HEX,
             name: 's3-board',
@@ -417,9 +419,10 @@
           scr.setProgress(p);
           var mode, open;
           if (p < 0.15 || portrait) { mode = 'procedural'; open = 1; }
-          else if (p < 0.82) { mode = 'poster'; open = ease('out', (p - 0.15) / 0.17); }
-          else if (p < 0.88) { mode = 'poster'; open = 1 - ease('in', (p - 0.82) / 0.06); }
+          else if (p < 0.82) { mode = 'gen'; open = ease('out', (p - 0.15) / 0.17); }
+          else if (p < 0.88) { mode = 'gen'; open = 1 - ease('in', (p - 0.82) / 0.06); }
           else { mode = 'procedural'; open = 1; }
+          if (mode === 'gen' && scr.useGen) scr.useGen(p < 0.5 ? 'quiz' : 'live');
           if (mode !== this._mode) { this._mode = mode; scr.setMode(mode); if (mode === 'procedural') scr.redraw(time); }
           scr.setOpen(open);
         } catch (e) {}
