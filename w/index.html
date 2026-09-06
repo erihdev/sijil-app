@@ -87,6 +87,19 @@ button{font-family:inherit;font-size:16px}
   const MODE_T = { ws: "ورقة عمل", quiz: "اختبار", race: "تحدٍّ" };
   let db = null, A = null, C = null, si = -1, sname = "", answers = [], qi = 0, t0 = 0, tIv = null, left = 0;
   let PREV = null;   // تسليم سابق: المحاولة الأولى هي المعتمدة
+  // عدد المحاولات المسموحة: tries (0 = بلا حد حتى 12)؛ للأوراق القديمة: retry=false → 1، وإلا 12 لورقة العمل و1 للاختبار/السباق
+  function allowed() {
+    const t = +A.tries;
+    if (A.tries !== undefined && A.tries !== null && Number.isFinite(t)) return t === 0 ? 12 : Math.max(1, Math.min(12, t));
+    if (A.retry === false || A.mode !== "ws") return 1;
+    return 12;
+  }
+  function triesLabel(used) {
+    const n = allowed(), left = Math.max(0, n - (used || 0));
+    if (n === 1) return "🔁 محاولة واحدة فقط — راجع إجاباتك قبل الإرسال";
+    if (used) return `🔁 المحاولة القادمة رقم ${used + 1} من ${n}${left ? "" : " — استُنفدت المحاولات"}`;
+    return `🔁 لديك ${n} محاولات، والدرجة المعتمدة من المحاولة الأولى`;
+  }
 
   const fail = (t, s) => { app.innerHTML = `<div class="err"><b>${esc(t)}</b>${esc(s || "")}</div>`; };
   // تطبيع إجابة «أكمل الفراغ»: تشكيل، ألف/ياء/تاء، «الـ»، مسافات
@@ -124,6 +137,7 @@ button{font-family:inherit;font-size:16px}
       <h1>${esc(A.t)}</h1>
       <p class="sub">${esc(A.subj)} · ${esc(A.tn)} · ${A.qs.length} أسئلة</p>
       ${isLate() ? `<div class="late">⏰ انتهى موعد التسليم، وسيُسجَّل حلّك متأخراً.</div>` : ""}
+      <div class="note2" id="tries-note" style="margin:8px 0 4px">${triesLabel(0)}</div>
       <p class="lbl">اختر اسمك من فصل ${esc(A.cname)}</p>
       <div id="names">${list.map(s => `<button class="name${String(s.i) === saved ? " on" : ""}" data-i="${s.i}">${esc(s.n)}</button>`).join("")}</div>
       <button class="go" id="start" ${saved === null ? "disabled" : ""}>ابدأ الحل</button></div>`;
@@ -136,8 +150,10 @@ button{font-family:inherit;font-size:16px}
     });
     $("#start").onclick = async () => {
       const prev = await db.doc("subs/" + AID + "_" + si).get();
-      if (prev.exists && (A.mode !== "ws" || A.retry === false)) { return done(prev.data(), true); }
-      if (prev.exists) { PREV = prev.data(); }
+      if (prev.exists) {
+        PREV = prev.data();
+        if ((PREV.att || 1) >= allowed()) { return done(PREV, true); }
+      }
       t0 = Date.now(); qi = 0;
       if (A.mode !== "ws" && A.secs) { left = A.secs; startTimer(); }
       draw();
@@ -247,16 +263,17 @@ button{font-family:inherit;font-size:16px}
       <div class="ring" style="background:conic-gradient(${pct >= 50 ? "var(--ok)" : "var(--gold)"} 0 ${pct}%, #E8E2D5 ${pct}%)"><b>${cur} <i>من ${rec.mx}</i></b></div>
       <p style="font-weight:800;font-size:20px;color:var(--navy);margin:0">${word} يا ${esc((sname || rec.n || "").split(" ")[0])}</p>
       <p class="sub" style="margin:4px 0 0">${again ? "سبق أن أرسلت هذه الورقة" : "أُرسلت إلى معلمك ✓"}${rec.late ? " · تسليم متأخر" : ""}</p>
-      ${repeat ? `<div class="note2">هذه محاولتك رقم ${att} · درجتك المسجّلة عند المعلم <b>${rec.sc} من ${rec.mx}</b> من المحاولة الأولى${rec.best > rec.sc ? ` · أفضل نتيجة لك ${rec.best}` : ""}<br><span style="color:var(--muted)">أعد المحاولة كما تشاء، فكل مرة تزيد فهمك 💪</span></div>` : ""}
+      ${again ? `<div class="note2">${att >= allowed() ? `استُنفدت المحاولات المسموحة (${allowed()})` : triesLabel(att)}</div>` : ""}
+      ${repeat ? `<div class="note2">هذه محاولتك رقم ${att} من ${allowed()} · درجتك المسجّلة عند المعلم <b>${rec.sc} من ${rec.mx}</b> من المحاولة الأولى${rec.best > rec.sc ? ` · أفضل نتيجة لك ${rec.best}` : ""}<br><span style="color:var(--muted)">أعد المحاولة كما تشاء، فكل مرة تزيد فهمك 💪</span></div>` : ""}
       ${showAns && wrong.length ? `<div style="text-align:right;margin-top:16px">
         <p class="lbl">راجع هذه فقط:</p>
         ${wrong.map(d => `<div class="rev"><span class="x">✗</span> ${esc(d.q)}<div class="a">الصحيح: ${esc(d.right)}</div></div>`).join("")}
       </div>` : ""}
       ${showAns && !wrong.length ? `<p style="color:var(--ok);font-weight:800;margin-top:14px">كل إجاباتك صحيحة! 🎉</p>` : ""}
-      ${A.mode === "ws" && A.retry !== false && !again && att < 12 ? `<button class="go" id="retry" style="margin-top:18px">↺ تدرّب مرة أخرى</button>` : ""}
-      ${att >= 12 ? `<p class="hint" style="margin-top:14px">وصلت إلى أقصى عدد للمحاولات. راجع الدرس مع معلمك 🌱</p>` : ""}
+      ${!again && att < allowed() ? `<button class="go" id="retry" style="margin-top:18px">↺ ${allowed() - att === 1 ? "محاولة أخيرة" : "تدرّب مرة أخرى"} <small style="font-weight:500">(بقي ${allowed() - att} من ${allowed()})</small></button>` : ""}
+      ${att >= allowed() && allowed() > 1 ? `<p class="hint" style="margin-top:14px">وصلت إلى أقصى عدد للمحاولات (${allowed()}). راجع الدرس مع معلمك 🌱</p>` : ""}
     </div>`;
-    const rt = $("#retry"); if (rt) rt.onclick = () => { answers = A.qs.map(() => null); qi = 0; t0 = Date.now(); draw(); };
+    const rt = $("#retry"); if (rt) rt.onclick = () => { answers = A.qs.map(() => null); qi = 0; t0 = Date.now(); if (A.mode !== "ws" && A.secs) { left = A.secs; startTimer(); } draw(); };
   }
 
   boot();

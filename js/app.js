@@ -1881,9 +1881,16 @@
       <div class="field"><label>الفصل</label><div class="class-chips" id="as-cls">${cls.map(c => `<button class="chip ${c.id === cur ? "on" : ""}" data-c="${c.id}">${esc(c.name)}</button>`).join("")}</div></div>
       <div class="field"><label>الوضع</label><div class="as-modes" id="as-modes">${MODES.map(m => `<button class="as-mode ${m.k === "ws" ? "on" : ""}" data-m="${m.k}"><span>${m.ic}</span>${m.n}</button>`).join("")}</div>
         <div class="empty-note" id="as-desc" style="padding:6px 2px 0;text-align:right">${MODES[0].d}</div></div>
-      <div class="field" id="as-try-w"><label>المحاولات</label>
-        <label class="as-chk"><input type="checkbox" id="as-retry" checked> يسمح بإعادة المحاولة للتدريب
-        <small>الدرجة المسجّلة تبقى دائماً من المحاولة الأولى، ويرى المعلم عدد المحاولات.</small></label></div>
+      <div class="field" id="as-try-w"><label>عدد المحاولات المسموحة للطالب</label>
+        <select class="search-box" id="as-tries" style="margin:0">
+          <option value="1">محاولة واحدة فقط</option>
+          <option value="2">محاولتان</option>
+          <option value="3" selected>3 محاولات</option>
+          <option value="5">5 محاولات</option>
+          <option value="10">10 محاولات</option>
+          <option value="0">بلا حد (حتى 12 محاولة)</option>
+        </select>
+        <div class="empty-note" style="padding:6px 2px 0;text-align:right">الدرجة المسجّلة عند المعلم تبقى دائماً من المحاولة الأولى، والطالب يرى عدد المحاولات المتبقية، وأنت ترى عدد محاولاته وأفضل نتيجة.</div></div>
       <div class="field" id="as-secs-w" style="display:none"><label>مدة الاختبار (دقائق)</label><input class="search-box" id="as-secs" style="margin:0" inputmode="numeric" value="10"></div>
       <div class="field"><label>موعد التسليم</label><input type="datetime-local" class="search-box" id="as-due" style="margin:0" value="${dueLocal(28)}"></div>
       <div id="as-out"></div>
@@ -1893,7 +1900,7 @@
         mode = b.dataset.m; o.querySelectorAll(".as-mode").forEach(x => x.classList.toggle("on", x === b));
         o.querySelector("#as-desc").textContent = (MODES.find(m => m.k === mode) || {}).d || "";
         o.querySelector("#as-secs-w").style.display = mode === "ws" ? "none" : "block";
-        o.querySelector("#as-try-w").style.display = mode === "ws" ? "block" : "none";
+        o.querySelector("#as-tries").value = mode === "ws" ? "3" : "1";
       });
       o.querySelector("#as-make").onclick = async () => {
         const btn = o.querySelector("#as-make"); btn.disabled = true; btn.textContent = "جارِ الإنشاء…";
@@ -1907,7 +1914,8 @@
           mode, due: o.querySelector("#as-due").value || "", code, wk,
           secs: mode === "ws" ? 0 : Math.max(60, (+o.querySelector("#as-secs").value || 10) * 60),
           qs: clean, n: clean.length, ts: Date.now(),
-          retry: mode === "ws" ? !!o.querySelector("#as-retry").checked : false
+          tries: Math.max(0, Math.min(12, +o.querySelector("#as-tries").value || 0)),
+          retry: (+o.querySelector("#as-tries").value || 0) !== 1
         };
         try { await fdb.doc("assign/" + id).set(doc); } catch (e) { btn.disabled = false; btn.textContent = "🔗 أنشئ الرابط"; alert("تعذّر الإنشاء — تحقق من الاتصال"); return; }
         const url = ASSIGN_BASE + id;
@@ -1967,6 +1975,7 @@
         <div class="statrow"><div class="stat"><div class="v">${donerows.length}</div><div class="l">سلّموا من ${rows.length}</div></div>
           <div class="stat"><div class="v">${donerows.length ? avg.toFixed(1) : "—"}</div><div class="l">متوسط من ${A.n}</div></div>
           <div class="stat"><div class="v">${donerows.filter(r => (r.s.att || 1) > 1).length}</div><div class="l">أعادوا المحاولة</div></div>
+          <div class="stat"><div class="v">${A.tries === 0 ? "∞" : (A.tries || (A.retry === false ? 1 : "∞"))}</div><div class="l">محاولات مسموحة</div></div>
           <div class="stat"><div class="v">${worst && worst.w ? "س" + (worst.k + 1) : "—"}</div><div class="l">أكثر خطأً</div></div></div>
         <div class="table-scroll"><table class="report-table"><tr><th>الطالب</th><th>الحالة</th><th>الدرجة</th><th>محاولات</th><th>الأفضل</th><th>الوقت</th></tr>
         ${rows.sort((a, b) => (b.s ? b.s.sc : -1) - (a.s ? a.s.sc : -1)).map(r => { const v = r.s, at = v ? (v.att || 1) : 0, bs = v ? (v.best != null ? v.best : v.sc) : 0; return `<tr><td class="nm">${esc(r.n)}</td>
