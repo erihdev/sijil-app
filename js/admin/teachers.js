@@ -20,7 +20,7 @@
   const $ = (q, root) => (root || document).querySelector(q);
   const warn = (...a) => { try { console.warn("[admin/teachers]", ...a); } catch (e) { } };
   const SEC_KEY = "sijil.adm.secwarn";
-  const PIN_RE = /^\d{4,12}$/;
+  const PIN_RE = /^\d{6,12}$/;      // كل رقم دخول جديد: 6 خانات فأكثر (الأقصر يُخمَّن بسرعة)
   let q = "";                         // نص البحث في جدول المعلمين
   let dupOk = "";                     // اسم مكرر وافق المدير على إضافته (نقرة ثانية)
 
@@ -79,15 +79,24 @@
   const isDemo = () => !(S().CLOUD && S().fdb);
   const clsName = (cid) => { const c = S().classById(cid); return c ? c.name : cid; };
   const nActive = (c) => (S().activeCount ? S().activeCount(c) : S().activeStudents(c).length);
-  const loginState = (t) => t.pinHash ? { ok: true, t: "✅ سجّل هويته" } : isDemo() ? { ok: true, t: "🧪 تجريبي (1234)" } : { ok: false, t: "⏳ لم يسجّل" };
-  /* القواعد المنشورة (firestore.rules → teachers/{tid}) تسمح بتغيير pinHash لحسابات المعلمين فقط، وتمنعه على حساب المدير:
+  // «سجّل هويته» = علم التسجيل الجديد (js/auth.js) أو البصمة القديمة قبل الترحيل
+  const AU = () => { const a = window.SIJIL_AUTH; return (a && typeof a.verify === "function") ? a : null; };
+  function isReg(t) {
+    if (!t) return false;
+    const a = AU();
+    if (a && typeof a.isRegistered === "function") { try { return !!a.isRegistered(t); } catch (e) { } }
+    return t.reg === true || !!t.pinHash;
+  }
+  // بصمة رقمه ما تزال محفوظة في مستنده المقروء ⇒ رقمه في حكم المكشوف حتى يُعيَّن له رقم جديد
+  const exposedPin = (t) => { const a = AU(); return !!(a && typeof a.exposed === "function" && a.exposed(t)); };
+  const loginState = (t) => exposedPin(t) ? { ok: false, t: "⚠️ يحتاج رقماً جديداً" }
+    : isReg(t) ? { ok: true, t: "✅ سجّل هويته" } : isDemo() ? { ok: true, t: "🧪 تجريبي (1234)" } : { ok: false, t: "⏳ لم يسجّل" };
+  /* القواعد المنشورة (firestore.rules → teachers/{tid}) لا تسمح بكتابة أي بصمة في مستند المعلم، ورقم المدير يُدار من كونسول Firebase:
      قراءة teachers مفتوحة لأي جهاز مصادَق (مجهولاً)، فالسماح بكتابة بصمة المدير من العميل = استيلاء على اللوحة.
      لذلك تُعطَّل أزرار رقم الدخول لحساب المدير في الوضع السحابي بدل تركها ترمي «تعذّر الحفظ». */
   const pinLocked = (t) => !isDemo() && !!(t && t.admin);
   const PIN_LOCK = "رقم دخول حساب المدير لا يُغيَّر من داخل التطبيق — حمايةً للحساب (القراءة مفتوحة لأي جهاز). يُعاد تعيينه من كونسول Firebase.";
   const randPin = () => { try { const a = new Uint32Array(1); crypto.getRandomValues(a); return String(100000 + (a[0] % 900000)); } catch (e) { return String(100000 + Math.floor(Math.random() * 900000)); } };
-  // بصمة رقم الدخول — نفس صيغة app.js في initLogin: sha256(pin|tid|SALT)
-  const pinHash = (pin, tid) => S().sha256(pin + "|" + tid + "|" + S().SALT);
   const subjects = () => [...new Set(teachers().map(t => t.subject).filter(Boolean))].sort();
   const leadOf = (t) => ((t && t.lead) || []).filter(cid => !!S().classById(cid));
   const leaderOf = (cid) => teachers().find(t => (t.lead || []).includes(cid)) || null;
@@ -112,6 +121,9 @@
     if (typeof src.mob === "string" && src.mob.trim()) out.mob = src.mob.trim().slice(0, 20);
     else if (typeof src.phone === "string" && src.phone.trim()) out.phone = src.phone.trim().slice(0, 20);
     if (typeof src.pinHash === "string" && src.pinHash) out.pinHash = src.pinHash.slice(0, 64);
+    // علم التسجيل وختم الرقم (js/auth.js) — يمرّان كما هما وإلا أُبطل رقم دخول المعلم عند أي تعديل لبياناته
+    if (src.reg === true) out.reg = true;
+    if (typeof src.pt === "number" && src.pt > 0) out.pt = src.pt;
     if (base && typeof base.admin === "boolean") out.admin = base.admin;
     const lead = [...new Set((src.lead || []).filter(c => ids.has(c)))].slice(0, 40); if (lead.length) out.lead = lead;
     return out;
@@ -185,7 +197,7 @@
       <div class="field"><label>المادة</label><input id="tf-subj" list="tf-subs" maxlength="80" value="${esc(t.subject || "")}" autocomplete="off"><datalist id="tf-subs">${subjects().map(x => `<option value="${esc(x)}">`).join("")}</datalist></div>
       <div class="field"><label>الجوال (05xxxxxxxx)</label><input id="tf-mob" inputmode="tel" maxlength="20" value="${esc(mobOf(t))}" autocomplete="off" style="direction:ltr;text-align:right"></div>
       <div class="field"><label>الفصول المسندة</label>${clsPicker(t.classes || [])}</div>
-      ${isNew ? `<div class="field"><label>رقم الدخول الأولي (4–12 رقماً)</label><div class="me-mobrow"><input id="tf-pin" inputmode="numeric" maxlength="12" autocomplete="off" style="letter-spacing:3px"><button class="btn-gold" id="tf-gen" type="button">🎲 توليد</button></div></div>` : ""}
+      ${isNew ? `<div class="field"><label>رقم الدخول الأولي (6–12 رقماً)</label><div class="me-mobrow"><input id="tf-pin" inputmode="numeric" maxlength="12" autocomplete="off" style="letter-spacing:3px"><button class="btn-gold" id="tf-gen" type="button">🎲 توليد</button></div></div>` : ""}
       <div class="login-err" id="tf-err"></div>
       <div class="sheet-actions"><button class="btn-plain" id="tf-no">إلغاء</button><button class="btn-primary" id="tf-ok">${isNew ? "➕ إضافة" : "💾 حفظ"}</button></div>`;
   }
@@ -197,7 +209,7 @@
     let mob = "";
     if (mobRaw) { mob = A().normMob(mobRaw); if (!mob) return { err: "صيغة الجوال غير صحيحة — مثال: 0501234567" }; }
     const patch = { name, subject, mob, classes: pickedCls(o) };
-    if (isNew) { const pin = $("#tf-pin", o).value.trim(); if (!PIN_RE.test(pin)) return { err: "رقم الدخول: 4 إلى 12 رقماً" }; patch.pin = pin; }
+    if (isNew) { const pin = $("#tf-pin", o).value.trim(); if (!PIN_RE.test(pin)) return { err: "رقم الدخول: من 6 إلى 12 رقماً" }; patch.pin = pin; }
     return { patch };
   }
   function diffNote(oldT, p) {
@@ -253,8 +265,17 @@
         try {
           const p = r.patch, pin = p.pin; delete p.pin;
           if (!p.mob) delete p.mob;
-          p.pinHash = await pinHash(pin, tid);
+          const au = AU();
+          if (!au) { err.textContent = "تعذّر تجهيز رقم الدخول — أعد تحميل الصفحة ثم أضف المعلم"; $("#tf-ok", o).disabled = false; return; }
           await writeTeacher(tid, p, true);
+          // رقم الدخول يُسجَّل في «pins» وحدها — ولا تُكتب بصمته في مستند المعلم أبداً لأنه مقروء لأي جهاز
+          const rr = await au.registerFirst(tid, pin).catch(() => null);
+          if (!rr || !rr.ok) {
+            await A().adminlog("add", `إضافة معلم ${p.name} — بلا رقم دخول بعد`, tid);
+            if (after) { try { const r2 = after(); if (r2 && r2.catch) r2.catch(() => { }); } catch (e2) { warn("after/add", e2); } }
+            err.textContent = "أُضيف المعلم، لكن لم يُسجَّل رقم دخوله (" + ((rr && rr.err) || "تحقق من الإنترنت") + ") — عيّنه من بطاقته بزر «🔑 إعادة تعيين رقم الدخول».";
+            $("#tf-ok", o).disabled = false; return;
+          }
           await A().adminlog("add", `إضافة معلم ${p.name} (${p.subject || "بلا مادة"}) — ${p.classes.length} فصول`, tid);
           if (after) { try { const r2 = after(); if (r2 && r2.catch) r2.catch(() => { }); } catch (e2) { warn("after/add", e2); } }   // الجدول يتحدّث فور نجاح الكتابة مهما أُغلقت النافذة
           showPin(o, p.name, tid, pin, "➕ أُضيف المعلم", after);
@@ -267,20 +288,26 @@
   function resetPin(tid, after) {
     const t = byId(tid); if (!t) return;
     css();
+    const au = AU(), me = S().TE;
     S().openSheet(`<h4>🔑 إعادة تعيين رقم الدخول</h4>
       <div style="text-align:center;font-weight:800;color:var(--navy);margin-bottom:8px">${esc(t.name)} <span class="tch-id">(${esc(tid)})</span></div>
-      <div class="field"><label>رقم الدخول الجديد (4–12 رقماً)</label><div class="me-mobrow"><input id="tp-pin" inputmode="numeric" maxlength="12" autocomplete="off" style="letter-spacing:3px"><button class="btn-gold" id="tp-gen" type="button">🎲 توليد عشوائي</button></div></div>
-      <div class="empty-note" style="padding:4px 2px;text-align:right;min-height:0">تُحفظ بصمة الرقم فقط لا الرقم نفسه، وسيُطلب من المعلم الرقم الجديد على كل أجهزته.</div>
+      <div class="field"><label>رقم الدخول الجديد (6–12 رقماً)</label><div class="me-mobrow"><input id="tp-pin" inputmode="numeric" maxlength="12" autocomplete="off" style="letter-spacing:3px"><button class="btn-gold" id="tp-gen" type="button">🎲 توليد عشوائي</button></div></div>
+      ${au ? '<div class="field"><label>رقم دخولك أنت (للتأكيد)</label><input type="password" id="tp-my" inputmode="numeric" maxlength="12" autocomplete="current-password"></div>' : ""}
+      <div class="empty-note" style="padding:4px 2px;text-align:right;min-height:0">تُحفظ بصمة الرقم فقط لا الرقم نفسه، وسيُطلب من المعلم الرقم الجديد على كل أجهزته${au ? "، ولن يعمل رقمه القديم بعدها" : ""}.</div>
       <div class="login-err" id="tp-err"></div>
       <div class="sheet-actions"><button class="btn-plain" id="tp-no">إلغاء</button><button class="btn-primary" id="tp-ok">🔑 تعيين</button></div>`, (o) => {
       $("#tp-gen", o).onclick = () => { $("#tp-pin", o).value = randPin(); };
       $("#tp-no", o).onclick = () => S().closeSheet();
       $("#tp-ok", o).onclick = async () => {
         const pin = $("#tp-pin", o).value.trim(), err = $("#tp-err", o);
-        if (!PIN_RE.test(pin)) { err.textContent = "رقم الدخول: 4 إلى 12 رقماً"; return; }
+        const myEl = $("#tp-my", o), my = myEl ? myEl.value.trim() : "";
+        if (!PIN_RE.test(pin)) { err.textContent = "رقم الدخول: من 6 إلى 12 رقماً"; return; }
+        if (au && !my) { err.textContent = "اكتب رقم دخولك أنت للتأكيد"; return; }
         $("#tp-ok", o).disabled = true; err.textContent = "جارِ الحفظ…";
         try {
-          await writeTeacher(tid, { pinHash: await pinHash(pin, tid) }, false);
+          if (!au) { err.textContent = "تعذّر تجهيز رقم الدخول — أعد تحميل الصفحة ثم حاول"; $("#tp-ok", o).disabled = false; return; }
+          const rr = await au.resetPin(tid, (me && me.id) || "", my, pin);
+          if (!rr || !rr.ok) { err.textContent = (rr && rr.err) || "تعذّر الحفظ"; $("#tp-ok", o).disabled = false; return; }
           await A().adminlog("pin", `إعادة تعيين رقم دخول ${t.name}`, tid);
           if (after) { try { const r2 = after(); if (r2 && r2.catch) r2.catch(() => { }); } catch (e2) { warn("after/pin", e2); } }
           showPin(o, t.name, tid, pin, "✔ عُيّن رقم الدخول", after);
@@ -296,7 +323,7 @@
     sh.innerHTML = `<h4>${esc(title)}</h4>
       <div style="text-align:center;font-weight:800;color:var(--navy)">${esc(name)} <span class="tch-id">(${esc(tid)})</span></div>
       <div class="tch-pin" id="tp-show">${esc(pin)}</div>
-      <div class="empty-note" style="padding:0 0 8px;min-height:0">أرسل الرقم للمعلم الآن — لن يُعرض مرة أخرى.${isDemo() ? "<br>🧪 في الوضع التجريبي يبقى الدخول برقم 1234." : ""}</div>
+      <div class="empty-note" style="padding:0 0 8px;min-height:0">أرسل الرقم للمعلم الآن — لن يُعرض مرة أخرى.${isDemo() ? "<br>🧪 وفي النسخة التجريبية: بعد هذا التعيين لن يعمل الرقم 1234 لهذا المعلم." : ""}</div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px"><button class="btn-gold" id="tp-copy">📋 نسخ الرقم</button>${mob ? `<a class="btn-gold" style="text-align:center;text-decoration:none" target="_blank" rel="noopener" href="${A().waHref(mob, msg)}">💬 واتساب</a>` : `<button class="btn-gold" disabled style="opacity:.55">💬 لا جوال مسجّل</button>`}</div>
       <div class="sheet-actions"><button class="btn-plain" id="tp-done">إغلاق</button></div>`;
     $("#tp-copy", sh).onclick = async () => { try { await navigator.clipboard.writeText(pin); A().toast("📋 نُسخ الرقم"); } catch (e) { A().toast("تعذّر النسخ — انسخه يدوياً"); } };
@@ -335,7 +362,7 @@
     const last = lastByTeacher(sd), list = teachers().slice().sort((a, b) => String(a.id).localeCompare(String(b.id)));
     const ql = q.trim();
     const shown = ql ? list.filter(t => [t.name, t.subject, t.id, mobOf(t)].some(x => String(x || "").includes(ql))) : list;
-    const nReg = list.filter(t => t.pinHash).length;
+    const nReg = list.filter(t => isReg(t)).length;
     const nStaff = (typeof A().staff === "function" ? A().staff() : list.filter(t => !t.admin && (t.classes || []).length)).length;
     const nIdle = list.filter(t => !t.admin && (t.classes || []).length && (!last[t.id] || A().daysAgo(last[t.id]) >= 7)).length;
     const clsOf = (t) => A().sortedClasses().filter(c => (t.classes || []).includes(c.id));
@@ -402,7 +429,7 @@
     $("#tch-print", box).onclick = () => A().printTable("قائمة المعلمين" + (ql ? " — بحث: " + ql : ""),
       ["م", "المعلم", "المادة", "الفصول", "الجوال", "الدخول", "آخر رصد", "الرائد"],
       shown.map((t, i) => [String(i + 1), esc(t.name) + (t.admin ? " (المدير)" : ""), esc(t.subject || "—"), esc(clsOf(t).map(c => c.name).join("، ") || "—"),
-      esc(A().normMob(mobOf(t)) || mobOf(t) || "—"), t.pinHash ? "سجّل" : isDemo() ? "تجريبي" : "لم يسجّل",
+      esc(A().normMob(mobOf(t)) || mobOf(t) || "—"), isReg(t) ? "سجّل" : isDemo() ? "تجريبي" : "لم يسجّل",
       last[t.id] ? A().fmtDate(last[t.id]) : "—", esc(leadOf(t).map(clsName).join("، ") || "—")]),
       { sub: "👨‍🏫 المعلمون", land: true, foot: ["", `${shown.length} معلماً`, "", "", "", `${nReg} سجّلوا`, "", ""] });
     $("#tch-print-leads", box).onclick = () => A().printTable("رواد الفصول", ["الفصل", "الطلاب", "الرائد", "مادته"],
@@ -451,20 +478,30 @@
     const body = `<div class="me-head"><div class="me-avatar">${me.admin ? "🏫" : "👨‍🏫"}</div><div><div class="me-name">${esc(me.name)}</div><div class="me-sub">${esc(me.admin ? "مدير المدرسة" : (me.subject || "—"))} · ${esc(me.id)}</div>${leadBadge(me)}</div></div>
       ${H.row("الفصول", cls.length ? `<span class="tch-chips" style="justify-content:flex-start">${cls.map(c => `<span class="cc" style="background:${leads.has(c.id) ? "var(--gold)" : "var(--navy)"};color:${leads.has(c.id) ? "var(--navy)" : "#fff"}">${leads.has(c.id) ? "🎖️ " : ""}${esc(c.name)}</span>`).join("")}</span>` : "—")}
       ${H.row("حالة التسجيل", `<span class="tch-status ${st.ok ? "ok" : "no"}">${st.t}</span>`)}
+      ${exposedPin(me) ? H.alert("⚠️ رقم دخولك الحالي قديم ومحفوظ بطريقة يمكن كشفها — غيّره الآن من الزر أدناه ليصبح محفوظاً بالطريقة الآمنة.") : ""}
       <div class="field" style="margin-top:12px"><label>📱 جوالي</label><div class="me-mobrow"><input id="me-mob" inputmode="tel" maxlength="20" value="${esc(mobN)}" placeholder="05xxxxxxxx" autocomplete="off"><button class="btn-gold" id="me-mob-save">حفظ</button></div></div>
       <div class="login-err" id="me-mob-err" style="margin-top:0"></div>
       ${pinLocked(me) ? H.alert("🔒 " + esc(PIN_LOCK)) : `<button class="btn-gold" id="me-pin-btn" style="width:100%">🔐 تغيير رقم الدخول</button>`}
       <div class="me-form hidden" id="me-form" style="margin-top:10px${pinLocked(me) ? ";display:none" : ""}">
         <div class="field"><label>رقم الدخول الحالي</label><input type="password" id="me-p0" inputmode="numeric" maxlength="12" autocomplete="current-password"></div>
-        <div class="field"><label>الرقم الجديد (4–12 رقماً)</label><input type="password" id="me-p1" inputmode="numeric" maxlength="12" autocomplete="new-password"></div>
+        <div class="field"><label>الرقم الجديد (6–12 رقماً)</label><input type="password" id="me-p1" inputmode="numeric" maxlength="12" autocomplete="new-password"></div>
         <div class="field"><label>تأكيد الرقم الجديد</label><input type="password" id="me-p2" inputmode="numeric" maxlength="12" autocomplete="new-password"></div>
-        <div class="empty-note" style="padding:0 2px 8px;text-align:right;min-height:0">سيُطلب الرقم الجديد على كل أجهزتك.${isDemo() ? " 🧪 في الوضع التجريبي يبقى الدخول برقم 1234." : ""}</div>
+        <div class="empty-note" style="padding:0 2px 8px;text-align:right;min-height:0">سيُطلب الرقم الجديد على كل أجهزتك.${isDemo() ? " 🧪 وفي النسخة التجريبية أيضاً: بعد الحفظ لن يعمل الرقم 1234 لحسابك، فاحفظ رقمك الجديد." : ""}</div>
         <div class="login-err" id="me-err" style="margin-top:0"></div>
         <button class="btn-primary" id="me-pin-save">💾 حفظ الرقم الجديد</button>
       </div>
-      ${me.admin && staffOn() ? staffHtml() : ""}`;
+      ${me.admin && staffOn() ? staffHtml() : ""}
+      <div id="me-files" style="margin-top:12px"></div>`;
     el.innerHTML = opts.flat ? `<h4>👤 بياناتي</h4>${body}` : H.card("👤 بياناتي", body, 'id="me-card-in"');
     if (me.admin && staffOn()) bindStaff(el, opts);
+    // 📎 مرفقات بطاقة المعلم (js/files.js) — صور شهاداته ونماذجه، خاصة به
+    try {
+      const F = window.SIJIL_FILES, fbox = $("#me-files", el);
+      if (fbox && F && typeof F.libraryCard === "function") {
+        Promise.resolve(F.libraryCard(fbox, { scope: "profile", ref: { t: me.id }, title: "📎 مرفقاتي", hint: "ملفات تخصّك: شهادة، نموذج، أو صورة تحتاجها سريعاً." }))
+          .catch(() => { fbox.innerHTML = ""; });
+      }
+    } catch (e) { warn("files/profile", e); }
     // 📱 الجوال
     $("#me-mob-save", el).onclick = async () => {
       const raw = $("#me-mob", el).value.trim(), err = $("#me-mob-err", el), btn = $("#me-mob-save", el); let val = "";
@@ -483,15 +520,15 @@
     if (pinBtn) $("#me-pin-save", el).onclick = async () => {
       const p0 = $("#me-p0", el).value.trim(), p1 = $("#me-p1", el).value.trim(), p2 = $("#me-p2", el).value.trim(), err = $("#me-err", el), btn = $("#me-pin-save", el);
       if (!p0) { err.textContent = "اكتب رقم الدخول الحالي"; return; }
-      if (!PIN_RE.test(p1)) { err.textContent = "الرقم الجديد: 4 إلى 12 رقماً"; return; }
+      if (!PIN_RE.test(p1)) { err.textContent = "الرقم الجديد: من 6 إلى 12 رقماً"; return; }
       if (p1 !== p2) { err.textContent = "التأكيد لا يطابق الرقم الجديد"; return; }
       if (p1 === p0) { err.textContent = "الرقم الجديد هو نفسه الحالي"; return; }
       btn.disabled = true; err.textContent = "جارِ التحقق…";
       try {
-        const cur = (byId(me.id) || me).pinHash;
-        const ok = cur ? (await pinHash(p0, me.id)) === cur : (isDemo() && p0 === "1234");
-        if (!ok) { err.textContent = "رقم الدخول الحالي غير صحيح"; btn.disabled = false; return; }
-        await writeTeacher(me.id, { pinHash: await pinHash(p1, me.id) }, false);
+        const au = AU();
+        if (!au) { err.textContent = "تعذّر تجهيز رقم الدخول — أعد تحميل الصفحة ثم حاول"; btn.disabled = false; return; }
+        const rr = await au.changePin(me.id, p0, p1);
+        if (!rr || !rr.ok) { err.textContent = (rr && rr.err) || "رقم الدخول الحالي غير صحيح"; btn.disabled = false; return; }
         await A().adminlog("pin", `${me.name} غيّر رقم دخوله بنفسه`, me.id);
         A().toast("✔ تغيّر رقم الدخول — سيُطلب الجديد على كل أجهزتك", 3200);
         profileCard(el, opts);

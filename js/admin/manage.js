@@ -33,6 +33,12 @@
     const st = document.createElement("style"); st.id = "adm-manage-css";
     st.textContent = `
 .mg-sec{padding:0}
+.mg-logo-row{display:flex;align-items:center;gap:12px;flex-wrap:wrap;border:1px solid var(--line);border-radius:14px;padding:11px 12px;margin-bottom:12px;background:#fff}
+.mg-logo-box{width:64px;height:64px;border-radius:12px;border:1.5px dashed var(--line);display:flex;align-items:center;justify-content:center;font-size:26px;background:#fbf6ea;overflow:hidden;flex:0 0 auto}
+.mg-logo-box img{max-width:100%;max-height:100%;object-fit:contain}
+.mg-logo-tx{flex:1;min-width:150px;font-size:14px;color:var(--ink)}
+.mg-logo-hint{color:var(--muted);font-size:12.5px;margin-top:3px;font-weight:600}
+.mg-logo-ac{display:flex;gap:6px;flex-wrap:wrap}
 .mg-sec>summary{list-style:none;cursor:pointer;display:flex;align-items:center;gap:8px;padding:13px 14px;font-size:15px;font-weight:800;color:var(--navy);border-bottom:1px solid transparent}
 .mg-sec>summary::-webkit-details-marker{display:none}
 .mg-sec>summary .dot{width:8px;height:8px;border-radius:50%;background:var(--gold);flex:0 0 auto}
@@ -106,7 +112,14 @@
   const leaderOf = (cid) => (typeof A().leaderOf === "function" ? A().leaderOf(cid) : (S().D.teachers || []).find(t => (t.lead || []).includes(cid)) || null);
   const nActive = (c) => S().activeCount(c);
   const nMoved = (c) => ((c && c.students) || []).filter(s => s.moved && !s.gap).length;
-  const loginTxt = (t) => t.pinHash ? { c: "ok", t: "✅ سجّل هويته" } : isDemo() ? { c: "ok", t: "🧪 تجريبي (1234)" } : { c: "no", t: "⏳ لم يسجّل" };
+  // «سجّل هويته» = علم التسجيل الجديد (js/auth.js) أو البصمة القديمة قبل الترحيل
+  function isReg(t) {
+    if (!t) return false;
+    const a = window.SIJIL_AUTH;
+    if (a && typeof a.isRegistered === "function") { try { return !!a.isRegistered(t); } catch (e) { } }
+    return t.reg === true || !!t.pinHash;
+  }
+  const loginTxt = (t) => isReg(t) ? { c: "ok", t: "✅ سجّل هويته" } : isDemo() ? { c: "ok", t: "🧪 تجريبي (1234)" } : { c: "no", t: "⏳ لم يسجّل" };
   const schedRows = () => (Array.isArray(S().D.schedule) ? S().D.schedule : []).filter(r => r && r.t && r.c && DAYS5.includes(r.d) && PER.includes(+r.p));
   const subjOfName = (n) => { const t = (S().D.teachers || []).find(x => x.name === n); return t ? (t.subject || "") : ""; };
   const shortName = (n) => String(n || "").replace(/^(أ\.|الأستاذ)\s*/, "").split(/\s+/).filter(Boolean).slice(0, 2).join(" ");
@@ -371,7 +384,7 @@
         <a class="btn-gold wa${mob && Ad.waPhone(mob) ? "" : " off"}" ${mob && Ad.waPhone(mob) ? `href="${Ad.waHref(mob, msg)}" target="_blank" rel="noopener"` : ""}>📞 تواصل</a>
       </div>`;
     }).join("");
-    const nReg = list.filter(t => t.pinHash).length, nNo = list.filter(t => !t.admin && (t.classes || []).length && !last[t.id]).length;
+    const nReg = list.filter(t => isReg(t)).length, nNo = list.filter(t => !t.admin && (t.classes || []).length && !last[t.id]).length;
     const nStaff = (typeof Ad.staff === "function" ? Ad.staff() : list.filter(t => !t.admin && (t.classes || []).length)).length;
     return h.kpis([{ v: nStaff, l: "معلماً بفصول" }, { v: nReg, l: isDemo() ? "بصمة دخول" : "سجّلوا هويتهم" }, { v: nNo, l: "بلا رصد" }]) +
       h.note(`البطاقات أدناه ${list.length} حساباً (منها حساب المدير والحسابات بلا فصول)، والمؤشر يعدّ ${nStaff} معلماً بفصول.`) +
@@ -625,6 +638,66 @@
   }
 
   /* ═══ الرسم والربط ═══ */
+  /* ═══ 🗂️ مكتبة المدرسة (js/files.js) + 🏫 شعار المدرسة في ترويسة المطبوعات ═══
+     المكتبة مستندات تظهر لكل المعلمين (الجدول الرسمي، النماذج، التعاميم) — يرفعها المدير من هنا،
+     ويقرؤها المعلم من «المزيد». والشعار مرفق واحد بنطاق school ووصف {kind:"logo"} يقرؤه
+     SIJIL.loadLogo فيظهر في ترويسة كل مطبوع. */
+  const FL = () => { const F = window.SIJIL_FILES; return (F && typeof F.libraryCard === "function") ? F : null; };
+  let libCard = null;                                   // مقبض تحديث قائمة المكتبة بعد تغيير الشعار
+  function libHtml() {
+    const h = H();
+    if (!FL()) return h.empty("المرفقات غير متاحة الآن — أعد تحميل الصفحة");
+    return `<div id="mg-logo">${h.empty("جارِ تحميل الشعار…")}</div><div id="mg-lib">${h.empty("جارِ تحميل المكتبة…")}</div>`;
+  }
+  async function drawLib(b) {
+    const F = FL(); if (!F) return;
+    const lg = $("#mg-logo", b), box = $("#mg-lib", b);
+    if (lg) paintLogo(lg);
+    if (box) {
+      try { libCard = await F.libraryCard(box, { scope: "school", title: "🗂️ ملفات المدرسة", hint: "تظهر لكل المعلمين داخل «المزيد»: الجدول الرسمي، النماذج، التعاميم." }); }
+      catch (e) { warn("libraryCard", e); box.innerHTML = H().empty("تعذّر تحميل المكتبة — تحقق من الاتصال"); }
+    }
+  }
+  async function paintLogo(el) {
+    const F = FL(), h = H(); if (!F || !el) return;
+    let arr = [];
+    try { arr = await F.list("school", { kind: "logo" }) || []; } catch (e) { arr = []; }
+    const cur = arr[0] || null;
+    let src = "";
+    if (cur) { try { const got = await F.blobOf(cur.id); src = URL.createObjectURL(got.blob); } catch (e) { src = ""; } }
+    if (!el.isConnected) return;
+    el.innerHTML = `<div class="mg-logo-row">
+      <div class="mg-logo-box">${src ? `<img src="${src}" alt="شعار المدرسة">` : "🏫"}</div>
+      <div class="mg-logo-tx"><b>شعار المدرسة في المطبوعات</b>
+        <div class="mg-logo-hint">${cur ? "يظهر الآن في ترويسة كل تقرير وشهادة وإشعار تطبعه." : "أضف صورة الشعار (PNG أو JPG) لتظهر في ترويسة كل مطبوع."}</div></div>
+      <div class="mg-logo-ac"><button class="btn-gold" id="mg-logo-up">${cur ? "🔄 تغيير" : "🖼️ إضافة"}</button>${cur ? '<button class="btn-plain" id="mg-logo-rm">🗑️ حذف</button>' : ""}</div>
+    </div>`;
+    const up = $("#mg-logo-up", el);
+    if (up) up.onclick = async () => {
+      let got = [];
+      try { got = await F.attach({ scope: "school", ref: { kind: "logo" }, title: "🏫 شعار المدرسة" }) || []; } catch (e) { got = []; }
+      if (got.length) {
+        // شعار واحد فقط: تُحذف النسخ السابقة بعد نجاح رفع الجديد
+        const keep = got[got.length - 1].id;
+        for (const old of arr) { if (old.id !== keep) { try { await F.remove(old.id, { silent: true }); } catch (e) { } } }
+        try { await S().loadLogo(true); } catch (e) { }
+        if (libCard && libCard.refresh) { try { await libCard.refresh(); } catch (e) { } }
+        await A().adminlog("school", "تحديث شعار المدرسة في المطبوعات");
+      }
+      paintLogo(el);
+    };
+    const rm = $("#mg-logo-rm", el);
+    if (rm) rm.onclick = async () => {
+      if (!(await A().confirm("حذف شعار المدرسة من المطبوعات؟"))) return;
+      for (const old of arr) { try { await F.remove(old.id, { silent: true }); } catch (e) { } }
+      try { await S().loadLogo(true); } catch (e) { }
+      if (libCard && libCard.refresh) { try { await libCard.refresh(); } catch (e) { } }
+      await A().adminlog("school", "حذف شعار المدرسة من المطبوعات");
+      A().toast("🗑️ حُذف الشعار");
+      paintLogo(el);
+    };
+  }
+
   async function render(b) {
     css(); curBox = b;
     const h = H();
@@ -642,11 +715,13 @@
       sec("mg-s-cls", "🏫 الفصول", classesHtml(), { open: true, n: cls.length }) +
       sec("mg-s-sch", "🗓️ الجدول الأسبوعي", scheduleHtml(), { n: schedRows().length }) +
       sec("mg-s-mv", "🔁 حركات نقل الطلاب", movesHtml(), { n: (s.D.moves || []).length }) +
+      sec("mg-s-lib", "🗂️ مكتبة المدرسة وشعارها", libHtml(), {}) +
       sec("mg-s-bk", "💾 النسخة الاحتياطية الشاملة", backupHtml(), { open: true }) +
       sec("mg-s-log", "🕘 سجل الإدارة", logHtml(sd), { n: (sd.adminlog || []).length }) +
       sec("mg-s-lk", "📚 المناهج وعن البرنامج", linksHtml(), {});
     drawProfile($("#mg-profile", b));
     bind(b, sd);
+    try { drawLib(b); } catch (e) { warn("lib", e); }
   }
   const again = async () => { A().invalidate(); if (curBox) draw(curBox, await A().schoolDocs(true)); };
 
@@ -661,7 +736,7 @@
       Ad.printTable("قائمة المعلمين وبياناتهم", ["م", "المعلم", "المادة", "الفصول", "الجوال", "حالة الدخول", "آخر رصد", "رائد"],
         (s.D.teachers || []).map((t, i) => [String(i + 1), esc(t.name) + (t.admin ? " (المدير)" : ""), esc(t.subject || "—"),
           esc(Ad.sortedClasses().filter(c => (t.classes || []).includes(c.id)).map(c => c.name).join("، ") || "—"),
-          esc(Ad.normMob(mobOf(t)) || mobOf(t) || "—"), t.pinHash ? "سجّل" : (isDemo() ? "تجريبي" : "لم يسجّل"),
+          esc(Ad.normMob(mobOf(t)) || mobOf(t) || "—"), isReg(t) ? "سجّل" : (isDemo() ? "تجريبي" : "لم يسجّل"),
           last[t.id] ? esc(Ad.fmtDate(last[t.id])) : "—", esc((t.lead || []).map(clsName).join("، ") || "—")]),
         { sub: "⚙️ الإدارة — المعلمون", land: true });
     });

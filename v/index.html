@@ -1,0 +1,194 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#0E2033">
+<title>مرفق — سجلي</title>
+<meta name="description" content="مرفق من معلم ابنك: صورة أو ملف أو مقطع صوتي. افتح الرابط من جوالك بلا تسجيل.">
+<meta property="og:type" content="website"><meta property="og:site_name" content="سجلي">
+<meta property="og:title" content="مرفق من المعلم — سجلي">
+<meta property="og:description" content="افتح الرابط من جوالك لمشاهدة المرفق — بلا تسجيل ولا تطبيق.">
+<meta property="og:image" content="https://sijli.erihdev.com/assets/og.jpg"><meta property="og:image:width" content="1200"><meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800&display=swap">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='46' fill='%230E2033'/><text x='50' y='68' font-size='52' text-anchor='middle' fill='%23D7A93F'>س</text></svg>">
+<style>
+:root{--navy:#0E2033;--navy2:#142A44;--gold:#D7A93F;--goldl:#F0D99A;--cream:#F8F5EF;
+  --card:#fff;--ink:#1B2A3A;--muted:#7c8794;--line:#e8e2d5;--ok:#2e9e5b;--bad:#d64545}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;padding:0;background:var(--cream);color:var(--ink);
+  font-family:'Tajawal',system-ui,sans-serif;font-size:17px;line-height:1.7}
+.bar{background:var(--navy);color:var(--goldl);padding:12px 16px;display:flex;
+  justify-content:space-between;align-items:center;font-weight:800;font-size:15px;
+  position:sticky;top:0;z-index:5}
+.bar small{color:#9FB0C4;font-weight:500;font-size:12px}
+.wrap{max-width:560px;margin:0 auto;padding:16px 14px 40px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:16px 14px;
+  box-shadow:0 4px 18px rgba(27,42,58,.06)}
+h1{font-size:19px;font-weight:800;color:var(--navy);margin:0 0 4px;line-height:1.4;
+  word-break:break-word}
+.sub{color:var(--muted);font-size:13px;margin:0 0 14px}
+.prog{height:9px;background:#E8E2D5;border-radius:99px;overflow:hidden;margin:14px 0 8px}
+.prog i{display:block;height:100%;background:var(--gold);border-radius:99px;transition:width .25s}
+.view{width:100%;display:block;border-radius:13px;border:1px solid var(--line);background:#F1ECE2}
+.view.img{max-height:66vh;object-fit:contain}
+.view.pdf{height:68vh;border:1px solid var(--line)}
+.view.aud{padding:10px;background:#fff}
+.row{display:flex;gap:9px;margin-top:13px}
+.go{flex:1;display:block;text-align:center;text-decoration:none;background:var(--navy);
+  color:var(--goldl);border:0;border-radius:13px;padding:13px;font-weight:800;font-size:15.5px;
+  font-family:inherit;line-height:1.4;cursor:pointer}
+.go.gold{background:linear-gradient(135deg,var(--gold),#c2942e);color:var(--navy)}
+.go.soft{background:#EFE9DC;color:#6B5B33}
+.note{background:#FDF8EC;border:1.5px solid var(--gold);border-radius:12px;padding:11px 13px;
+  margin-top:14px;font-size:13.5px;line-height:1.75;text-align:center}
+.note b{color:var(--navy)}
+.err{text-align:center;padding:40px 16px;color:var(--muted)}
+.err b{display:block;color:var(--ink);font-size:19px;margin-bottom:6px}
+.foot{text-align:center;color:var(--muted);font-size:12px;margin-top:18px}
+.foot a{color:#8a6f2a;text-decoration:none}
+</style>
+</head>
+<body>
+<div class="bar"><span id="bar-t">مرفق</span><small id="bar-s">سجلي</small></div>
+<div class="wrap" id="app"><div class="err">جارِ التحميل…</div></div>
+
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-check-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
+<script src="../js/fb.js?v=46"></script>
+<script>
+(function () {
+  "use strict";
+  const $ = (s) => document.querySelector(s);
+  const esc = (s) => String(s == null ? "" : s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+  const app = $("#app");
+  const FID = new URLSearchParams(location.search).get("f") || "";
+  const ICON = { image: "🖼️", pdf: "📕", audio: "🎧", other: "📄" };
+  const KIND = { image: "صورة", pdf: "ملف PDF", audio: "مقطع صوتي", other: "ملف" };
+  let db = null;
+
+  const fail = (t, s) => { app.innerHTML = `<div class="err"><b>${esc(t)}</b>${esc(s || "")}</div>`; };
+  const kindOf = (t) => { t = String(t || "").toLowerCase(); return /^image\//.test(t) ? "image" : (t === "application/pdf" ? "pdf" : (/^audio\//.test(t) ? "audio" : "other")); };
+  function fmt(b) {
+    b = +b || 0;
+    if (b < 1024) return b + " بايت";
+    if (b < 1024 * 1024) return Math.round(b / 1024) + " كيلوبايت";
+    return (Math.round(b / 1024 / 1024 * 10) / 10).toFixed(1) + " ميجابايت";
+  }
+  function dateAr(ts) { try { return new Date(ts).toLocaleDateString("ar-SA", { day: "numeric", month: "long" }); } catch (e) { return ""; } }
+  // آيفون وآيباد لا يعرضان ملف PDF داخل إطار الصفحة — نعرض زر فتح واضحاً بدل مربع فارغ
+  const isIOS = () => { try { return /iP(hone|ad|od)/.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1); } catch (e) { return false; } };
+  function b64ToBlob(b64, mime) {
+    const bin = atob(String(b64 || "")), n = bin.length, u = new Uint8Array(n);
+    for (let i = 0; i < n; i++) u[i] = bin.charCodeAt(i);
+    return new Blob([u], { type: mime || "application/octet-stream" });
+  }
+
+  /* ═══ مخزن الجهاز — يعمل حين يكون المرفق محفوظاً على هذا الجهاز (النسخة التجريبية) ═══ */
+  let idbP = null;
+  function idb() {
+    if (idbP) return idbP;
+    idbP = new Promise((res, rej) => {
+      let r; try { r = indexedDB.open("sijil-files", 1); } catch (e) { return rej(e); }
+      r.onupgradeneeded = () => {
+        const d = r.result;
+        if (!d.objectStoreNames.contains("meta")) d.createObjectStore("meta", { keyPath: "id" });
+        if (!d.objectStoreNames.contains("parts")) d.createObjectStore("parts", { keyPath: "k" });
+        if (!d.objectStoreNames.contains("idx")) d.createObjectStore("idx", { keyPath: "k" });
+      };
+      r.onsuccess = () => res(r.result);
+      r.onerror = () => rej(r.error || new Error("idb"));
+    });
+    return idbP;
+  }
+  function idbGet(store, key) {
+    return idb().then(d => new Promise((res, rej) => {
+      const tx = d.transaction(store, "readonly"), rq = tx.objectStore(store).get(key);
+      tx.oncomplete = () => res(rq.result || null);
+      tx.onerror = () => rej(tx.error); tx.onabort = () => rej(tx.error);
+    }));
+  }
+
+  /* ═══ القراءة: السحابة أولاً، وإن غاب الملف فمن هذا الجهاز ═══ */
+  async function metaGet(id) {
+    if (db) { try { const s = await db.doc("files/" + id).get(); if (s.exists) return Object.assign({ id, src: "cloud" }, s.data()); } catch (e) { } }
+    try { const r = await idbGet("meta", id); if (r) return Object.assign({ src: "local" }, r); } catch (e) { }
+    return null;
+  }
+  async function partGet(id, i, src) {
+    if (src === "cloud") { const s = await db.doc("files/" + id + "/parts/" + i).get(); return s.exists ? (s.data() || {}).d : null; }
+    const r = await idbGet("parts", id + ":" + i); return r ? r.d : null;
+  }
+
+  function frame(rec, inner, foot) {
+    const k = kindOf(rec.t);
+    app.innerHTML = `<div class="card">
+      <h1>${ICON[k]} ${esc(rec.n || "مرفق")}</h1>
+      <p class="sub">${esc(KIND[k])} · ${esc(fmt(rec.sz))} · ${esc(dateAr(rec.ts))}${rec.tn ? " · من المعلم " + esc(rec.tn) : ""}</p>
+      ${inner}
+      ${foot || ""}
+    </div>
+    <div class="foot">سجلي — سجل المتابعة الرقمي · <a href="https://erihdev.com">ERIHDEV.COM</a></div>`;
+  }
+
+  async function boot() {
+    if (!FID || !/^[A-Za-z0-9_-]{2,24}$/.test(FID)) return fail("رابط غير مكتمل", "اطلب من المعلم إرسال الرابط كاملاً.");
+    try {
+      if (window.firebase && window.FIREBASE_CONFIG) {
+        firebase.initializeApp(window.FIREBASE_CONFIG);
+        try { if (firebase.appCheck && window.APPCHECK_SITE_KEY) firebase.appCheck().activate(new firebase.appCheck.ReCaptchaEnterpriseProvider(window.APPCHECK_SITE_KEY), true); } catch (e) { }
+        await firebase.auth().signInAnonymously();
+        db = firebase.firestore();
+      }
+    } catch (e) { db = null; }
+
+    let rec = null;
+    try { rec = await metaGet(FID); } catch (e) { rec = null; }
+    if (!rec) return fail("لم نجد هذا المرفق", "قد يكون المعلم حذفه، أو الرابط غير صحيح.");
+
+    const nc = Math.max(1, +rec.nc || 1);
+    frame(rec, `<div class="prog"><i id="pb" style="width:6%"></i></div>
+      <p class="sub" id="ps" style="text-align:center;margin:0">جارِ إحضار الملف…</p>`);
+    const pb = $("#pb"), ps = $("#ps");
+
+    const out = new Array(nc);
+    try {
+      for (let i = 0; i < nc; i += 4) {
+        const batch = [];
+        for (let j = i; j < Math.min(nc, i + 4); j++) batch.push(partGet(FID, j, rec.src).then(d => { out[j] = d; }));
+        await Promise.all(batch);
+        const got = out.filter(x => x != null).length;
+        if (pb) pb.style.width = Math.max(6, Math.round(got / nc * 100)) + "%";
+        if (ps && nc > 1) ps.textContent = "جارِ إحضار الملف… " + got + " من " + nc;
+      }
+    } catch (e) { return fail("تعذّر إحضار الملف", "تحقق من اتصال الإنترنت ثم أعد تحميل الصفحة."); }
+    if (out.some(x => x == null)) return fail("الملف ناقص", "اطلب من المعلم إعادة إرساله.");
+
+    let url;
+    try { url = URL.createObjectURL(b64ToBlob(out.join(""), rec.t)); }
+    catch (e) { return fail("تعذّر عرض الملف", "اطلب من المعلم إعادة إرساله."); }
+
+    const k = kindOf(rec.t);
+    const body = k === "image" ? `<img class="view img" alt="${esc(rec.n || "")}" src="${url}">`
+      : k === "pdf" ? (isIOS()
+        ? `<div class="note" style="margin-top:0">📕 الملف جاهز — اضغط <b>«فتح بالحجم الكامل»</b> ليفتحه جهازك بقارئ الملفات.</div>`
+        : `<iframe class="view pdf" title="${esc(rec.n || "")}" src="${url}"></iframe>`)
+        : k === "audio" ? `<audio class="view aud" controls src="${url}"></audio>`
+          : `<p class="sub" style="text-align:center">هذا النوع لا يُعرض داخل الصفحة — احفظه ثم افتحه من جهازك.</p>`;
+    frame(rec, body, `<div class="row">
+        <a class="go gold" target="_blank" rel="noopener" href="${url}">↗️ فتح بالحجم الكامل</a>
+        <a class="go soft" download="${esc(rec.n || "مرفق")}" href="${url}">⬇️ حفظ في جهازي</a>
+      </div>
+      <div class="note">وصلك هذا المرفق من معلّم ابنك أو ابنتك عبر <b>سجلي</b> — لا يحتاج تسجيلاً ولا تطبيقاً.</div>`);
+    $("#bar-t").textContent = KIND[k];
+  }
+  boot();
+})();
+</script>
+</body>
+</html>

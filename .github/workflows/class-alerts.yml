@@ -1,0 +1,116 @@
+# ═══════════════════════════════════════════════════════════════════════════════
+# سجلي — تنبيهات الحصص للمعلمين
+#
+# تشغّل هذه المهمة السكربت tools/push_send.py كل خمس دقائق أثناء الدوام، فيرسل
+# لكل معلم إشعاراً قبل بداية حصته بدقائق قليلة: «الحصة الثالثة بعد قليل — رابع (أ)».
+# الإشعار يصل والجوال مقفل، لأن الإرسال يتم من هنا لا من داخل التطبيق.
+#
+# قبل أول تشغيل يجب ضبط ثلاثة أسرار في المستودع (Settings ← Secrets and variables
+# ← Actions): SA_JSON وVAPID_PRIVATE وVAPID_SUB. الشرح كامل في docs/PUSH_SETUP.md.
+# ما دامت الأسرار غير مضبوطة تمرّ المهمة بسلام وتكتب سطراً يوضّح ذلك (لا فشل أحمر).
+# ═══════════════════════════════════════════════════════════════════════════════
+
+name: تنبيهات الحصص
+
+on:
+  schedule:
+    # ── حساب التوقيت (cron في GitHub بالتوقيت العالمي UTC دائماً) ──
+    # الرياض = UTC+3 ثابتاً طوال السنة (لا توقيت صيفي في المملكة)، أي:
+    #     03:00 UTC = 06:00 بالرياض        10:55 UTC = 13:55 بالرياض
+    # فالمدى 3-10 يغطي الدوام كاملاً بهامش مريح: الحصة الأولى تبدأ 7:00 والحصة
+    # الأخيرة تبدأ 12:00 في الإعداد الافتراضي، والتنبيه يسبق الحصة بـ 3–12 دقيقة.
+    # أرقام الأيام في cron: 0=الأحد و1=الإثنين و2=الثلاثاء و3=الأربعاء و4=الخميس،
+    # فـ 0-4 هي أيام الدوام، والجمعة (5) والسبت (6) عطلة فلا تشغيل فيهما.
+    # ملاحظة: قد تتأخر مهام GitHub المجدولة بضع دقائق في أوقات الذروة، ولذلك جُعلت
+    # نافذة الإرسال في السكربت 3–12 دقيقة (أوسع من فترة الجدولة) حتى لا تُفوَّت حصة.
+    - cron: "*/5 3-10 * * 0-4"
+
+  # تشغيل يدوي من تبويب Actions — للتجربة أو لإرسال فوري عند الحاجة
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "تجربة بلا إرسال (حساب وطباعة فقط)"
+        type: boolean
+        default: true
+      at:
+        description: "ساعة افتراضية بتوقيت الرياض بصيغة HH:MM (اختياري — للتجربة)"
+        type: string
+        default: ""
+      day:
+        description: "يوم افتراضي مثل: الأحد (اختياري — للتجربة)"
+        type: string
+        default: ""
+
+# صلاحيات المهمة: قراءة الملفات فقط — لا تكتب شيئاً في المستودع
+permissions:
+  contents: read
+
+# لا تتداخل تشغيلتان: التالية تنتظر السابقة بدل أن تعملا معاً
+concurrency:
+  group: class-alerts
+  cancel-in-progress: false
+
+jobs:
+  send:
+    name: إرسال تنبيهات الحصص
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: جلب ملفات المستودع
+        uses: actions/checkout@v4
+
+      - name: التحقق من ضبط الأسرار
+        id: gate
+        env:
+          HAS_SA: ${{ secrets.SA_JSON != '' }}
+          HAS_KEY: ${{ secrets.VAPID_PRIVATE != '' }}
+          HAS_SUB: ${{ secrets.VAPID_SUB != '' }}
+        run: |
+          if [ "$HAS_SA" = "true" ] && [ "$HAS_KEY" = "true" ] && [ "$HAS_SUB" = "true" ]; then
+            echo "ready=yes" >> "$GITHUB_OUTPUT"
+          else
+            echo "ready=no" >> "$GITHUB_OUTPUT"
+            echo "### تنبيهات الحصص غير مفعّلة بعد" >> "$GITHUB_STEP_SUMMARY"
+            echo "لم تُضبط أسرار الإرسال في هذا المستودع، فلم يُرسل شيء." >> "$GITHUB_STEP_SUMMARY"
+            echo "الخطوات كاملة في docs/PUSH_SETUP.md" >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+      - name: تهيئة بايثون
+        if: steps.gate.outputs.ready == 'yes'
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: تثبيت المكتبات
+        if: steps.gate.outputs.ready == 'yes'
+        # إصدارات مثبَّتة عمداً: تُجرَّب قبل رفعها (انظر docs/PUSH_SETUP.md ← تحديث المكتبات)
+        run: |
+          python -m pip install --disable-pip-version-check --quiet \
+            "pywebpush==2.5.0" "google-auth==2.57.1" "requests==2.34.2"
+
+      - name: إرسال التنبيهات
+        if: steps.gate.outputs.ready == 'yes'
+        env:
+          # الأسرار تُمرَّر كمتغيّرات بيئة فقط، ولا يطبعها السكربت ولا يكتبها في أي ملف
+          SA_JSON: ${{ secrets.SA_JSON }}
+          VAPID_PRIVATE: ${{ secrets.VAPID_PRIVATE }}
+          VAPID_SUB: ${{ secrets.VAPID_SUB }}
+          # الرابط الذي تفتحه نقرة الإشعار (اتركه فارغاً ليفتح جذر التطبيق)
+          SIJIL_URL: ${{ vars.SIJIL_URL }}
+          # وسائط التشغيل اليدوي — تُبنى هنا لا داخل سطر الأوامر
+          DRY: ${{ inputs.dry_run && '--dry-run' || '' }}
+          AT: ${{ inputs.at }}
+          DAY: ${{ inputs.day }}
+        run: |
+          ARGS=()
+          if [ -n "$DRY" ]; then ARGS+=("$DRY"); fi
+          if [ -n "$AT" ];  then ARGS+=("--now" "$AT"); fi
+          if [ -n "$DAY" ]; then ARGS+=("--day" "$DAY"); fi
+          python tools/push_send.py "${ARGS[@]}" | tee run.log
+          {
+            echo "### تنبيهات الحصص"
+            echo '```'
+            cat run.log
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"

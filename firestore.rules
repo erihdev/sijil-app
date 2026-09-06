@@ -17,12 +17,22 @@ service cloud.firestore {
           && request.resource.data.tn.size() <= 80;
     }
 
+    // ── دوال مشتركة لأرقام الدخول (pins / pinreq / teachers.reg / teachers.pt) ──
+    //    exists()/get() داخل القواعد لا تخضع لقواعد القراءة، فيصحّ استعمالها على مجموعة ممنوعة القراءة.
+    function isHash(x) { return x is string && x.matches('^[0-9a-f]{64}$'); }
+    function tHas(tid)  { return exists(/databases/$(database)/documents/teachers/$(tid)); }
+    function tDoc(tid)  { return get(/databases/$(database)/documents/teachers/$(tid)).data; }
+    function pinHas(h)  { return exists(/databases/$(database)/documents/pins/$(h)); }
+    function pinDoc(h)  { return get(/databases/$(database)/documents/pins/$(h)).data; }
+    function reqHas(tid){ return exists(/databases/$(database)/documents/pinreq/$(tid)); }
+    function reqDoc(tid){ return get(/databases/$(database)/documents/pinreq/$(tid)).data; }
+
     // ── بيانات أساسية تُزرع بالسكربت فقط: قراءة نعم، كتابة لا ──
     match /meta/{doc}      { allow read: if signedIn(); allow write: if false; }
     // ── المعلمون: يحرّرهم المدير من لوحته (الواجهة تخفي ذلك عن غيره؛ القواعد لا تعرف هوية المدير) ──
     //    الحقول: name/subject/mob/classes/pinHash/lead/ts (+phone القديم) — لا تغيير لـ admin أبداً، ولا حذف
     function teacherShape() {
-      return request.resource.data.keys().hasOnly(['name', 'subject', 'mob', 'phone', 'classes', 'pinHash', 'admin', 'lead', 'ts'])
+      return request.resource.data.keys().hasOnly(['name', 'subject', 'mob', 'phone', 'classes', 'pinHash', 'admin', 'lead', 'reg', 'pt', 'ts'])
           && request.resource.data.name is string && request.resource.data.name.size() > 0 && request.resource.data.name.size() <= 80
           && request.resource.data.classes is list && request.resource.data.classes.size() <= 40
           && request.resource.data.ts is number
@@ -30,29 +40,106 @@ service cloud.firestore {
           && (!('mob' in request.resource.data) || (request.resource.data.mob is string && request.resource.data.mob.size() <= 20))
           && (!('phone' in request.resource.data) || (request.resource.data.phone is string && request.resource.data.phone.size() <= 20))
           && (!('pinHash' in request.resource.data) || (request.resource.data.pinHash is string && request.resource.data.pinHash.size() <= 64))
-          && (!('lead' in request.resource.data) || (request.resource.data.lead is list && request.resource.data.lead.size() <= 40));
+          && (!('lead' in request.resource.data) || (request.resource.data.lead is list && request.resource.data.lead.size() <= 40))
+          && (!('reg' in request.resource.data) || request.resource.data.reg is bool)
+          && (!('pt' in request.resource.data) || (request.resource.data.pt is number && request.resource.data.pt > 0));
     }
     match /teachers/{tid} {
       allow read: if signedIn();
-      // إنشاء معلم جديد من لوحة المدير: بلا صلاحية مدير، ومع رقم دخول أولي (بصمة sha256 ست عشرية 64 خانة) أو بلا بصمة
+      // إنشاء معلم جديد من لوحة المدير: بلا صلاحية مدير، وبلا أي بصمة في المستند —
+      //   رقم الدخول الأولي يُسجَّل في pins وحدها (مستند المعلم مقروء للجميع فلا بصمة فيه أبداً).
       allow create: if signedIn() && tid.matches('^t[0-9]{2,3}$') && teacherShape()
           && request.resource.data.get('admin', false) == false
-          && (request.resource.data.get('pinHash', '') == ''
-              || request.resource.data.get('pinHash', '').matches('^[0-9a-f]{64}$'));
+          // معلم جديد يولد غير مسجّل وبلا ختم — التسجيل يمرّ بقناة الإثبات وحدها
+          && request.resource.data.get('reg', false) == false
+          && !('pt' in request.resource.data)
+          && !('pinHash' in request.resource.data);
       // التحديث: صلاحية المدير لا تتغير أبداً — لا رفع ولا إسقاط للحقل (get بقيمة افتراضية على الطرفين
       //   حتى لا تمر كتابة تُغفل admin فتُسقطه وتقفل لوحة المدير قفلاً لا يُفتح من العميل).
-      // بصمة الدخول: تُغيَّر لحسابات المعلمين فقط (إضافة معلم · إعادة تعيين من المدير · تغيير المعلم لرقمه)،
-      //   وحساب المدير محميّ: القراءة مفتوحة لأي جهاز مصادَق مجهولاً، فالسماح بكتابة بصمته
-      //   يعني استيلاء أي زائر على لوحة المدير. رقم المدير يُعاد تعيينه من كونسول Firebase.
-      // يبقى (بحكم غياب هوية حقيقية للعميل) أن أي جهاز مصادَق يستطيع تعديل بيانات معلم أو بصمته —
+      // بصمة الدخول pinHash: لا تُكتب من العميل لأحد إطلاقاً — لا للمعلم ولا للمدير. أرقام الدخول
+      //   كلها في pins وحدها، ورقم المدير يُعاد تعيينه من كونسول Firebase.
+      // يبقى (بحكم غياب هوية حقيقية للعميل) أن أي جهاز مصادَق يستطيع تعديل بيانات معلم —
       //   وهو ما تنبّه إليه بطاقة «الحسابات مبنية على ثقة داخل المدرسة»؛ إغلاقه الكامل يحتاج
       //   مصادقة حقيقية أو Cloud Function، وهو خارج نطاق هذا الإصدار.
       allow update: if signedIn() && tid.matches('^t[0-9]{2,3}$') && teacherShape()
           && request.resource.data.get('admin', false) == resource.data.get('admin', false)
+          // بصمة الدخول لا تُكتب في مستند المعلم أبداً (المستند مقروء لأي جهاز مصادَق):
+          //   إما تبقى كما هي، وإما تُزال نهائياً — ولا تُكتب بقيمة جديدة لأحد، مديراً كان أو معلماً.
+          // والإزالة لا تُقبل إلا إذا كانت البصمة ميتة تماماً: الحساب مسجّل في pins (reg) فالدخول
+          //   لا يمرّ بها، ولا يوجد مستند pins يحمل هذه البصمة نفسها. وهذا الشرط الثاني مقصود:
+          //   بصمةٌ نُشرت في مستند مقروء ثم بقي لها مستند pins حيّ تصلح «إثباتاً» في pinreq،
+          //   والشرط أدناه (pinreq) يرفضها ما دامت منشورة — فلو سُمح بمحوها لرفع المهاجمُ
+          //   الحمايةَ بنفسه ثم استعمل نسخته المحفوظة منها. العلاج الوحيد لبصمة نُشرت:
+          //   تعيين رقم دخول جديد للمعلم (فيموت مستند pins القديم) ثم تُمحى البصمة تلقائياً.
           && (request.resource.data.get('pinHash', '') == resource.data.get('pinHash', '')
-              || (resource.data.get('admin', false) == false
-                  && request.resource.data.get('pinHash', '').matches('^[0-9a-f]{64}$')));
+              || (request.resource.data.get('pinHash', '') == ''
+                  && resource.data.get('reg', false) == true
+                  && !(isHash(resource.data.get('pinHash', ''))
+                       && pinHas(resource.data.get('pinHash', '')))))
+          // علم التسجيل reg لا يعود إلى false أبداً (وإلا أمكن إعادة حساب مسجّل إلى حالة «بلا إثبات»)
+          && (resource.data.get('reg', false) == false
+              || request.resource.data.get('reg', false) == true)
+          // ختم الرقم pt لا يتغيّر إلا بقيمة قناة الإثبات نفسها ⇒ لا يعطّل زائرٌ حساباً بختم عشوائي
+          && (request.resource.data.get('pt', 0) == resource.data.get('pt', 0)
+              || (reqHas(tid) && request.resource.data.get('pt', 0) == reqDoc(tid).ts))
+          // حساب المدير: لا يُمَسّ علم التسجيل ولا الختم من العميل إطلاقاً — لا تسجيل ولا تعطيل
+          && (resource.data.get('admin', false) == false
+              || (request.resource.data.get('reg', false) == resource.data.get('reg', false)
+                  && request.resource.data.get('pt', 0) == resource.data.get('pt', 0)));
       allow delete: if false;
+    }
+
+    // ── pins/{h}: معرّف المستند هو بصمة رقم الدخول نفسها، والمحتوى {tid, ts} ──
+    //    get نعم (الدخول يقرأ بصمة واحدة يعرف رقمها أصلاً)، list لا أبداً ⇒ لا تُتصفَّح البصمات ولا تُحصد.
+    //    الإنشاء: أول تسجيل لمعلم لم يُسجَّل بعد، أو بقناة إثبات pinreq تحمل البصمة نفسها.
+    //    التحديث ممنوع (لا تُنقل بصمة من معلم إلى آخر)، والحذف بقناة إثبات فقط.
+    match /pins/{h} {
+      allow get: if signedIn();
+      allow list: if false;
+      allow create: if signedIn()
+          && h.matches('^[0-9a-f]{64}$')
+          && request.resource.data.keys().hasOnly(['tid', 'ts'])
+          && request.resource.data.tid is string
+          && request.resource.data.tid.matches('^t[0-9]{2,3}$')
+          && request.resource.data.ts is number
+          && tHas(request.resource.data.tid)
+          && ((tDoc(request.resource.data.tid).get('reg', false) != true
+               && tDoc(request.resource.data.tid).get('admin', false) == false)
+              || (reqHas(request.resource.data.tid)
+                  && reqDoc(request.resource.data.tid).h == h));
+      allow update: if false;
+      allow delete: if signedIn()
+          && reqHas(resource.data.tid)
+          && (reqDoc(resource.data.tid).h == h
+              || reqDoc(resource.data.tid).get('old', '') == h);
+    }
+
+    // ── pinreq/{tid}: قناة إثبات مؤقتة لا يقرأها أحد — وجودها هو الإذن بتغيير الرقم ──
+    //    (أ) المعلم يثبت معرفته رقمه الحالي: pins/{old} موجودة وصاحبها هو نفسه.
+    //    (ب) المدير يثبت معرفته رقمه هو: pins/{byPin} موجودة وصاحبها by، وby مديرٌ فعلاً.
+    //    وفي الحالتين: بصمةٌ منشورة في مستند المعلم المقروء (pinHash) لا تصلح إثباتاً أبداً —
+    //    لأن أي زائر يقرؤها فيدّعي بها ما ليس له. الإثبات لا يكون إلا بما لا يُقرأ.
+    match /pinreq/{tid} {
+      allow read: if false;
+      allow create, update: if signedIn()
+          && tid.matches('^t[0-9]{2,3}$')
+          && request.resource.data.keys().hasOnly(['h', 'old', 'by', 'byPin', 'ts', 'tn'])
+          && isHash(request.resource.data.h)
+          && request.resource.data.ts is number
+          && request.resource.data.tn is string && request.resource.data.tn.size() <= 80
+          && ((isHash(request.resource.data.get('old', ''))
+               && tHas(tid)
+               && tDoc(tid).get('pinHash', '') != request.resource.data.old
+               && pinHas(request.resource.data.old)
+               && pinDoc(request.resource.data.old).tid == tid)
+              || (isHash(request.resource.data.get('byPin', ''))
+                  && request.resource.data.get('by', '').matches('^t[0-9]{2,3}$')
+                  && tHas(request.resource.data.by)
+                  && tDoc(request.resource.data.by).get('admin', false) == true
+                  && tDoc(request.resource.data.by).get('pinHash', '') != request.resource.data.byPin
+                  && pinHas(request.resource.data.byPin)
+                  && pinDoc(request.resource.data.byPin).tid == request.resource.data.by));
+      allow delete: if signedIn();
     }
     match /classes/{cid}   { allow read: if signedIn(); allow write: if false; }
     // ── الجدول المدرسي schedule/all: {rows:[{t,d,p,c}], tn, ts} — يحدّثه المدير من محرّر الجدول (استبدال كامل بلا merge)، لا إنشاء ولا حذف ──
@@ -220,6 +307,92 @@ service cloud.firestore {
       allow create, update: if signedIn() && tid.matches('^[A-Za-z0-9]{1,12}$') && stamped()
           && request.resource.data.calc is map
           && request.resource.data.keys().hasOnly(['calc', 'tn', 'ts']);
+      allow delete: if false;
+    }
+
+
+    // ── اشتراك إشعارات الحصة push/{tid}: {ep, p256dh, auth, ua, tz, ts} ──
+    //    القراءة ممنوعة للجميع: عنوان الاشتراك ep يمكّن حائزه من دفع إشعارات إلى جهاز المعلم.
+    //    المهمة المجدولة تقرأها بحساب خدمة، وحساب الخدمة لا تسري عليه هذه القواعد.
+    //    ﴿حدّ معلوم في هذا الإصدار﴾ الكتابة والحذف مفتوحتان لأي جهاز مصادَق على أي معرّف معلم:
+    //      لا يملك العميل إثبات هوية يُربط به المعرّف. ولو اشترطنا إثباتاً برقم الدخول لانكسر
+    //      تفعيل التنبيهات على الجلسات المستأنفة (التي لم يُكتب فيها الرقم أصلاً).
+    //      الأثر الأقصى: تحويل إشعارات حصص معلم إلى جهاز آخر أو حرمانه منها — لا قراءة لبياناته.
+    match /push/{tid} {
+      allow read: if false;
+      allow create, update: if signedIn() && tid.matches('^t[0-9]{2,3}$')
+          && request.resource.data.keys().hasOnly(['ep', 'p256dh', 'auth', 'ua', 'tz', 'ts'])
+          && request.resource.data.ep is string
+          && request.resource.data.ep.size() > 0
+          && request.resource.data.ep.size() <= 500
+          && request.resource.data.ep.matches('^https://.*')
+          && request.resource.data.p256dh is string && request.resource.data.p256dh.size() <= 200
+          && request.resource.data.auth is string && request.resource.data.auth.size() <= 100
+          && request.resource.data.ts is number
+          && (!('ua' in request.resource.data) || (request.resource.data.ua is string && request.resource.data.ua.size() <= 200))
+          && (!('tz' in request.resource.data) || (request.resource.data.tz is string && request.resource.data.tz.size() <= 60));
+      allow delete: if signedIn();
+    }
+
+    // ── سجل الإرسال pushlog/{tid_التاريخ_الحصة}: {tid, p, date, ts} — إنشاء ذرّي يمنع تكرار الإشعار ──
+    //    القراءة ممنوعة (لا تُتصفَّح عادات المعلمين)، ولا تحديث ولا حذف من العميل.
+    match /pushlog/{id} {
+      allow read: if false;
+      allow create: if signedIn()
+          && id.matches('^t[0-9]{2,3}_[0-9]{4}-[0-9]{2}-[0-9]{2}_[0-9]{1,2}$')
+          && request.resource.data.keys().hasOnly(['tid', 'p', 'date', 'ts'])
+          && request.resource.data.tid is string && request.resource.data.tid.matches('^t[0-9]{2,3}$')
+          && request.resource.data.p is int && request.resource.data.p >= 1 && request.resource.data.p <= 12
+          && request.resource.data.date is string && request.resource.data.date.matches('^[0-9]{4}-[0-9]{2}-[0-9]{2}$')
+          && request.resource.data.ts is number;
+      allow update, delete: if false;
+    }
+
+    // ── المرفقات: بطاقة الملف files/{id} ومحتواه مقسّماً على قطع files/{id}/parts/{i} ──
+    //    الحد الأعلى للملف 6 ميجابايت، والقطعة نص base64 لا يتجاوز 700000 حرف (دون حدّ المستند).
+    match /files/{id} {
+      allow read: if signedIn();
+      allow create, update: if signedIn() && id.matches('^[a-z0-9]{4,12}$') && stamped()
+          && request.resource.data.n is string && request.resource.data.n.size() <= 120
+          && request.resource.data.t is string && request.resource.data.t.size() <= 40
+          && (request.resource.data.t == 'application/pdf'
+              || request.resource.data.t.matches('^(image|audio)/[a-zA-Z0-9.+-]{1,24}$'))
+          && request.resource.data.sz is int && request.resource.data.sz > 0
+          && request.resource.data.sz <= 6291456
+          && request.resource.data.nc is int && request.resource.data.nc >= 1 && request.resource.data.nc <= 16
+          // عدد القطع يتبع حجم الملف المعلن (قطعة لكل نصف ميجابايت تقريباً) — فلا تُعلن بطاقةُ
+          //   ملفٍ صغير ستّ عشرة قطعة ليُحشى تحتها أحد عشر ميجابايت من النص
+          && request.resource.data.nc <= (request.resource.data.sz / 500000) + 1
+          && request.resource.data.scope in ['lesson', 'student', 'school', 'comm', 'profile']
+          && (!('ref' in request.resource.data) || request.resource.data.ref is map)
+          && (!('tid' in request.resource.data) || (request.resource.data.tid is string && request.resource.data.tid.size() <= 12))
+          && request.resource.data.keys().hasOnly(['n', 't', 'sz', 'scope', 'ref', 'tid', 'tn', 'ts', 'nc']);
+      // ﴿حدّ معلوم في هذا الإصدار﴾ الحذف مفتوح لأي جهاز مصادَق: حقل tid في البطاقة اسمٌ لا إثبات،
+      //   ولا هوية حقيقية للعميل تُربط به. إغلاقه يحتاج مصادقة حقيقية أو Cloud Function.
+      //   وهو من جنس ما تشرحه بطاقة «الحسابات مبنية على ثقة داخل المدرسة».
+      allow delete: if signedIn();
+
+      // قطع المحتوى: لا تُكتب قطعة إلا تحت بطاقة ملف موجودة فعلاً، وبرقم قطعة داخل عدد قطعها
+      //   المعلن nc. بغير هذا الربط كان أي جهاز يضخّ نصاً تحت معرّفات لا حصر لها بلا بطاقة ولا حدّ.
+      match /parts/{i} {
+        allow read: if signedIn();
+        allow create, update: if signedIn() && i.matches('^[0-9]{1,2}$')
+            && id.matches('^[a-z0-9]{4,12}$')
+            && exists(/databases/$(database)/documents/files/$(id))
+            && int(i) < get(/databases/$(database)/documents/files/$(id)).data.nc
+            && request.resource.data.d is string
+            && request.resource.data.d.size() <= 700000
+            && request.resource.data.keys().hasOnly(['d']);
+        allow delete: if signedIn();
+      }
+    }
+
+    // ── فهرس المرفقات filesidx/{tid} (وfilesidx/school المشترك): {list, tn, ts} — القوائم بلا تنزيل محتوى ──
+    match /filesidx/{key} {
+      allow read: if signedIn();
+      allow create, update: if signedIn() && key.matches('^[A-Za-z0-9]{1,12}$') && stamped()
+          && request.resource.data.list is list && request.resource.data.list.size() <= 400
+          && request.resource.data.keys().hasOnly(['list', 'tn', 'ts']);
       allow delete: if false;
     }
 

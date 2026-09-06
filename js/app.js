@@ -200,6 +200,14 @@
     try { const tb = document.querySelector("#tabs button.on"); const nm = tb && tb.dataset.tab; if (adminView()) { window.SIJIL_ADMIN.render(nm); return; } if (nm === "today") renderToday(); else if (nm === "reg") renderReg(); else if (nm === "grades") renderGrades(); else if (nm === "rep") renderRep(); else if (nm === "more") renderMore(); } catch (e) { }
   }
   document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible" && TE) refreshMoves({ render: true }); });
+  // مؤقّت شريطي «الحصة الحالية» و«الحصة القادمة»: يتوقف فور إخفاء الصفحة، ويعود عند الرجوع إليها
+  document.addEventListener("visibilitychange", () => {
+    try {
+      if (document.hidden) { stopBell(); return; }
+      const t = $("#tab-today");
+      if (TE && t && !t.classList.contains("hidden") && $("#today-bell")) startBell();
+    } catch (e) { }
+  });
   const isActive = (c, i) => !!(c && c.students && c.students[i] && !c.students[i].moved);
   const activeStudents = (c) => ((c && c.students) || []).map((s, i) => ({ i, s })).filter(x => !x.s.moved);   // [{i, s}] بالفهرس الحقيقي
   const activeCount = (c) => activeStudents(c).length;
@@ -440,11 +448,28 @@
       const t = D.teachers.find(x => x.id === sel.value);
       const pin = $("#lg-pin").value.trim();
       if (!t) { $("#lg-err").textContent = "اختر اسمك من القائمة"; return; }
-      if (CLOUD) {
+      // التحقق عبر js/auth.js (بصمات في pins بدل مستند المعلم) — وإن لم يُحمَّل الملف يبقى التحقق القديم حرفياً
+      const AU = window.SIJIL_AUTH;
+      // تجريبياً: الرقم 1234 يبطل لمن غيّر رقمه على هذا الجهاز — فلا نرشده إلى رقم لم يعد يعمل.
+      //   تُقرأ الحالة بعد التحقق لا قبله، لأن js/auth.js يستعيد حالة الحسابات عند أول تحقق.
+      const badMsg = () => CLOUD ? "رقم الهوية غير صحيح"
+        : ((AU && typeof AU.isRegistered === "function" && AU.isRegistered(t))
+          ? "رقم الدخول غير صحيح — هذا الحساب غُيّر رقمه على هذا الجهاز، فاستعمل الرقم الجديد"
+          : "رقم الدخول غير صحيح (التجريبي: 1234)");
+      if (AU && typeof AU.verify === "function") {
+        $("#lg-err").textContent = "جارِ التحقق…";
+        let vr = null;
+        try { vr = await AU.verify(t.id, pin); } catch (e) { vr = null; }
+        if (!vr || !vr.ok) {
+          const m = vr && vr.err, M = AU.MSG || {};
+          $("#lg-err").textContent = (!m || m === M.bad || m === M.fmt || m === M.pick) ? badMsg() : m;
+          return;
+        }
+      } else if (CLOUD) {
         if (!t.pinHash) { $("#lg-err").textContent = "لم تُسجل هويتك بعد — تواصل مع أ. ضيف الله"; return; }
         $("#lg-err").textContent = "جارِ التحقق…";
-        if (await sha256(pin + "|" + t.id + "|" + SALT) !== t.pinHash) { $("#lg-err").textContent = "رقم الهوية غير صحيح"; return; }
-      } else if (pin !== "1234") { $("#lg-err").textContent = "رقم الدخول غير صحيح (التجريبي: 1234)"; return; }
+        if (await sha256(pin + "|" + t.id + "|" + SALT) !== t.pinHash) { $("#lg-err").textContent = badMsg(); return; }
+      } else if (pin !== "1234") { $("#lg-err").textContent = badMsg(); return; }
       $("#lg-err").textContent = ""; DB.session = t.id; DB.srole = "teacher"; save();
       enter(t);
     };
@@ -471,6 +496,7 @@
         save();
       } catch (e) { syncBadge(false); }
     }
+    try { loadLogo(true); } catch (e) { }                     // شعار المدرسة لترويسة المطبوعات (لا ينتظره أحد)
     renderToday(); renderReg(); renderGrades(); renderRep(); renderMore();
     // لوحة المدير (js/admin/core.js): تعيد بناء شريط التبويبات — سبعة إدارية، أو تبويبات المعلم مع زر التبديل في الرأس إن كان للمدير فصول
     let adm = false;
@@ -555,6 +581,7 @@
         <div style="font-size:13px;color:#c9d5e3">${esc(hijriLabel())}</div>
         <div style="font-size:19px;font-weight:800;color:var(--goldl);margin-top:2px">أهلاً أ. ${esc(TE.name.split(" ")[0])} 👋</div></div>
       <div id="today-bell" class="bellbar"></div>
+      <div id="today-next" class="nextbar"></div>
       <div class="kpis">
         <div class="kpi"><div class="v">${myClasses().length}</div><div class="l">فصولي</div></div>
         <div class="kpi"><div class="v">${all.length}</div><div class="l">طلابي</div></div>
@@ -576,9 +603,11 @@
       const code = sc + g + TERM, rows = (await loadCurr(code)).filter(r => r.w === wk);
       const main = rows.find(r => r.lesson && !String(r.lesson).includes("تابع")) || rows[0];
       const nm = main ? main.lesson : "—", off = !main || String(nm).includes("إجازة");
-      html += `<div class="lesson-line" style="margin-top:9px"><span class="nm">الصف ${GNAME[g]}: ${esc(nm)}</span>${off ? "" : `<button class="btn-gold" data-g="${g}">🚀 افتح الدرس التفاعلي</button>`}</div>`;
+      html += `<div class="lesson-line" style="margin-top:9px"><span class="nm">الصف ${GNAME[g]}: ${esc(nm)}</span>${off ? "" : `<span style="display:flex;gap:6px;flex-wrap:wrap">${FILES() ? `<button class="btn-soft" data-fg="${g}" data-code="${code}">📎 مرفقات الدرس</button>` : ""}<button class="btn-gold" data-g="${g}">🚀 افتح الدرس التفاعلي</button></span>`}</div>`;
     }
     LB.innerHTML = `<h3><span class="dot"></span>درس هذا الأسبوع</h3>` + html;
+    LB.querySelectorAll("[data-fg]").forEach(b => b.onclick = () => filesSheet("📎 مرفقات الدرس — الصف " + GNAME[+b.dataset.fg], "lesson", { code: b.dataset.code, wk },
+      "ملفات تخصّ درس هذا الأسبوع: صور، أوراق عمل، عروض بصيغة PDF — تظهر أيضاً داخل الحصة الحية."));
     LB.querySelectorAll("[data-g]").forEach(b => b.onclick = () => {
       const cl = myClasses().find(c => c.gc === +b.dataset.g);
       if (cl) liveSession(cl.id, "lesson");
@@ -627,6 +656,83 @@
     el.className = "bellbar " + cls;
     el.innerHTML = html;
     document.querySelectorAll("#tab-today .periods .period").forEach(n => n.classList.toggle("now", p > 0 && +n.dataset.p === p));
+    paintNext();
+  }
+
+  /* ═══ ⏰ شريط «الحصة القادمة» + مهلة التنبيه وصوته ═══
+     يظهر فوق شريط الحصة الحالية حين تقترب الحصة بمقدار المهلة المختارة (5 أو 10 أو 15 دقيقة)،
+     ومعه زر «ابدأ الحصة الحية». يُرسم مع مؤقّت الجرس نفسه (كل دقيقة) فيُلغى معه عند مغادرة
+     التبويب أو إخفاء الصفحة. مصدر الحصة القادمة js/notify.js، وإن لم يُحمَّل فحساب محلي مطابق. */
+  const NLEAD_KEY = "sijil.notify.lead", NSND_KEY = "sijil.notify.sound", NFP_KEY = "sijil.ics.fp";
+  const lsGet = (k) => { try { return localStorage.getItem(k); } catch (e) { return null; } };
+  const lsSet = (k, v) => { try { localStorage.setItem(k, v); } catch (e) { } };
+  const lsDel = (k) => { try { localStorage.removeItem(k); } catch (e) { } };
+  const notifyLead = () => { const v = +lsGet(NLEAD_KEY); return (v === 5 || v === 10 || v === 15) ? v : 5; };
+  const soundOn = () => lsGet(NSND_KEY) === "1";
+  function nextClassLocal(now) {
+    if (!TE) return null;
+    const d = now || new Date(), day = DAYS[d.getDay()], m = d.getHours() * 60 + d.getMinutes();
+    if (SDAYS().indexOf(day) < 0) return null;
+    const list = BELL().periodsOnly(day);
+    let best = null;
+    (D.schedule || []).forEach(r => {
+      if (!r || r.t !== TE.name || r.d !== day) return;
+      const b = list.find(x => !x.brk && +x.p === +r.p); if (!b) return;
+      const mins = b.from - m; if (mins < 1) return;
+      if (!best || b.from < best.from) { const cl = classById(r.c); best = { p: +r.p, cid: r.c, cname: (cl && cl.name) || "", from: b.from, mins }; }
+    });
+    return best;
+  }
+  function nextClassOf(now) {
+    const N = window.SIJIL_NOTIFY;
+    if (N && typeof N.nextClass === "function") { try { return N.nextClass(now); } catch (e) { } }
+    return nextClassLocal(now);
+  }
+  // نغمة قصيرة داخل التطبيق (بلا ملف صوت) — تعمل بعد أول لمسة من المعلم، وصمتها لا يُعطّل شيئاً
+  function beep() {
+    try {
+      const AC = window.AudioContext || window.webkitAudioContext; if (!AC) return;
+      const ctx = new AC(), o = ctx.createOscillator(), g = ctx.createGain(), t = ctx.currentTime;
+      o.type = "sine"; o.frequency.setValueAtTime(880, t); o.frequency.setValueAtTime(1174, t + 0.18);
+      g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(0.16, t + 0.05); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.6);
+      o.connect(g); g.connect(ctx.destination); o.start(t); o.stop(t + 0.62);
+      setTimeout(() => { try { ctx.close(); } catch (e) { } }, 1000);
+    } catch (e) { }
+  }
+  let nextKey = "";
+  function paintNext() {
+    const el = $("#today-next"); if (!el) return;
+    const lead = notifyLead();
+    let nx = null; try { nx = nextClassOf(); } catch (e) { nx = null; }
+    if (!nx || nx.mins > lead) { el.className = "nextbar"; el.innerHTML = ""; nextKey = ""; return; }
+    const B = BELL();
+    el.className = "nextbar on";
+    el.innerHTML = `<span class="ic">⏰</span><span class="tx">بعد <b>${esc(minsAr(nx.mins))}</b>: الحصة <b>${esc(B.ord(nx.p))}</b>${nx.cname ? ` — <b>${esc(nx.cname)}</b>` : ""}</span><button class="btn-gold" id="next-live">🎬 ابدأ الحصة الحية</button>`;
+    const b = $("#next-live"); if (b) b.onclick = () => liveSession(nx.cid);
+    const k = nx.cid + "|" + nx.p + "|" + new Date().toDateString();
+    if (k !== nextKey) { nextKey = k; if (soundOn()) beep(); }
+    leadNotify(nx, lead);
+  }
+  /* تنبيه الجهاز من تبويب «اليوم» (js/notify.js يرسله أيضاً بالمهلة نفسها خارج التبويب):
+     نُعلّم العلامة نفسها التي يستعملها ذلك الملف قبل الإرسال، فلا يصل التنبيه مرتين أبداً. */
+  let leadBusy = false;
+  function leadNotify(nx, lead) {
+    if (lead <= 5 || nx.mins <= 5 || leadBusy) return;
+    const N = window.SIJIL_NOTIFY; if (!N || typeof N.state !== "function") return;
+    let st = null; try { st = N.state(); } catch (e) { return; }
+    if (!st || !st.ready) return;
+    const d = new Date(), two = (n) => (n < 10 ? "0" : "") + n;
+    const day = d.getFullYear() + "-" + two(d.getMonth() + 1) + "-" + two(d.getDate());
+    const key = "sijil.notified." + day + "." + nx.p;
+    if (lsGet(key) === "1") return;
+    lsSet(key, "1"); leadBusy = true;
+    const B = BELL(), cl = classById(nx.cid), n = cl ? activeCount(cl) : 0;
+    const title = "الحصة " + B.ord(nx.p) + " بعد " + minsAr(nx.mins);
+    const body = [nx.cname, n ? (n === 1 ? "طالب واحد" : n === 2 ? "طالبان" : (n <= 10 ? n + " طلاب" : n + " طالباً")) : ""].filter(Boolean).join(" — ");
+    const ready = (navigator.serviceWorker && navigator.serviceWorker.ready) ? navigator.serviceWorker.ready : Promise.reject(new Error("no-sw"));
+    ready.then(reg => reg.showNotification(title, { body, tag: "sijil-class-" + day + "-" + nx.p, dir: "rtl", lang: "ar", icon: "icon-192.png", badge: "icon-192.png" }))
+      .then(() => { leadBusy = false; })
+      .catch(() => { lsDel(key); leadBusy = false; });
   }
   // المدير يحفظ أوقاتاً جديدة (SIJIL_ADMIN.saveBell) → إعادة رسم فورية
   // ويُطلق أيضاً عند اكتمال تحميل js/admin/core.js بعد رسم «اليوم» (جلسة محفوظة/وضع تجريبي) فتُصحَّح خلايا الشبكة
@@ -813,18 +919,29 @@
       lvI === 3 ? "يحتاج ابنكم مزيداً من المتابعة في الواجبات والمشاركة، ونحن معكم 💪" :
       lvI === 4 ? "نرجو التواصل معنا لوضع خطة دعم مشتركة تعين ابنكم 🤝" :
       (S.t.pts > 0 ? "بداية طيبة، ونأمل الاستمرار 🌱" : "نسعد بتواصلكم ومتابعتكم 🌹"));
+    // 📎 أدلة وأعمال: روابط عرض عامة تُفتح بلا تسجيل (تُحمَّل قائمتها عند فتح بطاقة الطالب)
+    const F0 = FILES(), fl0 = SFILES[cid + ":" + i] || [];
+    if (F0 && fl0.length) {
+      L.push("");
+      L.push("📎 أدلة وأعمال ابنكم:");
+      fl0.slice(0, 5).forEach(f => L.push(`• ${f.n}: ${F0.viewURL(f.id)}`));
+      if (fl0.length > 5) L.push(`• وغيرها ${fl0.length - 5} ملفاً`);
+    }
     L.push("");
     L.push(`معلم المادة: ${TE.name}`);
     L.push(META.school.name);
     return L.join("\n");
   }
+  const cardOpen = (i) => { const h = OV.querySelector(".stu-head"); return !!(h && h.dataset.si === String(i)); };
   function studentCard(cid, i) {
-    if (CLOUD && fdb && !SUBS[cid]) { loadSubs(cid).then(() => { if (OV.querySelector(".stu-head") && OV.querySelector(".stu-head").dataset.si === String(i)) studentCard(cid, i); }); }
+    if (CLOUD && fdb && !SUBS[cid]) { loadSubs(cid).then(() => { if (cardOpen(i)) studentCard(cid, i); }); }
+    if (FILES() && !SFILES[cid + ":" + i]) loadStudentFiles(cid, i, () => { if (cardOpen(i)) studentCard(cid, i); });
     const S = studentSummary(cid, i), c = S.c, s = S.s, t = S.t, rank = S.rank;
     const medal = rank === 1 ? "🥇" : rank === 2 ? "🥈" : rank === 3 ? "🥉" : "🎖️";
     const comms = ((DB.comms[cid] || []).filter(x => x.si === i)).slice(-4).reverse();
     const phone = (s.p || "").replace(/\D/g, "").replace(/^0/, "966");
     const waTxt = encodeURIComponent(parentMessage(cid, i));
+    const sfl = SFILES[cid + ":" + i] || [];
     const gradeChips = ASSESS.filter(a => S.g[a.k] != null).map(a => `<span class="cc" style="background:${(DB.grades[cid] || {})[i] && (DB.grades[cid][i][a.k] != null) ? "var(--navy)" : "#6b7280"}" title="${(DB.grades[cid] || {})[i] && (DB.grades[cid][i][a.k] != null) ? "درجة يدوية" : "محسوبة تلقائياً من الرصد"}">${esc(a.n)} ${S.g[a.k]}/${a.max}</span>`).join("");
     openSheet(`
       <div class="stu-head" data-si="${i}"><div style="font-size:34px">${medal}</div><div class="big">${esc(s.n)}</div><div class="sub">${esc(c.name)} — الترتيب ${rank} من ${activeCount(c)}${S.lv ? ` — <span class="lvl lvl${S.lv.i}">${S.lv.t}</span>` : ""}</div></div>
@@ -838,6 +955,9 @@
       <div class="countchips">${Object.keys(S.behAgg).map(bi => `<span class="cc" style="background:${BEH[bi].pts >= 0 ? "var(--ok)" : "var(--bad)"}">${esc(BEH[bi].name)} ×${S.behAgg[bi]}</span>`).join("")}</div>
       ${gradeChips ? `<div class="countchips" style="margin-top:4px">${gradeChips}</div><div class="empty-note" style="padding:2px 4px 0;text-align:right;font-size:12px">الرمادي محسوب تلقائياً من الرصد، والكحلي أدخلته يدوياً. تُعدَّل من تبويب الدرجات.</div>` : ""}
       ${S.subs.length ? `<div class="empty-note" style="padding:4px;text-align:right">📝 الأوراق التفاعلية: ${S.subs.length} — متوسط ${S.subsAvg}%</div>` : ""}
+      ${FILES() ? `<div style="border-top:1px solid var(--line);margin:12px 0 8px;padding-top:10px">
+        <div style="display:flex;justify-content:space-between;align-items:center"><b style="color:var(--navy)">📎 أدلة وأعمال</b><button class="btn-soft" id="sc-files">+ إضافة</button></div>
+        <div id="sc-flist" style="margin-top:6px">${sfl.length ? sfl.slice(0, 6).map(f => `<div class="comm-item"><button class="lnk" data-fopen="${esc(f.id)}">📎 ${esc(f.n)}</button><div class="meta">${esc(FILES().fmt(f.sz))}${f.tn ? " — " + esc(f.tn) : ""}</div></div>`).join("") : '<div class="empty-note" style="padding:10px">لا مرفقات — أضف صورة عمل الطالب أو ورقته لتصل ولي الأمر مع التقرير</div>'}</div></div>` : ""}
       <div style="border-top:1px solid var(--line);margin:12px 0 8px;padding-top:10px">
         <div style="display:flex;justify-content:space-between;align-items:center"><b style="color:var(--navy)">📞 سجل التواصل</b><button class="btn-soft" id="sc-addcomm">+ إضافة</button></div>
         <div id="sc-comms" style="margin-top:6px">${comms.length ? comms.map(x => `<div class="comm-item"><span class="tag">${esc(x.why)}</span> ${esc(x.note || "")}<div class="meta">${esc(x.via)} — ${esc(x.date)}</div></div>`).join("") : '<div class="empty-note" style="padding:10px">لا مراسلات مسجلة</div>'}</div></div>
@@ -851,6 +971,11 @@
         <button class="btn-primary" style="flex:1 1 100%" onclick="window._sheetClose()">إغلاق</button></div>`,
       (o) => {
         o.querySelector("#sc-addcomm").onclick = () => commSheet(cid, i);
+        const fb = o.querySelector("#sc-files");
+        if (fb) fb.onclick = () => filesSheet("📎 أدلة وأعمال — " + s.n, "student", { c: cid, i },
+          "صور أعمال الطالب وأوراقه — تُرسل روابطها مع رسالة ولي الأمر.",
+          () => loadStudentFiles(cid, i, () => studentCard(cid, i)));   // إغلاق نافذة المرفقات يعيد فتح بطاقة الطالب
+        o.querySelectorAll("[data-fopen]").forEach(b => b.onclick = () => { const F = FILES(); if (F) { try { F.open(b.dataset.fopen); } catch (e) { } } });
         o.querySelector("#sc-report").onclick = () => printReport(cid, i);
         o.querySelector("#sc-letter").onclick = () => printLetter(cid, i);
         o.querySelector("#sc-cert").onclick = () => printCertificate(cid, i);
@@ -858,7 +983,7 @@
         const wa = o.querySelector("#sc-wa");
         if (wa && phone) wa.addEventListener("click", () => {
           DB.comms[cid] = DB.comms[cid] || [];
-          DB.comms[cid].push({ si: i, why: S.why, via: "واتساب", note: "تقرير متابعة تلقائي" + (S.hasG ? ` — الدرجة ${S.gtot}/${S.maxTot}` : "") + ` — النقاط ${t.pts}`, date: hijriLabel(), ts: Date.now() });
+          DB.comms[cid].push({ si: i, why: S.why, via: "واتساب", note: "تقرير متابعة تلقائي" + (S.hasG ? ` — الدرجة ${S.gtot}/${S.maxTot}` : "") + ` — النقاط ${t.pts}` + (sfl.length ? ` — مع ${sfl.length} مرفقاً` : ""), date: hijriLabel(), ts: Date.now() });
           save("comms:" + cid);
           setTimeout(() => { if (OV.querySelector(".stu-head")) studentCard(cid, i); }, 400);
         });
@@ -870,11 +995,26 @@
       <div class="field"><label>السبب</label><select id="cm-why" class="search-box">${["إشعار تميّز", "إشعار ضعف", "غياب متكرر", "سلوك", "واجبات", "دعوة لمقابلة", "أخرى"].map(x => `<option>${x}</option>`).join("")}</select></div>
       <div class="field"><label>الوسيلة</label><select id="cm-via" class="search-box">${["واتساب", "اتصال هاتفي", "رسالة", "مقابلة", "نور"].map(x => `<option>${x}</option>`).join("")}</select></div>
       <textarea class="note" id="cm-note" rows="2" placeholder="ملاحظة (اختياري)…"></textarea>
+      ${FILES() ? '<button class="btn-soft" id="cm-file" style="width:100%;margin-bottom:8px">📎 إرفاق ملف بهذه المراسلة</button><div class="empty-note" id="cm-fmsg" style="padding:0 2px 6px;min-height:0"></div>' : ""}
       <div class="sheet-actions"><button class="btn-plain" onclick="window._sheetClose()">إلغاء</button><button class="btn-primary" id="cm-ok">حفظ</button></div>`,
-      (o) => o.querySelector("#cm-ok").onclick = () => {
-        DB.comms[cid] = DB.comms[cid] || [];
-        DB.comms[cid].push({ si: i, why: o.querySelector("#cm-why").value, via: o.querySelector("#cm-via").value, note: o.querySelector("#cm-note").value.trim(), date: hijriLabel() });
-        save("comms:" + cid); closeSheet(); studentCard(cid, i);
+      (o) => {
+        const added = [];
+        const fb = o.querySelector("#cm-file");
+        if (fb) fb.onclick = async () => {
+          const F = FILES(); if (!F) return;
+          let got = [];
+          try { got = await F.attach({ scope: "comm", ref: { c: cid, i }, title: "مرفق المراسلة" }) || []; } catch (e) { got = []; }
+          got.forEach(r => added.push(r));
+          const m = o.querySelector("#cm-fmsg");
+          if (m) m.textContent = added.length ? `📎 ${added.length} مرفقاً — يُحفظ رابطه مع المراسلة` : "";
+        };
+        o.querySelector("#cm-ok").onclick = () => {
+          const F = FILES();
+          const extra = (F && added.length) ? ("\n" + added.map(r => "📎 " + r.n + ": " + F.viewURL(r.id)).join("\n")) : "";
+          DB.comms[cid] = DB.comms[cid] || [];
+          DB.comms[cid].push({ si: i, why: o.querySelector("#cm-why").value, via: o.querySelector("#cm-via").value, note: o.querySelector("#cm-note").value.trim() + extra, date: hijriLabel() });
+          save("comms:" + cid); closeSheet(); studentCard(cid, i);
+        };
       });
   }
   const PRINT_CSS = `@import url('https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800&display=swap');
@@ -904,8 +1044,36 @@
     .seal{width:70px;height:70px;margin:0 auto 6px;background:#D7A93F;border:3px solid #0E2033;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:34px}
     .stars{color:#D7A93F;font-size:30px;letter-spacing:8px;text-align:center;margin:12px 0}
     .who{font-size:30px;font-weight:800;color:#b8860b;text-align:center;margin:14px auto;border-bottom:3px dotted #D7A93F;display:table;padding:0 34px 8px}
-    .ctr{text-align:center;font-size:15px;line-height:2.1}`;
+    .ctr{text-align:center;font-size:15px;line-height:2.1}
+    .h .bar .plogo{height:38px;width:auto;vertical-align:middle;margin-inline-end:12px;border-radius:7px;background:#fff;padding:3px}`;
+
+  /* ═══ شعار المدرسة في ترويسة كل مطبوع ═══
+     يرفعه المدير من «⚙️ الإدارة ← 🗂️ مكتبة المدرسة» كمرفق بنطاق school ووصف {kind:"logo"}.
+     يُقرأ مرة واحدة ويُحفظ نصاً (data URI) لأن نافذة الطباعة تُكتب فوراً بلا انتظار. */
+  let LOGO = "", logoTries = 0;
+  async function loadLogo(force) {
+    try {
+      const F = window.SIJIL_FILES;
+      // js/files.js يُحمَّل بعد app.js: إن لم يصل بعد أعدنا المحاولة مرة واحدة قبل أول طباعة
+      if (!F || typeof F.list !== "function") {
+        if (logoTries++ < 3) setTimeout(() => { try { loadLogo(force); } catch (e) { } }, 1500);
+        return "";
+      }
+      if (LOGO && !force) return LOGO;
+      const arr = await F.list("school", { kind: "logo" });
+      if (!arr || !arr.length) { LOGO = ""; return ""; }
+      const got = await F.blobOf(arr[0].id);
+      LOGO = await new Promise((res) => { const r = new FileReader(); r.onload = () => res(String(r.result || "")); r.onerror = () => res(""); r.readAsDataURL(got.blob); });
+      return LOGO;
+    } catch (e) { return LOGO; }
+  }
+  const LOGO_ANCHOR = '<div class="h"><div class="bar">';
+  const withLogo = (html) => (LOGO && String(html).indexOf(LOGO_ANCHOR) >= 0)
+    ? String(html).replace(LOGO_ANCHOR, LOGO_ANCHOR + '<img class="plogo" src="' + LOGO + '" alt="">')
+    : html;
+
   function printDoc(title, bodyHtml, opts) {
+    bodyHtml = withLogo(bodyHtml);
     const w = window.open("", "_blank");
     const land = !!(opts && opts.land);
     const cls = (opts && opts.cls) ? " " + opts.cls : "";
@@ -1024,6 +1192,45 @@
       ${sigLine([{ l: "معلم المادة", v: TE.name }, "principal"])}`);
   }
 
+  /* ═══ 📎 المرفقات (js/files.js) — كل نداء محاط بحارس فإن لم يُحمَّل الملف يبقى كل شيء عاملاً ═══ */
+  const FILES = () => { const F = window.SIJIL_FILES; return (F && typeof F.libraryCard === "function") ? F : null; };
+  const SFILES = {};                                   // "cid:si" → قائمة مرفقات الطالب (لتضمينها في رسالة ولي الأمر)
+  function loadStudentFiles(cid, i, after) {
+    const F = FILES(), k = cid + ":" + i;
+    if (!F) { SFILES[k] = []; if (after) after([]); return; }
+    F.list("student", { c: cid, i }).then(a => { SFILES[k] = a || []; if (after) after(SFILES[k]); })
+      .catch(() => { SFILES[k] = SFILES[k] || []; if (after) after(SFILES[k]); });
+  }
+  // نافذة مرفقات جاهزة (قائمة + إرفاق + حذف) لأي موضع في التطبيق — لا تُستعمل داخل الحصة الحية
+  function filesSheet(title, scope, ref, hint, onClose) {
+    const F = FILES();
+    if (!F) { alert("المرفقات غير متاحة الآن — أعد تحميل الصفحة"); return; }
+    openSheet(`<h4>${esc(title)}</h4><div id="fx-box"><div class="empty-note">جارِ التحميل…</div></div>
+      <div class="sheet-actions"><button class="btn-primary" id="fx-x">إغلاق</button></div>`, (o) => {
+      const box = o.querySelector("#fx-box");
+      o.querySelector("#fx-x").onclick = () => { closeSheet(); if (onClose) { try { onClose(); } catch (e) { } } };
+      Promise.resolve(F.libraryCard(box, { scope, ref, title, hint }))
+        .catch(() => { box.innerHTML = '<div class="empty-note">تعذّر تحميل المرفقات — تحقق من الاتصال</div>'; });
+    });
+  }
+  // شريط مرفقات الدرس داخل الحصة الحية (نافذة المرفقات نفسها تعلو شاشة العرض)
+  function lessonFilesBar(box, code, wk) {
+    const F = FILES(); if (!F || !box) return;
+    const wrap = document.createElement("div"); wrap.className = "rl-files";
+    box.appendChild(wrap);
+    const paint = async () => {
+      let arr = [];
+      try { arr = await F.list("lesson", { code, wk }); } catch (e) { arr = []; }
+      wrap.innerHTML = `<span class="rf-h">📎 مرفقات الدرس</span>` +
+        (arr.length ? arr.map(f => `<button class="rf-i" data-o="${esc(f.id)}">${esc(f.n)}</button>`).join("") : `<span class="rf-e">لا مرفقات بعد</span>`) +
+        `<button class="rf-add" id="rf-add">＋ إضافة مرفق</button>`;
+      const ab = wrap.querySelector("#rf-add");
+      if (ab) ab.onclick = async () => { try { await F.attach({ scope: "lesson", ref: { code, wk }, title: "مرفقات الدرس" }); } catch (e) { } paint(); };
+      wrap.querySelectorAll("[data-o]").forEach(b => b.onclick = () => { try { F.open(b.dataset.o); } catch (e) { } });
+    };
+    paint();
+  }
+
   /* ═══ المزيد (بحث + مدير + نسخة احتياطية) ═══ */
   async function renderMore() {
     const box = $("#tab-more");
@@ -1043,6 +1250,10 @@
           <button class="btn-gold" id="tl-sheets">📝 بنك أوراق العمل</button>
           <button class="btn-gold" id="tl-assign">📤 الأوراق المرسلة</button>
         </div></div>
+      <div class="card" id="nt-card"><h3><span class="dot"></span>🔔 تنبيهات الحصص</h3>
+        <div id="nt-mount"></div><div id="nt-opts"></div></div>
+      <div class="card${TE.admin ? "" : " ro"}" id="more-lib"><h3><span class="dot"></span>🗂️ مكتبة المدرسة</h3>
+        <div id="more-lib-box"><div class="empty-note">جارِ التحميل…</div></div></div>
       <div class="card"><h3><span class="dot"></span>🔍 بحث عن طالب</h3>
         <input class="search-box" id="mo-search" placeholder="اكتب اسم الطالب…">
         <div class="search-res" id="mo-res"></div></div>
@@ -1073,6 +1284,9 @@
     $("#tl-calc").onclick = toolCalc;
     $("#tl-sheets").onclick = toolSheets;
     $("#tl-assign").onclick = toolAssign;
+    // 🔔 التنبيهات و📅 التقويم و🗂️ مكتبة المدرسة
+    try { paintNotifyCard(); } catch (e) { }
+    try { paintMoreLib(); } catch (e) { }
     // بحث
     const res = $("#mo-res");
     $("#mo-search").oninput = (e) => {
@@ -1111,6 +1325,58 @@
         if (card) card.innerHTML = `<h3><span class="dot"></span>لوحة المدير — رصد المعلمين لحظياً</h3>` + D.teachers.filter(t => (t.classes || []).length).map(t => { const p = per[t.id]; return `<div class="admin-row"><span>${esc(t.name)}<div class="cls">${esc(t.subject)}</div></span><span class="cls">${p ? `${p.c.size} فصول · ${p.days} يوم رصد` : "لم يبدأ بعد"}</span></div>`; }).join("");
       } catch (e) { }
     }
+  }
+
+  /* ═══ 🔔 بطاقة تنبيهات الحصص + 📅 تقويم الجوال ═══ */
+  function paintNotifyCard() {
+    const card = $("#nt-card"); if (!card || !TE) return;
+    const N = window.SIJIL_NOTIFY, I = window.SIJIL_ICS, mount = $("#nt-mount"), opts = $("#nt-opts");
+    if (mount) {
+      if (N && typeof N.mount === "function") { try { N.mount(mount); } catch (e) { mount.innerHTML = ""; } }
+      else mount.innerHTML = '<div class="empty-note">تنبيهات الحصص غير متاحة على هذا الجهاز</div>';
+    }
+    if (!opts) return;
+    const lead = notifyLead(), snd = soundOn();
+    let fp = "", changed = false;
+    if (I && typeof I.fingerprint === "function") { try { fp = I.fingerprint(TE.id); } catch (e) { fp = ""; } }
+    const old = lsGet(NFP_KEY);
+    changed = !!(fp && old && old !== fp);
+    opts.innerHTML = `
+      ${changed ? '<div class="nt-warn">📅 تغيّر جدولك — حدّث تقويمك بإعادة إضافة الملف.</div>' : ""}
+      <div class="nt-row"><label for="nt-lead">ينبّهني قبل الحصة بـ</label>
+        <select id="nt-lead">${[5, 10, 15].map(v => `<option value="${v}"${v === lead ? " selected" : ""}>${minsAr(v)}</option>`).join("")}</select></div>
+      <div class="nt-row"><label>صوت داخل التطبيق</label>
+        <button class="btn-soft" id="nt-snd">${snd ? "🔊 مفعّل" : "🔇 متوقف"}</button></div>
+      ${I && typeof I.download === "function" ? '<button class="btn-gold" id="nt-ics" style="width:100%;margin-top:10px">📅 أضف جدولي إلى تقويم جوالي</button>' : ""}
+      <div class="empty-note" id="nt-cal-msg" style="padding:8px 4px 0">يُنزَّل ملف تقويم؛ افتحه فتُضاف حصصك مواعيدَ أسبوعية إلى نهاية الفصل، مع تنبيه قبل كل حصة.</div>`;
+    const sel = $("#nt-lead");
+    if (sel) sel.onchange = () => {
+      lsSet(NLEAD_KEY, String(+sel.value || 5));
+      nextKey = ""; try { paintNext(); } catch (e) { }
+      try { const N2 = window.SIJIL_NOTIFY; if (N2 && typeof N2.refresh === "function") N2.refresh(); } catch (e) { }
+      const m = $("#nt-cal-msg");
+      if (m) m.textContent = "✔ سيصلك التنبيه قبل الحصة بـ " + minsAr(notifyLead()) + " ما دام «سجلي» مفتوحاً؛ وإن كان مغلقاً فقد يصل قبلها بقليل.";
+    };
+    const sb = $("#nt-snd");
+    if (sb) sb.onclick = () => { if (soundOn()) lsDel(NSND_KEY); else { lsSet(NSND_KEY, "1"); beep(); } paintNotifyCard(); };
+    const ib = $("#nt-ics");
+    if (ib) ib.onclick = () => {
+      const m = $("#nt-cal-msg");
+      try {
+        const r = I.download(TE.id, { alarm: lead });
+        if (fp) lsSet(NFP_KEY, fp);
+        if (m) m.textContent = r && r.count ? `✔ نُزِّل الملف «${r.name}» ويحوي ${r.count} موعداً — افتحه من التنزيلات ليُضاف إلى تقويمك.`
+          : "لا حصص في جدولك لإضافتها إلى التقويم.";
+        const w = card.querySelector(".nt-warn"); if (w) w.remove();
+      } catch (e) { if (m) m.textContent = "تعذّر إنشاء ملف التقويم — أعد تحميل الصفحة ثم حاول مرة أخرى."; }
+    };
+  }
+  // 🗂️ مكتبة المدرسة داخل «المزيد»: المدير يرفع ويحذف، والمعلم يقرأ (الأزرار مخفية بصنف ro في css/app.css)
+  function paintMoreLib() {
+    const F = FILES(), box = $("#more-lib-box"); if (!box) return;
+    if (!F) { box.innerHTML = '<div class="empty-note">المرفقات غير متاحة الآن</div>'; return; }
+    Promise.resolve(F.libraryCard(box, { scope: "school", title: "🗂️ مكتبة المدرسة", hint: "مستندات المدرسة لكل المعلمين: الجدول الرسمي، النماذج، التعاميم." }))
+      .catch(() => { box.innerHTML = '<div class="empty-note">تعذّر تحميل مكتبة المدرسة — تحقق من الاتصال</div>'; });
   }
 
   /* ═══ أدوات المعلم (بديل الإكسل) ═══ */
@@ -1281,12 +1547,14 @@
         if (!rows.length) continue;
         html += `<div style="font-weight:800;color:var(--navy);margin:8px 0 4px">الصف ${GNAME[g]}</div>`;
         rows.sort((a, b) => a.w - b.w).forEach(r => {
-          html += `<div class="comm-item"><b>أسبوع ${r.w}: ${esc(r.lesson)}</b><div style="display:flex;gap:6px;margin-top:6px;flex-wrap:wrap"><button class="btn-gold" data-send="${esc(r.lesson)}" data-code="${code}" data-wk="${r.w}">📤 إرسال للطلاب</button><button class="btn-soft" data-ws="${esc(r.lesson)}" data-code="${code}" data-wk="${r.w}">🖨️ طباعة</button></div></div>`;
+          html += `<div class="comm-item"><b>أسبوع ${r.w}: ${esc(r.lesson)}</b><div style="display:flex;gap:6px;margin-top:6px;flex-wrap:wrap"><button class="btn-gold" data-send="${esc(r.lesson)}" data-code="${code}" data-wk="${r.w}">📤 إرسال للطلاب</button><button class="btn-soft" data-ws="${esc(r.lesson)}" data-code="${code}" data-wk="${r.w}">🖨️ طباعة</button>${FILES() ? `<button class="btn-soft" data-up="${esc(r.lesson)}" data-code="${code}" data-wk="${r.w}">⬆️ ورقة من جهازي</button>` : ""}</div></div>`;
         });
       }
       const body = o.querySelector("#sh-body"); if (!body) return;
       body.innerHTML = html || '<div class="empty-note">لا دروس متاحة حول هذا الأسبوع</div>';
       body.querySelectorAll("[data-ws]").forEach(b => b.onclick = async () => printWorksheet(b.dataset.ws, await lessonData(b.dataset.code, +b.dataset.wk)));
+      body.querySelectorAll("[data-up]").forEach(b => b.onclick = () => filesSheet("⬆️ ورقة من جهازي — " + b.dataset.up, "lesson", { code: b.dataset.code, wk: +b.dataset.wk },
+        "ورقة عمل جاهزة من جهازك (صورة أو PDF) تُحفظ مع هذا الدرس وتظهر في «📎 مرفقات الدرس» داخل الحصة."));
       body.querySelectorAll("[data-send]").forEach(b => b.onclick = async () => {
         const qs = await lessonQuestions(b.dataset.code, +b.dataset.wk);
         closeSheet(); sendSheet(b.dataset.code, +b.dataset.wk, b.dataset.send, qs);
@@ -1422,6 +1690,7 @@
       if (data) renderRichLesson(box, data);
       else box.innerHTML = `<div class="live-stage"><div class="stage-bar"><span style="color:#fff;font-weight:800">▶️ ${esc(m.lesson)}</span></div><div class="rl-scroll"><div class="rl-wrap"><div class="rl-title">${esc(m.lesson)}</div><div style="color:#c9d5e3;text-align:center;margin-top:20px">درس هذا الأسبوع من وحدة «${esc(m.unit || "")}».<br>الدرس التفاعلي الغني لهذا الدرس قيد الإعداد — استخدم «سؤال» و«ورقة تفاعلية» و«العجلة» لتفعيل الحصة.<br><br><button class="btn-gold" id="rl-author" style="font-size:16px">✏️ ألّف هذا الدرس الآن (يعمل عليه كل شيء فوراً)</button></div></div></div></div>`;
       const ab = box.querySelector("#rl-author"); if (ab) ab.onclick = () => authorLesson(code, wk, m.lesson, () => liveView("lesson"));
+      try { lessonFilesBar(box, code, wk); } catch (e) { }
       return;
     }
     if (v === "yt") { stageYouTube(box, code, wk, c); return; }
@@ -2850,7 +3119,8 @@
     sha256, shortId, waLink,
     studentProgress, studentCard, adminLevels, schoolSummary, classDocs, loadSubs,
     switchTab, rerenderTab, renderToday, renderReg, renderGrades, renderRep, renderMore,
-    toolCurriculum, toolSessions, toolPlans, toolCalc, toolSheets, toolAssign, liveSession, enter
+    toolCurriculum, toolSessions, toolPlans, toolCalc, toolSheets, toolAssign, liveSession, enter,
+    loadLogo, filesSheet, nextClassOf, notifyLead, paintNotifyCard
   };
 
   /* ═══ إقلاع ═══ */
