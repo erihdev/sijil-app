@@ -92,7 +92,8 @@ service cloud.firestore {
           && request.resource.data.qs is list && request.resource.data.qs.size() <= 40
           && request.resource.data.cid is string && request.resource.data.tid is string
           && request.resource.data.mode in ['ws', 'quiz', 'race']
-          && (!('retry' in request.resource.data) || request.resource.data.retry is bool);
+          && (!('retry' in request.resource.data) || request.resource.data.retry is bool)
+          && (!('tries' in request.resource.data) || (request.resource.data.tries is int && request.resource.data.tries >= 0 && request.resource.data.tries <= 12));
       allow delete: if false;
     }
 
@@ -112,7 +113,28 @@ service cloud.firestore {
       allow delete: if false;
     }
 
+    // ── حركات نقل الطلاب: إنشاء فقط، تُطبَّق على الفصول عند كل تحميل ──
+    match /moves/{id} {
+      allow read: if signedIn();
+      allow create: if signedIn() && id.matches('^[a-z0-9]{4,12}$') && stamped()
+          && request.resource.data.from is string && request.resource.data.to is string
+          && request.resource.data.si is int && request.resource.data.si >= 0 && request.resource.data.si < 200
+          && request.resource.data.newSi is int && request.resource.data.newSi >= 0 && request.resource.data.newSi < 400
+          && request.resource.data.name is string && request.resource.data.name.size() <= 120
+          && request.resource.data.keys().hasOnly(['from', 'si', 'to', 'newSi', 'name', 'tn', 'ts']);
+      allow update, delete: if false;
+    }
+
     // ── أي شيء آخر ممنوع ──
+    // ── تفضيلات المعلم (معايير حاسبة المهمة الأدائية وغيرها) ──
+    match /prefs/{tid} {
+      allow read: if signedIn();
+      allow create, update: if signedIn() && tid.matches('^[A-Za-z0-9]{1,12}$') && stamped()
+          && request.resource.data.calc is map
+          && request.resource.data.keys().hasOnly(['calc', 'tn', 'ts']);
+      allow delete: if false;
+    }
+
     match /{document=**} { allow read, write: if false; }
   }
 }

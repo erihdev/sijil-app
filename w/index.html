@@ -108,6 +108,38 @@ button{font-family:inherit;font-size:16px}
   }
 
   const fail = (t, s) => { app.innerHTML = `<div class="err"><b>${esc(t)}</b>${esc(s || "")}</div>`; };
+  // حركات نقل الطلاب: نفس اشتقاق التطبيق — المنقول يبقى في مصفوفته معلَّماً moved، والقادم يوضع عند الفهرس newSi المسجَّل في الحركة (لا بالدفع)
+  // لأن بياناته رُحِّلت إليه؛ الفجوات تُملأ بعناصر شاغرة، والموضع المحجوز بطالب فعلي ⇒ تُهمل الحركة، والمكررة (نفس from,si) تُهمل وتستهلك موضعها.
+  // هنا لا يُحمَّل إلا فصل الورقة، فإن غاب الفصل المصدر يُركَّب الطالب من اسم الحركة (synth).
+  const isGap = (s) => !!(s && s.gap);
+  function applyMoves(classes, moves, synth) {
+    const byId = {}; (classes || []).forEach(c => { c.students = c.students || []; byId[c.id] = c; });
+    const gapItem = () => ({ n: "", p: "", gap: true, moved: { to: "gap", ts: 0 } });
+    const slotOf = (m, dst) => (Number.isInteger(m.newSi) && m.newSi >= 0 && m.newSi < 400) ? m.newSi : dst.students.length;
+    const reserve = (dst, nsi) => { while (dst.students.length <= nsi) dst.students.push(gapItem()); return dst.students[nsi]; };
+    const done = new Set();
+    let pending = (moves || []).slice().sort((a, b) => ((a.ts || 0) - (b.ts || 0)) || String(a.id || "").localeCompare(String(b.id || "")));
+    for (let pass = 0; pending.length && pass < 8; pass++) {
+      const later = [];
+      pending.forEach(m => {
+        const key = m.from + ":" + m.si, src = byId[m.from], dst = m.to === "out" ? null : (byId[m.to] || null);
+        const s = src ? src.students[m.si] : (synth ? { n: m.name || "", p: "" } : null);
+        if (!s || isGap(s)) { later.push(m); return; }
+        if (done.has(key) || s.moved) { if (dst) reserve(dst, slotOf(m, dst)); return; }
+        if (dst) {
+          const nsi = slotOf(m, dst), occ = reserve(dst, nsi);
+          if (!isGap(occ)) { m.conflict = true; try { console.warn("[moves] تعارض: الموضع " + m.to + "[" + nsi + "] محجوز — أُهملت الحركة " + (m.id || "")); } catch (e) { } return; }
+          const copy = Object.assign({}, s); delete copy.moved; delete copy.gap; copy.from = { cid: m.from, si: m.si, ts: m.ts };
+          dst.students[nsi] = copy; m.appliedSi = nsi;
+        }
+        if (src) s.moved = { to: m.to, ts: m.ts };
+        done.add(key);
+      });
+      if (later.length === pending.length) break;
+      pending = later;
+    }
+    pending.forEach(m => { const dst = m.to !== "out" && byId[m.to]; if (dst) reserve(dst, slotOf(m, dst)); });
+  }
   // تطبيع إجابة «أكمل الفراغ»: تشكيل، ألف/ياء/تاء، «الـ»، مسافات
   const norm = (s) => String(s || "").trim().replace(/[ً-ْـ]/g, "")
     .replace(/[إأآا]/g, "ا").replace(/ى/g, "ي").replace(/ة/g, "ه")
@@ -124,7 +156,17 @@ button{font-family:inherit;font-size:16px}
       if (!s.exists) return fail("الورقة غير موجودة", "تأكد من الرابط، أو اسأل معلمك.");
       A = s.data();
       const c = await db.doc("classes/" + A.cid).get();
-      C = c.exists ? c.data() : { students: [] };
+      C = c.exists ? c.data() : { students: [] }; C.id = A.cid; C.students = C.students || [];
+      // حركات النقل: بدونها تُعرض قائمة قديمة (المنقول يختار اسمه القديم ويُسلِّم بفهرسه القديم) — لذا محاولتان ثم رسالة فشل صريحة لا متابعة صامتة
+      let mvOK = false;
+      for (let tryN = 0; tryN < 2 && !mvOK; tryN++) {
+        try {
+          const [toS, fromS] = await Promise.all([db.collection("moves").where("to", "==", A.cid).get(), db.collection("moves").where("from", "==", A.cid).get()]);
+          const mv = {}; toS.forEach(d => mv[d.id] = Object.assign({ id: d.id }, d.data())); fromS.forEach(d => mv[d.id] = Object.assign({ id: d.id }, d.data()));
+          applyMoves([C], Object.values(mv), true); mvOK = true;
+        } catch (e) { }
+      }
+      if (!mvOK) return fail("تعذّر تحميل قائمة الفصل", "لم تصل حركات نقل الطلاب من السحابة، ولا تُعرض الأسماء بقائمة قديمة — تحقق من اتصال الإنترنت ثم أعد تحميل الصفحة.");
       $("#bar-t").textContent = MODE_T[A.mode] || "ورقة عمل";
       $("#bar-s").textContent = A.cname || "";
       answers = A.qs.map(() => null);
@@ -137,8 +179,9 @@ button{font-family:inherit;font-size:16px}
   function isLate() { return !!(A.due && Date.now() > new Date(A.due).getTime()); }
 
   function pickName() {
-    const saved = localStorage.getItem("sijil.stu." + A.cid);
-    const list = (C.students || []).map((s, i) => ({ i, n: s.n }));
+    const savedRaw = localStorage.getItem("sijil.stu." + A.cid);
+    const saved = (savedRaw !== null && C.students[+savedRaw] && !C.students[+savedRaw].moved) ? savedRaw : null;   // اسم محفوظ لطالب منقول يُهمل
+    const list = (C.students || []).map((s, i) => ({ i, n: s.n, m: !!s.moved })).filter(x => !x.m);
     app.innerHTML = `<div class="card">
       <div class="note2" style="margin:0 0 6px">${A.mode === "ws" ? "📝 ورقة عمل تفاعلية" : A.mode === "quiz" ? "⏱️ اختبار قصير تفاعلي" : "🏁 سباق أسئلة"} — مادة ${esc(A.subj)}</div>
       <h1>${esc(A.t)}</h1>
