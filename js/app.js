@@ -213,6 +213,17 @@
     OV.appendChild(o); if (onMount) onMount(o);
   }
   const closeSheet = () => { OV.innerHTML = ""; };
+  // طباعة النافذة المفتوحة كمستند نظيف (بلا أزرار ولا عناصر تحكم) في صفحة واحدة
+  function printSheet() {
+    const sh = OV.querySelector(".sheet"); if (!sh) return;
+    const clone = sh.cloneNode(true);
+    clone.querySelectorAll(".sheet-actions, button, .no-print, .class-chips, select, input[type=checkbox], input[type=date], input[type=datetime-local], .search-box").forEach(x => x.remove());
+    clone.querySelectorAll("input, textarea").forEach(x => { const sp = document.createElement("span"); sp.textContent = x.value || ""; x.replaceWith(sp); });
+    const h = clone.querySelector("h4"); const title = h ? h.textContent.trim() : document.title; if (h) h.remove();
+    const wide = clone.querySelectorAll("table").length && Math.max(...[...clone.querySelectorAll("table tr")].map(tr => tr.children.length)) > 8;
+    printDoc(title, `<div class="h"><div class="bar">${esc(META.school.name)}</div><div class="m">${esc(TE ? TE.subject : "")} — ${esc(TE ? TE.name : "")} — ${esc(hijriLabel())}</div></div><div class="tt">${esc(title)}</div><div class="sheetdoc">${clone.innerHTML}</div>`, { appCss: true, land: !!wide });
+  }
+  window._printSheet = printSheet;
   window._sheetClose = closeSheet;
 
   /* ═══ اتصال ═══ */
@@ -439,8 +450,22 @@
         save("grades:" + grClass); drawAnalysis(maxTot);
       };
     });
-    $("#gr-print").onclick = () => window.print();
+    $("#gr-print").onclick = () => printGrades(grClass);
     drawAnalysis(maxTot);
+  }
+  function printGrades(cid) {
+    const c = classById(cid), maxTot = ASSESS.reduce((a, b) => a + b.max, 0);
+    const rows = c.students.map((s, i) => { const g = effGrades(cid, i), man = (DB.grades[cid] || {})[i] || {}, tot = gradeTotal(cid, i), lv = levelOf(maxTot ? tot / maxTot * 100 : 0); return { s, i, g, man, tot, lv }; });
+    const scored = rows.filter(r => Object.keys(r.g).length);
+    const avg = scored.length ? (scored.reduce((a, r) => a + r.tot, 0) / scored.length).toFixed(1) : "—";
+    printDoc("كشف درجات " + c.name, `
+      <div class="h"><div class="bar">${esc(META.school.name)}</div><div class="m">${esc(TE.subject)} — معلم المادة: ${esc(TE.name)} — ${esc(hijriLabel())}</div></div>
+      <div class="tt">كشف درجات ${esc(c.name)}</div>
+      <table class="compact"><tr><th>م</th><th style="min-width:150px">الطالب</th>${ASSESS.map(a => `<th>${esc(a.n)}<br><small>(${a.max})</small></th>`).join("")}<th>المجموع<br><small>(${maxTot})</small></th><th>التقدير</th></tr>
+      ${rows.map((r, k) => `<tr><td>${k + 1}</td><td class="nm">${esc(r.s.n)}</td>${ASSESS.map(a => `<td class="${r.man[a.k] == null && r.g[a.k] != null ? "auto" : ""}">${r.g[a.k] != null ? r.g[a.k] : ""}</td>`).join("")}<td><b>${r.tot}</b></td><td class="lv${r.lv.i}">${r.lv.t}</td></tr>`).join("")}
+      <tr><td></td><td class="nm"><b>متوسط الفصل</b></td>${ASSESS.map(a => { const v = scored.map(r => +r.g[a.k]).filter(x => !isNaN(x)); return `<td>${v.length ? (v.reduce((x, y) => x + y, 0) / v.length).toFixed(1) : ""}</td>`; }).join("")}<td><b>${avg}</b></td><td></td></tr></table>
+      <div class="note">الدرجات الرمادية محسوبة تلقائياً من الرصد اليومي (الحضور والمشاركة، السلوك) والواجبات والأوراق التفاعلية، وما كتبه المعلم يدوياً مُثبت بالأسود.</div>
+      <div class="sig"><span>معلم المادة: ${esc(TE.name)}</span><span>مدير المدرسة: ..............</span></div>`, { land: ASSESS.length >= 6 });
   }
   function grRow(i, s, maxTot) {
     const g = (DB.grades[grClass] || {})[i] || {}, au = autoGrade(grClass, i), tot = gradeTotal(grClass, i), lv = levelOf(maxTot ? tot / maxTot * 100 : 0);
@@ -522,8 +547,20 @@
       });
   }
   const PRINT_CSS = `@import url('https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800&display=swap');
-    *{box-sizing:border-box}body{font-family:'Tajawal',Arial,sans-serif;color:#1B2A3A;margin:0;padding:26px;background:#fff}
-    .frame{border:3px solid #D7A93F;border-radius:14px;padding:26px 30px;position:relative}
+    @page{size:A4;margin:10mm}
+    *{box-sizing:border-box}html,body{margin:0;padding:0;background:#fff}body{font-family:'Tajawal',Arial,sans-serif;color:#1B2A3A;padding:4px;overflow:hidden}
+    .frame{border:3px solid #D7A93F;border-radius:14px;padding:22px 26px;position:relative;page-break-inside:avoid}
+    .ws p{line-height:1.75;font-size:13.5px;margin:4px 0}.ws .h{margin-bottom:10px}.ws .h .bar{padding:9px;font-size:18px}.ws .tt{font-size:19px;margin:6px 0}
+    .ws .ops{display:flex;flex-wrap:wrap;gap:2px 14px;padding-inline-start:16px;margin:0 0 6px}.ws .op{flex:1 1 42%;font-size:13px;line-height:1.7}
+    .ws table td{padding:3px 8px;font-size:12.5px;text-align:start;border:0;vertical-align:top}.ws table{margin:4px 0}
+    .ws .sig{margin-top:18px}.ws .key{font-size:8px;color:#999;margin-top:6px;transform:rotate(180deg)}
+    .compact td,.compact th{padding:3px 6px;font-size:12.5px;line-height:1.35}.compact td{white-space:nowrap}.compact .nm{text-align:start}
+    .compact .auto{color:#555}.compact .lv0{color:#2e9e5b}.compact .lv4{color:#d64545}.note{font-size:11.5px;color:#666;margin-top:6px}
+    .sheetdoc{font-size:13px}.sheetdoc .card{box-shadow:none;border:1px solid #e5dcc5;border-radius:10px;padding:10px 12px;margin:8px 0;background:#fff}
+    .sheetdoc h3{font-size:15px;margin:6px 0}.sheetdoc table{margin:6px 0}.sheetdoc td,.sheetdoc th{padding:4px 6px;font-size:12px}
+    .sheetdoc .empty-note{font-size:12px}.sheetdoc .ana-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}.sheetdoc .ana{border:1px solid #e5dcc5;border-radius:8px;padding:6px;text-align:center}
+    .sheetdoc .bar-row{display:flex;align-items:center;gap:8px;margin:3px 0}.sheetdoc .bar-track{flex:1;height:10px;background:#eee;border-radius:6px;overflow:hidden}.sheetdoc .bar-fill{height:100%}
+    .sheetdoc .rep-head{display:none}body{-webkit-print-color-adjust:exact;print-color-adjust:exact}
     .frame::before{content:'';position:absolute;inset:6px;border:1px solid #D7A93F;border-radius:9px;pointer-events:none}
     .h{text-align:center;margin-bottom:18px}
     .h .bar{background:linear-gradient(135deg,#0E2033,#142A44);color:#F0D99A;border-radius:10px;padding:12px;font-size:20px;font-weight:800}
@@ -539,7 +576,12 @@
     .ctr{text-align:center;font-size:15px;line-height:2.1}`;
   function printDoc(title, bodyHtml, opts) {
     const w = window.open("", "_blank");
-    w.document.write(`<!DOCTYPE html><html dir="rtl" lang="ar"><head><meta charset="utf-8"><title>${esc(title)}</title><style>${PRINT_CSS}${opts && opts.land ? "@page{size:landscape}" : ""}</style></head><body><div class="frame">${bodyHtml}</div><script>onload=()=>{setTimeout(()=>print(),350)}<\/script></body></html>`);
+    const land = !!(opts && opts.land);
+    const cls = (opts && opts.cls) ? " " + opts.cls : "";
+    const appLink = (opts && opts.appCss) ? (() => { const l = document.querySelector('link[href*="css/app.css"]'); return l ? `<link rel="stylesheet" href="${l.href}">` : ""; })() : "";
+    // ملاءمة المحتوى لصفحة A4 واحدة: القياس بعد تحميل الخطوط، ثم تصغير متناسب إن لزم، والإطار يملأ الصفحة
+    const fit = `(function(){var avail=Math.floor(${land ? 190 : 277}*3.7795)-10;function go(){var f=document.querySelector('.frame');if(!f)return print();var h=f.getBoundingClientRect().height;var s=Math.min(1,avail/h);if(s<0.995){f.style.width=(100/s)+'%';f.style.transformOrigin='top right';f.style.transform='scale('+s+')';}f.style.minHeight=Math.floor(avail/s)+'px';document.body.style.height=avail+'px';document.documentElement.style.height=avail+'px';document.documentElement.style.overflow='hidden';document.body.setAttribute('data-fit',s.toFixed(3));setTimeout(function(){print();},250);}var done=false;function once(){if(done)return;done=true;go();}if(document.fonts&&document.fonts.ready){document.fonts.ready.then(function(){setTimeout(once,120);});}setTimeout(once,1400);})();`;
+    w.document.write(`<!DOCTYPE html><html dir="rtl" lang="ar"><head><meta charset="utf-8"><title>${esc(title)}</title>${appLink}<style>${PRINT_CSS}html,body{width:${land ? 277 : 190}mm}${land ? "@page{size:A4 landscape;margin:10mm}" : ""}</style></head><body><div class="frame${cls}">${bodyHtml}</div><script>onload=function(){${fit}}<\/script></body></html>`);
     w.document.close();
   }
   function printCertificate(cid, i, aggPts) {
@@ -618,8 +660,17 @@
     box.appendChild(honor);
     parentReportsCard(box);
     box.querySelectorAll(".chip").forEach(ch => ch.onclick = () => { repClass = ch.dataset.c; renderRep(); });
-    $("#rep-print").onclick = () => window.print();
+    $("#rep-print").onclick = () => printFollowup(c, rows, tot);
     const hp = $("#hon-print"); if (hp) hp.onclick = () => printHonor(c, top, MED);
+  }
+  function printFollowup(c, rows, tot) {
+    printDoc("كشف متابعة " + c.name, `
+      <div class="h"><div class="bar">${esc(META.school.name)}</div><div class="m">${esc(TE.subject)} — معلم المادة: ${esc(TE.name)} — ${esc(hijriLabel())}</div></div>
+      <div class="tt">سجل متابعة الفصل — ${esc(c.name)}</div>
+      <table class="compact"><tr><th>م</th><th style="min-width:150px">اسم الطالب</th>${STATES.map(st => `<th>${esc(st.name)}</th>`).join("")}<th>مشاركة</th><th>واجبات</th><th>سلوك+</th><th>سلوك−</th><th>النقاط</th><th>الترتيب</th></tr>
+      ${rows.map((r, i) => `<tr><td>${i + 1}</td><td class="nm">${esc(r.s.n)}</td>${STATES.map((st, k) => `<td>${r.t.st[k] || ""}</td>`).join("")}<td>${r.t.part || ""}</td><td>${r.t.hwY || ""}</td><td>${r.t.behP || ""}</td><td>${r.t.behN || ""}</td><td><b>${r.t.pts}</b></td><td>${r.rank}</td></tr>`).join("")}
+      <tr><td></td><td class="nm"><b>المجموع</b></td>${STATES.map((st, k) => `<td>${tot.st[k] || ""}</td>`).join("")}<td>${tot.part || ""}</td><td>${tot.hwY || ""}</td><td>${tot.behP || ""}</td><td>${tot.behN || ""}</td><td></td><td></td></tr></table>
+      <div class="sig"><span>معلم المادة: ${esc(TE.name)}</span><span>مدير المدرسة: ..............</span></div>`, { land: true });
   }
   function printHonor(c, top, MED) {
     printDoc("لوحة شرف " + c.name, `
@@ -713,7 +764,7 @@
   async function toolCurriculum() {
     const grades = [...new Set(myClasses().map(c => c.gc))].sort(), sc = subjCode(TE.subject);
     openSheet(`<h4>📚 مناهجي — ${esc(TE.subject)}</h4>
-      <div style="display:flex;gap:8px;margin-bottom:8px"><button class="btn-soft" id="cur-edit">✏️ تعديل التوزيع</button><button class="btn-plain" style="flex:0 0 auto;padding:9px 14px" onclick="print()">🖨️ طباعة</button></div>
+      <div style="display:flex;gap:8px;margin-bottom:8px"><button class="btn-soft" id="cur-edit">✏️ تعديل التوزيع</button><button class="btn-plain" style="flex:0 0 auto;padding:9px 14px" onclick="window._printSheet()">🖨️ طباعة</button></div>
       <div id="cur-body"><div class="empty-note">جارِ التحميل…</div></div>
       <div class="sheet-actions"><button class="btn-primary" onclick="window._sheetClose()">إغلاق</button></div>`, async (o) => {
       async function build() {
@@ -751,7 +802,7 @@
     let html = `<div class="table-scroll"><table class="report-table"><tr><th>اليوم</th>${[1, 2, 3, 4, 5, 6, 7].map(p => `<th>ح${p}</th>`).join("")}</tr>`;
     days.forEach(d => { html += `<tr><td class="nm">${d}</td>` + [1, 2, 3, 4, 5, 6, 7].map(p => { const s = rows.find(x => x.d === d && x.p === p); return `<td>${s ? esc(classById(s.c).name) : ""}</td>`; }).join("") + `</tr>`; });
     html += `</table></div>`;
-    openSheet(`<h4>🗓️ سجل الحصص — ${rows.length} حصة أسبوعياً</h4><div class="rep-head"><div class="rt">جدول حصص ${esc(TE.name)}</div><div class="rs">${esc(META.school.name)} — ${esc(TE.subject)}</div></div>${html}<div class="sheet-actions"><button class="btn-plain" onclick="print()">🖨️ طباعة</button><button class="btn-primary" onclick="window._sheetClose()">إغلاق</button></div>`);
+    openSheet(`<h4>🗓️ سجل الحصص — ${rows.length} حصة أسبوعياً</h4><div class="rep-head"><div class="rt">جدول حصص ${esc(TE.name)}</div><div class="rs">${esc(META.school.name)} — ${esc(TE.subject)}</div></div>${html}<div class="sheet-actions"><button class="btn-plain" onclick="window._printSheet()">🖨️ طباعة</button><button class="btn-primary" onclick="window._sheetClose()">إغلاق</button></div>`);
   }
   function planText(t) {
     const tips = [];
@@ -773,7 +824,7 @@
         <div style="font-weight:800;color:var(--ok);margin:14px 0 6px">🌟 خطة إثرائية (${enr.length})</div>
         ${enr.length ? enr.map(r => `<div class="comm-item"><b>${esc(r.s.n)}</b> — نقاط ${r.t.pts}<div class="meta">التوصية: تكليفه بمهام قيادية وإثرائية (بحث / مشروع / مساعدة زملائه) لتعزيز تميّزه.</div></div>`).join("") : '<div class="empty-note" style="padding:12px">ابدأ الرصد لتظهر أسماء المتميزين</div>'}`;
     }
-    openSheet(`<h4>🩺 الخطط العلاجية والإثرائية</h4><div class="class-chips" id="pl-chips">${cls.map((x, k) => `<button class="chip ${k === 0 ? "on" : ""}" data-c="${x.id}">${esc(x.name)}</button>`).join("")}</div><div id="pl-body"></div><div class="sheet-actions"><button class="btn-plain" onclick="print()">🖨️ طباعة</button><button class="btn-primary" onclick="window._sheetClose()">إغلاق</button></div>`, (o) => {
+    openSheet(`<h4>🩺 الخطط العلاجية والإثرائية</h4><div class="class-chips" id="pl-chips">${cls.map((x, k) => `<button class="chip ${k === 0 ? "on" : ""}" data-c="${x.id}">${esc(x.name)}</button>`).join("")}</div><div id="pl-body"></div><div class="sheet-actions"><button class="btn-plain" onclick="window._printSheet()">🖨️ طباعة</button><button class="btn-primary" onclick="window._sheetClose()">إغلاق</button></div>`, (o) => {
       o.querySelectorAll("#pl-chips .chip").forEach(ch => ch.onclick = () => { cid = ch.dataset.c; o.querySelectorAll("#pl-chips .chip").forEach(x => x.classList.toggle("on", x === ch)); render(o); });
       render(o);
     });
@@ -901,13 +952,13 @@
       <p><b>السؤال الأول:</b> اكتب أهم ما تعلّمته عن (${esc(lesson)}):</p><p>....................................................................................................................</p><p>....................................................................................................................</p>
       <p><b>السؤال الثاني:</b> أكمل الفراغات المناسبة:</p><p>....................................................................................................................</p>
       <p><b>السؤال الثالث:</b> ارسم أو مثّل ما فهمته:</p><div style="border:1px dashed #aaa;height:150px;border-radius:8px"></div>
-      <div class="sig"><span>المعلم: ${esc(TE.name)}</span><span>الدرجة: ......</span></div>`);
+      <div class="sig"><span>المعلم: ${esc(TE.name)}</span><span>الدرجة: ......</span></div>`, { cls: "ws" });
       return;
     }
     const L = ["أ", "ب", "ج", "د"];
     const qHtml = qs.map((q, n) => {
       if (q.t === "fill") return `<p><b>${n + 1}.</b> ${esc(q.q)}</p>`;
-      return `<p><b>${n + 1}.</b> ${esc(q.q)}</p><p style="padding-inline-start:18px">${(q.opts || []).map((o, k) => o ? `☐ ${q.t === "tf" ? "" : L[k] + ") "}${esc(o)}` : "").filter(Boolean).join(" &nbsp;&nbsp;&nbsp; ")}</p>`;
+      return `<p><b>${n + 1}.</b> ${esc(q.q)}</p><div class="ops">${(q.opts || []).map((o, k) => o ? `<span class="op">☐ ${q.t === "tf" ? "" : L[k] + ") "}${esc(o)}</span>` : "").filter(Boolean).join("")}</div>`;
     }).join("");
     const shuf = vocab.map((v, i) => ({ i, d: v.d })).sort(() => Math.random() - .5);
     const vHtml = vocab.length ? `<p><b>ثانياً — صِل كل مصطلح بتعريفه:</b></p><table style="width:100%;border-collapse:collapse"><tr><td style="width:35%;vertical-align:top">${vocab.map((v, i) => `<div style="padding:5px 0">${i + 1}. ${esc(v.t)} ○</div>`).join("")}</td><td style="vertical-align:top">${shuf.map(x => `<div style="padding:5px 0">○ ${esc(x.d)}</div>`).join("")}</td></tr></table>` : "";
@@ -918,7 +969,7 @@
       objHtml + `<p><b>أولاً — أجب عن الأسئلة التالية:</b></p>` + qHtml + vHtml +
       `<p style="margin-top:14px"><b>ثالثاً —</b> اكتب بأسلوبك أهم ما تعلّمته في هذا الدرس:</p><p>....................................................................................................................</p>
       <div class="sig"><span>المعلم: ${esc(TE.name)}</span><span>الدرجة: ......</span></div>
-      <div style="font-size:9px;color:#888;margin-top:8px;transform:rotate(180deg)">مفتاح الإجابة (للمعلم): ${key}</div>`);
+      <div class="key">مفتاح الإجابة (للمعلم): ${key}</div>`, { cls: "ws" });
   }
 
   /* ═══════════ وضع الحصة الحية (العرض) ═══════════ */
@@ -1830,7 +1881,7 @@
   async function studentProgress(cid, i) {
     const c = classById(cid), s = c.students[i];
     openSheet(`<h4>📈 تقدّم الطالب: ${esc(s.n)}</h4><div style="color:var(--muted);font-size:13px;text-align:center;margin-bottom:8px">${esc(c.name)} — ${esc(META.school.name)}</div><div id="pg-body"><div class="empty-note">جارِ جمع البيانات من كل المواد…</div></div>
-      <div class="sheet-actions"><button class="btn-plain" onclick="print()">🖨️ طباعة</button><button class="btn-primary" onclick="window._sheetClose()">إغلاق</button></div>`, async (o) => {
+      <div class="sheet-actions"><button class="btn-plain" onclick="window._printSheet()">🖨️ طباعة</button><button class="btn-primary" onclick="window._sheetClose()">إغلاق</button></div>`, async (o) => {
       const docs = await classDocs(cid), maxTot = maxTotal();
       const rows = docs.map(dc => { const t = calcStudent(cid, i, dc.recs); const hasG = hasGrades(cid, i, dc.grades, dc.recs); const gt = hasG ? gradeTotal(cid, i, dc.grades, dc.recs) : null; return { ...dc, t, hasG, gt, pct: hasG ? gt / maxTot * 100 : null, att: attPct(t), series: daySeries(dc.recs, i) }; });
       const mine = rows.find(r => TE && r.tid === TE.id) || rows[0];
@@ -1849,7 +1900,7 @@
   async function adminLevels() {
     const cls = D.classes.slice().sort((a, b) => (a.gc - b.gc) || a.name.localeCompare(b.name)); let cur = cls[0].id;
     openSheet(`<h4>📊 مستويات الطلاب — كل المواد</h4><div class="class-chips" id="al-chips">${cls.map(x => `<button class="chip ${x.id === cur ? "on" : ""}" data-c="${x.id}">${esc(x.name)}</button>`).join("")}</div><div id="al-body"></div>
-      <div class="sheet-actions" style="flex-wrap:wrap"><button class="btn-gold" id="al-school" style="flex:1 1 100%">🏫 ملخص المدرسة حسب المادة</button><button class="btn-plain" onclick="print()">🖨️ طباعة</button><button class="btn-primary" onclick="window._sheetClose()">إغلاق</button></div>`, (o) => {
+      <div class="sheet-actions" style="flex-wrap:wrap"><button class="btn-gold" id="al-school" style="flex:1 1 100%">🏫 ملخص المدرسة حسب المادة</button><button class="btn-plain" onclick="window._printSheet()">🖨️ طباعة</button><button class="btn-primary" onclick="window._sheetClose()">إغلاق</button></div>`, (o) => {
       const body = o.querySelector("#al-body");
       async function build() {
         body.innerHTML = '<div class="empty-note">جارِ التحليل…</div>';
@@ -1868,7 +1919,7 @@
     });
   }
   async function schoolSummary() {
-    openSheet(`<h4>🏫 ملخص المدرسة حسب المادة</h4><div id="ss-body"><div class="empty-note">جارِ التحليل…</div></div><div class="sheet-actions"><button class="btn-plain" onclick="print()">🖨️ طباعة</button><button class="btn-primary" onclick="window._sheetClose()">إغلاق</button></div>`, async (o) => {
+    openSheet(`<h4>🏫 ملخص المدرسة حسب المادة</h4><div id="ss-body"><div class="empty-note">جارِ التحليل…</div></div><div class="sheet-actions"><button class="btn-plain" onclick="window._printSheet()">🖨️ طباعة</button><button class="btn-primary" onclick="window._sheetClose()">إغلاق</button></div>`, async (o) => {
       const body = o.querySelector("#ss-body"); const maxTot = maxTotal(), bySub = {};
       let rs, gs; try { if (!CLOUD || !fdb) throw 0; [rs, gs] = await Promise.all([fdb.collection("recs").get(), fdb.collection("grades").get()]); } catch (e) { body.innerHTML = '<div class="empty-note">يتطلب النسخة السحابية المشتركة</div>'; return; }
       const gmap = {}; gs.forEach(x => gmap[x.id] = (x.data() || {}).g || {});
@@ -2060,11 +2111,17 @@
         try { await fdb.doc("assign/" + id).set(doc); } catch (e) { btn.disabled = false; btn.textContent = "🔗 أنشئ الرابط"; alert("تعذّر الإنشاء — تحقق من الاتصال"); return; }
         const url = ASSIGN_BASE + id;
         const due = doc.due ? new Date(doc.due).toLocaleString("ar-SA", { weekday: "long", hour: "numeric", minute: "2-digit" }) : "";
-        const msg = `السلام عليكم ورحمة الله\n📝 *${title}* — ${TE.subject}\nالفصل: ${c.name}\n\nيفتح الطالب الرابط من جواله ويحلّ ${clean.length} أسئلة، وتظهر له النتيجة فوراً:\n${url}\n${due ? `\n🗓️ آخر موعد: ${due}` : ""}\n\nبلا تحميل ولا تسجيل. شاكرين متابعتكم 🌹\n${TE.name}`;
-        o.querySelector("#as-out").innerHTML = `<div class="as-link"><code>${esc(url)}</code><button class="btn-soft" id="as-copy">📋 نسخ</button></div>
+        const kind = mode === "ws" ? "ورقة عمل تفاعلية" : mode === "quiz" ? "اختبار قصير تفاعلي" : "سباق أسئلة";
+        const triesTxt = doc.tries === 1 ? "محاولة واحدة فقط" : doc.tries === 0 ? "محاولات غير محدودة (حتى 12)" : `${doc.tries} محاولات`;
+        const dueFull = doc.due ? new Date(doc.due).toLocaleString("ar-SA", { weekday: "long", day: "numeric", month: "long", hour: "numeric", minute: "2-digit" }) : "";
+        const msg = `السلام عليكم ورحمة الله وبركاته\n📝 *${kind}* — مادة ${TE.subject}\n📚 الدرس: *${title}*\n🏫 الفصل: ${c.name} — المعلم: ${TE.name}\n\n🔢 ${clean.length} أسئلة تُصحَّح آلياً وتظهر النتيجة فوراً${mode !== "ws" ? `\n⏱️ مدة الحل: ${Math.round(doc.secs / 60)} دقيقة` : ""}\n🔁 المحاولات: ${triesTxt} — والدرجة المعتمدة من المحاولة الأولى${dueFull ? `\n⏰ آخر موعد للتسليم: ${dueFull}` : ""}\n\n👇 يفتح الطالب الرابط من جواله، يختار اسمه، ويحلّ مباشرة بلا تحميل ولا تسجيل:\n${url}\n\nشاكرين متابعتكم 🌹\n${TE.name}`;
+        o.querySelector("#as-out").innerHTML = `<div class="as-link"><code>${esc(url)}</code><button class="btn-soft" id="as-copy-url">🔗 الرابط فقط</button></div>
+          <textarea class="search-box" id="as-msg" style="margin:8px 0 6px;height:150px;font-size:13px;line-height:1.7" readonly>${esc(msg)}</textarea>
+          <button class="btn-soft" id="as-copy" style="width:100%">📋 نسخ الرسالة كاملة مع الرابط</button>
           <a class="wa-btn" id="as-wa" target="_blank" rel="noopener" href="https://wa.me/?text=${encodeURIComponent(msg)}">💬 مشاركة في قروب أولياء الأمور</a>
           <div class="empty-note" style="padding:6px 2px 0">تابع النتائج من «المزيد ← 📤 الأوراق المرسلة»</div>`;
-        o.querySelector("#as-copy").onclick = () => { try { navigator.clipboard.writeText(url); o.querySelector("#as-copy").textContent = "✔ نُسخ"; } catch (e) { } };
+        o.querySelector("#as-copy").onclick = () => { try { navigator.clipboard.writeText(msg); o.querySelector("#as-copy").textContent = "✔ نُسخت الرسالة — ألصقها في القروب"; } catch (e) { o.querySelector("#as-msg").select(); } };
+        o.querySelector("#as-copy-url").onclick = () => { try { navigator.clipboard.writeText(url); o.querySelector("#as-copy-url").textContent = "✔ نُسخ"; } catch (e) { } };
         btn.style.display = "none";
       };
     });
@@ -2094,7 +2151,7 @@
   async function assignResults(A) {
     openSheet(`<h4>📊 ${esc(A.t)}</h4><div style="font-size:13px;color:var(--muted);margin-bottom:8px">${esc(A.cname)} · ${A.n} أسئلة</div>
       <div id="ar-body"><div class="empty-note">جارِ جمع النتائج…</div></div>
-      <div class="sheet-actions" style="flex-wrap:wrap"><button class="btn-plain" onclick="print()">🖨️ طباعة</button><button class="btn-primary" onclick="window._sheetClose()">إغلاق</button></div>`, async (o) => {
+      <div class="sheet-actions" style="flex-wrap:wrap"><button class="btn-plain" onclick="window._printSheet()">🖨️ طباعة</button><button class="btn-primary" onclick="window._sheetClose()">إغلاق</button></div>`, async (o) => {
       const c = classById(A.cid) || { students: [] };
       let subs = {};
       try { const s = await fdb.collection("subs").where("a", "==", A.id).get(); s.forEach(d => { const v = d.data(); subs[v.si] = v; }); } catch (e) { }

@@ -5,6 +5,12 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#0E2033">
 <title>ورقة عمل — سجلي</title>
+<meta name="description" content="ورقة عمل تفاعلية من معلمك: افتح الرابط من جوالك، اختر اسمك، وحلّ الأسئلة. تُصحَّح آلياً وتصل نتيجتك إلى المعلم.">
+<meta property="og:type" content="website"><meta property="og:site_name" content="سجلي">
+<meta property="og:title" content="ورقة عمل تفاعلية — سجلي">
+<meta property="og:description" content="افتح الرابط من جوالك، اختر اسمك، وحلّ الأسئلة. تُصحَّح آلياً وتصل نتيجتك إلى المعلم فوراً.">
+<meta property="og:image" content="https://sijli.erihdev.com/assets/og.jpg"><meta property="og:image:width" content="1200"><meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800&display=swap">
@@ -134,8 +140,10 @@ button{font-family:inherit;font-size:16px}
     const saved = localStorage.getItem("sijil.stu." + A.cid);
     const list = (C.students || []).map((s, i) => ({ i, n: s.n }));
     app.innerHTML = `<div class="card">
+      <div class="note2" style="margin:0 0 6px">${A.mode === "ws" ? "📝 ورقة عمل تفاعلية" : A.mode === "quiz" ? "⏱️ اختبار قصير تفاعلي" : "🏁 سباق أسئلة"} — مادة ${esc(A.subj)}</div>
       <h1>${esc(A.t)}</h1>
-      <p class="sub">${esc(A.subj)} · ${esc(A.tn)} · ${A.qs.length} أسئلة</p>
+      <p class="sub">المعلم: ${esc(A.tn)} · الفصل: ${esc(A.cname)} · ${A.qs.length} أسئلة${A.mode !== "ws" && A.secs ? ` · المدة ${Math.round(A.secs / 60)} دقيقة` : ""}</p>
+      ${A.due ? `<p class="sub" style="margin-top:2px">⏰ آخر موعد للتسليم: ${esc(new Date(A.due).toLocaleString("ar-SA", { weekday: "long", day: "numeric", month: "long", hour: "numeric", minute: "2-digit" }))}</p>` : ""}
       ${isLate() ? `<div class="late">⏰ انتهى موعد التسليم، وسيُسجَّل حلّك متأخراً.</div>` : ""}
       <div class="note2" id="tries-note" style="margin:8px 0 4px">${triesLabel(0)}</div>
       <p class="lbl">اختر اسمك من فصل ${esc(A.cname)}</p>
