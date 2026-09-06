@@ -34,11 +34,24 @@ service cloud.firestore {
     }
     match /teachers/{tid} {
       allow read: if signedIn();
+      // إنشاء معلم جديد من لوحة المدير: بلا صلاحية مدير، ومع رقم دخول أولي (بصمة sha256 ست عشرية 64 خانة) أو بلا بصمة
       allow create: if signedIn() && tid.matches('^t[0-9]{2,3}$') && teacherShape()
-          && (!('admin' in request.resource.data) || request.resource.data.admin == false);
+          && request.resource.data.get('admin', false) == false
+          && (request.resource.data.get('pinHash', '') == ''
+              || request.resource.data.get('pinHash', '').matches('^[0-9a-f]{64}$'));
+      // التحديث: صلاحية المدير لا تتغير أبداً — لا رفع ولا إسقاط للحقل (get بقيمة افتراضية على الطرفين
+      //   حتى لا تمر كتابة تُغفل admin فتُسقطه وتقفل لوحة المدير قفلاً لا يُفتح من العميل).
+      // بصمة الدخول: تُغيَّر لحسابات المعلمين فقط (إضافة معلم · إعادة تعيين من المدير · تغيير المعلم لرقمه)،
+      //   وحساب المدير محميّ: القراءة مفتوحة لأي جهاز مصادَق مجهولاً، فالسماح بكتابة بصمته
+      //   يعني استيلاء أي زائر على لوحة المدير. رقم المدير يُعاد تعيينه من كونسول Firebase.
+      // يبقى (بحكم غياب هوية حقيقية للعميل) أن أي جهاز مصادَق يستطيع تعديل بيانات معلم أو بصمته —
+      //   وهو ما تنبّه إليه بطاقة «الحسابات مبنية على ثقة داخل المدرسة»؛ إغلاقه الكامل يحتاج
+      //   مصادقة حقيقية أو Cloud Function، وهو خارج نطاق هذا الإصدار.
       allow update: if signedIn() && tid.matches('^t[0-9]{2,3}$') && teacherShape()
-          && (!('admin' in request.resource.data)
-              || (('admin' in resource.data) ? request.resource.data.admin == resource.data.admin : request.resource.data.admin == false));
+          && request.resource.data.get('admin', false) == resource.data.get('admin', false)
+          && (request.resource.data.get('pinHash', '') == resource.data.get('pinHash', '')
+              || (resource.data.get('admin', false) == false
+                  && request.resource.data.get('pinHash', '').matches('^[0-9a-f]{64}$')));
       allow delete: if false;
     }
     match /classes/{cid}   { allow read: if signedIn(); allow write: if false; }

@@ -22,7 +22,8 @@
   // تمييز العدد في العربية (جمع القلة 3–10 ثم التمييز المفرد المنصوب)
   const nDays = (n) => n === 1 ? "يوم واحد" : n === 2 ? "يومان" : (n >= 3 && n <= 10) ? `${n} أيام` : `${n} يوماً`;
   const nTeachers = (n) => n === 1 ? "معلم واحد" : n === 2 ? "معلمان" : (n >= 3 && n <= 10) ? `${n} معلمين` : `${n} معلماً`;
-  const staff = () => (S().D.teachers || []).filter(t => !t.admin && (t.classes || []).length);
+  // تعريف «المعلمين» واحد في كل اللوحة (core.js): غير إداري وله فصل مسند — حتى لا تختلف الأعداد بين التبويبات
+  const staff = () => (typeof A().staff === "function" ? A().staff() : (S().D.teachers || []).filter(t => !t.admin && (t.classes || []).length));
 
   /* ═══ CSS الوحدة (يُحقن مرة واحدة) ═══ */
   function css() {
@@ -90,7 +91,8 @@
     const s = S(), c = s.classById(cid); if (!c) return cx.ag[cid] = { c: null, docs: [], rows: [], maxTot: 0 };
     const docs = docsOf(cx, cid), maxTot = s.maxTotal();
     const rows = s.activeStudents(c).map(({ s: st, i }) => {
-      const per = docs.map(dc => { const t = s.calcStudent(cid, i, dc.recs || {}); const has = s.hasGrades(cid, i, dc.grades || {}, dc.recs || {}); return { tid: dc.tid, subject: dc.subject, tname: dc.tname, t, pct: has ? s.gradeTotal(cid, i, dc.grades || {}, dc.recs || {}) / maxTot * 100 : null }; });
+      // النسبة من البنود المرصودة حتى الآن (SIJIL.gradePct) لا من 100 — قبل رصد الاختبارات سقف البنود التلقائية 40
+      const per = docs.map(dc => { const t = s.calcStudent(cid, i, dc.recs || {}); const has = s.hasGrades(cid, i, dc.grades || {}, dc.recs || {}); return { tid: dc.tid, subject: dc.subject, tname: dc.tname, t, pct: has ? s.gradePct(cid, i, dc.grades || {}, dc.recs || {}) : null, gmax: has ? s.gradedMax(cid, i, dc.grades || {}, dc.recs || {}) : 0 }; });
       let pts = 0, days = 0, n = 0; const stc = s.STATES.map(() => 0);
       per.forEach(x => { if (x.t.days) { n++; days += x.t.days; pts += x.t.pts; x.t.st.forEach((v, k) => stc[k] += v); } });
       const marks = stc.reduce((a, b) => a + b, 0), att = marks ? Math.round(stc[0] / marks * 100) : null;
@@ -113,6 +115,12 @@
     return { cnt, marked, absentees: Object.keys(abs).map(si => ({ si: +si, s: c.students[si], n: abs[si] })).sort((a, b) => b.n - a.n) };
   }
   const attPctOf = (att) => att.marked ? Math.round(att.cnt[0] / att.marked * 100) : null;
+  /* الوضع التجريبي: مستندات DB بلا معرّف معلم — ما رُصد على هذا الجهاز يُنسب لمن رصده فعلاً (DB.by)،
+     وما جاء مع البيانات التجريبية يُنسب تقديراً إلى أحد معلمي الفصل. نُعلنها في الشاشات التي تسمّي معلماً. */
+  const demoNote = (sd) => (sd && (sd.demoGuess || []).length)
+    ? H().note("🧪 في النسخة التجريبية لا يحمل الرصد معرّف معلم: ما رصدته على هذا الجهاز يُنسب إليك، وبقية الرصد يُنسب إلى أحد معلمي الفصل تقديراً — لا إلى معلم بعينه.")
+    : "";
+  const demoNoteP = (sd) => (sd && (sd.demoGuess || []).length) ? '<div class="note">🧪 نسخة تجريبية: نسبة الرصد إلى المعلمين تقديرية.</div>' : "";
   // آخر رصد لمعلم عبر كل فصوله + أيام الرصد منذ تاريخ
   function teacherStats(cx, tid, since) {
     const docs = A().teacherDocsOf(cx.sd, tid); let last = null; const days = new Set(); let comms = 0;
@@ -189,6 +197,7 @@
     box.innerHTML = `
       <div class="card adm-hero"><div><div class="d">${esc(s.hijriLabel())}</div><div class="w">أهلاً بك يا مدير المدرسة 👋</div><div class="d" style="margin-top:3px">${esc(s.META.school.name)}</div></div><div class="now" id="hm-now">🕐 ${nowTxt}</div></div>
       ${kpis}
+      ${demoNote(sd)}
       ${h.card(`🗓️ جدول حصص ${esc(day === tName ? "اليوم" : "يوم")} (${esc(day)})`, `<div class="adm-sec"><div class="class-chips" id="hm-days" style="padding:0;margin:0">${WDAYS.map(d => `<button class="chip ${d === day ? "on" : ""}" data-k="${d}" style="padding:6px 12px;font-size:12.5px">${d}</button>`).join("")}</div>${h.printBtn("hm-print-grid", "🖨️ طباعة")}</div>${grid}<div class="adm-legend"><span>● الحصة الحالية</span><span>بداية 7:00 · 45 دقيقة للحصة · فسحة 30 دقيقة بعد الثالثة</span></div>`)}
       <div class="adm-sec"><div class="t">🔔 تنبيهات ذكية</div><button class="btn-plain" id="hm-refresh" style="flex:0 0 auto;padding:8px 12px">🔄 تحديث</button></div>
       ${alerts}
@@ -223,10 +232,13 @@
   function attendanceTable(d, print) {
     const other = d.tot[4] > 0;                                  // عمود «أخرى» يظهر فقط إن وُجدت حالات خارج الفئات الأربع
     const cols = ["الفصل"].concat(BUCKET_N.slice(0, other ? 5 : 4), ["المرصود", "نسبة الحضور"]);
+    // خلية عددية: 0 صريح حين يوجد رصد، و«—» رمادية حين لا رصد أصلاً في الفصل (لا خانات فارغة تُقرأ خطأً)
+    const dash = '<span style="color:#bbb">—</span>';
     const trs = d.rows.map(r => {
-      const c = [esc(r.c.name), r.a.cnt[0] || "", r.a.cnt[1] ? `<b style="color:var(--bad)">${r.a.cnt[1]}</b>` : "", r.a.cnt[2] || "", r.a.cnt[3] || ""];
-      if (other) c.push(r.a.cnt[4] || "");
-      return c.concat([r.a.marked || '<span style="color:#bbb">—</span>', pctTxt(attPctOf(r.a))]);
+      const z = (v) => r.a.marked ? String(v || 0) : dash;
+      const c = [esc(r.c.name), z(r.a.cnt[0]), r.a.marked ? (r.a.cnt[1] ? `<b style="color:var(--bad)">${r.a.cnt[1]}</b>` : "0") : dash, z(r.a.cnt[2]), z(r.a.cnt[3])];
+      if (other) c.push(z(r.a.cnt[4]));
+      return c.concat([r.a.marked || dash, pctTxt(attPctOf(r.a))]);
     });
     const foot = ["الإجمالي", d.tot[0], d.tot[1], d.tot[2], d.tot[3]].concat(other ? [d.tot[4]] : [], [d.marked, d.marked ? Math.round(d.tot[0] / d.marked * 100) + "%" : "—"]);
     if (print) return `<table class="compact"><tr>${cols.map(c => `<th>${c}</th>`).join("")}</tr>${trs.map(r => `<tr>${r.map((x, j) => `<td${j === 0 ? ' class="nm"' : ""}>${x}</td>`).join("")}</tr>`).join("")}<tr style="font-weight:800;background:#F0D99A">${foot.map(x => `<td>${x}</td>`).join("")}</tr></table>`;
@@ -241,7 +253,8 @@
   function teacherRows(cx) { const ws = weekStart(); return staff().map(t => ({ t, st: teacherStats(cx, t.id, ws) })).sort((a, b) => b.st.weekDays - a.st.weekDays || (b.st.last || "").localeCompare(a.st.last || "")); }
   function teacherTable(rows, print) {
     const Ad = A(), cols = ["المعلم", "المادة", "الفصول", "أيام الرصد هذا الأسبوع", "آخر رصد", "أوراق تفاعلية", "رسائل أولياء الأمور"];
-    const trs = rows.map(x => { const dd = Ad.daysAgo(x.st.last); return [esc(x.t.name), esc(x.t.subject), (x.t.classes || []).length, x.st.weekDays ? `<b>${x.st.weekDays}</b>` : '<span style="color:var(--bad)">0</span>', x.st.last ? `${Ad.fmtDate(x.st.last)}${dd ? ` <small style="color:${dd >= 7 ? "var(--bad)" : "var(--muted)"}">(منذ ${dd} ي)</small>` : " <small style=\"color:var(--ok)\">(اليوم)</small>"}` : '<span style="color:var(--bad)">لم يبدأ</span>', x.st.assign || "", x.st.comms || ""]; });
+    // الأعمدة العددية تُطبع صفراً صريحاً (لا خانة فارغة تُقرأ «لا بيانات»)
+    const trs = rows.map(x => { const dd = Ad.daysAgo(x.st.last); return [esc(x.t.name), esc(x.t.subject), (x.t.classes || []).length, x.st.weekDays ? `<b>${x.st.weekDays}</b>` : '<span style="color:var(--bad)">0</span>', x.st.last ? `${Ad.fmtDate(x.st.last)}${dd ? ` <small style="color:${dd >= 7 ? "var(--bad)" : "var(--muted)"}">(منذ ${dd} ي)</small>` : " <small style=\"color:var(--ok)\">(اليوم)</small>"}` : '<span style="color:var(--bad)">لم يبدأ</span>', String(x.st.assign || 0), String(x.st.comms || 0)]; });
     if (print) return `<table class="compact"><tr>${cols.map(c => `<th>${c}</th>`).join("")}</tr>${trs.map(r => `<tr>${r.map((x, j) => `<td${j === 0 ? ' class="nm"' : ""}>${x}</td>`).join("")}</tr>`).join("")}</table>`;
     return H().table(cols, trs);
   }
@@ -279,13 +292,13 @@
     const sec = (title, sub, id) => `<div class="adm-sec"><div><div class="t">${title}</div><div class="sub">${sub}</div></div>${h.printBtn(id, "🖨️ طباعة")}</div>`;
     box.innerHTML = `
       <div class="card adm-rep" id="rp-att">${sec("📅 حضور الفصول", esc(att.sub), "rp-p-att")}<div class="class-chips" id="rp-mode" style="padding:0 0 8px">${[["day", "اليوم"], ["week", "هذا الأسبوع"]].map(([k, t]) => `<button class="chip ${k === attMode ? "on" : ""}" data-k="${k}" style="padding:6px 14px;font-size:13px">${t}</button>`).join("")}</div>${attendanceTable(att)}${absenteesHtml(att, attMode)}</div>
-      <div class="card adm-rep" id="rp-teachers">${sec("👨‍🏫 نشاط المعلمين", `${tr.length} معلماً — الأسبوع من ${esc(Ad.fmtDate(weekStart()))}`, "rp-p-teachers")}${tr.length ? teacherTable(tr) : h.empty("لا معلمين مسندين")}</div>
+      <div class="card adm-rep" id="rp-teachers">${sec("👨‍🏫 نشاط المعلمين", `${tr.length} معلماً بفصول — الأسبوع من ${esc(Ad.fmtDate(weekStart()))}`, "rp-p-teachers")}${tr.length ? teacherTable(tr) : h.empty("لا معلمين مسندين")}${demoNote(sd)}</div>
       <div class="card adm-rep" id="rp-top">${sec("🏆 أوائل المدرسة", "أعلى 10 طلاب بالنقاط المجمّعة عبر كل المواد + لوحة شرف كل فصل", "rp-p-top")}${th.table}<div style="font-weight:800;color:var(--navy);margin:12px 0 6px">🎖️ لوحة شرف الفصول</div>${th.honor}</div>
       <div class="card adm-rep" id="rp-weak">${sec("🩺 الطلاب المتعثرون", `دون 50% في مادتين فأكثر — للخطط العلاجية (${sg.length})`, "rp-p-weak")}${strugglersTable(sg)}</div>`;
     box.dataset.ready = "1";
     h.bindChips($("#rp-mode", box), (k) => { attMode = k; admReports(box); });
     $("#rp-p-att", box).onclick = () => printAttendance(cx, attMode);
-    $("#rp-p-teachers", box).onclick = () => Ad.printHtml("تقرير نشاط المعلمين", teacherTable(tr, true) + `<div class="note">الأسبوع من ${esc(Ad.fmtDate(weekStart()))} إلى ${esc(Ad.fmtDate(today()))} — أيام الرصد = أيام مختلفة سُجّل فيها حضور أو نقاط.</div><div class="sig"><span>وكيل الشؤون التعليمية: ..............</span><span>مدير المدرسة: ..............</span></div>`, { sub: `نشاط المعلمين (${tr.length} معلماً)`, cls: "compact" });
+    $("#rp-p-teachers", box).onclick = () => Ad.printHtml("تقرير نشاط المعلمين", teacherTable(tr, true) + demoNoteP(sd) + `<div class="note">الأسبوع من ${esc(Ad.fmtDate(weekStart()))} إلى ${esc(Ad.fmtDate(today()))} — أيام الرصد = أيام مختلفة سُجّل فيها حضور أو نقاط.</div><div class="sig"><span>وكيل الشؤون التعليمية: ..............</span><span>مدير المدرسة: ..............</span></div>`, { sub: `نشاط المعلمين (${tr.length} معلماً)`, cls: "compact" });
     $("#rp-p-top", box).onclick = () => { const p = topHtml(td, true); Ad.printHtml("أوائل المدرسة", p.table + `<div class="tt" style="font-size:16px;margin-top:10px">🎖️ لوحة شرف الفصول</div>` + p.honor + `<p style="text-align:center;color:#666;margin-top:10px">نبارك لأبنائنا المتميّزين ونسأل الله لهم دوام التفوّق 🌟</p><div class="sig"><span>رائد النشاط: ..............</span><span>مدير المدرسة: ..............</span></div>`, { sub: "أعلى 10 طلاب بالنقاط + لوحة شرف كل فصل", cls: "compact" }); };
     $("#rp-p-weak", box).onclick = () => Ad.printHtml("الطلاب المتعثرون — للخطط العلاجية", strugglersTable(sg, true) + `<div class="note">الطالب المتعثر: دون 50% من الدرجة الفعلية (المرصودة والمحسوبة) في مادتين فأكثر. يُحوَّل إلى المرشد الطلابي ومعلمي المواد لإعداد خطة علاجية.</div><div class="sig"><span>المرشد الطلابي: ..............</span><span>مدير المدرسة: ..............</span></div>`, { sub: `الخطط العلاجية (${sg.length} طالباً)`, cls: "compact" });
   }
@@ -303,7 +316,7 @@
     const head = `<tr><th>م</th><th style="min-width:140px">الطالب</th>${ag.docs.map(dc => `<th title="${esc(dc.tname)}">${esc(dc.subject)}</th>`).join("")}<th>المعدل</th><th>المستوى</th><th>النقاط</th><th>الحضور</th></tr>`;
     const body = rows.map((r, k) => `<tr class="lv-row" data-i="${r.i}" style="cursor:pointer"><td>${k + 1}</td><td class="nm">${esc(r.s.n)}</td>${r.per.map(x => pcell(x.pct)).join("")}${pcell(r.avg)}<td>${r.avg != null ? esc(s.levelOf(r.avg).t) : "—"}</td><td>${r.pts}</td><td>${pctTxt(r.att)}</td></tr>`).join("");
     const foot = `<tr class="tot"><td></td><td class="nm">متوسط الفصل</td>${ag.docs.map((dc, j) => pcell(avgOf(rows.map(r => r.per[j].pct).filter(x => x != null)))).join("")}${pcell(avgOf(rows.map(r => r.avg).filter(x => x != null)))}<td></td><td>${r1(avgOf(rows.map(r => r.pts)) || 0)}</td><td>${pctTxt(avgOf(rows.map(r => r.att).filter(x => x != null)))}</td></tr>`;
-    return `<div class="table-scroll"><table class="report-table${print ? " compact" : ""}">${head}${body}${foot}</table></div><div class="empty-note" style="padding:6px">الدرجات نسبة مئوية من ${ag.maxTot}${print ? "" : " — انقر اسم الطالب لتقدّمه التفصيلي"}</div>`;
+    return `<div class="table-scroll"><table class="report-table${print ? " compact" : ""}">${head}${body}${foot}</table></div><div class="empty-note" style="padding:6px">النسب من البنود المرصودة حتى الآن لكل مادة (من أصل ${ag.maxTot} عند اكتمال رصد الاختبارات)${print ? "" : " — انقر اسم الطالب لتقدّمه التفصيلي"}</div>`;
   }
   // حسب المادة: فصل (ومعلمه) × مؤشرات المادة
   function subjectRows(cx, subj) {

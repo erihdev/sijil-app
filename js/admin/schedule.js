@@ -393,20 +393,35 @@
   const PCSS = `<style>
     .sd table{margin:6px 0}.sd th,.sd td{padding:3px 4px;font-size:10.5px;line-height:1.25}.sd td.dy{font-weight:800;background:#f3efe4;white-space:nowrap}
     .sd td.pn{font-weight:800;background:#fbf6ea;width:22px}.sd td .s{display:block;font-size:8.5px;color:#666}.sd .one td{font-size:13px;padding:7px 6px}.sd .one td .s{font-size:10.5px}
-    .sd .foot{font-size:11px;color:#555;margin-top:6px;text-align:center;line-height:1.7}</style>`;
+    .sd .foot{font-size:11px;color:#555;margin-top:6px;text-align:center;line-height:1.7}
+    .sd table.all td,.sd table.all th{padding:1px 3px;font-size:11px;line-height:1.15}
+    .sd .lg{font-size:9px;color:#333;line-height:1.45;margin-top:4px;border-top:1px solid #e5dcc5;padding-top:3px}</style>`;
+  /* الجدول العام وحده: ترويسة وإطار مضغوطان حتى تبقى الشبكة (35 صفاً × 12 فصلاً) بحجم مقروء داخل صفحة واحدة
+     — المقياس المطلوب ≥ 0.9 (نص 11px يُطبع بنحو 10px) بدل 0.44 قبل الإصلاح. */
+  const PCSS_ALL = PCSS + `<style>
+    .frame{padding:10px 14px}
+    .h{margin-bottom:6px}.h .bar{padding:6px 8px;font-size:15px;border-radius:8px}.h .m{font-size:11px;margin-top:4px}
+    .tt{font-size:16px;margin:4px 0}</style>`;
   const rowsForPrint = () => { load(); return work; };
   const unsavedNote = () => changeCount() ? " — (يشمل تعديلات غير محفوظة)" : "";
-  // الجدول العام: صفوف = اليوم×الحصة، أعمدة = الفصول — A4 أفقي في صفحة واحدة
+  /* الجدول العام: صفوف = اليوم×الحصة، أعمدة = الفصول — A4 أفقي في صفحة واحدة.
+     35 صفاً × 12 فصلاً: سطر المادة تحت اسم المعلم كان يضاعف ارتفاع الصف فيهبط تصغير الملاءمة إلى 0.44
+     (نص بحجم 5px غير مقروء) — فالمادة انتقلت إلى «دليل المعلمين» أسفل الجدول، والخلية اسم مختصر فقط. */
   function printAll() {
     const cls = classes(), rows = rowsForPrint();
-    let h = `<table><tr><th>اليوم</th><th>ح</th>${cls.map(c => `<th>${esc(c.name)}</th>`).join("")}</tr>`;
+    let h = `<table class="all"><tr><th>اليوم</th><th>ح</th>${cls.map(c => `<th>${esc(c.name)}</th>`).join("")}</tr>`;
     DAYS.forEach(d => PER.forEach((p, i) => {
       h += `<tr>${i === 0 ? `<td class="dy" rowspan="${PER.length}">${esc(d)}</td>` : ""}<td class="pn">${p}</td>` +
-        cls.map(c => { const r = cellC(d, p, c.id, rows); return `<td>${r ? esc(shortName(r.t)) + `<span class="s">${esc(subjOf(r.t))}</span>` : ""}</td>`; }).join("") + "</tr>";
+        cls.map(c => { const r = cellC(d, p, c.id, rows); return `<td>${r ? esc(shortName(r.t)) : ""}</td>`; }).join("") + "</tr>";
     }));
     h += "</table>";
     const cf = conflicts(rows);
-    A().printHtml("الجدول المدرسي العام", PCSS + `<div class="sd">${h}<div class="foot">${rows.length} حصة أسبوعياً — ${cls.length} فصلاً — ${teacherOpts().length} معلماً${cf.hard.length ? ` — ⚠️ ${cf.hard.length} تعارض غير محلول` : ""}${unsavedNote()}</div></div>`, { land: true, sub: "الجدول المدرسي العام" });
+    // دليل المعلمين: الاسم المختصر ← المادة وعدد الحصص (يعوّض سطر المادة المحذوف من الخلايا)
+    const names = {};
+    rows.forEach(r => names[r.t] = (names[r.t] || 0) + 1);
+    const key = Object.keys(names).sort((a, b) => String(a).localeCompare(String(b), "ar"));
+    const legend = key.length ? `<div class="lg"><b>دليل المعلمين:</b> ${key.map(t => `${esc(shortName(t))}${subjOf(t) ? " — " + esc(subjOf(t)) : ""} (${names[t]})`).join(" · ")}</div>` : "";
+    A().printHtml("الجدول المدرسي العام", PCSS_ALL + `<div class="sd">${h}${legend}<div class="foot">${rows.length} حصة أسبوعياً — ${cls.length} فصلاً — ${key.length} معلماً${cf.hard.length ? ` — ⚠️ ${cf.hard.length} تعارض غير محلول` : ""}${unsavedNote()}</div></div>`, { land: true, sub: "الجدول المدرسي العام" });
   }
   function oneGrid(fnCell) {
     let h = `<table class="one"><tr><th>اليوم</th>${PER.map(p => `<th>ح${p}<div dir="ltr" style="font-weight:400;font-size:9px">${esc(A().periodTime(p))}</div></th>`).join("")}</tr>`;

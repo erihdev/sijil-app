@@ -508,9 +508,15 @@ button{font-family:inherit}
 @media(max-width:520px){ .live-act .grid.g3{grid-template-columns:repeat(2,1fr)} }
 
 /* ═══ لوحة مدير المدرسة (js/admin) ═══ */
-.tabs.adm{overflow-x:auto; overflow-y:hidden; scrollbar-width:none; -webkit-overflow-scrolling:touch}
+.tabs.adm{overflow-x:auto; overflow-y:hidden; scrollbar-width:none; -webkit-overflow-scrolling:touch; scroll-behavior:smooth}
 .tabs.adm::-webkit-scrollbar{display:none}
 .tabs.adm button{flex:1 0 62px; padding-inline:4px; white-space:nowrap}
+/* تلميح بصري إلى تبويبات خارج الشاشة (سبعة تبويبات على 390px): تدرّج على الحافة اليسرى — الصنف من core.js showActiveTab */
+@media (max-width:759px){
+  .tabs.adm.has-x::after{content:'‹'; position:fixed; bottom:0; left:0; width:22px; height:54px; pointer-events:none; z-index:41;
+    display:flex; align-items:center; justify-content:center; color:var(--gold); font-size:17px; font-weight:800;
+    background:linear-gradient(to left, rgba(255,255,255,0), #fff 70%); margin-bottom:env(safe-area-inset-bottom)}
+}
 .appbar .acts{display:flex; gap:6px; align-items:center; flex:0 0 auto}
 #ab-view{white-space:nowrap}
 .adm-tools{display:flex; flex-wrap:wrap; gap:8px; margin-bottom:10px; align-items:center}

@@ -131,7 +131,9 @@
       </div>`;
     }).join("");
     const nReg = list.filter(t => t.pinHash).length, nNo = list.filter(t => !t.admin && (t.classes || []).length && !last[t.id]).length;
-    return h.kpis([{ v: list.length, l: "معلماً" }, { v: nReg, l: isDemo() ? "بصمة دخول" : "سجّلوا هويتهم" }, { v: nNo, l: "بلا رصد" }]) +
+    const nStaff = (typeof Ad.staff === "function" ? Ad.staff() : list.filter(t => !t.admin && (t.classes || []).length)).length;
+    return h.kpis([{ v: nStaff, l: "معلماً بفصول" }, { v: nReg, l: isDemo() ? "بصمة دخول" : "سجّلوا هويتهم" }, { v: nNo, l: "بلا رصد" }]) +
+      h.note(`البطاقات أدناه ${list.length} حساباً (منها حساب المدير والحسابات بلا فصول)، والمؤشر يعدّ ${nStaff} معلماً بفصول.`) +
       `<div class="mg-cards">${cards}</div>` + h.tools(h.printBtn("mg-p-tch", "🖨️ طباعة قائمة المعلمين"));
   }
 
@@ -227,6 +229,25 @@
     return out;
   }
   const cnt = (o) => o ? Object.keys(o).length : 0;
+  /* طيّ خرائط النسخة (tid_cid → cid) — تُستعمل في العدّ قبل التنفيذ وفي التنفيذ نفسه حتى لا يختلف الرقمان */
+  function foldMap(map, kind) {
+    const out = {}, Ad = A();
+    Object.keys(map || {}).forEach(id => {
+      const cid = Ad.splitKey(id).cid || id, v = map[id];
+      if (kind === "recs") { out[cid] = out[cid] || {}; Object.keys(v || {}).forEach(dt => { out[cid][dt] = Object.assign({}, out[cid][dt] || {}, v[dt] || {}); }); }
+      else if (kind === "grades") out[cid] = Object.assign({}, out[cid] || {}, v || {});
+      else out[cid] = (out[cid] || []).concat(Array.isArray(v) ? v : []);
+    });
+    return out;
+  }
+  // عدد المستندات التي ستُكتب محلياً (تجريبياً) — المصدر الوحيد للرقم في التأكيد والنتيجة
+  function demoDocs(b) {
+    return cnt(foldMap(b.recs, "recs")) + cnt(foldMap(b.grades, "grades")) + cnt(foldMap(b.comms, "comms")) +
+      (b.moves || []).length + cnt(b.sedits && typeof b.sedits === "object" ? b.sedits : {}) +
+      (Array.isArray(b.schedule) ? 1 : 0) +
+      ((Array.isArray(b.classes) && b.classes.length) ? b.classes.length : 0) +
+      ((Array.isArray(b.teachers) && b.teachers.length) ? b.teachers.length : 0);
+  }
   function summarize(b) {
     return {
       teachers: (b.teachers || []).length, classes: (b.classes || []).length,
@@ -276,19 +297,9 @@
   // الوضع التجريبي: كتابة كاملة في DB المحلية + D الحية (بلا إعادة تطبيق الحركات — اللقطة مطبَّقة أصلاً)
   function restoreDemo(b) {
     const s = S(), D = s.D, DB = s.DB, Ad = A(), done = {};
-    const fold = (map, kind) => {
-      const out = {};
-      Object.keys(map || {}).forEach(id => {
-        const cid = Ad.splitKey(id).cid || id, v = map[id];
-        if (kind === "recs") { out[cid] = out[cid] || {}; Object.keys(v || {}).forEach(dt => { out[cid][dt] = Object.assign({}, out[cid][dt] || {}, v[dt] || {}); }); }
-        else if (kind === "grades") out[cid] = Object.assign({}, out[cid] || {}, v || {});
-        else out[cid] = (out[cid] || []).concat(Array.isArray(v) ? v : []);
-      });
-      return out;
-    };
-    DB.recs = fold(b.recs, "recs"); done["الرصد"] = cnt(DB.recs);
-    DB.grades = fold(b.grades, "grades"); done["الدرجات"] = cnt(DB.grades);
-    DB.comms = fold(b.comms, "comms"); done["التواصل"] = cnt(DB.comms);
+    DB.recs = foldMap(b.recs, "recs"); done["الرصد"] = cnt(DB.recs);
+    DB.grades = foldMap(b.grades, "grades"); done["الدرجات"] = cnt(DB.grades);
+    DB.comms = foldMap(b.comms, "comms"); done["التواصل"] = cnt(DB.comms);
     DB.moves = (b.moves || []).slice(); D.moves = DB.moves; done["حركات النقل"] = DB.moves.length;
     DB.sedits = (b.sedits && typeof b.sedits === "object") ? b.sedits : {}; D.sedits = DB.sedits; done["بيانات الطلاب"] = cnt(DB.sedits);
     if (Array.isArray(b.schedule)) { DB.schedule = b.schedule.slice(); D.schedule = DB.schedule; done["الجدول"] = DB.schedule.length; }
@@ -314,12 +325,10 @@
     }
     s.save();
     try { if (typeof Ad.refreshHeader === "function") Ad.refreshHeader(); } catch (e) { }
-    // عدد المستندات المكتوبة فعلياً (لا عدد الصفوف): مستند لكل فصل/معلم + مستند الجدول
-    const docs = cnt(DB.recs) + cnt(DB.grades) + cnt(DB.comms) + (DB.moves || []).length + cnt(DB.sedits) +
-      (done["الجدول"] != null ? 1 : 0) + (done["الفصول"] || 0) + (done["المعلمون"] || 0);
-    return { done, docs };
+    // العدد نفسه المعروض في التأكيد (demoDocs) — مستند لكل فصل/معلم + مستند الجدول
+    return { done, docs: demoDocs(b) };
   }
-  async function doRestore(b, prog) {
+  async function doRestore(b, prog, tasks) {
     const s = S(), Ad = A();
     const set = (p, txt) => { if (!prog) return; const bar = $(".bar i", prog), tx = $(".tx", prog); if (bar) bar.style.width = Math.max(0, Math.min(100, p)) + "%"; if (tx) tx.textContent = txt; };
     prog && prog.classList.remove("hidden");
@@ -330,7 +339,7 @@
       await Ad.adminlog("restore", `استعادة نسخة (${b.hijri || ""}): ` + detail);
       return { ok: r.docs, fail: 0, notes: ["الوضع التجريبي: كل البيانات على هذا الجهاز فقط", detail] };
     }
-    const T = cloudTasks(b);
+    const T = tasks || cloudTasks(b);
     if (!T.length) { set(100, "لا شيء لاستعادته"); return { ok: 0, fail: 0, notes: ["لا مستندات قابلة للكتابة في هذه النسخة"] }; }
     let ok = 0, fail = 0; const failSec = {};
     for (let i = 0; i < T.length; i += 6) {
@@ -354,7 +363,7 @@
       h.alert(isDemo()
         ? "🧪 <b>الوضع التجريبي:</b> الاستعادة تكتب في بيانات هذا الجهاز فقط، وتُطبَّق فوراً على الشاشات."
         : "⚠️ <b>الاستعادة تستبدل بيانات المدرسة السحابية</b> بما في الملف (الرصد والدرجات والتواصل والجدول وبيانات المعلمين). صدّر نسخة قبلها، ولا تستعد إلا من ملف تثق به.", isDemo() ? "" : "bad") +
-      (lastRestore ? h.alert(`✔ <b>آخر استعادة:</b> ${lastRestore.ok} مستنداً${lastRestore.fail ? ` · تعذّر ${lastRestore.fail}` : ""}<br>${(lastRestore.notes || []).map(n => "• " + esc(n)).join("<br>")}`, "ok") : "");
+      (lastRestore ? h.alert(`✔ <b>آخر استعادة:</b> ${lastRestore.ok} من ${lastRestore.plan != null ? lastRestore.plan : lastRestore.ok} مستنداً${lastRestore.fail ? ` · تعذّر ${lastRestore.fail}` : ""}<br>${(lastRestore.notes || []).map(n => "• " + esc(n)).join("<br>")}`, "ok") : "");
   }
 
   /* ═══ (7) 🕘 سجل الإدارة ═══ */
@@ -463,17 +472,21 @@
     const ok1 = await Ad.confirm("⬆️ استعادة نسخة احتياطية", summaryHtml(data, sm) +
       `<div class="adm-alert ${isDemo() ? "" : "bad"}" style="margin-top:8px">${isDemo() ? "🧪 ستُكتب في بيانات هذا الجهاز فقط." : "⚠️ ستُستبدل مستندات المدرسة السحابية بما في الملف."}</div>`, { ok: "متابعة", no: "إلغاء" });
     if (!ok1) return;
-    const ok2 = await Ad.confirm("تأكيد نهائي", `<div style="text-align:center;line-height:2">سيبدأ الآن كتابة <b>${sm.recs + sm.grades + sm.comms + sm.teachers + sm.moves + sm.sedits}</b> مستنداً${isDemo() ? " محلياً" : " في قاعدة المدرسة"}.<br><b style="color:var(--bad)">لا يمكن التراجع عن هذه العملية.</b><br>هل أنت متأكد؟</div>`, { ok: "نعم، استعد الآن", no: "تراجع", danger: true });
+    // رقم واحد للعملية: نفس القائمة التي ستُكتب فعلاً (المهام السحابية أو مستندات الجهاز)
+    const tasks = isDemo() ? null : cloudTasks(data);
+    const plan = isDemo() ? demoDocs(data) : tasks.length;
+    const ok2 = await Ad.confirm("تأكيد نهائي", `<div style="text-align:center;line-height:2">سيبدأ الآن كتابة <b>${plan}</b> مستنداً${isDemo() ? " محلياً" : " في قاعدة المدرسة"}.<br><b style="color:var(--bad)">لا يمكن التراجع عن هذه العملية.</b><br>هل أنت متأكد؟</div>`, { ok: "نعم، استعد الآن", no: "تراجع", danger: true });
     if (!ok2) return;
     const prog = $("#mg-prog", b);
     const btn = $("#mg-rs", b); if (btn) btn.disabled = true;
     let res = null;
-    try { res = await doRestore(data, prog); }
+    try { res = await doRestore(data, prog, tasks); }
     finally { if (btn) btn.disabled = false; }
     lastRestore = res;
     if (!isDemo()) res.notes.push("اطلب من المعلمين إعادة فتح التطبيق لتظهر لهم البيانات المستعادة");
     Ad.invalidate();
-    Ad.toast(`✔ اكتملت الاستعادة — ${res.ok} مستنداً` + (res.fail ? ` · ${res.fail} فشل` : ""), 3600);
+    res.plan = plan;
+    Ad.toast(`✔ اكتملت الاستعادة — ${res.ok} من ${plan} مستنداً` + (res.fail ? ` · ${res.fail} فشل` : ""), 3600);
     try { await again(); } catch (e) { warn("refresh", e); }
   }
 

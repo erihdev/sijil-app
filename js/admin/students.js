@@ -111,12 +111,12 @@
     if (agg.n) {
       const parts = s.STATES.map((x, k) => agg.st[k] ? `${x.name} ${agg.st[k]}` : "").filter(Boolean).join("، ");
       L.push(`✅ الحضور العام: ${agg.att != null ? agg.att + "%" : "—"}${parts ? ` (${parts})` : ""}`);
-      L.push(`🏅 النقاط المجمّعة: ${agg.pts} عبر ${agg.n} ${agg.n === 1 ? "مادة" : agg.n <= 10 ? "مواد" : "مادة"}${agg.avg != null ? ` | 💯 المعدل: ${agg.avg}% — ${s.levelOf(agg.avg).t}` : ""}`);
+      L.push(`🏅 النقاط المجمّعة: ${agg.pts} عبر ${agg.n} ${agg.n === 1 ? "مادة" : agg.n <= 10 ? "مواد" : "مادة"}${agg.avg != null ? ` | 💯 المعدل: ${agg.avg}% من البنود المرصودة حتى الآن — ${s.levelOf(agg.avg).t}` : ""}`);
       L.push("📚 المواد:");
       agg.docs.forEach(dc => {
         const t = s.calcStudent(c.id, si, dc.recs); if (!t.days && !s.hasGrades(c.id, si, dc.grades, dc.recs)) return;
         const a = s.attPct(t), g = agg.grades.find(x => x.tid === dc.tid);
-        L.push(`• ${dc.subject}: ${t.pts} نقطة${a != null ? ` · حضور ${a}%` : ""}${t.hwN ? ` · واجبات ناقصة ${t.hwN}` : ""}${g ? ` · الدرجة ${Math.round(g.pct)}% (${s.levelOf(g.pct).t})` : ""}`);
+        L.push(`• ${dc.subject}: ${t.pts} نقطة${a != null ? ` · حضور ${a}%` : ""}${t.hwN ? ` · واجبات ناقصة ${t.hwN}` : ""}${g ? ` · الدرجة ${Math.round(g.pct)}% من البنود المرصودة (${s.levelOf(g.pct).t})` : ""}`);
       });
       L.push("");
       const absent = agg.st[1] || 0, low = agg.grades.filter(g => g.pct < 50).length;

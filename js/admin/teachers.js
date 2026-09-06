@@ -72,6 +72,11 @@
   const clsName = (cid) => { const c = S().classById(cid); return c ? c.name : cid; };
   const nActive = (c) => (S().activeCount ? S().activeCount(c) : S().activeStudents(c).length);
   const loginState = (t) => t.pinHash ? { ok: true, t: "✅ سجّل هويته" } : isDemo() ? { ok: true, t: "🧪 تجريبي (1234)" } : { ok: false, t: "⏳ لم يسجّل" };
+  /* القواعد المنشورة (firestore.rules → teachers/{tid}) تسمح بتغيير pinHash لحسابات المعلمين فقط، وتمنعه على حساب المدير:
+     قراءة teachers مفتوحة لأي جهاز مصادَق (مجهولاً)، فالسماح بكتابة بصمة المدير من العميل = استيلاء على اللوحة.
+     لذلك تُعطَّل أزرار رقم الدخول لحساب المدير في الوضع السحابي بدل تركها ترمي «تعذّر الحفظ». */
+  const pinLocked = (t) => !isDemo() && !!(t && t.admin);
+  const PIN_LOCK = "رقم دخول حساب المدير لا يُغيَّر من داخل التطبيق — حمايةً للحساب (القراءة مفتوحة لأي جهاز). يُعاد تعيينه من كونسول Firebase.";
   const randPin = () => { try { const a = new Uint32Array(1); crypto.getRandomValues(a); return String(100000 + (a[0] % 900000)); } catch (e) { return String(100000 + Math.floor(Math.random() * 900000)); } };
   // بصمة رقم الدخول — نفس صيغة app.js في initLogin: sha256(pin|tid|SALT)
   const pinHash = (pin, tid) => S().sha256(pin + "|" + tid + "|" + S().SALT);
@@ -243,6 +248,7 @@
           p.pinHash = await pinHash(pin, tid);
           await writeTeacher(tid, p, true);
           await A().adminlog("add", `إضافة معلم ${p.name} (${p.subject || "بلا مادة"}) — ${p.classes.length} فصول`, tid);
+          if (after) { try { const r2 = after(); if (r2 && r2.catch) r2.catch(() => { }); } catch (e2) { warn("after/add", e2); } }   // الجدول يتحدّث فور نجاح الكتابة مهما أُغلقت النافذة
           showPin(o, p.name, tid, pin, "➕ أُضيف المعلم", after);
         } catch (e) { warn("add", e); err.textContent = "تعذّرت الإضافة: " + ((e && e.message) || e); $("#tf-ok", o).disabled = false; }
       };
@@ -268,6 +274,7 @@
         try {
           await writeTeacher(tid, { pinHash: await pinHash(pin, tid) }, false);
           await A().adminlog("pin", `إعادة تعيين رقم دخول ${t.name}`, tid);
+          if (after) { try { const r2 = after(); if (r2 && r2.catch) r2.catch(() => { }); } catch (e2) { warn("after/pin", e2); } }
           showPin(o, t.name, tid, pin, "✔ عُيّن رقم الدخول", after);
         } catch (e) { warn("pin", e); err.textContent = "تعذّر الحفظ: " + ((e && e.message) || e); $("#tp-ok", o).disabled = false; }
       };
@@ -293,10 +300,16 @@
     const prev = leaderOf(cid);
     if (prev && prev.id === tid) return false;
     if (!tid && !prev) return false;
-    if (prev) await writeTeacher(prev.id, { lead: (prev.lead || []).filter(c => c !== cid) }, false);
+    // الترتيب مقصود: نُسند الجديد أولاً ثم نزيل السابق — إن فشلت الثانية بقي للفصل رائدان (يُصلحان بنقرة) لا صفر رائد
     if (tid) { const t = byId(tid); if (!t) throw new Error("معلم غير موجود"); await writeTeacher(tid, { lead: [...new Set([...(t.lead || []), cid])] }, false); }
+    let halfWay = "";
+    if (prev) {
+      try { await writeTeacher(prev.id, { lead: (prev.lead || []).filter(c => c !== cid) }, false); }
+      catch (e) { warn("lead/prev", e); halfWay = ` — تعذّر رفع الفصل عن الرائد السابق ${prev.name}: ${(e && e.message) || e}`; }
+    }
     const nm = tid ? (byId(tid) || {}).name : "";
-    await A().adminlog("lead", tid ? `تعيين ${nm} رائداً لفصل ${clsName(cid)}${prev ? ` بدل ${prev.name}` : ""}` : `إلغاء رائد فصل ${clsName(cid)}${prev ? ` (${prev.name})` : ""}`, tid || (prev ? prev.id : undefined));
+    await A().adminlog("lead", (tid ? `تعيين ${nm} رائداً لفصل ${clsName(cid)}${prev ? ` بدل ${prev.name}` : ""}` : `إلغاء رائد فصل ${clsName(cid)}${prev ? ` (${prev.name})` : ""}`) + halfWay, tid || (prev ? prev.id : undefined));
+    if (halfWay) throw new Error("عُيّن الرائد الجديد" + halfWay);
     return true;
   }
 
@@ -315,6 +328,7 @@
     const ql = q.trim();
     const shown = ql ? list.filter(t => [t.name, t.subject, t.id, mobOf(t)].some(x => String(x || "").includes(ql))) : list;
     const nReg = list.filter(t => t.pinHash).length;
+    const nStaff = (typeof A().staff === "function" ? A().staff() : list.filter(t => !t.admin && (t.classes || []).length)).length;
     const nIdle = list.filter(t => !t.admin && (t.classes || []).length && (!last[t.id] || A().daysAgo(last[t.id]) >= 7)).length;
     const clsOf = (t) => A().sortedClasses().filter(c => (t.classes || []).includes(c.id));
     // شرائح الفصول: ثلاث ظاهرة ثم «+ن» (وإلا صار الصف عمودياً طويلاً على الجوال) — الأسماء كاملة في tooltip وفي الطباعة
@@ -334,7 +348,9 @@
       `<span class="tch-status ${st.ok ? "ok" : "no"}">${st.t}</span>`,
       lr ? `${A().fmtDate(lr)}<div class="tch-id">${A().daysAgo(lr) === 0 ? "اليوم" : "قبل " + A().daysAgo(lr) + " يوم"}</div>` : (nCls ? '<span style="color:var(--bad)">لا رصد</span>' : "—"),
       ld.length ? `🎖️ ${esc(ld.join("، "))}` : '<span class="tch-none">—</span>',
-      `<div class="tch-act"><button data-act="edit" data-tid="${esc(t.id)}" title="تعديل بيانات المعلم">✏️</button><button data-act="pin" data-tid="${esc(t.id)}" title="إعادة تعيين رقم الدخول">🔑</button></div>`];
+      `<div class="tch-act"><button data-act="edit" data-tid="${esc(t.id)}" title="تعديل بيانات المعلم">✏️</button>${pinLocked(t)
+        ? `<button disabled style="opacity:.4;cursor:not-allowed" title="${esc(PIN_LOCK)}">🔒</button>`
+        : `<button data-act="pin" data-tid="${esc(t.id)}" title="إعادة تعيين رقم الدخول">🔑</button>`}</div>`];
     });
     const cols = ["م", { t: "المعلم", w: 150 }, { t: "المادة", w: 96 }, { t: "الفصول", w: 130 }, "عدد", { t: "الجوال", w: 96 }, "الدخول", "آخر رصد", "الرائد", "إجراءات"];
     // 🎖️ رواد الفصول
@@ -349,7 +365,8 @@
       .map(l => [`<span style="white-space:normal;font-weight:400">${esc(l.note)}</span>`, esc(l.tn || "—"), A().fmtTs(l.ts)]);
     box.innerHTML = secWarn() +
       H.card("👨‍🏫 المعلمون",
-        H.kpis([{ v: list.length, l: "معلماً" }, { v: nReg, l: isDemo() ? "لهم بصمة دخول" : "سجّلوا هويتهم" }, { v: nIdle, l: "بلا رصد ٧ أيام" }]) +
+        H.kpis([{ v: nStaff, l: "معلماً بفصول", title: "غير حساب المدير والحسابات بلا فصول — نفس العدد في «🏫 المدرسة» و«📄 التقارير»" }, { v: nReg, l: isDemo() ? "لهم بصمة دخول" : "سجّلوا هويتهم" }, { v: nIdle, l: "بلا رصد ٧ أيام" }]) +
+        H.note(`الجدول أدناه يعرض <b>${list.length}</b> حساباً في «المعلمون» (منها حساب المدير والحسابات بلا فصول)، والمؤشر يعدّ <b>${nStaff}</b> معلماً بفصول.`) +
         `<div class="adm-tools tch-tools">${H.search("tch-q", "ابحث باسم المعلم أو المادة…")}${H.btn("➕ إضافة معلم", 'id="tch-add"')}${H.btn("👤 بياناتي", 'id="tch-me"', "btn-plain")}${H.printBtn("tch-print")}</div>` +
         (shown.length ? H.table(cols, rows, { id: "tch-table", nameIdx: 1 }) : H.empty("لا نتائج مطابقة للبحث"))) +
       H.card("🎖️ رواد الفصول",
@@ -397,8 +414,8 @@
       ${H.row("حالة التسجيل", `<span class="tch-status ${st.ok ? "ok" : "no"}">${st.t}</span>`)}
       <div class="field" style="margin-top:12px"><label>📱 جوالي</label><div class="me-mobrow"><input id="me-mob" inputmode="tel" maxlength="20" value="${esc(mobN)}" placeholder="05xxxxxxxx" autocomplete="off"><button class="btn-gold" id="me-mob-save">حفظ</button></div></div>
       <div class="login-err" id="me-mob-err" style="margin-top:0"></div>
-      <button class="btn-gold" id="me-pin-btn" style="width:100%">🔐 تغيير رقم الدخول</button>
-      <div class="me-form hidden" id="me-form" style="margin-top:10px">
+      ${pinLocked(me) ? H.alert("🔒 " + esc(PIN_LOCK)) : `<button class="btn-gold" id="me-pin-btn" style="width:100%">🔐 تغيير رقم الدخول</button>`}
+      <div class="me-form hidden" id="me-form" style="margin-top:10px${pinLocked(me) ? ";display:none" : ""}">
         <div class="field"><label>رقم الدخول الحالي</label><input type="password" id="me-p0" inputmode="numeric" maxlength="12" autocomplete="current-password"></div>
         <div class="field"><label>الرقم الجديد (4–12 رقماً)</label><input type="password" id="me-p1" inputmode="numeric" maxlength="12" autocomplete="new-password"></div>
         <div class="field"><label>تأكيد الرقم الجديد</label><input type="password" id="me-p2" inputmode="numeric" maxlength="12" autocomplete="new-password"></div>
@@ -420,8 +437,9 @@
       } catch (e) { warn("mob", e); err.textContent = "تعذّر الحفظ: " + ((e && e.message) || e); btn.disabled = false; }
     };
     // 🔐 تغيير رقم الدخول (التحقق من الحالي محلياً بالبصمة نفسها التي يستخدمها الدخول)
-    $("#me-pin-btn", el).onclick = () => { const f = $("#me-form", el); f.classList.toggle("hidden"); if (!f.classList.contains("hidden")) $("#me-p0", el).focus(); };
-    $("#me-pin-save", el).onclick = async () => {
+    const pinBtn = $("#me-pin-btn", el);
+    if (pinBtn) pinBtn.onclick = () => { const f = $("#me-form", el); f.classList.toggle("hidden"); if (!f.classList.contains("hidden")) $("#me-p0", el).focus(); };
+    if (pinBtn) $("#me-pin-save", el).onclick = async () => {
       const p0 = $("#me-p0", el).value.trim(), p1 = $("#me-p1", el).value.trim(), p2 = $("#me-p2", el).value.trim(), err = $("#me-err", el), btn = $("#me-pin-save", el);
       if (!p0) { err.textContent = "اكتب رقم الدخول الحالي"; return; }
       if (!PIN_RE.test(p1)) { err.textContent = "الرقم الجديد: 4 إلى 12 رقماً"; return; }
@@ -440,10 +458,78 @@
     };
   }
 
+  /* ═══ 🎖️ تقرير فصلي كرائد (ADMIN_SPEC سطر 61) — يظهر للمعلم داخل «📄 التقارير» عبر app.js (leadSlot → leadReport) ═══
+     الرائد يرى فصله كاملاً عبر كل المواد ولو لم يدرّسه: مؤشرات + جدول الطلاب × المواد + لوحة شرف الفصل
+     + الغياب المتكرر + واتساب لقروب أولياء الأمور + طباعة. المصدر schoolDocs (لا استعلام لكل فصل).
+     ملاحظة تصميم: فصل الريادة لا يُضاف إلى فصول التدريس (اليوم/التحضير/الدرجات) حتى لا يكتب الرائد رصداً
+     في مادة لا يدرّسها (recs/{tid}_{cid} باسمه) — الريادة قراءة وتواصل لا رصد. */
+  let leadCid = null;
+  async function leadReport(el) {
+    if (!el) return;
+    const s = S(), Ad = A(), me = (s.TE && byId(s.TE.id)) || s.TE;
+    const ids = leadOf(me);
+    if (!ids.length) { el.innerHTML = ""; el.removeAttribute("data-ready"); return; }
+    css();
+    if (!leadCid || ids.indexOf(leadCid) < 0) leadCid = ids[0];
+    if (!el.dataset.ready) el.innerHTML = H.card("🎖️ تقرير فصلي كرائد", H.empty("جارِ جمع رصد كل المواد…"));
+    let sd; try { sd = await Ad.schoolDocs(); } catch (e) { warn("lead/docs", e); el.innerHTML = H.card("🎖️ تقرير فصلي كرائد", H.empty("تعذّر جمع بيانات الفصل")); return; }
+    const cid = leadCid, c = s.classById(cid);
+    if (!c) { el.innerHTML = H.card("🎖️ تقرير فصلي كرائد", H.empty("الفصل غير موجود")); return; }
+    const docs = Ad.classDocsOf(sd, cid);
+    const rows = s.activeStudents(c).map(x => ({ i: x.i, s: x.s, agg: Ad.aggStudent(sd, cid, x.i) }));
+    // الغياب المتكرر: يوم الغياب يُعدّ مرة واحدة ولو رصده أكثر من معلم
+    const absA = new Set(s.STATES.map((x, k) => /غائب|هارب/.test(x.name || "") ? k : -1).filter(k => k >= 0));
+    const byDate = {};
+    docs.forEach(dc => Object.keys(dc.recs || {}).forEach(date => {
+      const day = dc.recs[date] || {};
+      Object.keys(day).forEach(si => { const e = day[si]; if (!e || e.a == null || !absA.has(e.a)) return; (byDate[date] = byDate[date] || {})[si] = 1; });
+    }));
+    const absN = {};
+    Object.keys(byDate).forEach(d => Object.keys(byDate[d]).forEach(si => absN[si] = (absN[si] || 0) + 1));
+    const absList = rows.filter(r => (absN[r.i] || 0) >= 3).sort((a, b) => (absN[b.i] || 0) - (absN[a.i] || 0));
+    const att = rows.filter(r => r.agg.att != null), attAvg = att.length ? Math.round(att.reduce((a, r) => a + r.agg.att, 0) / att.length) : null;
+    const avgs = rows.filter(r => r.agg.avg != null), avg = avgs.length ? Math.round(avgs.reduce((a, r) => a + r.agg.avg, 0) / avgs.length) : null;
+    const top = rows.filter(r => r.agg.pts > 0).sort((a, b) => b.agg.pts - a.agg.pts).slice(0, 5);
+    const MED = ["🥇", "🥈", "🥉", "🏅", "🏅"];
+    const pctT = (p) => p == null ? "—" : `<bdi>${Math.round(p)}%</bdi>`;
+    const cols = ["م", { t: "الطالب", w: 140 }].concat(docs.map(d => ({ t: esc(d.subject) })), ["المعدل", "النقاط", "الحضور", "غياب"]);
+    const body = rows.slice().sort((a, b) => ((b.agg.avg == null ? -1 : b.agg.avg) - (a.agg.avg == null ? -1 : a.agg.avg)) || (b.agg.pts - a.agg.pts))
+      .map((r, k) => [String(k + 1), esc(r.s.n)].concat(
+        docs.map(dc => { const g = r.agg.grades.find(x => x.tid === dc.tid); return g ? String(Math.round(g.pct)) : '<span style="color:#bbb">—</span>'; }),
+        [pctT(r.agg.avg), String(r.agg.pts), pctT(r.agg.att), (absN[r.i] || 0) >= 3 ? `<b style="color:var(--bad)">${absN[r.i]}</b>` : String(absN[r.i] || 0)]));
+    const waText = [`🎖️ تقرير ${c.name} — ${s.META.school.name}`, s.hijriLabel(), "",
+      `👥 الطلاب: ${rows.length} · 📚 المواد المرصودة: ${docs.length}`,
+      attAvg != null ? `✅ متوسط الحضور: ${attAvg}%` : "✅ لا رصد حضور بعد",
+      avg != null ? `💯 متوسط المستوى (من البنود المرصودة): ${avg}%` : "",
+      top.length ? "\n🏆 لوحة شرف الفصل:\n" + top.map((r, k) => `${MED[k]} ${r.s.n} — ${r.agg.pts} نقطة`).join("\n") : "",
+      absList.length ? `\n⚠️ غياب متكرر (٣ أيام فأكثر): ${absList.length} — نرجو متابعة الحضور` : "\n🌟 لا غياب متكرر، شكراً لمتابعتكم",
+      "", `رائد الفصل: ${me.name}`, s.META.school.name].filter(Boolean).join("\n");
+    const chips = ids.length > 1 ? `<div class="class-chips" id="lead-chips" style="padding:0 0 8px">${ids.map(x => `<button class="chip ${x === cid ? "on" : ""}" data-k="${esc(x)}" style="padding:6px 12px;font-size:12.5px">🎖️ ${esc(clsName(x))}</button>`).join("")}</div>` : "";
+    el.innerHTML = H.card(`🎖️ تقرير فصلي كرائد — ${esc(c.name)}`,
+      H.note("بصفتك رائد الفصل ترى فصلك عبر كل المواد ولو لم تدرّسه — والنسب من البنود المرصودة حتى الآن.") + chips +
+      H.kpis([{ v: rows.length, l: "طالباً" }, { v: docs.length, l: "مادة مرصودة" }, { v: attAvg == null ? "—" : attAvg + "%", l: "متوسط الحضور" }, { v: absList.length, l: "غياب متكرر" }]) +
+      (docs.length ? H.table(cols, body, { id: "lead-tb", nameIdx: 1 }) : H.empty("لا رصد في هذا الفصل بعد")) +
+      `<div style="font-weight:800;color:var(--navy);margin:12px 0 6px">🏆 لوحة شرف ${esc(c.name)}</div>` +
+      (top.length ? `<div class="adm-honor"><div class="hc" style="background:#fbf8f1;border:1px solid var(--line);border-radius:10px;padding:8px 10px"><b style="display:block;color:var(--navy);margin-bottom:4px">الأعلى نقاطاً عبر كل المواد</b>${top.map((r, k) => `<div style="display:flex;justify-content:space-between;padding:2px 0"><span>${MED[k]} ${esc(r.s.n)}</span><span>${r.agg.pts}</span></div>`).join("")}</div></div>` : H.empty("ابدأ الرصد وستظهر أسماء المتميزين 🌟")) +
+      `<div style="font-weight:800;color:var(--navy);margin:12px 0 6px">⚠️ الغياب المتكرر (٣ أيام فأكثر)</div>` +
+      (absList.length ? H.table(["م", { t: "الطالب", w: 150 }, "أيام الغياب", "الحضور"], absList.map((r, k) => [String(k + 1), esc(r.s.n), `<b style="color:var(--bad)">${absN[r.i]}</b>`, pctT(r.agg.att)]), { nameIdx: 1 }) : H.empty("لا طلاب غابوا ٣ أيام فأكثر 🌟")) +
+      `<div class="adm-tools" style="margin-top:10px"><a class="btn-gold" id="lead-wa" style="text-align:center;text-decoration:none;flex:1 1 180px;padding:11px" target="_blank" rel="noopener" href="${S().waLink("", waText)}">💬 إرسال لقروب أولياء الأمور</a>${H.printBtn("lead-print", "🖨️ طباعة تقرير الفصل")}</div>`);
+    el.dataset.ready = "1";
+    const ch = $("#lead-chips", el);
+    if (ch) ch.querySelectorAll(".chip").forEach(b => b.onclick = () => { leadCid = b.dataset.k; leadReport(el); });
+    const pb = $("#lead-print", el);
+    if (pb) pb.onclick = () => Ad.printHtml(`تقرير ${c.name} — رائد الفصل`,
+      (docs.length ? H.table(cols, body, {}) : "<div>لا رصد بعد</div>").replace('<div class="table-scroll">', "<div>") +
+      `<div class="tt" style="font-size:15px;margin-top:10px">🏆 لوحة الشرف</div><table class="compact"><tr><th>الترتيب</th><th>الطالب</th><th>النقاط</th></tr>${top.map((r, k) => `<tr><td>${MED[k]}</td><td class="nm">${esc(r.s.n)}</td><td>${r.agg.pts}</td></tr>`).join("") || '<tr><td colspan="3">لا رصد بعد</td></tr>'}</table>` +
+      `<div class="tt" style="font-size:15px;margin-top:10px">⚠️ الغياب المتكرر</div><table class="compact"><tr><th>م</th><th>الطالب</th><th>أيام الغياب</th></tr>${absList.map((r, k) => `<tr><td>${k + 1}</td><td class="nm">${esc(r.s.n)}</td><td>${absN[r.i]}</td></tr>`).join("") || '<tr><td colspan="3">لا غياب متكرر</td></tr>'}</table>` +
+      `<div class="sig"><span>رائد الفصل: ${esc(me.name)}</span><span>مدير المدرسة: ..............</span></div>`,
+      { land: cols.length > 8, sub: `🎖️ تقرير الفصل الشامل — ${c.name}`, cls: "compact" });
+  }
+
   /* ═══ التسجيل والتصدير ═══ */
   A().register("teachers", renderTeachers);
   A().register("profile", (box) => profileCard(box));
-  Object.assign(window.SIJIL_ADMIN, { profileCard, leadBadge, writeTeacher, assignLead, resetPin, editTeacher, addTeacher, leaderOf, leadOf, refreshHeader, lastByTeacher, mobOf });
+  Object.assign(window.SIJIL_ADMIN, { profileCard, leadBadge, leadReport, writeTeacher, assignLead, resetPin, editTeacher, addTeacher, leaderOf, leadOf, refreshHeader, lastByTeacher, mobOf });
   // تجريبياً: إعادة تعديلات المعلمين المحفوظة + شارة الرائد في الرأس (الآن وبعد كل دخول)
   try { applyTedits(); css(); hookHeader(); if (S().TE) refreshHeader(); } catch (e) { warn("late init", e); }
 })();

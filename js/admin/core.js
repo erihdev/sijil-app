@@ -40,6 +40,18 @@
     nav.classList.toggle("adm", !!adm);
     nav.innerHTML = list.map((t, i) => `<button data-tab="${t.k}" class="${i === 0 ? "on" : ""}"><span class="ic">${t.ic}</span>${t.t}</button>`).join("");
     nav.querySelectorAll("button").forEach(b => b.onclick = () => S().switchTab(b.dataset.tab));
+    showActiveTab();
+  }
+  /* الشريط الإداري قابل للتمرير أفقياً على الجوال (سبعة تبويبات في 390px): نُظهر التبويب النشط دائماً،
+     ونضع صنف has-x على الشريط حين يوجد محتوى مخفي (تدرّج على الحافة يدل على وجود المزيد). */
+  function showActiveTab() {
+    const nav = $("#tabs"); if (!nav) return;
+    const go = () => {
+      const b = nav.querySelector("button.on");
+      if (b && nav.scrollWidth > nav.clientWidth + 2) { try { b.scrollIntoView({ inline: "center", block: "nearest" }); } catch (e) { try { nav.scrollLeft = b.offsetLeft - (nav.clientWidth - b.offsetWidth) / 2; } catch (x) { } } }
+      nav.classList.toggle("has-x", nav.scrollWidth > nav.clientWidth + 2);
+    };
+    go(); try { requestAnimationFrame(go); } catch (e) { }
   }
   function ensurePanes() {
     const wrap = $("#view-app .wrap"); if (!wrap) return;
@@ -98,6 +110,7 @@
     cur = name; ensurePanes();
     TABS.forEach(t => { const p = pane(t.k); if (p) p.classList.toggle("hidden", t.k !== name); });
     const box = pane(name); if (!box) return;
+    showActiveTab();                                  // على 390px: التبويب النشط قد يكون خارج الشاشة (سبعة تبويبات)
     const fn = MODS[name];
     if (!fn) { box.innerHTML = wip(name); return; }
     try { const r = fn(box, name); if (r && typeof r.catch === "function") r.catch(e => fail(box, e)); } catch (e) { fail(box, e); }
@@ -114,7 +127,7 @@
     if (inflight && !force) return inflight;
     inflight = (async () => {
       const s = S(), D = s.D, DB = s.DB;
-      const out = { ts: Date.now(), cloud: !!(s.CLOUD && s.fdb), recs: {}, grades: {}, comms: {}, moves: [], assign: [], sedits: {}, adminlog: [] };
+      const out = { ts: Date.now(), cloud: !!(s.CLOUD && s.fdb), recs: {}, grades: {}, comms: {}, moves: [], assign: [], sedits: {}, adminlog: [], demoGuess: [] };
       if (out.cloud) {
         const fdb = s.fdb;
         const get = async (col) => { try { return await fdb.collection(col).get(); } catch (e) { warn("schoolDocs/" + col, e && e.message); return null; } };
@@ -126,10 +139,23 @@
         if (ls) ls.forEach(d => { out.adminlog.push(Object.assign({ id: d.id }, d.data())); });
         out.sedits = D.sedits || {};
       } else {
-        const owner = (cid) => { const t = (D.teachers || []).find(x => !x.admin && (x.classes || []).includes(cid)) || (D.teachers || []).find(x => (x.classes || []).includes(cid)); return t ? t.id : (s.TE ? s.TE.id : "t00"); };
-        Object.keys(DB.recs || {}).forEach(cid => { if (Object.keys(DB.recs[cid] || {}).length) out.recs[owner(cid) + "_" + cid] = DB.recs[cid]; });
-        Object.keys(DB.grades || {}).forEach(cid => { if (Object.keys(DB.grades[cid] || {}).length) out.grades[owner(cid) + "_" + cid] = DB.grades[cid]; });
-        Object.keys(DB.comms || {}).forEach(cid => { if ((DB.comms[cid] || []).length) out.comms[owner(cid) + "_" + cid] = DB.comms[cid]; });
+        /* الوضع التجريبي: DB لا تحمل معرّف معلم داخل المستند — نأخذه من DB.by["recs:cid"] الذي يكتبه app.js عند كل حفظ
+           (من رصد فعلاً على هذا الجهاز)، وإلا نقدّره: المعلم الحالي إن كان يدرّس الفصل، ثم أول معلم غير مدير يدرّسه.
+           out.demoGuess = مفاتيح نُسبت بالتقدير — تُعلنها الواجهة حتى لا يُنسب رصد إلى معلم لم يرصده. */
+        const me = s.TE, by = (DB.by && typeof DB.by === "object") ? DB.by : {};
+        const guess = {};
+        const owner = (kind, cid) => {
+          const w = by[kind + ":" + cid];
+          if (w && (D.teachers || []).some(x => x.id === w)) return w;
+          guess[kind + ":" + cid] = 1;
+          if (me && !me.admin && (me.classes || []).includes(cid)) return me.id;
+          const t = (D.teachers || []).find(x => !x.admin && (x.classes || []).includes(cid)) || (D.teachers || []).find(x => (x.classes || []).includes(cid));
+          return t ? t.id : (me ? me.id : "t00");
+        };
+        Object.keys(DB.recs || {}).forEach(cid => { if (Object.keys(DB.recs[cid] || {}).length) out.recs[owner("recs", cid) + "_" + cid] = DB.recs[cid]; });
+        Object.keys(DB.grades || {}).forEach(cid => { if (Object.keys(DB.grades[cid] || {}).length) out.grades[owner("grades", cid) + "_" + cid] = DB.grades[cid]; });
+        Object.keys(DB.comms || {}).forEach(cid => { if ((DB.comms[cid] || []).length) out.comms[owner("comms", cid) + "_" + cid] = DB.comms[cid]; });
+        out.demoGuess = Object.keys(guess);
         out.sedits = DB.sedits || {};
         out.adminlog = (DB.adminlog || []).slice();
       }
@@ -156,12 +182,13 @@
   }
   // تجميع الطالب عبر كل معلميه: { pts, days, st[], att (نسبة الحاضرين من المرصود أو null), n (مواد بها رصد), grades: [{tid, subject, pct}], avg }
   function aggStudent(sd, cid, si) {
-    const s = S(), docs = classDocsOf(sd, cid), maxTot = s.maxTotal();
+    const s = S(), docs = classDocsOf(sd, cid);
     const out = { pts: 0, days: 0, st: s.STATES.map(() => 0), att: null, n: 0, grades: [], avg: null, docs };
     docs.forEach(dc => {
       const t = s.calcStudent(cid, si, dc.recs);
       if (t.days) { out.n++; out.days += t.days; out.pts += t.pts; t.st.forEach((v, k) => out.st[k] += v); }
-      if (s.hasGrades(cid, si, dc.grades, dc.recs)) out.grades.push({ tid: dc.tid, subject: dc.subject, pct: s.gradeTotal(cid, si, dc.grades, dc.recs) / maxTot * 100 });
+      // النسبة من البنود المرصودة حتى الآن (SIJIL.gradePct) لا من maxTotal الثابت: البنود التلقائية سقفها 40 من 100
+      if (s.hasGrades(cid, si, dc.grades, dc.recs)) { const p = s.gradePct(cid, si, dc.grades, dc.recs); if (p != null) out.grades.push({ tid: dc.tid, subject: dc.subject, pct: p, max: s.gradedMax(cid, si, dc.grades, dc.recs) }); }
     });
     out.pts = Math.round(out.pts * 10) / 10;
     const marks = out.st.reduce((a, b) => a + b, 0); out.att = marks ? Math.round(out.st[0] / marks * 100) : null;
@@ -253,6 +280,10 @@
 
   /* ═══ أدوات عامة ═══ */
   const sortedClasses = () => (S().D.classes || []).slice().sort((a, b) => ((a.gc || 0) - (b.gc || 0)) || String(a.name).localeCompare(String(b.name)));
+  /* تعريف واحد لـ«المعلمين» في كل الشاشات: حساب غير إداري وله فصل مسند (حساب المدير و«حسابات بلا فصول» خارج العدّ).
+     allAccounts = كل مستندات teachers كما هي (يشمل المدير) — للجداول لا للمؤشرات. */
+  const allAccounts = () => (S().D.teachers || []).slice();
+  const staff = () => allAccounts().filter(t => !t.admin && (t.classes || []).length);
   const classTeachers = (cid) => (S().D.teachers || []).filter(t => (t.classes || []).includes(cid));
   const teacherOf = (tid) => (S().D.teachers || []).find(t => t.id === tid) || null;
   const teacherByName = (name) => (S().D.teachers || []).find(t => t.name === name) || null;
@@ -300,7 +331,7 @@
     adminlog, saveSedit,
     printHead, printHtml, printEl, printTable, cleanClone,
     H, toast, confirm,
-    sortedClasses, classTeachers, teacherOf, teacherByName, todayName, isoDate, daysAgo, fmtDate, fmtTs, PERIODS, periodNow, periodTime, normMob, waPhone, waHref, nextTeacherId
+    sortedClasses, staff, allAccounts, showActiveTab, classTeachers, teacherOf, teacherByName, todayName, isoDate, daysAgo, fmtDate, fmtTs, PERIODS, periodNow, periodTime, normMob, waPhone, waHref, nextTeacherId
   };
 
   // إن كان app.js قد أعاد جلسة محفوظة قبل تحميل هذا الملف (الوضع التجريبي متزامن بلا await): هيّئ اللوحة الآن
