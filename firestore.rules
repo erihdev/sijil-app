@@ -19,9 +19,37 @@ service cloud.firestore {
 
     // ── بيانات أساسية تُزرع بالسكربت فقط: قراءة نعم، كتابة لا ──
     match /meta/{doc}      { allow read: if signedIn(); allow write: if false; }
-    match /teachers/{tid}  { allow read: if signedIn(); allow write: if false; }
+    // ── المعلمون: يحرّرهم المدير من لوحته (الواجهة تخفي ذلك عن غيره؛ القواعد لا تعرف هوية المدير) ──
+    //    الحقول: name/subject/mob/classes/pinHash/lead/ts (+phone القديم) — لا تغيير لـ admin أبداً، ولا حذف
+    function teacherShape() {
+      return request.resource.data.keys().hasOnly(['name', 'subject', 'mob', 'phone', 'classes', 'pinHash', 'admin', 'lead', 'ts'])
+          && request.resource.data.name is string && request.resource.data.name.size() > 0 && request.resource.data.name.size() <= 80
+          && request.resource.data.classes is list && request.resource.data.classes.size() <= 40
+          && request.resource.data.ts is number
+          && (!('subject' in request.resource.data) || (request.resource.data.subject is string && request.resource.data.subject.size() <= 80))
+          && (!('mob' in request.resource.data) || (request.resource.data.mob is string && request.resource.data.mob.size() <= 20))
+          && (!('phone' in request.resource.data) || (request.resource.data.phone is string && request.resource.data.phone.size() <= 20))
+          && (!('pinHash' in request.resource.data) || (request.resource.data.pinHash is string && request.resource.data.pinHash.size() <= 64))
+          && (!('lead' in request.resource.data) || (request.resource.data.lead is list && request.resource.data.lead.size() <= 40));
+    }
+    match /teachers/{tid} {
+      allow read: if signedIn();
+      allow create: if signedIn() && tid.matches('^t[0-9]{2,3}$') && teacherShape()
+          && (!('admin' in request.resource.data) || request.resource.data.admin == false);
+      allow update: if signedIn() && tid.matches('^t[0-9]{2,3}$') && teacherShape()
+          && (!('admin' in request.resource.data)
+              || (('admin' in resource.data) ? request.resource.data.admin == resource.data.admin : request.resource.data.admin == false));
+      allow delete: if false;
+    }
     match /classes/{cid}   { allow read: if signedIn(); allow write: if false; }
-    match /schedule/{doc}  { allow read: if signedIn(); allow write: if false; }
+    // ── الجدول المدرسي schedule/all: {rows:[{t,d,p,c}], tn, ts} — يحدّثه المدير من محرّر الجدول (استبدال كامل بلا merge)، لا إنشاء ولا حذف ──
+    match /schedule/{doc} {
+      allow read: if signedIn();
+      allow update: if signedIn() && doc == 'all' && stamped()
+          && request.resource.data.rows is list && request.resource.data.rows.size() <= 600
+          && request.resource.data.keys().hasOnly(['rows', 'tn', 'ts']);
+      allow create, delete: if false;
+    }
 
     // ── رصد المعلم لفصله: {d: خريطة الأيام, tn, ts} ──
     match /recs/{id} {
@@ -122,6 +150,26 @@ service cloud.firestore {
           && request.resource.data.newSi is int && request.resource.data.newSi >= 0 && request.resource.data.newSi < 400
           && request.resource.data.name is string && request.resource.data.name.size() <= 120
           && request.resource.data.keys().hasOnly(['from', 'si', 'to', 'newSi', 'name', 'tn', 'ts']);
+      allow update, delete: if false;
+    }
+
+    // ── تعديلات المدير على بيانات الطلاب (جوال ولي الأمر/تصحيح الاسم): sedits/{cid} = {s:{si:{p,n}}, tn, ts} — دمج، لا حذف ──
+    match /sedits/{cid} {
+      allow read: if signedIn();
+      allow create, update: if signedIn() && cid.matches('^[A-Za-z0-9]{1,12}$') && stamped()
+          && request.resource.data.s is map
+          && request.resource.data.keys().hasOnly(['s', 'tn', 'ts']);
+      allow delete: if false;
+    }
+
+    // ── سجل الإدارة adminlog/{id}: {act, tid?, note, tn, ts} — إنشاء فقط ──
+    match /adminlog/{id} {
+      allow read: if signedIn();
+      allow create: if signedIn() && id.matches('^[a-z0-9]{4,20}$') && stamped()
+          && request.resource.data.act is string && request.resource.data.act.size() <= 20
+          && request.resource.data.note is string && request.resource.data.note.size() <= 300
+          && (!('tid' in request.resource.data) || (request.resource.data.tid is string && request.resource.data.tid.size() <= 12))
+          && request.resource.data.keys().hasOnly(['act', 'tid', 'note', 'tn', 'ts']);
       allow update, delete: if false;
     }
 

@@ -1,0 +1,308 @@
+/* ═══════════ لوحة مدير المدرسة — النواة (js/admin/core.js) ═══════════
+   تُحمَّل بعد app.js وتعتمد على window.SIJIL (حالة حية عبر getters: D/DB/TE/fdb/META…).
+   الوحدات تسجّل نفسها:  SIJIL_ADMIN.register("home" | "students" | "teachers" | "schedule" | "levels" | "reports" | "manage", fn)
+   حيث fn(box, name) ترسم داخل الحاوية box (قد تكون async). غير المسجَّل يظهر «قيد الإعداد».
+   app.js: switchTab(name) يستدعي SIJIL_ADMIN.render(name) حين TE.admin && localStorage sijil.adminView !== 'teacher'،
+           وenter() يستدعي SIJIL_ADMIN.init(TE) الذي يعيد بناء شريط التبويبات (7 إدارية أو 5 للمعلم + زر التبديل في الرأس إن كان للمدير فصول). */
+(function () {
+  "use strict";
+  const S = () => window.SIJIL;
+  const VIEW_KEY = "sijil.adminView";
+  const TABS = [
+    { k: "home", ic: "🏫", t: "المدرسة" },
+    { k: "students", ic: "👥", t: "الطلاب" },
+    { k: "teachers", ic: "👨‍🏫", t: "المعلمون" },
+    { k: "schedule", ic: "🗓️", t: "الجدول" },
+    { k: "levels", ic: "📊", t: "المستويات" },
+    { k: "reports", ic: "📄", t: "التقارير" },
+    { k: "manage", ic: "⚙️", t: "الإدارة" }];
+  const TEACHER_TABS = [
+    { k: "today", ic: "📌", t: "اليوم" },
+    { k: "reg", ic: "🗒️", t: "التحضير" },
+    { k: "grades", ic: "💯", t: "الدرجات" },
+    { k: "rep", ic: "📄", t: "التقارير" },
+    { k: "more", ic: "⚙️", t: "المزيد" }];
+  const TEACHER_PANES = ["today", "reg", "grades", "rep", "more"];
+  const MODS = {};
+  let TE = null, cur = null;
+  const esc = (s) => S().esc(s);
+  const $ = (q, root) => (root || document).querySelector(q);
+  const warn = (...a) => { try { console.warn("[admin]", ...a); } catch (e) { } };
+
+  /* ═══ العرض الحالي: لوحة المدير أم واجهة المعلم ═══ */
+  const storedView = () => { try { return localStorage.getItem(VIEW_KEY); } catch (e) { return null; } };
+  const isAdminView = () => !!(TE && TE.admin && storedView() !== "teacher");
+  function setView(v) { try { if (v === "teacher") localStorage.setItem(VIEW_KEY, "teacher"); else localStorage.removeItem(VIEW_KEY); } catch (e) { } }
+
+  /* ═══ شريط التبويبات والحاويات ═══ */
+  function buildTabs(list, adm) {
+    const nav = $("#tabs"); if (!nav) return;
+    nav.classList.toggle("adm", !!adm);
+    nav.innerHTML = list.map((t, i) => `<button data-tab="${t.k}" class="${i === 0 ? "on" : ""}"><span class="ic">${t.ic}</span>${t.t}</button>`).join("");
+    nav.querySelectorAll("button").forEach(b => b.onclick = () => S().switchTab(b.dataset.tab));
+  }
+  function ensurePanes() {
+    const wrap = $("#view-app .wrap"); if (!wrap) return;
+    const foot = wrap.querySelector(".footer-sig");
+    TABS.forEach(t => {
+      if ($("#tab-adm-" + t.k)) return;
+      const d = document.createElement("div"); d.id = "tab-adm-" + t.k; d.className = "hidden adm-pane"; d.dataset.mod = t.k;
+      if (foot) wrap.insertBefore(d, foot); else wrap.appendChild(d);
+    });
+  }
+  const pane = (k) => $("#tab-adm-" + k);
+  const hideAdminPanes = () => document.querySelectorAll(".adm-pane").forEach(p => p.classList.add("hidden"));
+
+  // زر التبديل في الرأس (يظهر فقط للمدير الذي له فصول)
+  function headerToggle(show) {
+    const row = $("#view-app .appbar .row1"); if (!row) return;
+    let acts = $("#ab-actions");
+    if (!acts) {
+      acts = document.createElement("div"); acts.id = "ab-actions"; acts.className = "acts";
+      const lo = $("#ab-logout");
+      if (lo) { row.insertBefore(acts, lo); acts.appendChild(lo); } else row.appendChild(acts);
+    }
+    let b = $("#ab-view");
+    if (!show) { if (b) b.remove(); return; }
+    if (!b) { b = document.createElement("button"); b.id = "ab-view"; b.className = "btn-ghost"; acts.insertBefore(b, acts.firstChild); }
+    const adm = isAdminView();
+    b.textContent = adm ? "🎒 واجهتي كمعلم" : "🏫 لوحة المدير";
+    b.onclick = () => { setView(adm ? "teacher" : "admin"); const now = init(TE); S().switchTab(now ? "home" : "today"); toast(now ? "🏫 لوحة المدير" : "🎒 واجهة المعلم"); };
+  }
+
+  // يُستدعى من enter() — يعيد true إن كانت لوحة المدير هي الفعّالة
+  function init(te) {
+    TE = te || S().TE;
+    if (!TE || !TE.admin) return false;
+    const hasCls = !!(TE.classes || []).length;
+    if (!hasCls && storedView() === "teacher") setView("admin");     // مدير بلا فصول: لوحة المدير دائماً
+    const adm = isAdminView();
+    ensurePanes();
+    if (adm) { buildTabs(TABS, true); TEACHER_PANES.forEach(n => { const p = $("#tab-" + n); if (p) p.classList.add("hidden"); }); }
+    else { buildTabs(TEACHER_TABS, false); hideAdminPanes(); }
+    headerToggle(hasCls);
+    return adm;
+  }
+
+  /* ═══ التوجيه إلى الوحدات ═══ */
+  function register(name, fn) {
+    if (typeof fn !== "function") return;
+    MODS[name] = fn;
+    const p = pane(name);
+    if (cur === name && isAdminView() && p && !p.classList.contains("hidden")) render(name);
+  }
+  const wip = (name) => { const t = TABS.find(x => x.k === name) || {}; return H.card(`${t.ic || ""} ${esc(t.t || name)}`, H.empty("🛠️ قيد الإعداد — هذه الوحدة لم تُحمَّل بعد")); };
+  function fail(box, e) { warn("render " + cur, e); box.innerHTML = H.card("⚠️ تعذّر العرض", H.empty(esc((e && e.message) || String(e)))); }
+  function render(name) {
+    if (!TABS.find(t => t.k === name)) name = "home";
+    cur = name; ensurePanes();
+    TABS.forEach(t => { const p = pane(t.k); if (p) p.classList.toggle("hidden", t.k !== name); });
+    const box = pane(name); if (!box) return;
+    const fn = MODS[name];
+    if (!fn) { box.innerHTML = wip(name); return; }
+    try { const r = fn(box, name); if (r && typeof r.catch === "function") r.catch(e => fail(box, e)); } catch (e) { fail(box, e); }
+  }
+  const refresh = () => { if (cur && isAdminView()) render(cur); };
+
+  /* ═══ schoolDocs(): كل مستندات المدرسة مرة واحدة (مخبّأة 60 ثانية) ═══
+     { ts, cloud, recs: {tid_cid: d}, grades: {tid_cid: g}, comms: {tid_cid: c[]}, moves: [], assign: [], sedits: {cid: doc}, adminlog: [] (الأحدث أولاً) }
+     تجريبياً: رصد هذا الجهاز DB.recs[cid] يُنسب إلى أول معلم يدرّس الفصل (DB لا تحمل معرّف المعلم). */
+  let cache = null, inflight = null;
+  function splitKey(id) { const k = id.indexOf("_"); return k < 0 ? { tid: id, cid: "" } : { tid: id.slice(0, k), cid: id.slice(k + 1) }; }
+  async function schoolDocs(force) {
+    if (!force && cache && Date.now() - cache.ts < 60000) return cache;
+    if (inflight && !force) return inflight;
+    inflight = (async () => {
+      const s = S(), D = s.D, DB = s.DB;
+      const out = { ts: Date.now(), cloud: !!(s.CLOUD && s.fdb), recs: {}, grades: {}, comms: {}, moves: [], assign: [], sedits: {}, adminlog: [] };
+      if (out.cloud) {
+        const fdb = s.fdb;
+        const get = async (col) => { try { return await fdb.collection(col).get(); } catch (e) { warn("schoolDocs/" + col, e && e.message); return null; } };
+        const [rs, gs, cs, as, ls] = await Promise.all([get("recs"), get("grades"), get("comms"), get("assign"), get("adminlog")]);
+        if (rs) rs.forEach(d => { out.recs[d.id] = (d.data() || {}).d || {}; });
+        if (gs) gs.forEach(d => { out.grades[d.id] = (d.data() || {}).g || {}; });
+        if (cs) cs.forEach(d => { out.comms[d.id] = (d.data() || {}).c || []; });
+        if (as) as.forEach(d => { out.assign.push(Object.assign({ id: d.id }, d.data())); });
+        if (ls) ls.forEach(d => { out.adminlog.push(Object.assign({ id: d.id }, d.data())); });
+        out.sedits = D.sedits || {};
+      } else {
+        const owner = (cid) => { const t = (D.teachers || []).find(x => !x.admin && (x.classes || []).includes(cid)) || (D.teachers || []).find(x => (x.classes || []).includes(cid)); return t ? t.id : (s.TE ? s.TE.id : "t00"); };
+        Object.keys(DB.recs || {}).forEach(cid => { if (Object.keys(DB.recs[cid] || {}).length) out.recs[owner(cid) + "_" + cid] = DB.recs[cid]; });
+        Object.keys(DB.grades || {}).forEach(cid => { if (Object.keys(DB.grades[cid] || {}).length) out.grades[owner(cid) + "_" + cid] = DB.grades[cid]; });
+        Object.keys(DB.comms || {}).forEach(cid => { if ((DB.comms[cid] || []).length) out.comms[owner(cid) + "_" + cid] = DB.comms[cid]; });
+        out.sedits = DB.sedits || {};
+        out.adminlog = (DB.adminlog || []).slice();
+      }
+      out.moves = (D.moves || []).slice();
+      out.adminlog.sort((a, b) => (b.ts || 0) - (a.ts || 0));
+      cache = out; return out;
+    })();
+    try { return await inflight; } finally { inflight = null; }
+  }
+  const invalidate = () => { cache = null; };
+  // مواد الفصل من الخرائط المخبّأة (مرادف classDocs بلا استعلام): [{tid, subject, tname, recs, grades, comms}]
+  function classDocsOf(sd, cid) {
+    const D = S().D, byT = {};
+    const add = (map, key) => Object.keys(map).forEach(id => { const k = splitKey(id); if (k.cid !== cid) return; byT[k.tid] = byT[k.tid] || {}; byT[k.tid][key] = map[id]; });
+    add(sd.recs, "recs"); add(sd.grades, "grades"); add(sd.comms, "comms");
+    return Object.keys(byT).sort().map(tid => { const t = (D.teachers || []).find(z => z.id === tid); return { tid, subject: t ? t.subject : tid, tname: t ? t.name : "", recs: byT[tid].recs || {}, grades: byT[tid].grades || {}, comms: byT[tid].comms || [] }; });
+  }
+  // مستندات معلم عبر فصوله: [{cid, cname, recs, grades, comms}]
+  function teacherDocsOf(sd, tid) {
+    const byC = {};
+    const add = (map, key) => Object.keys(map).forEach(id => { const k = splitKey(id); if (k.tid !== tid) return; byC[k.cid] = byC[k.cid] || {}; byC[k.cid][key] = map[id]; });
+    add(sd.recs, "recs"); add(sd.grades, "grades"); add(sd.comms, "comms");
+    return Object.keys(byC).sort().map(cid => { const c = S().classById(cid); return { cid, cname: c ? c.name : cid, recs: byC[cid].recs || {}, grades: byC[cid].grades || {}, comms: byC[cid].comms || [] }; });
+  }
+  // تجميع الطالب عبر كل معلميه: { pts, days, st[], att (نسبة الحاضرين من المرصود أو null), n (مواد بها رصد), grades: [{tid, subject, pct}], avg }
+  function aggStudent(sd, cid, si) {
+    const s = S(), docs = classDocsOf(sd, cid), maxTot = s.maxTotal();
+    const out = { pts: 0, days: 0, st: s.STATES.map(() => 0), att: null, n: 0, grades: [], avg: null, docs };
+    docs.forEach(dc => {
+      const t = s.calcStudent(cid, si, dc.recs);
+      if (t.days) { out.n++; out.days += t.days; out.pts += t.pts; t.st.forEach((v, k) => out.st[k] += v); }
+      if (s.hasGrades(cid, si, dc.grades, dc.recs)) out.grades.push({ tid: dc.tid, subject: dc.subject, pct: s.gradeTotal(cid, si, dc.grades, dc.recs) / maxTot * 100 });
+    });
+    out.pts = Math.round(out.pts * 10) / 10;
+    const marks = out.st.reduce((a, b) => a + b, 0); out.att = marks ? Math.round(out.st[0] / marks * 100) : null;
+    if (out.grades.length) out.avg = Math.round(out.grades.reduce((a, g) => a + g.pct, 0) / out.grades.length);
+    return out;
+  }
+  // آخر تاريخ رصد (yyyy-mm-dd) في خرائط recs لمعلم/فصل — null إن لا رصد
+  function lastRecDate(recs) { let best = null; Object.keys(recs || {}).forEach(date => { if (Object.keys(recs[date] || {}).length && (!best || date > best)) best = date; }); return best; }
+
+  /* ═══ سجل الإدارة adminlog/{id} = { act: 'pin'|'edit'|'schedule'|'move'|'sedit'|'add', tid?, note, tn, ts } — إنشاء فقط ═══ */
+  const logId = () => (Date.now().toString(36) + S().shortId()).replace(/[^a-z0-9]/g, "").slice(0, 20);
+  async function adminlog(act, note, tid) {
+    const s = S(); if (!s.TE) return false;
+    const rec = { act: String(act || "").slice(0, 20), note: String(note || "").slice(0, 300), tn: s.TE.name, ts: Date.now() };
+    if (tid) rec.tid = String(tid).slice(0, 12);
+    if (s.CLOUD && s.fdb) {
+      try { await s.fdb.doc("adminlog/" + logId()).set(rec); } catch (e) { warn("adminlog", e && e.message); return false; }
+    } else {
+      const DB = s.DB; DB.adminlog = Array.isArray(DB.adminlog) ? DB.adminlog : [];
+      DB.adminlog.push(rec); if (DB.adminlog.length > 300) DB.adminlog.splice(0, DB.adminlog.length - 300);
+      s.save();
+    }
+    if (cache) cache.adminlog.unshift(rec);
+    return true;
+  }
+
+  /* ═══ تعديل بيانات طالب من المدير: sedits/{cid} = { s: { si: { p?, n? } }, tn, ts } ═══ */
+  async function saveSedit(cid, si, patch) {
+    const s = S(), D = s.D, DB = s.DB, p = {};
+    if (typeof patch.p === "string") p.p = patch.p;
+    if (typeof patch.n === "string" && patch.n.trim()) p.n = patch.n.trim();
+    if (!Object.keys(p).length) return false;
+    if (s.CLOUD && s.fdb) {
+      try { await s.fdb.doc("sedits/" + cid).set({ s: { [si]: p }, tn: s.TE.name, ts: Date.now() }, { merge: true }); } catch (e) { warn("sedits", e && e.message); return false; }
+      D.sedits = D.sedits || {}; D.sedits[cid] = D.sedits[cid] || { s: {} }; D.sedits[cid].s = D.sedits[cid].s || {};
+      D.sedits[cid].s[si] = Object.assign({}, D.sedits[cid].s[si] || {}, p); D.sedits[cid].ts = Date.now(); D.sedits[cid].tn = s.TE.name;
+      try { localStorage.setItem("sijil.cloudD", JSON.stringify(D)); } catch (e) { }
+    } else {
+      DB.sedits = DB.sedits || {}; DB.sedits[cid] = DB.sedits[cid] || { s: {} }; DB.sedits[cid].s = DB.sedits[cid].s || {};
+      DB.sedits[cid].s[si] = Object.assign({}, DB.sedits[cid].s[si] || {}, p); DB.sedits[cid].ts = Date.now(); DB.sedits[cid].tn = s.TE.name;
+      D.sedits = DB.sedits; s.save();
+    }
+    s.applySedits(D.classes, D.sedits);
+    if (cache) cache.sedits = D.sedits;
+    return true;
+  }
+
+  /* ═══ مساعدات الطباعة (كلها عبر SIJIL.printDoc — مستند نظيف صفحة واحدة) ═══ */
+  function printHead(sub) { const s = S(); return `<div class="h"><div class="bar">${esc(s.META.school.name)}</div><div class="m">${esc(sub || "لوحة مدير المدرسة")} — ${esc(s.TE ? s.TE.name : "")} — ${esc(s.hijriLabel())}</div></div>`; }
+  // printHtml(title, bodyHtml, {land, sub, cls})
+  function printHtml(title, bodyHtml, opts) { opts = opts || {}; S().printDoc(title, printHead(opts.sub) + `<div class="tt">${esc(title)}</div><div class="sheetdoc">${bodyHtml}</div>`, { appCss: true, land: !!opts.land, cls: opts.cls }); }
+  function cleanClone(el) {
+    const c = el.cloneNode(true);
+    c.querySelectorAll(".sheet-actions, button, .no-print, .class-chips, select, input[type=checkbox], input[type=date], input[type=file], .search-box, .adm-tools, .hidden").forEach(x => x.remove());
+    c.querySelectorAll("input, textarea").forEach(x => { const sp = document.createElement("span"); sp.textContent = x.value || ""; x.replaceWith(sp); });
+    return c;
+  }
+  const isWide = (root) => [...root.querySelectorAll("table tr")].some(tr => tr.children.length > 8);
+  // طباعة عنصر من الصفحة (يُنظَّف من الأزرار والحقول) — أفقي تلقائياً إن كان الجدول عريضاً
+  function printEl(el, title, opts) { if (!el) return; const c = cleanClone(el); printHtml(title, c.innerHTML, Object.assign({ land: isWide(c) }, opts || {})); }
+  // printTable(title, cols, rows, {land, sub, foot})
+  function printTable(title, cols, rows, opts) { opts = opts || {}; printHtml(title, H.table(cols, rows, { foot: opts.foot }), Object.assign({ land: cols.length > 8 }, opts)); }
+
+  /* ═══ مكوّنات مشتركة (HTML) — الخلايا/النصوص تُهرَّب من المستدعي بـ SIJIL.esc ═══ */
+  const H = {
+    card: (title, body, attrs) => `<div class="card"${attrs ? " " + attrs : ""}>${title ? `<h3><span class="dot"></span>${title}</h3>` : ""}${body || ""}</div>`,
+    empty: (msg) => `<div class="empty-note">${msg}</div>`,
+    note: (msg) => `<div class="empty-note" style="padding:6px 4px;text-align:right;min-height:0">${msg}</div>`,
+    kpis: (items, cols) => `<div class="kpis"${cols ? ` style="grid-template-columns:repeat(${cols},1fr)"` : ""}>${items.map(k => `<div class="kpi"${k.id ? ` id="${k.id}"` : ""}${k.title ? ` title="${esc(k.title)}"` : ""}><div class="v">${k.v}</div><div class="l">${k.l}</div></div>`).join("")}</div>`,
+    // cols: ["م", {t:"الطالب", w:140}] — rows: مصفوفة خلايا HTML (العمود الأول اسم .nm إلا nameCol:false) أو سلاسل <tr> جاهزة
+    table: (cols, rows, opts) => {
+      opts = opts || {};
+      const th = cols.map(c => typeof c === "string" ? `<th>${c}</th>` : `<th${c.w ? ` style="min-width:${c.w}px"` : ""}>${c.t}</th>`).join("");
+      const body = (rows || []).map(r => Array.isArray(r) ? `<tr${opts.rowAttr ? " " + opts.rowAttr(r) : ""}>${r.map((x, j) => `<td${j === opts.nameIdx || (opts.nameIdx == null && j === 0 && opts.nameCol !== false) ? ' class="nm"' : ""}>${x == null ? "" : x}</td>`).join("")}</tr>` : r).join("");
+      const foot = opts.foot ? `<tr class="tot">${opts.foot.map(x => `<td>${x == null ? "" : x}</td>`).join("")}</tr>` : "";
+      return `<div class="table-scroll"${opts.id ? ` id="${opts.id}"` : ""}><table class="report-table${opts.cls ? " " + opts.cls : ""}"><tr>${th}</tr>${body}${foot}</table></div>`;
+    },
+    chips: (items, curK, attr) => `<div class="class-chips">${items.map(x => `<button class="chip ${x.k === curK ? "on" : ""}" data-${attr || "k"}="${esc(x.k)}">${x.t}</button>`).join("")}</div>`,
+    bindChips: (root, onPick, attr) => { const a = attr || "k"; root.querySelectorAll(".chip").forEach(ch => ch.onclick = () => { root.querySelectorAll(".chip").forEach(x => x.classList.toggle("on", x === ch)); onPick(ch.dataset[a], ch); }); },
+    btn: (label, attrs, cls) => `<button class="${cls || "btn-gold"}" ${attrs || ""}>${label}</button>`,
+    tools: (html) => `<div class="adm-tools">${html}</div>`,
+    printBtn: (id, label) => `<button class="btn-plain adm-print" id="${id}" style="flex:0 0 auto;padding:9px 14px">${label || "🖨️ طباعة"}</button>`,
+    search: (id, ph) => `<input class="search-box" id="${id}" placeholder="${esc(ph || "اكتب اسم الطالب…")}" autocomplete="off">`,
+    pill: (txt, color) => `<span class="cc" style="background:${color || "var(--navy)"}">${txt}</span>`,
+    pct: (p) => S().pctCell(p),
+    row: (l, r) => `<div class="admin-row"><span>${l}</span><span class="cls">${r}</span></div>`,
+    alert: (html, tone) => `<div class="adm-alert ${tone || ""}">${html}</div>`
+  };
+
+  /* ═══ أدوات عامة ═══ */
+  const sortedClasses = () => (S().D.classes || []).slice().sort((a, b) => ((a.gc || 0) - (b.gc || 0)) || String(a.name).localeCompare(String(b.name)));
+  const classTeachers = (cid) => (S().D.teachers || []).filter(t => (t.classes || []).includes(cid));
+  const teacherOf = (tid) => (S().D.teachers || []).find(t => t.id === tid) || null;
+  const teacherByName = (name) => (S().D.teachers || []).find(t => t.name === name) || null;
+  const todayName = () => S().DAYS[new Date().getDay()];
+  const isoDate = (d) => (d ? new Date(d) : new Date()).toISOString().slice(0, 10);     // نفس مفتاح recs في app.js
+  const daysAgo = (dateStr) => dateStr ? Math.floor((Date.now() - new Date(dateStr + "T00:00:00Z").getTime()) / 864e5) : null;
+  const fmtDate = (dateStr) => dateStr ? String(dateStr).slice(5).replace("-", "/") : "—";
+  const fmtTs = (ts) => { if (!ts) return "—"; try { return new Intl.DateTimeFormat("ar-SA-u-ca-islamic-umalqura", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }).format(new Date(ts)); } catch (e) { return new Date(ts).toLocaleString("ar"); } };
+  // الحصة الحالية تقريباً: البداية 7:00، 45 دقيقة لكل حصة، فسحة 30 دقيقة بعد الثالثة — 0 خارج الدوام/في الفسحة
+  const PERIODS = (() => { const b = []; let t = 420; for (let p = 1; p <= 7; p++) { b.push({ p, from: t, to: t + 45 }); t += 45; if (p === 3) t += 30; } return b; })();
+  const hm = (m) => `${Math.floor(m / 60)}:${String(m % 60).padStart(2, "0")}`;
+  function periodNow(d) { const x = d || new Date(); const m = x.getHours() * 60 + x.getMinutes(); const hit = PERIODS.find(b => m >= b.from && m < b.to); return hit ? hit.p : 0; }
+  const periodTime = (p) => { const b = PERIODS[p - 1]; return b ? hm(b.from) + "–" + hm(b.to) : ""; };
+  // الجوال: تطبيع إلى 05xxxxxxxx (يقبل 9665… و5…) أو null إن لم يصلح
+  const normMob = (p) => { let d = String(p || "").replace(/[^\d]/g, ""); if (/^9665\d{8}$/.test(d)) d = "0" + d.slice(3); else if (/^5\d{8}$/.test(d)) d = "0" + d; return /^05\d{8}$/.test(d) ? d : null; };
+  const waPhone = (p) => { const n = normMob(p); return n ? "966" + n.slice(1) : ""; };
+  const waHref = (p, text) => S().waLink(waPhone(p), text || "");
+  const nextTeacherId = () => { const used = new Set((S().D.teachers || []).map(t => t.id)); for (let n = 1; n < 1000; n++) { const id = "t" + String(n).padStart(2, "0"); if (!used.has(id)) return id; } return "t" + Date.now() % 1000; };
+
+  /* ═══ إشعار وتأكيد ═══ */
+  let toastT = null;
+  function toast(msg, ms) {
+    let el = $("#adm-toast"); if (!el) { el = document.createElement("div"); el.id = "adm-toast"; el.className = "adm-toast"; document.body.appendChild(el); }
+    el.textContent = msg; el.classList.add("show"); clearTimeout(toastT); toastT = setTimeout(() => el.classList.remove("show"), ms || 2200);
+  }
+  // confirm(title, html, {ok, no, danger}) → Promise<boolean> (إغلاق النافذة بالنقر خارجها = false)
+  function confirm(title, html, opts) {
+    opts = opts || {};
+    return new Promise(res => {
+      let done = false; const fin = (v) => { if (done) return; done = true; try { ob.disconnect(); } catch (e) { } S().closeSheet(); res(v); };
+      const root = $("#overlay-root");
+      const ob = new MutationObserver(() => { if (root && !root.firstChild) fin(false); });
+      S().openSheet(`<h4>${title}</h4><div style="font-size:14px;line-height:1.9;margin:6px 0 4px">${html}</div><div class="sheet-actions"><button class="btn-plain" id="adm-cf-no">${opts.no || "إلغاء"}</button><button class="btn-primary" id="adm-cf-ok"${opts.danger ? ' style="background:var(--bad)"' : ""}>${opts.ok || "تأكيد"}</button></div>`, (o) => {
+        o.querySelector("#adm-cf-no").onclick = () => fin(false);
+        o.querySelector("#adm-cf-ok").onclick = () => fin(true);
+        try { if (root) ob.observe(root, { childList: true }); } catch (e) { }
+      });
+    });
+  }
+
+  window.SIJIL_ADMIN = {
+    TABS, TEACHER_TABS, VIEW_KEY,
+    init, render, register, refresh, currentTab: () => cur, isAdminView, setView, get TE() { return TE; }, modules: () => Object.keys(MODS),
+    schoolDocs, invalidate, splitKey, classDocsOf, teacherDocsOf, aggStudent, lastRecDate,
+    adminlog, saveSedit,
+    printHead, printHtml, printEl, printTable, cleanClone,
+    H, toast, confirm,
+    sortedClasses, classTeachers, teacherOf, teacherByName, todayName, isoDate, daysAgo, fmtDate, fmtTs, PERIODS, periodNow, periodTime, normMob, waPhone, waHref, nextTeacherId
+  };
+
+  // إن كان app.js قد أعاد جلسة محفوظة قبل تحميل هذا الملف (الوضع التجريبي متزامن بلا await): هيّئ اللوحة الآن
+  try { const s = S(); if (s && s.TE && s.TE.admin) { const adm = init(s.TE); s.switchTab(adm ? "home" : "today"); } } catch (e) { warn("late init", e); }
+})();

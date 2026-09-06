@@ -919,8 +919,15 @@
         <div class="countchips">${STATES.map((s, k) => `<span class="cc" style="background:${STCOLORS[k]}">${esc(s.name)} ${s.pts >= 0 ? "+" : ""}${s.pts}</span>`).join("")}</div>
         <div class="countchips">${BEH.map(b => `<span class="cc" style="background:${b.pts >= 0 ? "var(--ok)" : "var(--bad)"}">${esc(b.name)} ${b.pts >= 0 ? "+" : ""}${b.pts}</span>`).join("")}</div></div>
       <div class="card"><h3><span class="dot"></span>عن البرنامج</h3><div style="font-size:13.5px;line-height:2;color:var(--muted)">سجلي — سجل المتابعة الرقمي — ${CLOUD ? "النسخة السحابية المشتركة ☁️" : "نسخة تجريبية محلية"}.<br>يعمل على أي جهاز: جوال، تابلت، وكمبيوتر.<br><b>المطوّر:</b> أ. ضيف الله أحمد محمد مشني</div></div>`;
-    // 👤 بياناتي (js/admin/teachers.js) — بطاقة الحساب وتغيير رقم الدخول للمعلم داخل «المزيد»
-    try { const slot = $("#me-slot"); if (slot && window.SIJIL_ADMIN && typeof window.SIJIL_ADMIN.profileCard === "function") window.SIJIL_ADMIN.profileCard(slot); } catch (e) { }
+    // 👤 بياناتي (js/admin/teachers.js) — بطاقة الحساب وتغيير رقم الدخول للمعلم داخل «المزيد».
+    // في لوحة المدير تظهر داخل «⚙️ الإدارة» — فلا نكررها هنا (تفادي تكرار معرّفات #me-*)
+    try {
+      const slot = $("#me-slot"), ADM = window.SIJIL_ADMIN;
+      if (slot && ADM && typeof ADM.profileCard === "function") {
+        if (adminView()) slot.innerHTML = "";
+        else { document.querySelectorAll(".adm-pane.hidden #mg-profile").forEach(x => { x.innerHTML = ""; }); ADM.profileCard(slot); }
+      }
+    } catch (e) { }
     // أدوات المعلم
     const al = $("#adm-levels"); if (al) al.onclick = adminLevels;
     const as = $("#adm-school"); if (as) as.onclick = schoolSummary;

@@ -506,3 +506,20 @@ button{font-family:inherit}
 .live-act .act.n{background:#2b3f5c; color:#e6edf5}
 .live-act .act.on{outline:3px solid var(--gold); outline-offset:-3px}
 @media(max-width:520px){ .live-act .grid.g3{grid-template-columns:repeat(2,1fr)} }
+
+/* ═══ لوحة مدير المدرسة (js/admin) ═══ */
+.tabs.adm{overflow-x:auto; overflow-y:hidden; scrollbar-width:none; -webkit-overflow-scrolling:touch}
+.tabs.adm::-webkit-scrollbar{display:none}
+.tabs.adm button{flex:1 0 62px; padding-inline:4px; white-space:nowrap}
+.appbar .acts{display:flex; gap:6px; align-items:center; flex:0 0 auto}
+#ab-view{white-space:nowrap}
+.adm-tools{display:flex; flex-wrap:wrap; gap:8px; margin-bottom:10px; align-items:center}
+.adm-tools select{padding:9px 12px; border:1.5px solid var(--line); border-radius:10px; font-family:inherit; font-size:13.5px; background:#fff; color:var(--navy)}
+.adm-alert{background:#fff8e6; border:1px solid #f0d9a0; border-radius:12px; padding:10px 12px; margin:8px 0; font-size:13.5px; line-height:1.8}
+.adm-alert.bad{background:#fff0f0; border-color:#f3c2c2}
+.adm-alert.ok{background:#eef8f0; border-color:#c6e6cf}
+.adm-toast{position:fixed; bottom:82px; left:50%; transform:translateX(-50%); background:var(--navy); color:var(--goldl);
+  padding:10px 18px; border-radius:12px; font-weight:800; font-size:13.5px; z-index:70; box-shadow:0 6px 20px rgba(0,0,0,.25);
+  opacity:0; pointer-events:none; transition:opacity .25s; white-space:nowrap; max-width:92vw; overflow:hidden; text-overflow:ellipsis}
+.adm-toast.show{opacity:1}
+@media print{.adm-tools,#ab-actions,.adm-toast{display:none!important}}
