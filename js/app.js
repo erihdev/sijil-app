@@ -727,23 +727,93 @@
       render(o);
     });
   }
-  function toolCalc() {
-    openSheet(`<h4>🧮 حاسبة درجة المهمة الأدائية</h4><div style="font-size:13px;color:var(--muted);margin-bottom:8px">أدخل درجة كل معيار ودرجته العظمى، فيُحسب المجموع والنسبة والتقدير تلقائياً.</div><div id="calc-rows"></div><button class="btn-soft" id="calc-add" style="margin:8px 0">+ إضافة معيار</button><div class="ana-grid"><div class="ana"><div class="v" id="calc-tot">0</div><div class="l">المجموع</div></div><div class="ana"><div class="v" id="calc-pct">0%</div><div class="l">النسبة</div></div></div><div style="text-align:center;margin-top:6px" id="calc-lvl"></div><div class="sheet-actions"><button class="btn-primary" onclick="window._sheetClose()">إغلاق</button></div>`, (o) => {
+  /* ═══ حاسبة المهمة الأدائية: معايير قابلة للحفظ + اعتماد الدرجة لطالب ═══ */
+  const CALC_DEFAULT = [{ n: "الأداء والإتقان", mx: 10 }, { n: "التعاون والمشاركة", mx: 5 }, { n: "الالتزام بالوقت", mx: 5 }];
+  async function calcTemplate() {
+    if (Array.isArray(DB.calcTpl) && DB.calcTpl.length) return DB.calcTpl;
+    if (CLOUD && fdb && TE) {
+      try { const d = await fdb.doc("prefs/" + TE.id).get(); const rows = d.exists && d.data().calc && d.data().calc.rows; if (Array.isArray(rows) && rows.length) { DB.calcTpl = rows; save(); return rows; } } catch (e) { }
+    }
+    return CALC_DEFAULT;
+  }
+  async function toolCalc() {
+    const cls = myClasses();
+    const tpl = await calcTemplate();
+    let cid = (typeof regClass !== "undefined" && regClass && cls.find(c => c.id === regClass)) ? regClass : (cls.length ? cls[0].id : null);
+    openSheet(`<h4>🧮 حاسبة درجة المهمة الأدائية</h4>
+      <div style="font-size:13px;color:var(--muted);margin-bottom:8px">أدخل درجة كل معيار ودرجته العظمى، فيُحسب المجموع والنسبة والتقدير تلقائياً. احفظ معاييرك لتعود كما هي في كل مرة، واعتمد الدرجة لطالب فتظهر في الدرجات والتقارير ومستويات المدرسة.</div>
+      <div id="calc-rows"></div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;margin:8px 0"><button class="btn-soft" id="calc-add">+ إضافة معيار</button><button class="btn-soft" id="calc-save-tpl">💾 حفظ المعايير</button><button class="btn-plain" id="calc-reset">↺ المعايير الافتراضية</button></div>
+      <div class="ana-grid"><div class="ana"><div class="v" id="calc-tot">0</div><div class="l">المجموع</div></div><div class="ana"><div class="v" id="calc-pct">0%</div><div class="l">النسبة</div></div></div>
+      <div style="text-align:center;margin-top:6px" id="calc-lvl"></div>
+      ${cls.length ? `<div class="field" style="margin-top:12px"><label>اعتماد الدرجة لطالب</label>
+        <div class="class-chips" id="calc-cls">${cls.map(c => `<button class="chip ${c.id === cid ? "on" : ""}" data-c="${c.id}">${esc(c.name)}</button>`).join("")}</div>
+        <select class="search-box" id="calc-stu" style="margin:6px 0 0"></select>
+        <select class="search-box" id="calc-col" style="margin:6px 0 0">${ASSESS.map(a => `<option value="${a.k}" ${a.k === "p1" ? "selected" : ""}>${esc(a.n)} (من ${a.max})</option>`).join("")}</select>
+        <div class="empty-note" id="calc-preview" style="padding:6px 2px 0;text-align:right"></div>
+        <button class="btn-primary" id="calc-apply" style="margin-top:8px;width:100%">✅ اعتماد الدرجة للطالب</button>
+        <div class="empty-note" id="calc-msg" style="padding:6px 2px 0;text-align:right;min-height:18px"></div></div>` : ""}
+      <div class="sheet-actions"><button class="btn-primary" onclick="window._sheetClose()">إغلاق</button></div>`, (o) => {
       const rowsBox = o.querySelector("#calc-rows");
+      const rows = () => [...o.querySelectorAll("#calc-rows>div")].map(r => ({ n: r.querySelector(".cname").value.trim(), sc: +r.querySelector(".cscore").value || 0, mx: +r.querySelector(".cmax").value || 0 }));
+      function totals() { const rs = rows(); const sum = rs.reduce((a, r) => a + Math.min(r.sc, r.mx || r.sc), 0), max = rs.reduce((a, r) => a + r.mx, 0); return { sum: Math.round(sum * 10) / 10, max, pct: max ? Math.round(sum / max * 100) : 0 }; }
+      function preview() {
+        const pv = o.querySelector("#calc-preview"); if (!pv) return;
+        const a = ASSESS.find(x => x.k === o.querySelector("#calc-col").value) || ASSESS[0], t = totals();
+        const v = t.max ? Math.round(t.sum / t.max * a.max * 10) / 10 : 0;
+        const st = o.querySelector("#calc-stu"); const nm = st && st.selectedOptions[0] ? st.selectedOptions[0].textContent : "";
+        const curV = (DB.grades[cid] && DB.grades[cid][+(st && st.value)] && DB.grades[cid][+(st && st.value)][a.k]);
+        pv.textContent = (t.max ? `ستُسجَّل ${v} من ${a.max} في «${a.n}» ${nm ? "للطالب " + nm : ""}` : "أدخل الدرجات العظمى أولاً") + (curV != null ? ` · الدرجة الحالية المسجّلة: ${curV}` : " · لا درجة مسجّلة بعد");
+      }
       function calc() {
-        let sum = 0, max = 0;
-        o.querySelectorAll("#calc-rows>div").forEach(r => { sum += +r.querySelector(".cscore").value || 0; max += +r.querySelector(".cmax").value || 0; });
-        const pct = max ? Math.round(sum / max * 100) : 0, lv = levelOf(pct);
-        o.querySelector("#calc-tot").textContent = (Math.round(sum * 10) / 10) + (max ? " / " + max : "");
-        o.querySelector("#calc-pct").textContent = pct + "%";
-        o.querySelector("#calc-lvl").innerHTML = max ? `<span class="lvl lvl${lv.i}">${lv.t}</span>` : "";
+        const t = totals(), lv = levelOf(t.pct);
+        o.querySelector("#calc-tot").textContent = t.sum + (t.max ? " / " + t.max : "");
+        o.querySelector("#calc-pct").textContent = t.pct + "%";
+        o.querySelector("#calc-lvl").innerHTML = t.max ? `<span class="lvl lvl${lv.i}">${lv.t}</span>` : "";
+        preview();
       }
-      function addRow(name) {
-        rowsBox.insertAdjacentHTML("beforeend", `<div style="display:flex;gap:6px;align-items:center;margin-bottom:6px"><input class="search-box" style="flex:2;margin:0" placeholder="اسم المعيار" value="${esc(name || "")}"><input class="cscore search-box" style="flex:1;margin:0" inputmode="numeric" placeholder="الدرجة"><span style="color:var(--muted)">/</span><input class="cmax search-box" style="flex:1;margin:0" inputmode="numeric" placeholder="من"></div>`);
-        o.querySelectorAll(".cscore,.cmax").forEach(inp => inp.oninput = calc);
+      function addRow(name, mx) {
+        rowsBox.insertAdjacentHTML("beforeend", `<div style="display:flex;gap:6px;align-items:center;margin-bottom:6px"><input class="cname search-box" style="flex:2;margin:0" placeholder="اسم المعيار" value="${esc(name || "")}"><input class="cscore search-box" style="flex:1;margin:0" inputmode="decimal" placeholder="الدرجة"><span style="color:var(--muted)">/</span><input class="cmax search-box" style="flex:1;margin:0" inputmode="decimal" placeholder="من" value="${mx ? esc(mx) : ""}"><button class="btn-plain cdel" title="حذف المعيار" style="padding:6px 10px;color:var(--bad)">✕</button></div>`);
+        const r = rowsBox.lastElementChild;
+        r.querySelectorAll(".cscore,.cmax,.cname").forEach(inp => inp.oninput = calc);
+        r.querySelector(".cdel").onclick = () => { r.remove(); calc(); };
       }
-      ["الأداء والإتقان", "التعاون والمشاركة", "الالتزام بالوقت"].forEach(addRow);
-      o.querySelector("#calc-add").onclick = () => addRow("");
+      tpl.forEach(t => addRow(t.n, t.mx));
+      o.querySelector("#calc-add").onclick = () => { addRow("", ""); rowsBox.lastElementChild.querySelector(".cname").focus(); };
+      o.querySelector("#calc-reset").onclick = () => { rowsBox.innerHTML = ""; CALC_DEFAULT.forEach(t => addRow(t.n, t.mx)); calc(); };
+      o.querySelector("#calc-save-tpl").onclick = async () => {
+        const b = o.querySelector("#calc-save-tpl");
+        const list = rows().filter(r => r.n).slice(0, 20).map(r => ({ n: r.n.slice(0, 60), mx: r.mx }));
+        if (!list.length) { b.textContent = "أضف معياراً واحداً على الأقل"; return; }
+        DB.calcTpl = list; save(); b.textContent = "✔ حُفظت";
+        if (CLOUD && fdb && TE) { try { await fdb.doc("prefs/" + TE.id).set({ calc: { rows: list }, tn: TE.name, ts: Date.now() }); b.textContent = "✔ حُفظت وستظهر على كل أجهزتك"; } catch (e) { b.textContent = "✔ حُفظت على هذا الجهاز"; } }
+        setTimeout(() => { b.textContent = "💾 حفظ المعايير"; }, 2500);
+      };
+      // اعتماد الدرجة لطالب
+      const fillStudents = () => {
+        const st = o.querySelector("#calc-stu"); if (!st) return;
+        const c = classById(cid); st.innerHTML = ((c && c.students) || []).map((s, i) => `<option value="${i}">${esc(s.n)}</option>`).join("");
+        preview();
+      };
+      o.querySelectorAll("#calc-cls .chip").forEach(ch => ch.onclick = () => { cid = ch.dataset.c; o.querySelectorAll("#calc-cls .chip").forEach(x => x.classList.toggle("on", x === ch)); fillStudents(); });
+      const colSel = o.querySelector("#calc-col"); if (colSel) colSel.onchange = preview;
+      const stuSel = o.querySelector("#calc-stu"); if (stuSel) stuSel.onchange = preview;
+      const ap = o.querySelector("#calc-apply");
+      if (ap) ap.onclick = () => {
+        const t = totals(); const msg = o.querySelector("#calc-msg");
+        if (!t.max) { msg.textContent = "أدخل الدرجات العظمى للمعايير أولاً"; return; }
+        const a = ASSESS.find(x => x.k === o.querySelector("#calc-col").value) || ASSESS[0];
+        const si = +o.querySelector("#calc-stu").value; const c = classById(cid); const stu = c && c.students && c.students[si];
+        if (!stu) { msg.textContent = "اختر الطالب"; return; }
+        const v = Math.round(t.sum / t.max * a.max * 10) / 10;
+        DB.grades[cid] = DB.grades[cid] || {}; DB.grades[cid][si] = DB.grades[cid][si] || {};
+        DB.grades[cid][si][a.k] = v; save("grades:" + cid);
+        msg.innerHTML = `✔ سُجِّلت <b>${v} من ${a.max}</b> في «${esc(a.n)}» للطالب ${esc(stu.n)} — انعكست فوراً في الدرجات والتقارير ومستوياته.`;
+        preview();
+        // انعكاس لحظي: إعادة رسم التبويب الظاهر خلف النافذة
+        try { const tb = document.querySelector("#tabs button.on"); const nm = tb && tb.dataset.tab; if (nm === "grades") renderGrades(); else if (nm === "reg") renderReg(); else if (nm === "today") renderToday(); else if (nm === "rep") renderRep(); } catch (e) { }
+      };
+      fillStudents(); calc();
     });
   }
   async function toolSheets() {
