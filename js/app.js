@@ -498,27 +498,79 @@
   }
 
   /* ═══ بطاقة الطالب + سجل التواصل ═══ */
-  function studentCard(cid, i) {
+  /* ═══ ملخص الطالب (يُستخدم في البطاقة ورسالة ولي الأمر) ═══ */
+  function studentSummary(cid, i) {
     const c = classById(cid), s = c.students[i], calc = classCalc(cid), t = calc[i].t, rank = calc[i].rank;
-    const medal = rank === 1 ? "🥇" : rank === 2 ? "🥈" : rank === 3 ? "🥉" : "🎖️";
-    const maxTot = ASSESS.reduce((a, b) => a + b.max, 0), gtot = gradeTotal(cid, i), hasG = hasGrades(cid, i);
+    const maxTot = ASSESS.reduce((a, b) => a + b.max, 0), g = effGrades(cid, i), gtot = gradeTotal(cid, i), hasG = hasGrades(cid, i);
+    // التقدير يُحسب من الأعمدة المرصودة فقط (حتى لا يظهر «دون المطلوب» قبل رصد الاختبارات)
+    const filledMax = ASSESS.filter(a => g[a.k] != null).reduce((x, a) => x + a.max, 0);
+    const pct = hasG && filledMax ? gtot / filledMax * 100 : null, lv = pct != null ? levelOf(pct) : null;
+    let att = null; try { att = attPct(t); } catch (e) { att = null; }
     const behAgg = {}; Object.values(DB.recs[cid] || {}).forEach(day => { const e = day[i]; if (!e) return; (e.beh || []).forEach(bi => behAgg[bi] = (behAgg[bi] || 0) + 1); });
+    const pos = [], neg = []; Object.keys(behAgg).forEach(bi => { const b = BEH[bi]; if (!b) return; (((+b.pts) || 0) >= 0 ? pos : neg).push(`${b.name}${behAgg[bi] > 1 ? " ×" + behAgg[bi] : ""}`); });
+    const subs = ((SUBS[cid] || {}).rows || []).filter(r => r.si === i && r.mx);
+    const subsAvg = subs.length ? Math.round(subs.reduce((a, r) => a + Math.min(1, r.sc / r.mx), 0) / subs.length * 100) : null;
+    const why = pct != null ? (pct >= 75 ? "إشعار تميّز" : pct < 50 ? "إشعار ضعف" : "تقرير متابعة") : (t.pts > 0 && rank <= 3 ? "إشعار تميّز" : t.pts < 0 ? "إشعار ضعف" : "تقرير متابعة");
+    return { c, s, t, rank, maxTot, filledMax, g, gtot, hasG, pct, lv, att, behAgg, pos, neg, subs, subsAvg, why };
+  }
+  function parentMessage(cid, i) {
+    const S = studentSummary(cid, i), L = [];
+    L.push("السلام عليكم ورحمة الله وبركاته");
+    L.push(`ولي أمر الطالب: *${S.s.n}* — ${S.c.name}`);
+    L.push(`تقرير متابعة مادة ${TE.subject} — ${hijriLabel()}`);
+    L.push("");
+    if (S.t.days) {
+      const parts = STATES.map((st, k) => S.t.st[k] ? `${st.name} ${S.t.st[k]}` : "").filter(Boolean).join("، ");
+      L.push(`📅 الحضور (${S.t.days} ${S.t.days === 1 ? "يوم" : "أيام"} مرصودة): ${parts}${S.att != null ? ` — نسبة الحضور ${Math.round(S.att)}%` : ""}`);
+      L.push(`🙋 المشاركة: ${S.t.part} | 📚 الواجبات: ${S.t.hwY} منجزة${S.t.hwN ? `، ${S.t.hwN} غير منجزة` : ""}`);
+      if (S.pos.length || S.neg.length) L.push(`⭐ السلوك: ${S.pos.join("، ") || "—"}${S.neg.length ? ` | ⚠️ ملاحظات: ${S.neg.join("، ")}` : ""}`);
+    } else {
+      L.push("📅 لم يُرصد حضور بعد في هذه المادة.");
+    }
+    L.push(`🏅 النقاط: ${S.t.pts} — الترتيب ${S.rank} من ${S.c.students.length}`);
+    if (S.hasG) {
+      L.push(S.filledMax < S.maxTot ? `💯 الدرجة حتى الآن: *${S.gtot} من ${S.filledMax}* مرصودة (من أصل ${S.maxTot}) — التقدير: ${S.lv.t}` : `💯 الدرجة: *${S.gtot} من ${S.maxTot}* — التقدير: ${S.lv.t}`);
+      const cols = ASSESS.filter(a => S.g[a.k] != null).map(a => `${a.n} ${S.g[a.k]}/${a.max}`);
+      if (cols.length) L.push("   " + cols.join(" · "));
+    }
+    if (S.subs.length) L.push(`📝 الأوراق التفاعلية: ${S.subs.length} ${S.subs.length === 1 ? "ورقة" : "أوراق"} — متوسط ${S.subsAvg}%`);
+    L.push("");
+    const lvI = S.lv ? S.lv.i : -1;
+    L.push(lvI === 0 ? "نبارك لكم تميّز ابنكم، ونشكر لكم حسن المتابعة 🌟" :
+      (lvI === 1 || lvI === 2) ? "مستوى جيد، ونأمل مواصلة المتابعة اليومية للواجبات والمشاركة 👍" :
+      lvI === 3 ? "يحتاج ابنكم مزيداً من المتابعة في الواجبات والمشاركة، ونحن معكم 💪" :
+      lvI === 4 ? "نرجو التواصل معنا لوضع خطة دعم مشتركة تعين ابنكم 🤝" :
+      (S.t.pts > 0 ? "بداية طيبة، ونأمل الاستمرار 🌱" : "نسعد بتواصلكم ومتابعتكم 🌹"));
+    L.push("");
+    L.push(`معلم المادة: ${TE.name}`);
+    L.push(META.school.name);
+    return L.join("\n");
+  }
+  function studentCard(cid, i) {
+    if (CLOUD && fdb && !SUBS[cid]) { loadSubs(cid).then(() => { if (OV.querySelector(".stu-head") && OV.querySelector(".stu-head").dataset.si === String(i)) studentCard(cid, i); }); }
+    const S = studentSummary(cid, i), c = S.c, s = S.s, t = S.t, rank = S.rank;
+    const medal = rank === 1 ? "🥇" : rank === 2 ? "🥈" : rank === 3 ? "🥉" : "🎖️";
     const comms = ((DB.comms[cid] || []).filter(x => x.si === i)).slice(-4).reverse();
     const phone = (s.p || "").replace(/\D/g, "").replace(/^0/, "966");
-    const waTxt = encodeURIComponent(`السلام عليكم ورحمة الله\nولي أمر الطالب: ${s.n} — ${c.name}\nتقرير من معلم ${TE.subject}:\nالنقاط: ${t.pts} | الترتيب: ${rank} من ${c.students.length}${hasG ? ` | الدرجة: ${gtot}/${maxTot}` : ""}\n${STATES.map((st, k) => t.st[k] ? `${st.name}: ${t.st[k]}` : "").filter(Boolean).join(" | ")}\nالمشاركة: ${t.part} | الواجبات: ${t.hwY}\n${META.school.name}`);
+    const waTxt = encodeURIComponent(parentMessage(cid, i));
+    const gradeChips = ASSESS.filter(a => S.g[a.k] != null).map(a => `<span class="cc" style="background:${(DB.grades[cid] || {})[i] && (DB.grades[cid][i][a.k] != null) ? "var(--navy)" : "#6b7280"}" title="${(DB.grades[cid] || {})[i] && (DB.grades[cid][i][a.k] != null) ? "درجة يدوية" : "محسوبة تلقائياً من الرصد"}">${esc(a.n)} ${S.g[a.k]}/${a.max}</span>`).join("");
     openSheet(`
-      <div class="stu-head"><div style="font-size:34px">${medal}</div><div class="big">${esc(s.n)}</div><div class="sub">${esc(c.name)} — الترتيب ${rank} من ${c.students.length}</div></div>
+      <div class="stu-head" data-si="${i}"><div style="font-size:34px">${medal}</div><div class="big">${esc(s.n)}</div><div class="sub">${esc(c.name)} — الترتيب ${rank} من ${c.students.length}${S.lv ? ` — <span class="lvl lvl${S.lv.i}">${S.lv.t}</span>` : ""}</div></div>
       <div class="statrow">
         <div class="stat"><div class="v">${t.pts}</div><div class="l">النقاط</div></div>
-        <div class="stat"><div class="v">${hasG ? gtot : "—"}</div><div class="l">الدرجة</div></div>
-        <div class="stat"><div class="v">${t.hwY}</div><div class="l">واجبات ✓</div></div>
+        <div class="stat"><div class="v">${S.hasG ? S.gtot : "—"}</div><div class="l">الدرجة من ${S.maxTot}</div></div>
+        <div class="stat"><div class="v">${S.att != null ? Math.round(S.att) + "%" : "—"}</div><div class="l">الحضور</div></div>
+        <div class="stat"><div class="v">${t.hwY}${t.hwN ? `<small style="color:var(--bad)">/${t.hwN}✗</small>` : ""}</div><div class="l">واجبات ✓</div></div>
         <div class="stat"><div class="v">${t.days}</div><div class="l">أيام مرصودة</div></div></div>
       <div class="countchips">${STATES.map((st, k) => t.st[k] ? `<span class="cc" style="background:${STCOLORS[k]}">${esc(st.name)} ${t.st[k]}</span>` : "").filter(Boolean).join("") || '<span style="color:var(--muted);font-size:13px">لا حضور مرصود بعد</span>'}</div>
-      <div class="countchips">${Object.keys(behAgg).map(bi => `<span class="cc" style="background:${BEH[bi].pts >= 0 ? "var(--ok)" : "var(--bad)"}">${esc(BEH[bi].name)} ×${behAgg[bi]}</span>`).join("")}</div>
+      <div class="countchips">${Object.keys(S.behAgg).map(bi => `<span class="cc" style="background:${BEH[bi].pts >= 0 ? "var(--ok)" : "var(--bad)"}">${esc(BEH[bi].name)} ×${S.behAgg[bi]}</span>`).join("")}</div>
+      ${gradeChips ? `<div class="countchips" style="margin-top:4px">${gradeChips}</div><div class="empty-note" style="padding:2px 4px 0;text-align:right;font-size:12px">الرمادي محسوب تلقائياً من الرصد، والكحلي أدخلته يدوياً. تُعدَّل من تبويب الدرجات.</div>` : ""}
+      ${S.subs.length ? `<div class="empty-note" style="padding:4px;text-align:right">📝 الأوراق التفاعلية: ${S.subs.length} — متوسط ${S.subsAvg}%</div>` : ""}
       <div style="border-top:1px solid var(--line);margin:12px 0 8px;padding-top:10px">
         <div style="display:flex;justify-content:space-between;align-items:center"><b style="color:var(--navy)">📞 سجل التواصل</b><button class="btn-soft" id="sc-addcomm">+ إضافة</button></div>
         <div id="sc-comms" style="margin-top:6px">${comms.length ? comms.map(x => `<div class="comm-item"><span class="tag">${esc(x.why)}</span> ${esc(x.note || "")}<div class="meta">${esc(x.via)} — ${esc(x.date)}</div></div>`).join("") : '<div class="empty-note" style="padding:10px">لا مراسلات مسجلة</div>'}</div></div>
-      <a class="wa-btn ${phone ? "" : "off"}" target="_blank" rel="noopener" href="https://wa.me/${phone}?text=${waTxt}">💬 واتساب ولي الأمر${phone ? "" : " (لا رقم مسجل)"}</a>
+      <a class="wa-btn ${phone ? "" : "off"}" id="sc-wa" target="_blank" rel="noopener" href="https://wa.me/${phone}?text=${waTxt}">💬 واتساب ولي الأمر${phone ? "" : " (لا رقم مسجل)"}</a>
+      <div class="empty-note" style="padding:4px 2px 0;text-align:right;font-size:12px">تُرسل رسالة كاملة (الحضور، المشاركة، الواجبات، السلوك، النقاط، الدرجات، التوصية) وتُسجَّل في سجل التواصل تلقائياً.</div>
       <div class="sheet-actions" style="flex-wrap:wrap">
         <button class="btn-plain" style="flex:1 1 46%" id="sc-report">📄 تقرير للطباعة</button>
         <button class="btn-plain" style="flex:1 1 46%" id="sc-letter">✉️ إشعار ولي الأمر</button>
@@ -531,6 +583,13 @@
         o.querySelector("#sc-letter").onclick = () => printLetter(cid, i);
         o.querySelector("#sc-cert").onclick = () => printCertificate(cid, i);
         o.querySelector("#sc-prog").onclick = () => studentProgress(cid, i);
+        const wa = o.querySelector("#sc-wa");
+        if (wa && phone) wa.addEventListener("click", () => {
+          DB.comms[cid] = DB.comms[cid] || [];
+          DB.comms[cid].push({ si: i, why: S.why, via: "واتساب", note: "تقرير متابعة تلقائي" + (S.hasG ? ` — الدرجة ${S.gtot}/${S.maxTot}` : "") + ` — النقاط ${t.pts}`, date: hijriLabel(), ts: Date.now() });
+          save("comms:" + cid);
+          setTimeout(() => { if (OV.querySelector(".stu-head")) studentCard(cid, i); }, 400);
+        });
       });
   }
   function commSheet(cid, i) {
