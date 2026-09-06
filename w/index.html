@@ -264,7 +264,7 @@ button{font-family:inherit;font-size:16px}
       <p style="font-weight:800;font-size:20px;color:var(--navy);margin:0">${word} يا ${esc((sname || rec.n || "").split(" ")[0])}</p>
       <p class="sub" style="margin:4px 0 0">${again ? "سبق أن أرسلت هذه الورقة" : "أُرسلت إلى معلمك ✓"}${rec.late ? " · تسليم متأخر" : ""}</p>
       ${again ? `<div class="note2">${att >= allowed() ? `استُنفدت المحاولات المسموحة (${allowed()})` : triesLabel(att)}</div>` : ""}
-      ${repeat ? `<div class="note2">هذه محاولتك رقم ${att} من ${allowed()} · درجتك المسجّلة عند المعلم <b>${rec.sc} من ${rec.mx}</b> من المحاولة الأولى${rec.best > rec.sc ? ` · أفضل نتيجة لك ${rec.best}` : ""}<br><span style="color:var(--muted)">أعد المحاولة كما تشاء، فكل مرة تزيد فهمك 💪</span></div>` : ""}
+      ${repeat ? `<div class="note2">هذه محاولتك رقم ${att} من ${allowed()} · درجتك المسجّلة عند المعلم <b>${rec.sc} من ${rec.mx}</b> من المحاولة الأولى${rec.best > rec.sc ? ` · أفضل نتيجة لك ${rec.best}` : ""}<br><span style="color:var(--muted)">${att < allowed() ? "أعد المحاولة كما تشاء، فكل مرة تزيد فهمك 💪" : ""}</span></div>` : ""}
       ${showAns && wrong.length ? `<div style="text-align:right;margin-top:16px">
         <p class="lbl">راجع هذه فقط:</p>
         ${wrong.map(d => `<div class="rev"><span class="x">✗</span> ${esc(d.q)}<div class="a">الصحيح: ${esc(d.right)}</div></div>`).join("")}
