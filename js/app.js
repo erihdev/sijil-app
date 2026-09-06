@@ -167,6 +167,7 @@
     const known = new Set((D.moves || []).map(m => m.id)), list = (fresh || []).filter(m => m && m.id && !known.has(m.id));
     if (!list.length) return 0;
     applyMoves(D.classes, list);
+    applySedits(D.classes, D.sedits);
     D.moves = D.moves || []; list.forEach(m => { delete m.appliedSi; D.moves.push(m); });
     D.moves.sort((a, b) => (a.ts || 0) - (b.ts || 0));
     if (CLOUD) saveCloudD();
@@ -194,12 +195,25 @@
     } catch (e) { return 0; } finally { refreshingMv = false; }
   }
   function rerenderTab() {
-    try { const tb = document.querySelector("#tabs button.on"); const nm = tb && tb.dataset.tab; if (nm === "today") renderToday(); else if (nm === "reg") renderReg(); else if (nm === "grades") renderGrades(); else if (nm === "rep") renderRep(); else if (nm === "more") renderMore(); } catch (e) { }
+    try { const tb = document.querySelector("#tabs button.on"); const nm = tb && tb.dataset.tab; if (adminView()) { window.SIJIL_ADMIN.render(nm); return; } if (nm === "today") renderToday(); else if (nm === "reg") renderReg(); else if (nm === "grades") renderGrades(); else if (nm === "rep") renderRep(); else if (nm === "more") renderMore(); } catch (e) { }
   }
   document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible" && TE) refreshMoves({ render: true }); });
   const isActive = (c, i) => !!(c && c.students && c.students[i] && !c.students[i].moved);
   const activeStudents = (c) => ((c && c.students) || []).map((s, i) => ({ i, s })).filter(x => !x.s.moved);   // [{i, s}] بالفهرس الحقيقي
   const activeCount = (c) => activeStudents(c).length;
+
+  /* ═══ تعديلات المدير على بيانات الطلاب: sedits/{cid} = { s: { "<si>": { p?: "05xxxxxxxx", n?: "الاسم المصحح" } }, tn, ts } ═══
+     تُطبَّق بعد حركات النقل: الطالب المنقول يحمل from{cid,si} فتُطبَّق عليه تعديلات فصله الأصلي أولاً ثم تعديلات فصله الجديد (idempotent). */
+  function applySedits(classes, sedits) {
+    if (!sedits || typeof sedits !== "object") return;
+    const one = (s, e) => { if (!e || typeof e !== "object") return; if (typeof e.p === "string") s.p = e.p; if (typeof e.n === "string" && e.n.trim()) s.n = e.n.trim(); };
+    const of = (cid, si) => (((sedits[cid] || {}).s || {})[si]);
+    (classes || []).forEach(c => (c.students || []).forEach((s, i) => {
+      if (!s || s.gap) return;
+      if (s.from && s.from.cid) one(s, of(s.from.cid, s.from.si));
+      one(s, of(c.id, i));
+    }));
+  }
 
   /* ═══ النقاط والدرجات ═══ */
   function calcStudent(cid, si, recsOverride) {
@@ -353,7 +367,11 @@
     }
     moves.sort((a, b) => (a.ts || 0) - (b.ts || 0));
     applyMoves(classes, moves);
-    D = { meta: metaS.data(), teachers, classes, schedule: (schS.data() || {}).rows || [], moves };
+    // تعديلات المدير على أرقام أولياء الأمور/الأسماء (sedits) — بعد الحركات حتى تلحق بالمنقولين
+    let sedits = {};
+    try { const se = await fdb.collection("sedits").get(); se.forEach(d2 => sedits[d2.id] = d2.data() || {}); } catch (e) { sedits = {}; }
+    applySedits(classes, sedits);
+    D = { meta: metaS.data(), teachers, classes, schedule: (schS.data() || {}).rows || [], moves, sedits };
     try { localStorage.setItem("sijil.cloudD", JSON.stringify(D)); } catch (e) { }
   }
   function bootOffline() {
@@ -373,6 +391,8 @@
       D = clone(window.DEMO);                       // نسخة عميقة حتى لا تتراكم الحركات على window.DEMO عند إعادة التحميل
       if (!Array.isArray(DB.moves)) DB.moves = [];
       applyMoves(D.classes, DB.moves); D.moves = DB.moves;
+      if (!DB.sedits || typeof DB.sedits !== "object" || Array.isArray(DB.sedits)) DB.sedits = {};
+      applySedits(D.classes, DB.sedits); D.sedits = DB.sedits;
     }
     META = D.meta; W = META.weights; STATES = META.states; BEH = META.behaviors;
     ASSESS = (META.assess && META.assess.length) ? META.assess : DEFAULT_ASSESS;
@@ -425,14 +445,21 @@
       } catch (e) { syncBadge(false); }
     }
     renderToday(); renderReg(); renderGrades(); renderRep(); renderMore();
-    switchTab("today");
+    // لوحة المدير (js/admin/core.js): تعيد بناء شريط التبويبات — سبعة إدارية، أو تبويبات المعلم مع زر التبديل في الرأس إن كان للمدير فصول
+    let adm = false;
+    if (t.admin && window.SIJIL_ADMIN && typeof window.SIJIL_ADMIN.init === "function") { try { adm = !!window.SIJIL_ADMIN.init(t); } catch (e) { adm = false; try { console.error("[admin] init", e); } catch (x) { } } }
+    switchTab(adm ? "home" : "today");
   }
   $("#ab-logout").onclick = () => { DB.session = null; DB.srole = null; save(); setTimeout(() => location.reload(), 300); };
 
   /* ═══ تبويبات المعلم ═══ */
+  // لوحة المدير فعّالة؟ مدير + النواة محمَّلة + لم يختر «واجهتي كمعلم» (localStorage sijil.adminView === 'teacher')
+  const adminView = () => { if (!TE || !TE.admin || !window.SIJIL_ADMIN) return false; try { return localStorage.getItem("sijil.adminView") !== "teacher"; } catch (e) { return true; } };
   function switchTab(name) {
     document.querySelectorAll("#tabs button").forEach(b => b.classList.toggle("on", b.dataset.tab === name));
-    ["today", "reg", "grades", "rep", "more"].forEach(n => $("#tab-" + n).classList.toggle("hidden", n !== name));
+    const adm = adminView();
+    ["today", "reg", "grades", "rep", "more"].forEach(n => $("#tab-" + n).classList.toggle("hidden", adm || n !== name));
+    if (adm) { try { window.SIJIL_ADMIN.render(name); } catch (e) { try { console.error("[admin] render", e); } catch (x) { } } window.scrollTo(0, 0); return; }
     if (name === "today") renderToday();
     if (name === "reg") renderReg();
     if (name === "grades") renderGrades();
@@ -2395,6 +2422,7 @@
         <div class="empty-note" style="padding:6px 2px 0;text-align:right">الدرجة المسجّلة عند المعلم تبقى دائماً من المحاولة الأولى، والطالب يرى عدد المحاولات المتبقية، وأنت ترى عدد محاولاته وأفضل نتيجة.</div></div>
       <div class="field" id="as-secs-w" style="display:none"><label>مدة الاختبار (دقائق)</label><input class="search-box" id="as-secs" style="margin:0" inputmode="numeric" value="10"></div>
       <div class="field"><label>موعد التسليم</label><input type="datetime-local" class="search-box" id="as-due" style="margin:0" value="${dueLocal(28)}"></div>
+      <button class="btn-soft" id="as-prev" style="width:100%;margin:2px 0 0">👁️ معاينة الأسئلة كما يراها الطالب</button>
       <div id="as-out"></div>
       <div class="sheet-actions"><button class="btn-plain" onclick="window._sheetClose()">إلغاء</button><button class="btn-primary" id="as-make">🔗 أنشئ الرابط</button></div>`, (o) => {
       o.querySelectorAll("#as-cls .chip").forEach(b => b.onclick = () => { cur = b.dataset.c; o.querySelectorAll("#as-cls .chip").forEach(x => x.classList.toggle("on", x === b)); });
@@ -2404,6 +2432,21 @@
         o.querySelector("#as-secs-w").style.display = mode === "ws" ? "none" : "block";
         o.querySelector("#as-tries").value = mode === "ws" ? "3" : "1";
       });
+      o.querySelector("#as-prev").onclick = () => {
+        const out = o.querySelector("#as-out"), btn = o.querySelector("#as-prev");
+        if (out.dataset.pv === "1") { out.innerHTML = ""; out.dataset.pv = ""; btn.textContent = "👁️ معاينة الأسئلة"; return; }
+        out.dataset.pv = "1"; btn.textContent = "🙈 إخفاء المعاينة";
+        const L = ["أ", "ب", "ج", "د", "هـ", "و"];
+        out.innerHTML = `<div style="border:1.5px solid var(--line);border-radius:12px;padding:12px;background:#fff;max-height:46vh;overflow:auto">
+          <div style="font-weight:800;color:var(--navy);margin-bottom:8px">👁️ معاينة ما سيراه الطالب — ${qs.length} أسئلة${mode !== "ws" ? " (يُعاد ترتيبها عشوائياً لكل طالب)" : ""}</div>
+          ${qs.map((q, i) => `<div style="margin:0 0 10px;padding:0 0 8px;border-bottom:1px dashed var(--line)">
+            <div style="font-weight:700;font-size:14px;color:var(--navy)">${i + 1}. ${esc(q.q || "")}</div>
+            ${(q.t === "fill")
+              ? `<div style="font-size:13px;color:var(--ok);margin-top:4px">✔ الإجابة: ${esc(q.ans || "")}</div>`
+              : `<div style="margin-top:4px">${(q.opts || []).filter(Boolean).map((op, j) => `<div style="font-size:13px;color:${j === (+q.correct || 0) ? "var(--ok)" : "var(--muted)"};font-weight:${j === (+q.correct || 0) ? "700" : "400"}">${j === (+q.correct || 0) ? "✔" : "◦"} ${L[j] || (j + 1)}. ${esc(op)}</div>`).join("")}</div>`}
+          </div>`).join("")}
+          <div class="empty-note" style="padding:2px">الإجابات الصحيحة تظهر لك أنت فقط — الطالب يراها بعد التسليم.</div></div>`;
+      };
       o.querySelector("#as-make").onclick = async () => {
         const btn = o.querySelector("#as-make"); btn.disabled = true; btn.textContent = "جارِ الإنشاء…";
         const c = classById(cur), id = shortId();
@@ -2429,6 +2472,7 @@
         o.querySelector("#as-out").innerHTML = `<div class="as-link"><code>${esc(url)}</code><button class="btn-soft" id="as-copy-url">🔗 الرابط فقط</button></div>
           <textarea class="search-box" id="as-msg" style="margin:8px 0 6px;height:150px;font-size:13px;line-height:1.7" readonly>${esc(msg)}</textarea>
           <button class="btn-soft" id="as-copy" style="width:100%">📋 نسخ الرسالة كاملة مع الرابط</button>
+          <a class="btn-soft" id="as-try" target="_blank" rel="noopener" href="${esc(url)}&pv=1" style="display:block;width:100%;box-sizing:border-box;text-align:center;margin:8px 0 0;text-decoration:none">🧪 جرّبه كطالب قبل الإرسال (معاينة لا تُسجَّل)</a>
           <a class="wa-btn" id="as-wa" target="_blank" rel="noopener" href="https://wa.me/?text=${encodeURIComponent(msg)}">💬 مشاركة في قروب أولياء الأمور</a>
           <div class="empty-note" style="padding:6px 2px 0">تابع النتائج من «المزيد ← 📤 الأوراق المرسلة»</div>`;
         o.querySelector("#as-copy").onclick = () => { try { navigator.clipboard.writeText(msg); o.querySelector("#as-copy").textContent = "✔ نُسخت الرسالة — ألصقها في القروب"; } catch (e) { o.querySelector("#as-msg").select(); } };
@@ -2639,6 +2683,22 @@
     }
     body.innerHTML = any ? html : '<div class="empty-note">لا دروس تفاعلية متاحة لهذا الأسبوع</div>';
   }
+
+  /* ═══ واجهة عامة للوحدات الخارجية (js/admin/*.js): الحالة الحية عبر getters — لا تُنسخ القيم وقت التحميل ═══ */
+  window.SIJIL = {
+    get D() { return D; }, get DB() { return DB; }, get TE() { return TE; }, set TE(v) { TE = v; }, get fdb() { return fdb; },
+    get META() { return META; }, get ASSESS() { return ASSESS; }, get STATES() { return STATES; }, get BEH() { return BEH; }, get W() { return W; }, get TERM() { return TERM; },
+    get MOVES_OK() { return MOVES_OK; }, MOVE_CONFLICTS, CLOUD, SALT, KEY, DAYS, GNAME, STCOLORS, SUBS, DEFAULT_ASSESS, PRINT_CSS,
+    $, esc, clone, save, syncBadge, mergeComms, rec,
+    classById, myClasses, activeStudents, activeCount, isActive, applyMoves, applySedits, refreshMoves, absorbMoves, moveId, migrateMove, classPointsMap, adminMoves,
+    calcStudent, classCalc, autoGrade, effGrades, gradeTotal, hasGrades, levelOf, attPct, maxTotal, pctCell, daySeries, trendOf, studentSummary,
+    hijriLabel, hijriParts, curWeek, subjCode, loadCurr, saveCurrEdit, lessonURL,
+    openSheet, closeSheet, printSheet, printDoc, printCertificate, printReport, printLetter,
+    sha256, shortId, waLink,
+    studentProgress, studentCard, adminLevels, schoolSummary, classDocs, loadSubs,
+    switchTab, rerenderTab, renderToday, renderReg, renderGrades, renderRep, renderMore,
+    toolCurriculum, toolSessions, toolPlans, toolCalc, toolSheets, toolAssign, liveSession, enter
+  };
 
   /* ═══ إقلاع ═══ */
   if (!CLOUD) { const ds = $("#demo-strip"); if (ds) ds.textContent = "نسخة تجريبية — طلاب بأسماء وهمية، والبيانات على هذا الجهاز فقط"; }

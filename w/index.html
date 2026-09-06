@@ -90,6 +90,7 @@ button{font-family:inherit;font-size:16px}
   const esc = (s) => String(s == null ? "" : s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
   const app = $("#app");
   const AID = new URLSearchParams(location.search).get("a") || "";
+  const PV = new URLSearchParams(location.search).get("pv") === "1";   // معاينة المعلم: تجربة كاملة بلا تسجيل تسليم ولا احتساب محاولة
   const MODE_T = { ws: "ورقة عمل", quiz: "اختبار", race: "تحدٍّ" };
   let db = null, A = null, C = null, si = -1, sname = "", answers = [], qi = 0, t0 = 0, tIv = null, left = 0;
   let PREV = null;   // تسليم سابق: المحاولة الأولى هي المعتمدة
@@ -188,10 +189,10 @@ button{font-family:inherit;font-size:16px}
       <p class="sub">المعلم: ${esc(A.tn)} · الفصل: ${esc(A.cname)} · ${A.qs.length} أسئلة${A.mode !== "ws" && A.secs ? ` · المدة ${Math.round(A.secs / 60)} دقيقة` : ""}</p>
       ${A.due ? `<p class="sub" style="margin-top:2px">⏰ آخر موعد للتسليم: ${esc(new Date(A.due).toLocaleString("ar-SA", { weekday: "long", day: "numeric", month: "long", hour: "numeric", minute: "2-digit" }))}</p>` : ""}
       ${isLate() ? `<div class="late">⏰ انتهى موعد التسليم، وسيُسجَّل حلّك متأخراً.</div>` : ""}
-      <div class="note2" id="tries-note" style="margin:8px 0 4px">${triesLabel(0)}</div>
-      <p class="lbl">اختر اسمك من فصل ${esc(A.cname)}</p>
+      <div class="note2" id="tries-note" style="margin:8px 0 4px">${PV ? "🧪 <b>وضع المعاينة</b> — تجربة للمعلم قبل الإرسال: لا تُسجَّل نتيجة ولا تُحتسب محاولة، ولا يرى الطلاب هذه الجلسة." : triesLabel(0)}</div>
+      <p class="lbl">${PV ? "اختر اسماً للتجربة (اختياري)" : `اختر اسمك من فصل ${esc(A.cname)}`}</p>
       <div id="names">${list.map(s => `<button class="name${String(s.i) === saved ? " on" : ""}" data-i="${s.i}">${esc(s.n)}</button>`).join("")}</div>
-      <button class="go" id="start" ${saved === null ? "disabled" : ""}>ابدأ الحل</button></div>`;
+      <button class="go" id="start" ${saved === null && !PV ? "disabled" : ""}>${PV ? "🧪 ابدأ المعاينة" : "ابدأ الحل"}</button></div>`;
     if (saved !== null) { si = +saved; sname = (C.students[si] || {}).n || ""; }
     app.querySelectorAll(".name").forEach(b => b.onclick = () => {
       app.querySelectorAll(".name").forEach(x => x.classList.remove("on"));
@@ -200,10 +201,13 @@ button{font-family:inherit;font-size:16px}
       $("#start").disabled = false;
     });
     $("#start").onclick = async () => {
-      const prev = await db.doc("subs/" + AID + "_" + si).get();
-      if (prev.exists) {
-        PREV = prev.data();
-        if ((PREV.att || 1) >= allowed()) { return done(PREV, true); }
+      if (PV) { if (si < 0) { si = -1; sname = "معاينة المعلم"; } PREV = null; }
+      else {
+        const prev = await db.doc("subs/" + AID + "_" + si).get();
+        if (prev.exists) {
+          PREV = prev.data();
+          if ((PREV.att || 1) >= allowed()) { return done(PREV, true); }
+        }
       }
       t0 = Date.now(); qi = 0;
       if (A.mode !== "ws" && A.secs) { left = A.secs; startTimer(); }
@@ -295,8 +299,8 @@ button{font-family:inherit;font-size:16px}
         secs: secs, late: isLate(), ts: now, lts: now
       };
     }
-    if ((rec.att || 1) <= 12) { try { await db.doc("subs/" + AID + "_" + si).set(rec); } catch (e) { } }
-    PREV = rec;
+    if (!PV && (rec.att || 1) <= 12) { try { await db.doc("subs/" + AID + "_" + si).set(rec); } catch (e) { } }
+    PREV = PV ? null : rec;
     done(rec, false, detail, sc);
   }
 
@@ -313,7 +317,7 @@ button{font-family:inherit;font-size:16px}
       <div class="big">${face}</div>
       <div class="ring" style="background:conic-gradient(${pct >= 50 ? "var(--ok)" : "var(--gold)"} 0 ${pct}%, #E8E2D5 ${pct}%)"><b>${cur} <i>من ${rec.mx}</i></b></div>
       <p style="font-weight:800;font-size:20px;color:var(--navy);margin:0">${word} يا ${esc((sname || rec.n || "").split(" ")[0])}</p>
-      <p class="sub" style="margin:4px 0 0">${again ? "سبق أن أرسلت هذه الورقة" : "أُرسلت إلى معلمك ✓"}${rec.late ? " · تسليم متأخر" : ""}</p>
+      <p class="sub" style="margin:4px 0 0">${PV ? "🧪 معاينة — لم تُسجَّل هذه النتيجة ولم تصل إلى أحد" : `${again ? "سبق أن أرسلت هذه الورقة" : "أُرسلت إلى معلمك ✓"}${rec.late ? " · تسليم متأخر" : ""}`}</p>
       ${again ? `<div class="note2">${att >= allowed() ? `استُنفدت المحاولات المسموحة (${allowed()})` : triesLabel(att)}</div>` : ""}
       ${repeat ? `<div class="note2">هذه محاولتك رقم ${att} من ${allowed()} · درجتك المسجّلة عند المعلم <b>${rec.sc} من ${rec.mx}</b> من المحاولة الأولى${rec.best > rec.sc ? ` · أفضل نتيجة لك ${rec.best}` : ""}<br><span style="color:var(--muted)">${att < allowed() ? "أعد المحاولة كما تشاء، فكل مرة تزيد فهمك 💪" : ""}</span></div>` : ""}
       ${showAns && wrong.length ? `<div style="text-align:right;margin-top:16px">
@@ -321,8 +325,8 @@ button{font-family:inherit;font-size:16px}
         ${wrong.map(d => `<div class="rev"><span class="x">✗</span> ${esc(d.q)}<div class="a">الصحيح: ${esc(d.right)}</div></div>`).join("")}
       </div>` : ""}
       ${showAns && !wrong.length ? `<p style="color:var(--ok);font-weight:800;margin-top:14px">كل إجاباتك صحيحة! 🎉</p>` : ""}
-      ${!again && att < allowed() ? `<button class="go" id="retry" style="margin-top:18px">↺ ${allowed() - att === 1 ? "محاولة أخيرة" : "تدرّب مرة أخرى"} <small style="font-weight:500">(بقي ${allowed() - att} من ${allowed()})</small></button>` : ""}
-      ${att >= allowed() && allowed() > 1 ? `<p class="hint" style="margin-top:14px">وصلت إلى أقصى عدد للمحاولات (${allowed()}). راجع الدرس مع معلمك 🌱</p>` : ""}
+      ${!again && (PV || att < allowed()) ? `<button class="go" id="retry" style="margin-top:18px">↺ ${PV ? "أعد المعاينة" : `${allowed() - att === 1 ? "محاولة أخيرة" : "تدرّب مرة أخرى"} <small style="font-weight:500">(بقي ${allowed() - att} من ${allowed()})</small>`}</button>` : ""}
+      ${!PV && att >= allowed() && allowed() > 1 ? `<p class="hint" style="margin-top:14px">وصلت إلى أقصى عدد للمحاولات (${allowed()}). راجع الدرس مع معلمك 🌱</p>` : ""}
     </div>`;
     const rt = $("#retry"); if (rt) rt.onclick = () => { answers = A.qs.map(() => null); qi = 0; t0 = Date.now(); if (A.mode !== "ws" && A.secs) { left = A.secs; startTimer(); } draw(); };
   }
