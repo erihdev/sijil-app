@@ -429,6 +429,8 @@
     $("#view-login").classList.add("hidden");
     $("#view-app").classList.remove("hidden");
     $("#ab-who").textContent = t.name + " — " + (t.admin ? "مدير المدرسة" : t.subject);
+    // 🎖️ شارة «رائد فصل» بجانب الاسم (js/admin/teachers.js) — بعد كتابة النص لأنها تستبدل محتوى #ab-who
+    try { if (window.SIJIL_ADMIN && typeof window.SIJIL_ADMIN.refreshHeader === "function") window.SIJIL_ADMIN.refreshHeader(); } catch (e) { }
     if (CLOUD) {
       syncBadge(true);
       try {
@@ -896,6 +898,7 @@
     if (TE.admin) adminHtml += `<div class="card"><h3><span class="dot"></span>📊 مستويات الطلاب</h3><div style="display:grid;grid-template-columns:1fr 1fr;gap:8px"><button class="btn-gold" id="adm-levels">📊 حسب الفصل وكل المواد</button><button class="btn-gold" id="adm-school">🏫 ملخص المدرسة حسب المادة</button></div></div>`;
     if (TE.admin) { const mvOff = CLOUD && (!fdb || !MOVES_OK); adminHtml += `<div class="card"><h3><span class="dot"></span>👥 إدارة الطلاب</h3><button class="btn-gold" id="adm-moves" style="width:100%${mvOff ? ";opacity:.55" : ""}" ${mvOff ? "disabled" : ""}>👥 نقل الطلاب</button><div class="empty-note" style="padding:8px 4px 0">نقل طالب إلى فصل آخر مع كل بياناته، أو تسجيل خروجه من المدرسة — ينعكس على كل المعلمين عند فتح التطبيق${(D.moves || []).length ? ` · ${D.moves.length} حركة مسجلة` : ""}${MOVE_CONFLICTS.length ? ` · <span style="color:var(--bad)">⚠️ ${MOVE_CONFLICTS.length} حركة متعارضة لم تُطبَّق (انظر سجل الحركات)</span>` : ""}${mvOff ? '<div style="color:var(--bad);margin-top:6px">⚠️ النقل معطّل: لم تُحمَّل حركات النقل من السحابة عند فتح التطبيق (تُعرض آخر قائمة محفوظة على هذا الجهاز) — أعد تحميل الصفحة مع اتصال بالإنترنت</div>' : ""}</div></div>`; }
     box.innerHTML = `
+      <div id="me-slot"></div>
       <div class="card"><h3><span class="dot"></span>🧰 أدوات المعلم</h3>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
           <button class="btn-gold" id="tl-curr">📚 مناهجي</button>
@@ -916,6 +919,8 @@
         <div class="countchips">${STATES.map((s, k) => `<span class="cc" style="background:${STCOLORS[k]}">${esc(s.name)} ${s.pts >= 0 ? "+" : ""}${s.pts}</span>`).join("")}</div>
         <div class="countchips">${BEH.map(b => `<span class="cc" style="background:${b.pts >= 0 ? "var(--ok)" : "var(--bad)"}">${esc(b.name)} ${b.pts >= 0 ? "+" : ""}${b.pts}</span>`).join("")}</div></div>
       <div class="card"><h3><span class="dot"></span>عن البرنامج</h3><div style="font-size:13.5px;line-height:2;color:var(--muted)">سجلي — سجل المتابعة الرقمي — ${CLOUD ? "النسخة السحابية المشتركة ☁️" : "نسخة تجريبية محلية"}.<br>يعمل على أي جهاز: جوال، تابلت، وكمبيوتر.<br><b>المطوّر:</b> أ. ضيف الله أحمد محمد مشني</div></div>`;
+    // 👤 بياناتي (js/admin/teachers.js) — بطاقة الحساب وتغيير رقم الدخول للمعلم داخل «المزيد»
+    try { const slot = $("#me-slot"); if (slot && window.SIJIL_ADMIN && typeof window.SIJIL_ADMIN.profileCard === "function") window.SIJIL_ADMIN.profileCard(slot); } catch (e) { }
     // أدوات المعلم
     const al = $("#adm-levels"); if (al) al.onclick = adminLevels;
     const as = $("#adm-school"); if (as) as.onclick = schoolSummary;
@@ -2434,7 +2439,7 @@
       });
       o.querySelector("#as-prev").onclick = () => {
         const out = o.querySelector("#as-out"), btn = o.querySelector("#as-prev");
-        if (out.dataset.pv === "1") { out.innerHTML = ""; out.dataset.pv = ""; btn.textContent = "👁️ معاينة الأسئلة"; return; }
+        if (out.dataset.pv === "1") { out.innerHTML = ""; out.dataset.pv = ""; btn.textContent = "👁️ معاينة الأسئلة كما يراها الطالب"; return; }
         out.dataset.pv = "1"; btn.textContent = "🙈 إخفاء المعاينة";
         const L = ["أ", "ب", "ج", "د", "هـ", "و"];
         out.innerHTML = `<div style="border:1.5px solid var(--line);border-radius:12px;padding:12px;background:#fff;max-height:46vh;overflow:auto">
