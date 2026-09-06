@@ -123,8 +123,55 @@
     rows.forEach(r => r.rank = sorted.findIndex(x => x.i === r.i) + 1);
     return rows;
   }
-  function gradeTotal(cid, si, gOverride) {
-    const g = (gOverride || DB.grades[cid] || {})[si] || {};
+  /* ═══ الدرجات التلقائية من الرصد اليومي وأوراق العمل التفاعلية ═══
+     الحضور والمشاركة = حضور 60% + مشاركة 40% · السلوك = الدرجة العظمى + مجموع نقاط السلوك · أوراق العمل = متوسط (الواجبات، الأوراق التفاعلية)
+     ما يكتبه المعلم يدوياً يغلب دائماً، ومسحه يعيد القيمة التلقائية. */
+  const SUBS = {};   // cid → { ts, rows: [{si, sc, mx}] } تسليمات الأوراق التفاعلية لهذا المعلم
+  async function loadSubs(cid) {
+    if (!CLOUD || !fdb || !TE) return [];
+    const c = SUBS[cid]; if (c && Date.now() - c.ts < 60000) return c.rows;
+    try {
+      const q = await fdb.collection("subs").where("cid", "==", cid).where("tid", "==", TE.id).get();
+      const rows = []; q.forEach(d => { const x = d.data() || {}; if (+x.mx) rows.push({ si: +x.si, sc: +x.sc || 0, mx: +x.mx }); });
+      SUBS[cid] = { ts: Date.now(), rows }; return rows;
+    } catch (e) { SUBS[cid] = SUBS[cid] || { ts: Date.now(), rows: [] }; return SUBS[cid].rows; }
+  }
+  function autoGrade(cid, si, recsOverride) {
+    const t = calcStudent(cid, si, recsOverride); const v = {}, why = {};
+    const A = (k) => ASSESS.find(a => a.k === k);
+    const idx = (name) => STATES.findIndex(x => (x.name || "").includes(name));
+    const cnt = (name) => { const k = idx(name); return k >= 0 ? (t.st[k] || 0) : 0; };
+    if (t.days && A("part")) {
+      const pres = cnt("حاضر"), late = cnt("متأخر"), remote = cnt("عن بعد"), exc = cnt("مستأذن") + cnt("بعذر");
+      const denom = Math.max(1, t.days - exc), attended = pres + remote + 0.5 * late;
+      const attRate = Math.min(1, attended / denom), partRate = Math.min(1, t.part / Math.max(1, pres + remote + late));
+      const mx = A("part").max; v.part = Math.round((mx * 0.6 * attRate + mx * 0.4 * partRate) * 10) / 10;
+      why.part = "حضور " + Math.round(attRate * 100) + "% (60%) + مشاركة " + Math.round(partRate * 100) + "% (40%) من " + t.days + " يوم رصد";
+    }
+    if (t.days && A("behave")) {
+      let sum = 0; const cd = recsOverride || DB.recs[cid] || {};
+      for (const date of Object.keys(cd)) { const e = cd[date][si]; if (!e) continue; (e.beh || []).forEach(bi => { const b = BEH[bi]; if (b) sum += (+b.pts || 0); }); }
+      const mx = A("behave").max; v.behave = Math.max(0, Math.min(mx, Math.round((mx + sum) * 10) / 10));
+      why.behave = sum ? mx + (sum > 0 ? " + " : " − ") + Math.abs(Math.round(sum * 10) / 10) + " من سجل السلوك" : mx + " (لا مخالفات مرصودة)";
+    }
+    if (A("sheets")) {
+      const comps = [], parts = []; const mx = A("sheets").max;
+      if (t.hwY + t.hwN) { comps.push(t.hwY / (t.hwY + t.hwN)); parts.push("واجبات " + t.hwY + "/" + (t.hwY + t.hwN)); }
+      const mine = ((SUBS[cid] || {}).rows || []).filter(r => r.si === si && r.mx);
+      if (mine.length) { comps.push(mine.reduce((a, r) => a + Math.min(1, r.sc / r.mx), 0) / mine.length); parts.push(mine.length + " ورقة تفاعلية"); }
+      if (comps.length) { v.sheets = Math.round(comps.reduce((a, b) => a + b, 0) / comps.length * mx * 10) / 10; why.sheets = parts.join(" + "); }
+    }
+    return { v, why };
+  }
+  function effGrades(cid, si, gOverride, recsOverride) {
+    const manual = (gOverride || DB.grades[cid] || {})[si] || {};
+    const out = Object.assign({}, autoGrade(cid, si, recsOverride).v);
+    Object.keys(manual).forEach(k => { if (manual[k] != null && manual[k] !== "") out[k] = manual[k]; });
+    return out;
+  }
+  const hasGrades = (cid, si, gOverride, recsOverride) => Object.keys(effGrades(cid, si, gOverride, recsOverride)).length > 0;
+  function gradeTotal(cid, si, gOverride, recsOverride) {
+    const g = effGrades(cid, si, gOverride, recsOverride);
     let sum = 0;
     ASSESS.forEach(a => { const v = +g[a.k]; if (!isNaN(v)) sum += Math.min(v, a.max); });
     return Math.round(sum * 10) / 10;
@@ -375,15 +422,17 @@
           <tr><th>م</th><th style="min-width:120px">الطالب</th>${ASSESS.map(a => `<th>${esc(a.n)}<br>(${a.max})</th>`).join("")}<th>المجموع<br>(${maxTot})</th><th>التقدير</th></tr>
           ${c.students.map((s, i) => grRow(i, s, maxTot)).join("")}
         </table></div></div>
+      <div class="empty-note" style="padding:6px 10px;text-align:right">الخلايا الرمادية تُحسب تلقائياً ولحظياً من التحضير اليومي (الحضور والمشاركة، السلوك) ومن الواجبات والأوراق التفاعلية المصحَّحة، وتتغير مع كل رصد. اكتب درجة لتعديلها يدوياً، وامسحها لتعود تلقائية. مرّر على الخلية لترى طريقة الحساب.</div>
       <div class="card" id="gr-analysis"></div>`;
+    if (CLOUD && !(SUBS[grClass] && Date.now() - SUBS[grClass].ts < 60000)) { const want = grClass; loadSubs(want).then(() => { if (grClass === want && !$("#tab-grades").classList.contains("hidden")) renderGrades(); }); }
     box.querySelectorAll(".chip").forEach(ch => ch.onclick = () => { grClass = ch.dataset.c; renderGrades(); });
     box.querySelectorAll(".gr-in").forEach(inp => {
       inp.oninput = () => {
         const i = +inp.dataset.i, k = inp.dataset.k;
         DB.grades[grClass] = DB.grades[grClass] || {}; DB.grades[grClass][i] = DB.grades[grClass][i] || {};
         let v = inp.value.trim();
-        if (v === "") delete DB.grades[grClass][i][k];
-        else { const a = ASSESS.find(x => x.k === k); let n = Math.max(0, Math.min(+v || 0, a.max)); DB.grades[grClass][i][k] = n; }
+        if (v === "") { delete DB.grades[grClass][i][k]; const au = autoGrade(grClass, i); inp.placeholder = au.v[k] != null ? au.v[k] : ""; inp.classList.toggle("auto", au.v[k] != null); inp.title = au.why[k] || ""; }
+        else { const a = ASSESS.find(x => x.k === k); let n = Math.max(0, Math.min(+v || 0, a.max)); DB.grades[grClass][i][k] = n; inp.classList.remove("auto"); inp.title = "درجة يدوية"; }
         const tot = gradeTotal(grClass, i), lv = levelOf(maxTot ? tot / maxTot * 100 : 0);
         inp.closest("tr").querySelector(".tot").textContent = tot;
         const lc = inp.closest("tr").querySelector(".lvlcell"); lc.innerHTML = `<span class="lvl lvl${lv.i}">${lv.t}</span>`;
@@ -394,12 +443,12 @@
     drawAnalysis(maxTot);
   }
   function grRow(i, s, maxTot) {
-    const g = (DB.grades[grClass] || {})[i] || {}, tot = gradeTotal(grClass, i), lv = levelOf(maxTot ? tot / maxTot * 100 : 0);
-    return `<tr><td>${i + 1}</td><td class="nm">${esc(s.n)}</td>${ASSESS.map(a => `<td><input class="gr-in" data-i="${i}" data-k="${a.k}" inputmode="numeric" value="${g[a.k] != null ? g[a.k] : ""}"></td>`).join("")}<td class="tot">${tot}</td><td class="lvlcell"><span class="lvl lvl${lv.i}">${lv.t}</span></td></tr>`;
+    const g = (DB.grades[grClass] || {})[i] || {}, au = autoGrade(grClass, i), tot = gradeTotal(grClass, i), lv = levelOf(maxTot ? tot / maxTot * 100 : 0);
+    return `<tr><td>${i + 1}</td><td class="nm">${esc(s.n)}</td>${ASSESS.map(a => `<td><input class="gr-in${g[a.k] == null && au.v[a.k] != null ? " auto" : ""}" data-i="${i}" data-k="${a.k}" inputmode="numeric" value="${g[a.k] != null ? g[a.k] : ""}" placeholder="${g[a.k] == null && au.v[a.k] != null ? au.v[a.k] : ""}" title="${esc(g[a.k] != null ? "درجة يدوية" : (au.why[a.k] || ""))}"></td>`).join("")}<td class="tot">${tot}</td><td class="lvlcell"><span class="lvl lvl${lv.i}">${lv.t}</span></td></tr>`;
   }
   function drawAnalysis(maxTot) {
     const c = classById(grClass);
-    const scored = c.students.map((s, i) => ({ s, i, tot: gradeTotal(grClass, i), has: Object.keys((DB.grades[grClass] || {})[i] || {}).length > 0 })).filter(x => x.has);
+    const scored = c.students.map((s, i) => ({ s, i, tot: gradeTotal(grClass, i), has: hasGrades(grClass, i) })).filter(x => x.has);
     const box = $("#gr-analysis");
     if (!scored.length) { box.innerHTML = '<h3><span class="dot"></span>تحليل النتائج</h3><div class="empty-note">أدخل الدرجات وسيظهر التحليل تلقائياً</div>'; return; }
     const totals = scored.map(x => x.tot), avg = totals.reduce((a, b) => a + b, 0) / totals.length;
@@ -427,7 +476,7 @@
   function studentCard(cid, i) {
     const c = classById(cid), s = c.students[i], calc = classCalc(cid), t = calc[i].t, rank = calc[i].rank;
     const medal = rank === 1 ? "🥇" : rank === 2 ? "🥈" : rank === 3 ? "🥉" : "🎖️";
-    const maxTot = ASSESS.reduce((a, b) => a + b.max, 0), gtot = gradeTotal(cid, i), hasG = Object.keys((DB.grades[cid] || {})[i] || {}).length > 0;
+    const maxTot = ASSESS.reduce((a, b) => a + b.max, 0), gtot = gradeTotal(cid, i), hasG = hasGrades(cid, i);
     const behAgg = {}; Object.values(DB.recs[cid] || {}).forEach(day => { const e = day[i]; if (!e) return; (e.beh || []).forEach(bi => behAgg[bi] = (behAgg[bi] || 0) + 1); });
     const comms = ((DB.comms[cid] || []).filter(x => x.si === i)).slice(-4).reverse();
     const phone = (s.p || "").replace(/\D/g, "").replace(/^0/, "966");
@@ -510,7 +559,7 @@
   }
   function printReport(cid, i) {
     const c = classById(cid), s = c.students[i], calc = classCalc(cid), t = calc[i].t, rank = calc[i].rank;
-    const maxTot = ASSESS.reduce((a, b) => a + b.max, 0), g = (DB.grades[cid] || {})[i] || {}, gtot = gradeTotal(cid, i);
+    const maxTot = ASSESS.reduce((a, b) => a + b.max, 0), g = effGrades(cid, i), gtot = gradeTotal(cid, i);
     printDoc("تقرير الطالب " + s.n, `
       <div class="h"><div class="bar">${esc(META.school.name)}</div><div class="m">تقرير متابعة الطالب — مادة ${esc(TE.subject)} — ${esc(hijriLabel())}</div></div>
       <div class="tt">${esc(s.n)}</div>
@@ -762,7 +811,7 @@
         const a = ASSESS.find(x => x.k === o.querySelector("#calc-col").value) || ASSESS[0], t = totals();
         const v = t.max ? Math.round(t.sum / t.max * a.max * 10) / 10 : 0;
         const st = o.querySelector("#calc-stu"); const nm = st && st.selectedOptions[0] ? st.selectedOptions[0].textContent : "";
-        const curV = (DB.grades[cid] && DB.grades[cid][+(st && st.value)] && DB.grades[cid][+(st && st.value)][a.k]);
+        const curV = st ? effGrades(cid, +st.value)[a.k] : null;
         pv.textContent = (t.max ? `ستُسجَّل ${v} من ${a.max} في «${a.n}» ${nm ? "للطالب " + nm : ""}` : "أدخل الدرجات العظمى أولاً") + (curV != null ? ` · الدرجة الحالية المسجّلة: ${curV}` : " · لا درجة مسجّلة بعد");
       }
       function calc() {
@@ -1762,7 +1811,7 @@
     openSheet(`<h4>📈 تقدّم الطالب: ${esc(s.n)}</h4><div style="color:var(--muted);font-size:13px;text-align:center;margin-bottom:8px">${esc(c.name)} — ${esc(META.school.name)}</div><div id="pg-body"><div class="empty-note">جارِ جمع البيانات من كل المواد…</div></div>
       <div class="sheet-actions"><button class="btn-plain" onclick="print()">🖨️ طباعة</button><button class="btn-primary" onclick="window._sheetClose()">إغلاق</button></div>`, async (o) => {
       const docs = await classDocs(cid), maxTot = maxTotal();
-      const rows = docs.map(dc => { const t = calcStudent(cid, i, dc.recs); const hasG = Object.keys(dc.grades[i] || {}).length > 0; const gt = hasG ? gradeTotal(cid, i, dc.grades) : null; return { ...dc, t, hasG, gt, pct: hasG ? gt / maxTot * 100 : null, att: attPct(t), series: daySeries(dc.recs, i) }; });
+      const rows = docs.map(dc => { const t = calcStudent(cid, i, dc.recs); const hasG = hasGrades(cid, i, dc.grades, dc.recs); const gt = hasG ? gradeTotal(cid, i, dc.grades, dc.recs) : null; return { ...dc, t, hasG, gt, pct: hasG ? gt / maxTot * 100 : null, att: attPct(t), series: daySeries(dc.recs, i) }; });
       const mine = rows.find(r => TE && r.tid === TE.id) || rows[0];
       const ps = rows.filter(r => r.pct != null).map(r => r.pct); const overall = ps.length ? Math.round(ps.reduce((a, b) => a + b, 0) / ps.length) : null;
       const bars = (ser) => { const last = ser.slice(-14); const mx = Math.max(5, ...last.map(x => Math.abs(x.p))); return `<div class="pg-bars">${last.map(x => `<div class="pg-bar" title="${x.date}: ${x.p}"><div style="height:${Math.round(Math.abs(x.p) / mx * 100)}%;background:${x.p >= 0 ? "var(--ok)" : "var(--bad)"}"></div><small>${x.date.slice(5).replace("-", "/")}</small></div>`).join("")}</div>`; };
@@ -1785,7 +1834,7 @@
         body.innerHTML = '<div class="empty-note">جارِ التحليل…</div>';
         const c = classById(cur), docs = await classDocs(cur), maxTot = maxTotal();
         if (!docs.length) { body.innerHTML = '<div class="empty-note">لا رصد لهذا الفصل بعد</div>'; return; }
-        const rows = c.students.map((s, i) => { const per = docs.map(dc => { const has = Object.keys(dc.grades[i] || {}).length > 0; const pct = has ? gradeTotal(cur, i, dc.grades) / maxTot * 100 : null; const t = calcStudent(cur, i, dc.recs); return { pct, pts: t.pts }; }); const ps = per.filter(x => x.pct != null).map(x => x.pct); const avg = ps.length ? ps.reduce((a, b) => a + b, 0) / ps.length : null; const pts = Math.round(per.reduce((a, x) => a + x.pts, 0) * 10) / 10; return { s, i, per, avg, pts }; }).sort((a, b) => ((b.avg == null ? -1 : b.avg) - (a.avg == null ? -1 : a.avg)) || b.pts - a.pts);
+        const rows = c.students.map((s, i) => { const per = docs.map(dc => { const has = hasGrades(cur, i, dc.grades, dc.recs); const pct = has ? gradeTotal(cur, i, dc.grades, dc.recs) / maxTot * 100 : null; const t = calcStudent(cur, i, dc.recs); return { pct, pts: t.pts }; }); const ps = per.filter(x => x.pct != null).map(x => x.pct); const avg = ps.length ? ps.reduce((a, b) => a + b, 0) / ps.length : null; const pts = Math.round(per.reduce((a, x) => a + x.pts, 0) * 10) / 10; return { s, i, per, avg, pts }; }).sort((a, b) => ((b.avg == null ? -1 : b.avg) - (a.avg == null ? -1 : a.avg)) || b.pts - a.pts);
         body.innerHTML = `<div class="table-scroll"><table class="report-table"><tr><th>م</th><th style="min-width:140px">الطالب</th>${docs.map(dc => `<th>${esc(dc.subject)}</th>`).join("")}<th>المعدل</th><th>المستوى</th><th>النقاط</th></tr>
           ${rows.map((r, k) => `<tr class="al-row" data-i="${r.i}" style="cursor:pointer"><td>${k + 1}</td><td class="nm">${esc(r.s.n)}</td>${r.per.map(x => pctCell(x.pct)).join("")}${pctCell(r.avg)}<td>${r.avg != null ? esc(levelOf(r.avg).t) : "—"}</td><td>${r.pts}</td></tr>`).join("")}
           <tr class="tot"><td></td><td class="nm">متوسط الفصل</td>${docs.map((dc, j) => { const v = rows.map(r => r.per[j].pct).filter(x => x != null); return pctCell(v.length ? v.reduce((a, b) => a + b, 0) / v.length : null); }).join("")}<td></td><td></td><td></td></tr></table></div>
@@ -1806,7 +1855,7 @@
         const k = x.id.indexOf("_"); const tid = x.id.slice(0, k), cid = x.id.slice(k + 1); const t = D.teachers.find(z => z.id === tid); const c = classById(cid); if (!t || !c) return;
         const sub = t.subject; bySub[sub] = bySub[sub] || { n: 0, lv: [0, 0, 0, 0, 0], att: [], cls: {} };
         const recs = (x.data() || {}).d || {}; const g = gmap[x.id] || {};
-        c.students.forEach((s, i) => { const tt = calcStudent(cid, i, recs); const a = attPct(tt); if (a != null) bySub[sub].att.push(a); if (Object.keys(g[i] || {}).length) { const p = gradeTotal(cid, i, g) / maxTot * 100; bySub[sub].n++; bySub[sub].lv[levelOf(p).i]++; (bySub[sub].cls[c.name] = bySub[sub].cls[c.name] || []).push(p); } });
+        c.students.forEach((s, i) => { const tt = calcStudent(cid, i, recs); const a = attPct(tt); if (a != null) bySub[sub].att.push(a); if (hasGrades(cid, i, g, recs)) { const p = gradeTotal(cid, i, g, recs) / maxTot * 100; bySub[sub].n++; bySub[sub].lv[levelOf(p).i]++; (bySub[sub].cls[c.name] = bySub[sub].cls[c.name] || []).push(p); } });
       });
       const LV = ["ممتاز", "جيد جداً", "جيد", "مقبول", "دون المطلوب"];
       body.innerHTML = Object.keys(bySub).length ? `<div class="table-scroll"><table class="report-table"><tr><th style="min-width:110px">المادة</th><th>بدرجات</th>${LV.map(l => `<th>${l}</th>`).join("")}<th>الحضور</th><th>أعلى فصل</th><th>أدنى فصل</th></tr>${Object.entries(bySub).map(([sub, v]) => { const ca = Object.entries(v.cls).map(([n, arr]) => ({ n, a: arr.reduce((a, b) => a + b, 0) / arr.length })).sort((a, b) => b.a - a.a); const att = v.att.length ? Math.round(v.att.reduce((a, b) => a + b, 0) / v.att.length) + "%" : "—"; return `<tr><td class="nm">${esc(sub)}</td><td>${v.n}</td>${v.lv.map(x => `<td>${x || ""}</td>`).join("")}<td>${att}</td><td>${ca.length ? esc(ca[0].n) + " " + Math.round(ca[0].a) + "%" : "—"}</td><td>${ca.length ? esc(ca[ca.length - 1].n) + " " + Math.round(ca[ca.length - 1].a) + "%" : "—"}</td></tr>`; }).join("")}</table></div>` : '<div class="empty-note">لا رصد بعد</div>';
@@ -1834,7 +1883,7 @@
   function studentText(cid, i, from, to) {
     const c = classById(cid), s = c.students[i], recs = recsInRange(cid, from, to), t = calcStudent(cid, i, recs), maxTot = maxTotal();
     const all = c.students.map((x, k) => calcStudent(cid, k, recs).pts).sort((a, b) => b - a); const rank = all.indexOf(t.pts) + 1;
-    const hasG = Object.keys((DB.grades[cid] || {})[i] || {}).length > 0, gt = gradeTotal(cid, i); const a = attPct(t);
+    const hasG = hasGrades(cid, i), gt = gradeTotal(cid, i); const a = attPct(t);
     const tip = t.st[1] > 0 ? "نرجو متابعة الحضور." : t.hwN > 0 ? "نرجو متابعة إنجاز الواجبات." : t.pts >= 10 ? "أداء مميز، بارك الله فيه." : "نأمل مزيداً من المشاركة.";
     return `السلام عليكم ورحمة الله\nولي أمر الطالب: *${s.n}* — ${c.name}\n📊 تقرير ${TE.subject} للفترة ${hLabelShort(from)} → ${hLabelShort(to)}\n` +
       `⭐ النقاط: ${t.pts} | الترتيب: ${rank} من ${c.students.length}\n✅ الحضور: ${a != null ? a + "%" : "—"} (${STATES.map((st, k) => t.st[k] ? `${st.name} ${t.st[k]}` : "").filter(Boolean).join("، ") || "لا رصد"})\n🙋 المشاركة: ${t.part} | 📚 الواجبات: ${t.hwY}${t.hwN ? ` (ناقص ${t.hwN})` : ""}${hasG ? `\n📝 الدرجة: ${gt}/${maxTot} — ${levelOf(gt / maxTot * 100).t}` : ""}\n💡 ${tip}\n${META.school.name} — ${TE.name}`;

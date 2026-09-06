@@ -493,3 +493,7 @@ button{font-family:inherit}
   padding:10px 12px; font-size:13.5px; font-weight:600; color:var(--ink); cursor:pointer}
 .as-chk input{width:17px; height:17px; vertical-align:-3px; margin-left:6px; accent-color:var(--gold)}
 .as-chk small{display:block; font-weight:400; color:var(--muted); font-size:12px; margin-top:3px; line-height:1.6}
+
+/* درجات تلقائية من الرصد */
+.gr-in.auto{background:#F1EEE6; color:#6b7280; font-style:italic}
+.gr-in.auto::placeholder{color:#4b5563; opacity:1}
