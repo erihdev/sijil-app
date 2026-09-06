@@ -388,7 +388,13 @@
     applySedits(classes, sedits);
     // إعدادات المدرسة: cfg/bell (جدول الأجراس) وcfg/school (أسماء الإدارة) — غيابهما أو تعذّر قراءتهما = الافتراضي ولا يُفشل الإقلاع
     let bellCfg = null, schoolCfg = null;
-    try { const [bs, ss] = await Promise.all([fdb.doc("cfg/bell").get(), fdb.doc("cfg/school").get()]); if (bs.exists) bellCfg = bs.data() || null; if (ss.exists) schoolCfg = ss.data() || null; } catch (e) { }
+    try { const [bs, ss] = await Promise.all([fdb.doc("cfg/bell").get(), fdb.doc("cfg/school").get()]); if (bs.exists) bellCfg = bs.data() || null; if (ss.exists) schoolCfg = ss.data() || null; }
+    catch (e) {
+      // فشل القراءة (قاعدة غير منشورة أو App Check أو انقطاع) ≠ «لم يضبط المدير شيئاً»: نُبقي آخر إعداد محفوظ
+      // على الجهاز حتى لا ترتدّ المدرسة كلها إلى الأوقات الافتراضية بصمت، ونترك أثراً في الكونسول.
+      try { const old = JSON.parse(localStorage.getItem("sijil.cloudD") || "null"); if (old) { bellCfg = old.bell || null; schoolCfg = old.cfgSchool || null; } } catch (x) { }
+      try { console.warn("[سجلي] تعذّرت قراءة إعدادات المدرسة (cfg/bell وcfg/school) — استُعملت النسخة المحفوظة على الجهاز إن وُجدت:", (e && e.message) || e); } catch (x) { }
+    }
     D = { meta: metaS.data(), teachers, classes, schedule: (schS.data() || {}).rows || [], moves, sedits, bell: bellCfg, cfgSchool: schoolCfg };
     try { localStorage.setItem("sijil.cloudD", JSON.stringify(D)); } catch (e) { }
   }
@@ -505,6 +511,8 @@
     };
   })();
   const BELL = () => { const A = window.SIJIL_ADMIN; return (A && typeof A.periodsOf === "function" && typeof A.breakNow === "function") ? A : FALLBACK; };
+  // أيام الدراسة من المحرك (الأحد…الخميس) — نفس مصدر لوحة المدير حتى لا يقول الشريط «الحصة الثالثة» يوم الجمعة
+  const SDAYS = () => { const A = window.SIJIL_ADMIN; try { if (A && typeof A.schoolDays === "function") { const d = A.schoolDays(); if (Array.isArray(d) && d.length) return d; } } catch (e) { } return DAYS.slice(0, 5); };
   const sigLine = (roles) => { const A = window.SIJIL_ADMIN; return (A && typeof A.sigLine === "function") ? A.sigLine(roles) : FALLBACK.sigLine(roles); };
 
   /* ═══ تبويبات المعلم ═══ */
@@ -531,7 +539,13 @@
     const mine = D.schedule.filter(r => r.t === TE.name && r.d === today).sort((a, b) => a.p - b.p);
     // عدد حصص اليوم وأوقاتها من جدول أجراس المدرسة (لا رقم ثابت)
     const B = BELL();
-    const per = B.periodsOnly(today).map(b => { const s = mine.find(x => x.p === b.p); const c = s ? classById(s.c) : null; return `<div class="period ${s ? "" : "empty"}" data-p="${b.p}"><span class="p">ح${b.p}</span><div class="c">${c ? esc(c.name) : "—"}</div><div class="tm">${esc(B.periodTime(b.p, today))}</div></div>`; });
+    const cell = (p, tm) => { const s = mine.find(x => +x.p === p), c = s ? classById(s.c) : null; return `<div class="period ${s ? "" : "empty"}" data-p="${p}"><span class="p">ح${p}</span><div class="c">${c ? esc(c.name) : "—"}</div><div class="tm">${esc(tm)}</div></div>`; };
+    const have = {}, per = [];
+    B.periodsOnly(today).forEach(b => { have[b.p] = 1; per.push(cell(b.p, B.periodTime(b.p, today))); });
+    // حصة مسندة في الجدول ورقمها خارج عدد حصص الإعداد (خفّضه المدير) تظهر بلا وقت بدل أن تختفي — نفس سلوك لوحة المدير
+    const ex = [];
+    mine.forEach(r => { const p = Number(r.p) || 0; if (p > 0 && p <= 12 && !have[p] && ex.indexOf(p) < 0) ex.push(p); });
+    ex.sort((a, b) => a - b).forEach(p => per.push(cell(p, "")));
     let all = []; myClasses().forEach(c => classCalc(c.id).forEach(r => { if (r.active) all.push({ c, r }); }));
     const low = all.slice().sort((a, b) => a.r.t.pts - b.r.t.pts).slice(0, 5);
     const high = all.slice().sort((a, b) => b.r.t.pts - a.r.t.pts).filter(x => x.r.t.pts > 0).slice(0, 5);
@@ -589,10 +603,14 @@
   function paintBell() {
     const el = $("#today-bell"); if (!el) { stopBell(); return; }
     const B = BELL(), now = new Date(), day = DAYS[now.getDay()], m = now.getHours() * 60 + now.getMinutes();
-    const list = B.periodsOf(day), p = B.periodNow(now), br = p ? null : B.breakNow(now);
+    const work = SDAYS().indexOf(day) >= 0;                                       // يوم دراسة؟ الجمعة والسبت لا دوام
+    const list = work ? B.periodsOf(day) : [], p = work ? B.periodNow(now) : 0, br = (work && !p) ? B.breakNow(now) : null;
     const cur = p ? list.find(x => !x.brk && x.p === p) : null;
     let cls, html;
-    if (cur) {
+    if (!work) {
+      cls = "off";
+      html = `<span class="ic">🌙</span><span class="tx"><b>لا دوام اليوم</b> — ${esc(day)}</span>`;
+    } else if (cur) {
       const row = D.schedule.find(r => r.t === TE.name && r.d === day && +r.p === p), c = row ? classById(row.c) : null;
       cls = "on";
       html = `<span class="ic">🔔</span><span class="tx">الحصة الحالية: <b>${esc(B.ord(p))}</b> <span class="tm">(${esc(B.periodTime(p, day))})</span>${c ? ` · <b>${esc(c.name)}</b>` : ""}</span><span class="left">تبقّى ${esc(minsAr(Math.max(1, cur.to - m)))}</span>`;
@@ -611,7 +629,14 @@
     document.querySelectorAll("#tab-today .periods .period").forEach(n => n.classList.toggle("now", p > 0 && +n.dataset.p === p));
   }
   // المدير يحفظ أوقاتاً جديدة (SIJIL_ADMIN.saveBell) → إعادة رسم فورية
-  try { window.addEventListener("sijil:bell", () => { paintBell(); try { if (!$("#tab-today").classList.contains("hidden")) renderToday(); } catch (e) { } }); } catch (e) { }
+  // ويُطلق أيضاً عند اكتمال تحميل js/admin/core.js بعد رسم «اليوم» (جلسة محفوظة/وضع تجريبي) فتُصحَّح خلايا الشبكة
+  try {
+    window.addEventListener("sijil:bell", () => {
+      if (!TE) return;                                                            // قبل الدخول لا شيء لِيُرسم
+      paintBell();
+      try { const t = $("#tab-today"); if (t && !t.classList.contains("hidden")) Promise.resolve(renderToday()).catch(() => { }); } catch (e) { }
+    });
+  } catch (e) { }
 
   /* ═══ التحضير ═══ */
   let regClass = null, regDate = new Date().toISOString().slice(0, 10);
@@ -931,7 +956,7 @@
         ? `نحيطكم علماً بأن ابنكم بحاجة إلى مزيد من المتابعة في مادة ${esc(TE.subject)}؛ حيث بلغت نقاطه ${t.pts}، وسجّل ${t.st[1]} غياب و${t.hwN} واجب غير منجز. نأمل تعاونكم في متابعته وحثّه على الانتظام وأداء الواجبات.`
         : `يسعدنا إشعاركم بتميّز ابنكم في مادة ${esc(TE.subject)}؛ حيث بلغت نقاطه ${t.pts} مع انتظام في الحضور وأداء الواجبات. نشكر لكم حسن متابعتكم، ونسأل الله له دوام التوفيق.`}</p>
       <p>شاكرين لكم تعاونكم الدائم مع المدرسة.</p>
-      ${sigLine([{ l: "معلم المادة", v: TE.name }, { l: "توقيع ولي الأمر", dots: 16 }])}`);
+      ${sigLine([{ l: "معلم المادة", v: TE.name }, "principal", { l: "توقيع ولي الأمر", dots: 16 }])}`);
   }
 
   /* ═══ التقارير ═══ */

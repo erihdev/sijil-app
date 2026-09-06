@@ -224,7 +224,7 @@
     $("#sch-save", box).onclick = save;
     $("#sch-undo", box).onclick = undo;
     const au = $("#sch-auto", box); if (au) au.onclick = autoFill;
-    const bl = $("#sch-bell", box); if (bl) bl.onclick = openBell;
+    const bl = $("#sch-bell", box); if (bl) bl.onclick = () => { const Ad = A(); if (Ad && typeof Ad.openBell === "function") Ad.openBell(); else openBell(); };
     $("#sch-print-all", box).onclick = printAll;
     $("#sch-print-one", box).onclick = () => mode === "class" ? printClass(sel) : printTeacher(sel);
     const wa = $("#sch-wa", box); if (wa) wa.onclick = () => waSheet(sel);
@@ -238,14 +238,17 @@
     return `${work.length + extra.length} حصة في الجدول · ${DAYS.length} أيام × ${PER.length} حصص · النصاب ${QUOTA} حصة`
       + (extra.length ? ` · ${extra.length} حصة خارج أيام الدراسة تُحفظ كما هي` : "") + (bell ? ` · 🔔 ${bell}` : "");
   }
-  // بطاقة «⏰ أوقات الحصص والفسح» في تبويب ⚙️ الإدارة
+  /* بطاقة «⏰ أوقات الحصص والفسح» في تبويب ⚙️ الإدارة — الفتح والتمرير من manage.js عبر SIJIL_ADMIN.openBell
+     (يفتح <details> وينتظر رسم البطاقة). هذه نسخة احتياطية لا تعمل إلا إن غاب المكوّن. */
   function openBell() {
     const s = S(), Ad = A();
     if ((Ad.modules() || []).indexOf("manage") < 0) { Ad.toast("⏰ أوقات الحصص والفسح تُضبط من تبويب ⚙️ الإدارة"); return; }
     try { s.switchTab("manage"); } catch (e) { return; }
     setTimeout(() => {
-      const el = document.querySelector("#mg-bell, #adm-bell, [data-bell-card]");
-      if (el && el.scrollIntoView) { try { el.scrollIntoView({ block: "start", behavior: "smooth" }); } catch (e) { } }
+      const el = document.querySelector("#mg-s-bell");
+      if (!el) return;
+      try { el.open = true; } catch (e) { }
+      if (el.scrollIntoView) { try { el.scrollIntoView({ block: "start", behavior: "smooth" }); } catch (e) { } }
     }, 350);
   }
 

@@ -303,7 +303,14 @@
   const ORD = ["", "الأولى", "الثانية", "الثالثة", "الرابعة", "الخامسة", "السادسة", "السابعة", "الثامنة", "التاسعة", "العاشرة", "الحادية عشرة", "الثانية عشرة"];
   const BRKW = ["بلا فسح", "فسحة واحدة", "فسحتان", "ثلاث فسح", "أربع فسح"];
   const ord = (p) => ORD[p] || String(p);
+  // صيغ عربية سليمة للعدد (لا «1 حصص» ولا «2 دقيقة») — يستعملها bellLine وبطاقة الأوقات في manage.js
+  const nPer = (n) => n === 1 ? "حصة واحدة" : n === 2 ? "حصتان" : n + (n <= 10 ? " حصص" : " حصة");
+  const mins = (n) => n === 1 ? "دقيقة واحدة" : n === 2 ? "دقيقتان" : n + ((n >= 3 && n <= 10) ? " دقائق" : " دقيقة");
   const dayList = () => (S() && S().DAYS) || ["الأحد", "الإثنين", "الثلاثاء", "الأربعاء", "الخميس", "الجمعة", "السبت"];
+  /* أيام الدراسة (أول خمسة: الأحد…الخميس) — مصدر واحد لكل الشاشات: لوحة المدير وتبويب الجدول وشريط «الحصة الحالية» عند المعلم.
+     الجمعة والسبت لا دوام فيهما، فلا تُبرز حصة ولا يُعرض شريط حصة جارية. */
+  const schoolDays = () => dayList().slice(0, 5);
+  const isSchoolDay = (d) => schoolDays().indexOf(d == null ? todayName() : d) >= 0;
   const num = (v) => { const x = Math.round(Number(v)); return isFinite(x) ? x : NaN; };
   const clamp = (v, lo, hi, d) => { const x = num(v); return isFinite(x) ? Math.min(hi, Math.max(lo, x)) : d; };
   const hm = (m) => `${Math.floor(m / 60)}:${String(Math.round(m) % 60).padStart(2, "0")}`;                              // 7:05
@@ -328,25 +335,46 @@
     });
     return out.sort((a, b) => a.after - b.after);
   }
+  /* حدّ منتصف الليل داخل التطبيع نفسه لا في التحقق وحده: مستند مكتوب يدوياً من كونسول Firebase أو من أي
+     جهاز مصادَق يمرّ من القواعد (start ≤ 1439، len ≤ 120، n ≤ 12) وقد يتجاوز 24:00 — تُقصّ الحصص التي
+     تتخطّى منتصف الليل، وإن لم تتّسع ولو حصة واحدة عاد اليوم إلى الجدول الاحتياطي بدل طباعة 25:20. */
+  function fitDay(c, fb) {
+    let t = c.start, fit = 0;
+    for (let p = 1; p <= c.n; p++) {
+      const L = c.lens[String(p)] || c.len;
+      if (t + L > MAXDAY) break;
+      t += L; fit = p;
+      const b = c.breaks.find(x => x.after === p);
+      if (b && p < c.n) { if (t + b.min > MAXDAY) break; t += b.min; }
+    }
+    if (fit >= c.n) return c;
+    if (fit < 1) return fb;
+    c.n = fit;
+    c.breaks = c.breaks.filter(x => x.after <= fit - 1);
+    c.lens = normLens(c.lens, fit);
+    return c;
+  }
+  const defDay = () => ({ start: BELL_DEF.start, len: BELL_DEF.len, n: BELL_DEF.n, breaks: BELL_DEF.breaks.map(b => ({ after: b.after, min: b.min, n: b.n })), lens: {} });
   function normBell(raw) {
     const src = (raw && typeof raw === "object") ? raw : {};
     const n = clamp(src.n, 1, 12, BELL_DEF.n);
-    const cfg = {
+    const cfg = fitDay({
       start: clamp(src.start, 0, MAXDAY - 1, BELL_DEF.start),
       len: clamp(src.len, 5, 120, BELL_DEF.len), n,
       breaks: normBreaks(("breaks" in src) ? src.breaks : BELL_DEF.breaks, n),
-      lens: normLens(src.lens, n), days: {}
-    };
+      lens: normLens(src.lens, n)
+    }, defDay());
+    cfg.days = {};
     if (src.days && typeof src.days === "object") dayList().forEach(d => {
       const o = src.days[d]; if (!o || typeof o !== "object") return;
       const dn = ("n" in o) ? clamp(o.n, 1, 12, cfg.n) : cfg.n;
-      cfg.days[d] = {
+      cfg.days[d] = fitDay({
         n: dn,
         start: ("start" in o) ? clamp(o.start, 0, MAXDAY - 1, cfg.start) : cfg.start,
         len: ("len" in o) ? clamp(o.len, 5, 120, cfg.len) : cfg.len,
         breaks: normBreaks(("breaks" in o) ? o.breaks : cfg.breaks, dn),
         lens: normLens(("lens" in o) ? o.lens : cfg.lens, dn)
-      };
+      }, { n: cfg.n, start: cfg.start, len: cfg.len, breaks: cfg.breaks.map(b => ({ after: b.after, min: b.min, n: b.n })), lens: normLens(cfg.lens, cfg.n) });
     });
     return cfg;
   }
@@ -385,7 +413,7 @@
     const bl = c.breaks.length
       ? (BRKW[c.breaks.length] || c.breaks.length + " فسح") + ": " + c.breaks.map(b => `بعد ${ord(b.after)} ${b.min}د`).join(" و")
       : BRKW[0];
-    return `بداية ${hm(c.start)} · الحصة ${c.len} دقيقة · ${c.n} حصص · ${bl} · نهاية الدوام ${hm(dayEnd(day))}`;
+    return `بداية ${hm(c.start)} · الحصة ${mins(c.len)} · ${nPer(c.n)} · ${bl} · نهاية الدوام ${hm(dayEnd(day))}`;
   }
   /* تحقق قبل الحفظ — يعيد رسالة عربية أو null، ويفحص الشكل الخام كما أدخله المدير (لا المطبَّع) */
   function checkOne(o, where) {
@@ -435,9 +463,15 @@
         if (all.indexOf(ks[i]) < 0) return "يوم غير معروف: " + ks[i];
         const o = cfg.days[ks[i]];
         if (!o || typeof o !== "object" || Array.isArray(o)) return "تجاوز يوم " + ks[i] + " غير صحيح";
+        /* الموروث من الإعداد العام يُنقّى قبل الفحص تماماً كما تُسقطه normBreaks/normLens بهدوء: يوم مختصر
+           (الخميس n:4) مع فسحة عامة بعد الخامسة يعرض جدولاً سليماً، فلا يصحّ أن يمنع الحفظ برسالة لا يملك
+           المدير في الواجهة ما يصححها به. أما ما كتبه المدير لليوم نفسه فيُفحص كما هو. */
+        const dn = ("n" in o) ? num(o.n) : num(cfg.n);
+        const inhBr = (a) => (Array.isArray(a) && isFinite(dn)) ? a.filter(b => { const x = num((b || {}).after); return !isFinite(x) || x < dn; }) : a;
+        const inhLn = (m) => { if (!m || typeof m !== "object" || Array.isArray(m) || !isFinite(dn)) return m; const r = {}; Object.keys(m).forEach(k => { const x = num(k); if (!isFinite(x) || x <= dn) r[k] = m[k]; }); return r; };
         const e2 = checkOne({
           start: ("start" in o) ? o.start : cfg.start, len: ("len" in o) ? o.len : cfg.len, n: ("n" in o) ? o.n : cfg.n,
-          breaks: ("breaks" in o) ? o.breaks : cfg.breaks, lens: ("lens" in o) ? o.lens : cfg.lens
+          breaks: ("breaks" in o) ? o.breaks : inhBr(cfg.breaks), lens: ("lens" in o) ? o.lens : inhLn(cfg.lens)
         }, ks[i]);
         if (e2) return e2;
       }
@@ -548,9 +582,9 @@
     adminlog, saveSedit,
     printHead, printHtml, printEl, printTable, cleanClone,
     H, toast, confirm,
-    sortedClasses, staff, allAccounts, showActiveTab, classTeachers, teacherOf, teacherByName, todayName, isoDate, daysAgo, fmtDate, fmtTs, normMob, waPhone, waHref, nextTeacherId,
+    sortedClasses, staff, allAccounts, showActiveTab, classTeachers, teacherOf, teacherByName, todayName, schoolDays, isSchoolDay, isoDate, daysAgo, fmtDate, fmtTs, normMob, waPhone, waHref, nextTeacherId,
     // جدول الأجراس (PERIODS = الحصص فقط بلا الفسح، محسوبة الآن من الإعداد — بنفس شكلها القديم [{p, from, to}])
-    bell, defaultBell, periodsOf, periodsOnly, periodNow, breakNow, periodTime, bellLine, dayEnd, validateBell, saveBell, hm, hhmm, parseHM, ord,
+    bell, defaultBell, periodsOf, periodsOnly, periodNow, breakNow, periodTime, bellLine, dayEnd, validateBell, saveBell, hm, hhmm, parseHM, ord, nPer, mins,
     get PERIODS() { return periodsOnly(); },
     // أسماء إدارة المدرسة وسطر التواقيع
     schoolStaff, sigLine, saveStaff, validateStaff, STAFF_KEYS, STAFF_LBL
@@ -558,4 +592,7 @@
 
   // إن كان app.js قد أعاد جلسة محفوظة قبل تحميل هذا الملف (الوضع التجريبي متزامن بلا await): هيّئ اللوحة الآن
   try { const s = S(); if (s && s.TE && s.TE.admin) { const adm = init(s.TE); s.switchTab(adm ? "home" : "today"); } } catch (e) { warn("late init", e); }
+  /* app.js يرسم تبويب «اليوم» قبل تنفيذ هذا الملف (جلسة محفوظة أو الوضع التجريبي) فيبني خلايا «حصص اليوم»
+     من جدوله الاحتياطي القديم. إعلان جاهزية المحرك يجعله يعيد رسم التبويب بأوقات المدرسة الفعلية. */
+  try { window.dispatchEvent(new CustomEvent("sijil:bell")); } catch (e) { }
 })();

@@ -8,7 +8,8 @@
   const esc = (s) => S().esc(s);
   const H = () => A().H;
   const $ = (q, root) => (root || document).querySelector(q);
-  const WDAYS = ["الأحد", "الإثنين", "الثلاثاء", "الأربعاء", "الخميس"];
+  // أيام الدراسة: مصدر واحد في core.js (schoolDays) — نسخة احتياطية إن كانت النواة قديمة في كاش المتصفح
+  const WDAYS = (function () { try { const d = A().schoolDays(); if (Array.isArray(d) && d.length) return d; } catch (e) { } return ["الأحد", "الإثنين", "الثلاثاء", "الأربعاء", "الخميس"]; })();
   const LV = ["ممتاز", "جيد جداً", "جيد", "مقبول", "دون المطلوب"];
   const MED = ["🥇", "🥈", "🥉"];
   const r1 = (x) => Math.round(x * 10) / 10;

@@ -83,7 +83,7 @@
 .bl-hd button:disabled{opacity:.45;cursor:not-allowed}
 .bl-br{display:grid;grid-template-columns:1fr 1fr;gap:6px 8px;border:1.5px solid var(--line);border-radius:12px;padding:8px 10px;background:#fbf9f4;margin-bottom:8px}
 .bl-br .hd{grid-column:1/-1;display:flex;align-items:center;font-size:13px;font-weight:800;color:var(--navy)}
-.bl-br .hd .del{margin-inline-start:auto;border:1.5px solid var(--line);background:#fff;border-radius:9px;padding:3px 10px;font-size:15px;line-height:1.3;cursor:pointer}
+.bl-br .hd .del{margin-inline-start:auto;display:inline-flex;align-items:center;justify-content:center;min-width:40px;min-height:40px;border:1.5px solid var(--line);background:#fff;border-radius:9px;padding:7px 12px;font-size:16px;line-height:1;cursor:pointer}
 .bl-br .hd .del:hover{border-color:var(--bad);background:#fff5f5}
 .bl-br label{display:block;font-size:11.5px;font-weight:700;color:var(--muted)}
 .bl-br .nmf{grid-column:1/-1}
@@ -144,14 +144,14 @@
      (وlens/days من المستند الخام كما كتبها المدير حتى لا تتجمّد على قيم قديمة عند الحفظ).
      لا يُحسب أي وقت هنا: المعاينة والطباعة والواتساب كلها من محرك core عبر withDraft() الذي يضع المسودة
      لحظياً في D.bell/DB.bell ثم يستعيد القيمة الأصلية فوراً (متزامن بلا await بينهما). */
-  let draft = null, draftBase = "";
+  let draft = null, draftBase = "", parked = [];
   const isObj = (o) => !!o && typeof o === "object" && !Array.isArray(o);
   const rawBell = () => { const s = S(); return (s.D && s.D.bell) || (s.DB && s.DB.bell) || null; };
   const numOf = (v) => { const x = Math.round(Number(String(v == null ? "" : v).trim())); return isFinite(x) ? x : NaN; };
   const autoNm = (i) => "الفسحة " + A().ord(i + 1);
   const AUTO_RE = /^الفسحة(\s|$)/;
-  // شارة عدد الحصص بصيغة عربية سليمة: حصة واحدة · حصتان · 7 حصص · 11 حصة
-  const nPer = (n) => n === 1 ? "حصة واحدة" : n === 2 ? "حصتان" : n + (n <= 10 ? " حصص" : " حصة");
+  // شارة عدد الحصص بصيغة عربية سليمة: حصة واحدة · حصتان · 7 حصص · 11 حصة — الدالة في core.js (مصدر واحد)
+  const nPer = (n) => { const Ad = A(); return (Ad && typeof Ad.nPer === "function") ? Ad.nPer(n) : (n === 1 ? "حصة واحدة" : n === 2 ? "حصتان" : n + (n <= 10 ? " حصص" : " حصة")); };
   function newDraft() {
     const c = A().bell(), raw = rawBell() || {};
     return {
@@ -193,9 +193,13 @@
     for (let p = 1; p <= d.n - 1; p++) if (used.indexOf(p) < 0) return p;
     return 0;
   }
+  // «فسحة محفوظة مؤقتاً»: موضعها أكبر من عدد الحصص الحالي، تعود تلقائياً متى اتّسع العدد (لا تُفقد أثناء الكتابة)
+  const parkNote = () => parked.length
+    ? H().note(`☕ ${parked.length === 1 ? "فسحة واحدة محفوظة مؤقتاً" : parked.length + " فسح محفوظة مؤقتاً"} (موضعها خارج عدد الحصص الحالي) — تعود تلقائياً إذا زدت عدد الحصص.`)
+    : "";
   function breaksHtml() {
     const h = H(), Ad = A(), d = draft;
-    if (!d.breaks.length) return h.note("لا فسح — اضغط «➕ إضافة فسحة» لإضافة فسحة بين حصتين.");
+    if (!d.breaks.length) return h.note("لا فسح — اضغط «➕ إضافة فسحة» لإضافة فسحة بين حصتين.") + parkNote();
     const top = (isFinite(d.n) && d.n >= 2) ? d.n - 1 : 0;
     return d.breaks.map((b, i) => {
       const others = d.breaks.filter((x, j) => j !== i).map(x => x.after);
@@ -210,7 +214,7 @@
         <label>مدتها (دقيقة)<input type="number" class="bl-mn" data-i="${i}" min="1" max="90" inputmode="numeric" value="${isFinite(b.min) ? b.min : ""}"></label>
         <label class="nmf">اسمها كما يظهر للمعلمين<input class="bl-nm" data-i="${i}" maxlength="40" value="${esc(b.n)}" placeholder="${esc(autoNm(i))}" autocomplete="off"></label>
       </div>`;
-    }).join("");
+    }).join("") + parkNote();
   }
   function previewHtml() {
     const h = H(), Ad = A(), err = bellErr();
@@ -246,7 +250,7 @@
     const h = H(), Ad = A();
     // إعادة رسم التبويب لسبب آخر (سجل الإدارة، حفظ أسماء الإدارة، العودة للتبويب) لا تُضيّع تحريراً غير محفوظ
     const base = JSON.stringify(cfgOf(newDraft()));
-    if (!(draft && draftBase === base && bellDirty())) { draft = newDraft(); draftBase = base; }
+    if (!(draft && draftBase === base && bellDirty())) { draft = newDraft(); draftBase = base; parked = []; }
     return h.note("جدول الأجراس مصدر كل وقت في التطبيق: إبراز الحصة الجارية، وأوقات الحصص في الجدول، وشريط «الحصة الحالية» عند المعلمين. اضبطه مرة واحدة لمدرستك.") +
       `<div class="bl-g">
         <div class="field"><label>⏱️ بداية الدوام</label><input type="time" id="bl-start" value="${esc(Ad.hhmm(draft.start))}"></div>
@@ -277,13 +281,26 @@
       box.querySelectorAll(".bl-af").forEach(sel => sel.onchange = () => { const i = +sel.dataset.i; draft.breaks[i].after = numOf(sel.value); sortBreaks(); renumber(); upBreaks(); });
       box.querySelectorAll(".bl-mn").forEach(inp => inp.oninput = () => { draft.breaks[+inp.dataset.i].min = numOf(inp.value); upPrev(); });
       box.querySelectorAll(".bl-nm").forEach(inp => inp.oninput = () => { draft.breaks[+inp.dataset.i].n = inp.value.slice(0, 40); upPrev(); });
-      box.querySelectorAll(".del").forEach(bt => bt.onclick = () => { draft.breaks.splice(+bt.dataset.del, 1); renumber(); upBreaks(); });
+      box.querySelectorAll(".del").forEach(bt => bt.onclick = () => { draft.breaks.splice(+bt.dataset.del, 1); renumber(); upBreaks(); });   // حذف صريح: لا يُركن
     }
     const st = q("bl-start"); if (st) st.oninput = () => { draft.start = Ad.parseHM(st.value); upPrev(); };
     const ln = q("bl-len"); if (ln) ln.oninput = () => { draft.len = numOf(ln.value); upPrev(); };
+    /* تغيير «عدد الحصص» يمرّ حتماً بأرقام وسيطة: من 7 إلى 10 يُكتب «1» أولاً. لو أُسقطت الفسح عندها
+       لضاعت كلها بلا تنبيه ولا تراجع — لذلك تُركن جانباً في parked وتعود بترتيبها متى اتّسع العدد. */
     const nn = q("bl-n"); if (nn) nn.oninput = () => {
       draft.n = numOf(nn.value);
-      if (isFinite(draft.n) && draft.n >= 1) { draft.breaks = draft.breaks.filter(x => x.after >= 1 && x.after <= draft.n - 1); renumber(); }
+      if (isFinite(draft.n) && draft.n >= 1) {
+        const top = draft.n - 1, fits = (x) => x && x.after >= 1 && x.after <= top;
+        parked = parked.concat(draft.breaks.filter(x => !fits(x)));
+        draft.breaks = draft.breaks.filter(fits);
+        const back = parked.filter(fits);
+        if (back.length) {
+          parked = parked.filter(x => back.indexOf(x) < 0);
+          const used = draft.breaks.map(x => x.after);
+          back.forEach(b => { if (used.indexOf(b.after) < 0 && draft.breaks.length < 4) { draft.breaks.push(b); used.push(b.after); } });
+        }
+        sortBreaks(); renumber();
+      }
       upBreaks();
     };
     const ad = q("bl-add"); if (ad) ad.onclick = () => {
@@ -294,7 +311,7 @@
     };
     const df = q("bl-def"); if (df) df.onclick = () => {
       const d = Ad.defaultBell();
-      draft = { start: d.start, len: d.len, n: d.n, breaks: d.breaks.map(x => ({ after: x.after, min: x.min, n: x.n })), lens: {}, days: {} };
+      draft = { start: d.start, len: d.len, n: d.n, breaks: d.breaks.map(x => ({ after: x.after, min: x.min, n: x.n })), lens: {}, days: {} }; parked = [];
       const s1 = q("bl-start"), l1 = q("bl-len"), n1 = q("bl-n");
       if (s1) s1.value = Ad.hhmm(draft.start); if (l1) l1.value = draft.len; if (n1) n1.value = draft.n;
       upBreaks();
