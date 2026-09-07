@@ -54,7 +54,7 @@ h1{font-size:19px;font-weight:800;color:var(--navy);margin:0 0 4px;line-height:1
 </head>
 <body>
 <div class="bar"><span id="bar-t">مرفق</span><small id="bar-s">سجلي</small></div>
-<div class="wrap" id="app"><div class="err">جارِ التحميل…</div></div>
+<div class="wrap" id="app"><div class="err" id="ld">جارِ التحميل…</div></div>
 
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-check-compat.js"></script>
@@ -70,9 +70,23 @@ h1{font-size:19px;font-weight:800;color:var(--navy);margin:0 0 4px;line-height:1
   const FID = new URLSearchParams(location.search).get("f") || "";
   const ICON = { image: "🖼️", pdf: "📕", audio: "🎧", other: "📄" };
   const KIND = { image: "صورة", pdf: "ملف PDF", audio: "مقطع صوتي", other: "ملف" };
-  let db = null;
+  let db = null, cloudTried = false, cloudDown = false;
+  const TMO = 12000;                 // لا انتظار بلا نهاية: متصفح واتساب الداخلي وشبكة ضعيفة يعلّقان الوعد أبداً
+  function withTimeout(p, ms) {
+    return new Promise((res, rej) => {
+      const t = setTimeout(() => { const e = new Error("timeout"); e.code = "timeout"; rej(e); }, ms || TMO);
+      Promise.resolve(p).then(v => { clearTimeout(t); res(v); }, e => { clearTimeout(t); rej(e); });
+    });
+  }
 
   const fail = (t, s) => { app.innerHTML = `<div class="err"><b>${esc(t)}</b>${esc(s || "")}</div>`; };
+  // فشل الشبكة أو الصلاحية ليس «حذف المعلم للمرفق»: رسالتان مختلفتان، وزر يعيد المحاولة
+  const failNet = () => {
+    app.innerHTML = `<div class="err"><b>تعذّر الاتصال</b>لم نصل إلى خادم «سجلي». تحقق من اتصال الإنترنت ثم أعد المحاولة.
+      <div style="max-width:250px;margin:16px auto 0"><button class="go gold" id="rt">↻ إعادة المحاولة</button></div></div>`;
+    const b = $("#rt"); if (b) b.onclick = () => location.reload();
+  };
+  const VIEW_OK = /^(image\/(jpeg|png|gif|webp|bmp|avif|heic|heif)|audio\/[a-z0-9.+-]{1,24}|application\/pdf)$/;
   const kindOf = (t) => { t = String(t || "").toLowerCase(); return /^image\//.test(t) ? "image" : (t === "application/pdf" ? "pdf" : (/^audio\//.test(t) ? "audio" : "other")); };
   function fmt(b) {
     b = +b || 0;
@@ -116,12 +130,15 @@ h1{font-size:19px;font-weight:800;color:var(--navy);margin:0 0 4px;line-height:1
 
   /* ═══ القراءة: السحابة أولاً، وإن غاب الملف فمن هذا الجهاز ═══ */
   async function metaGet(id) {
-    if (db) { try { const s = await db.doc("files/" + id).get(); if (s.exists) return Object.assign({ id, src: "cloud" }, s.data()); } catch (e) { } }
+    if (db) {
+      try { const s = await withTimeout(db.doc("files/" + id).get()); if (s.exists) return Object.assign({ id, src: "cloud" }, s.data()); }
+      catch (e) { cloudDown = true; }     // انقطاع أو رفض صلاحية — لا «غير موجود»
+    }
     try { const r = await idbGet("meta", id); if (r) return Object.assign({ src: "local" }, r); } catch (e) { }
     return null;
   }
   async function partGet(id, i, src) {
-    if (src === "cloud") { const s = await db.doc("files/" + id + "/parts/" + i).get(); return s.exists ? (s.data() || {}).d : null; }
+    if (src === "cloud") { const s = await withTimeout(db.doc("files/" + id + "/parts/" + i).get()); return s.exists ? (s.data() || {}).d : null; }
     const r = await idbGet("parts", id + ":" + i); return r ? r.d : null;
   }
 
@@ -138,18 +155,24 @@ h1{font-size:19px;font-weight:800;color:var(--navy);margin:0 0 4px;line-height:1
 
   async function boot() {
     if (!FID || !/^[A-Za-z0-9_-]{2,24}$/.test(FID)) return fail("رابط غير مكتمل", "اطلب من المعلم إرسال الرابط كاملاً.");
+    const slow = setTimeout(() => { const el = $("#ld"); if (el) el.textContent = "الاتصال يستغرق وقتاً أطول من المعتاد…"; }, 5000);
     try {
-      if (window.firebase && window.FIREBASE_CONFIG) {
+      if (window.FIREBASE_CONFIG) {
+        cloudTried = true;
+        // انقطاع الشبكة يمنع وصول مكتبة فايربيس نفسها: غيابها انقطاعٌ لا «مرفق غير موجود»
+        if (!window.firebase) throw new Error("sdk");
         firebase.initializeApp(window.FIREBASE_CONFIG);
         try { if (firebase.appCheck && window.APPCHECK_SITE_KEY) firebase.appCheck().activate(new firebase.appCheck.ReCaptchaEnterpriseProvider(window.APPCHECK_SITE_KEY), true); } catch (e) { }
-        await firebase.auth().signInAnonymously();
+        await withTimeout(firebase.auth().signInAnonymously());
         db = firebase.firestore();
       }
-    } catch (e) { db = null; }
+    } catch (e) { db = null; cloudDown = true; }
 
     let rec = null;
-    try { rec = await metaGet(FID); } catch (e) { rec = null; }
-    if (!rec) return fail("لم نجد هذا المرفق", "قد يكون المعلم حذفه، أو الرابط غير صحيح.");
+    try { rec = await metaGet(FID); } catch (e) { rec = null; cloudDown = true; }
+    clearTimeout(slow);
+    if (!rec) return (cloudTried && cloudDown) ? failNet()
+      : fail("لم نجد هذا المرفق", "قد يكون المعلم حذفه، أو الرابط غير صحيح.");
 
     const nc = Math.max(1, +rec.nc || 1);
     frame(rec, `<div class="prog"><i id="pb" style="width:6%"></i></div>
@@ -169,8 +192,15 @@ h1{font-size:19px;font-weight:800;color:var(--navy);margin:0 0 4px;line-height:1
     } catch (e) { return fail("تعذّر إحضار الملف", "تحقق من اتصال الإنترنت ثم أعد تحميل الصفحة."); }
     if (out.some(x => x == null)) return fail("الملف ناقص", "اطلب من المعلم إعادة إرساله.");
 
-    let url;
-    try { url = URL.createObjectURL(b64ToBlob(out.join(""), rec.t)); }
+    let url, dl, raw = null;
+    try {
+      const blob = b64ToBlob(out.join(""), rec.t);
+      url = URL.createObjectURL(blob);
+      // داخل <img> لا يُنفَّذ شيء، أما فتح الملف في نافذة جديدة فيجعله وثيقة عليا على أصل
+      //   الموقع — فالنوع غير المأمون (SVG وما شابهه) يُسلَّم محايداً فيُحفظ ولا يُنفَّذ.
+      raw = VIEW_OK.test(String(rec.t || "").toLowerCase()) ? null : new Blob([blob], { type: "application/octet-stream" });
+      dl = raw ? URL.createObjectURL(raw) : url;
+    }
     catch (e) { return fail("تعذّر عرض الملف", "اطلب من المعلم إعادة إرساله."); }
 
     const k = kindOf(rec.t);
@@ -181,8 +211,9 @@ h1{font-size:19px;font-weight:800;color:var(--navy);margin:0 0 4px;line-height:1
         : k === "audio" ? `<audio class="view aud" controls src="${url}"></audio>`
           : `<p class="sub" style="text-align:center">هذا النوع لا يُعرض داخل الصفحة — احفظه ثم افتحه من جهازك.</p>`;
     frame(rec, body, `<div class="row">
-        <a class="go gold" target="_blank" rel="noopener" href="${url}">↗️ فتح بالحجم الكامل</a>
-        <a class="go soft" download="${esc(rec.n || "مرفق")}" href="${url}">⬇️ حفظ في جهازي</a>
+        ${raw ? `<a class="go gold" download="${esc(rec.n || "مرفق")}" href="${dl}">⬇️ حفظ الملف في جهازي</a>`
+        : `<a class="go gold" target="_blank" rel="noopener" href="${url}">↗️ فتح بالحجم الكامل</a>
+        <a class="go soft" download="${esc(rec.n || "مرفق")}" href="${dl}">⬇️ حفظ في جهازي</a>`}
       </div>
       <div class="note">وصلك هذا المرفق من معلّم ابنك أو ابنتك عبر <b>سجلي</b> — لا يحتاج تسجيلاً ولا تطبيقاً.</div>`);
     $("#bar-t").textContent = KIND[k];

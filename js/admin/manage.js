@@ -21,7 +21,6 @@
   const $ = (q, root) => (root || document).querySelector(q);
   const warn = (...a) => { try { console.warn("[admin/manage]", ...a); } catch (e) { } };
   const DAYS5 = ["الأحد", "الإثنين", "الثلاثاء", "الأربعاء", "الخميس"];
-  const PER = [1, 2, 3, 4, 5, 6, 7];
   const pad2 = (n) => String(n).padStart(2, "0");
   const isDemo = () => !(S().CLOUD && S().fdb);
   const ACTS = { pin: "🔑 رقم دخول", edit: "✏️ تعديل", add: "➕ إضافة معلم", lead: "🎖️ رائد فصل", schedule: "🗓️ الجدول", move: "🔁 نقل طالب", sedit: "👤 بيانات طالب", backup: "⬇️ نسخة احتياطية", restore: "⬆️ استعادة", bell: "⏰ أوقات الحصص", school: "🏫 أسماء الإدارة" };
@@ -120,7 +119,18 @@
     return t.reg === true || !!t.pinHash;
   }
   const loginTxt = (t) => isReg(t) ? { c: "ok", t: "✅ سجّل هويته" } : isDemo() ? { c: "ok", t: "🧪 تجريبي (1234)" } : { c: "no", t: "⏳ لم يسجّل" };
-  const schedRows = () => (Array.isArray(S().D.schedule) ? S().D.schedule : []).filter(r => r && r.t && r.c && DAYS5.includes(r.d) && PER.includes(+r.p));
+  /* الحصص المعروضة تتبع جدول الأجراس وبيانات الجدول — لا رقم مثبّت. كانت [1..7] فتختفي كل حصة رقمها 8
+     فأكثر من الشبكة ومن الشارة ومن مؤشر «حصة أسبوعياً»، بينما يطبعها زر «🖨️ طباعة الجدول العام» في
+     البطاقة نفسها (يفوّض إلى SIJIL_ADMIN_SCHEDULE.printAll الذي يبني أعمدته من محرك الأجراس). */
+  function perList() {
+    const Ad = A(); let mx = 1;
+    try { DAYS5.forEach(d => { const k = (Ad.periodsOnly(d) || []).length; if (k > mx) mx = k; }); } catch (e) { mx = 7; }
+    (Array.isArray(S().D.schedule) ? S().D.schedule : []).forEach(r => { const p = Number(r && r.p) || 0; if (p > mx && p <= 12) mx = p; });
+    mx = Math.min(12, Math.max(1, mx));
+    const out = []; for (let p = 1; p <= mx; p++) out.push(p);
+    return out;
+  }
+  const schedRows = () => { const per = perList(); return (Array.isArray(S().D.schedule) ? S().D.schedule : []).filter(r => r && r.t && r.c && DAYS5.includes(r.d) && per.indexOf(+r.p) >= 0); };
   const subjOfName = (n) => { const t = (S().D.teachers || []).find(x => x.name === n); return t ? (t.subject || "") : ""; };
   const shortName = (n) => String(n || "").replace(/^(أ\.|الأستاذ)\s*/, "").split(/\s+/).filter(Boolean).slice(0, 2).join(" ");
   const hijStamp = () => { const h = S().hijriParts(); return `${h.y}-${pad2(h.m)}-${pad2(h.d)}هـ`; };
@@ -162,14 +172,14 @@
   const rawBell = () => { const s = S(); return (s.D && s.D.bell) || (s.DB && s.DB.bell) || null; };
   const numOf = (v) => { const x = Math.round(Number(String(v == null ? "" : v).trim())); return isFinite(x) ? x : NaN; };
   const autoNm = (i) => "الفسحة " + A().ord(i + 1);
-  const AUTO_RE = /^الفسحة(\s|$)/;
   // شارة عدد الحصص بصيغة عربية سليمة: حصة واحدة · حصتان · 7 حصص · 11 حصة — الدالة في core.js (مصدر واحد)
   const nPer = (n) => { const Ad = A(); return (Ad && typeof Ad.nPer === "function") ? Ad.nPer(n) : (n === 1 ? "حصة واحدة" : n === 2 ? "حصتان" : n + (n <= 10 ? " حصص" : " حصة")); };
   function newDraft() {
     const c = A().bell(), raw = rawBell() || {};
     return {
       start: c.start, len: c.len, n: c.n,
-      breaks: c.breaks.map(b => ({ after: b.after, min: b.min, n: b.n })),
+      // auto: هل الاسم مولَّد تلقائياً؟ (لا نستنتجه من نصّ يكتبه المدير — «الفسحة الكبرى» كانت تُمحى بصمت)
+      breaks: c.breaks.map((b, i) => ({ after: b.after, min: b.min, n: b.n, auto: !b.n || b.n === autoNm(i) })),
       lens: isObj(raw.lens) ? Object.assign({}, raw.lens) : {},
       days: isObj(raw.days) ? S().clone(raw.days) : {}
     };
@@ -196,7 +206,25 @@
   const bellErr = () => A().validateBell(cfgOf(draft));
   const bellItems = () => withDraft(() => { const Ad = A(), day = Ad.todayName(); return { list: Ad.periodsOf(day), end: Ad.dayEnd(day), line: Ad.bellLine(day) }; });
   const bellDirty = () => JSON.stringify(cfgOf(draft)) !== JSON.stringify(cfgOf(newDraft()));
-  const renumber = () => draft.breaks.forEach((b, i) => { if (!b.n || AUTO_RE.test(b.n)) b.n = autoNm(i); });
+  /* حصص مسندة في الجدول المدرسي خارج عدد الحصص المضبوط: التطبيق يُبقيها في شبكة «حصص اليوم» بلا وقت،
+     لكنه يُسقطها صامتةً من ملف التقويم (.ics) ومن تنبيهات الحصص ومن شريط «الحصة القادمة» لأن لا وقت لها.
+     البطاقة تحذّر المدير بعددها وأماكنها قبل أن يحفظ عدداً أقل مما يستعمله جدوله فعلاً. */
+  function outOfRange() {
+    const s = S(), Ad = A(), rows = Array.isArray(s.D.schedule) ? s.D.schedule : [];
+    if (!rows.length) return null;
+    return withDraft(() => {
+      const cap = {}, per = {}; let n = 0;
+      rows.forEach(r => {
+        const d = String((r && r.d) || ""), p = Number(r && r.p) || 0;
+        if (!p || DAYS5.indexOf(d) < 0) return;
+        if (cap[d] == null) { try { cap[d] = (Ad.periodsOnly(d) || []).length; } catch (e) { cap[d] = 0; } }
+        if (p > cap[d]) { n++; (per[d] = per[d] || {})[p] = (per[d][p] || 0) + 1; }
+      });
+      if (!n) return null;
+      return { n: n, txt: Object.keys(per).map(d => `${d}: ${Object.keys(per[d]).sort((a, b) => a - b).map(x => "ح" + x).join("، ")}`).join(" · ") };
+    });
+  }
+  const renumber = () => draft.breaks.forEach((b, i) => { if (!b.n || b.auto) { b.n = autoNm(i); b.auto = true; } });
   const sortBreaks = () => draft.breaks.sort((a, b) => (isFinite(a.after) ? a.after : 99) - (isFinite(b.after) ? b.after : 99));
   // أول حصة تصلح لفسحة جديدة (بلا تكرار ولا فسحة بعد الأخيرة) أو 0 إن لم يبقَ موضع
   function freeSlot() {
@@ -234,10 +262,11 @@
     if (err) return `<div class="bl-pv">` + h.alert("⚠️ " + esc(err) + "<br><span style=\"color:var(--muted)\">صحّح المدخلات لتظهر المعاينة.</span>", "bad") + `</div>`;
     const p = bellItems();
     const rows = p.list.map(x => `<tr${x.brk ? ' class="brk"' : ""}><td class="nm">${x.brk ? "☕ " + esc(x.n) : "الحصة " + esc(Ad.ord(x.p))}</td><td>${esc(Ad.hm(x.from))}</td><td>${esc(Ad.hm(x.to))}</td><td>${x.to - x.from}</td></tr>`);
+    const oo = outOfRange();
     return `<div class="bl-pv">
       <div class="hd"><span>👁️ المعاينة</span><span class="ln">${esc(p.line)}</span>${bellDirty() ? '<span class="un">● تغييرات غير محفوظة</span>' : ""}</div>
       ${h.table([{ t: "الحصة / الفسحة", w: 120 }, "من", "إلى", "دقيقة"], rows, { cls: "bl-tb", foot: ["🔚 نهاية الدوام", "", esc(Ad.hm(p.end)), ""] })}
-    </div>`;
+    </div>` + (oo ? h.alert(`⚠️ <b>${oo.n} حصة</b> في الجدول المدرسي خارج عدد الحصص هذا فتبقى بلا وقت: تظهر في «حصص اليوم» بخانة وقت فارغة، وتُسقط من ملف التقويم ومن تنبيهات الحصص.<br><span style="color:var(--muted)">${esc(oo.txt)}</span>`, "bad") : "");
   }
   // نص واتساب للمعلمين — كل الأوقات من المحرك
   function bellText() {
@@ -293,7 +322,7 @@
       const box = q("bl-brks"); if (!box) return;
       box.querySelectorAll(".bl-af").forEach(sel => sel.onchange = () => { const i = +sel.dataset.i; draft.breaks[i].after = numOf(sel.value); sortBreaks(); renumber(); upBreaks(); });
       box.querySelectorAll(".bl-mn").forEach(inp => inp.oninput = () => { draft.breaks[+inp.dataset.i].min = numOf(inp.value); upPrev(); });
-      box.querySelectorAll(".bl-nm").forEach(inp => inp.oninput = () => { draft.breaks[+inp.dataset.i].n = inp.value.slice(0, 40); upPrev(); });
+      box.querySelectorAll(".bl-nm").forEach(inp => inp.oninput = () => { const b = draft.breaks[+inp.dataset.i]; b.n = inp.value.slice(0, 40); b.auto = !b.n.trim(); upPrev(); });
       box.querySelectorAll(".del").forEach(bt => bt.onclick = () => { draft.breaks.splice(+bt.dataset.del, 1); renumber(); upBreaks(); });   // حذف صريح: لا يُركن
     }
     const st = q("bl-start"); if (st) st.oninput = () => { draft.start = Ad.parseHM(st.value); upPrev(); };
@@ -319,12 +348,12 @@
     const ad = q("bl-add"); if (ad) ad.onclick = () => {
       const p = freeSlot(); if (!p) { Ad.toast("لا يمكن إضافة فسحة أخرى — أربع فسح كحد أقصى، ولا فسحة بعد الحصة الأخيرة", 3200); return; }
       const last = draft.breaks[draft.breaks.length - 1], def = (Ad.defaultBell().breaks[0] || {}).min || 15;
-      draft.breaks.push({ after: p, min: (last && isFinite(last.min) && last.min) || def, n: "" });
+      draft.breaks.push({ after: p, min: (last && isFinite(last.min) && last.min) || def, n: "", auto: true });
       sortBreaks(); renumber(); upBreaks();
     };
     const df = q("bl-def"); if (df) df.onclick = () => {
       const d = Ad.defaultBell();
-      draft = { start: d.start, len: d.len, n: d.n, breaks: d.breaks.map(x => ({ after: x.after, min: x.min, n: x.n })), lens: {}, days: {} }; parked = [];
+      draft = { start: d.start, len: d.len, n: d.n, breaks: d.breaks.map(x => ({ after: x.after, min: x.min, n: x.n, auto: true })), lens: {}, days: {} }; parked = []; renumber();
       const s1 = q("bl-start"), l1 = q("bl-len"), n1 = q("bl-n");
       if (s1) s1.value = Ad.hhmm(draft.start); if (l1) l1.value = draft.len; if (n1) n1.value = draft.n;
       upBreaks();
@@ -412,9 +441,10 @@
   /* ═══ (4) 🗓️ الجدول الأسبوعي الكامل ═══ */
   function gridHtml(cls, rows, forPrint) {
     const cell = (d, p, cid) => rows.find(r => r.d === d && +r.p === p && r.c === cid) || null;
+    const per = perList();
     let h = `<table class="report-table mg-grid"><tr><th>اليوم</th><th>ح</th>${cls.map(c => `<th>${esc(c.name)}</th>`).join("")}</tr>`;
-    DAYS5.forEach(d => PER.forEach((p, i) => {
-      h += `<tr>${i === 0 ? `<td class="dy" rowspan="${PER.length}">${esc(d)}</td>` : ""}<td class="pn">${p}</td>` +
+    DAYS5.forEach(d => per.forEach((p, i) => {
+      h += `<tr>${i === 0 ? `<td class="dy" rowspan="${per.length}">${esc(d)}</td>` : ""}<td class="pn">${p}</td>` +
         cls.map(c => { const r = cell(d, p, c.id); return `<td>${r ? esc(shortName(r.t)) + `<span class="s">${esc(subjOfName(r.t))}</span>` : ""}</td>`; }).join("") + "</tr>";
     }));
     return forPrint ? h + "</table>" : `<div class="table-scroll">${h}</table></div>`;
@@ -435,7 +465,7 @@
     Ad.printHtml("الجدول المدرسي العام",
       `<style>.mgp table{margin:6px 0}.mgp th,.mgp td{padding:3px 4px;font-size:10.5px;line-height:1.25}.mgp td.dy{font-weight:800;background:#f3efe4}.mgp td.pn{font-weight:800;background:#fbf6ea;width:22px}.mgp td .s{display:block;font-size:8.5px;color:#666}</style>` +
       `<div class="mgp">${gridHtml(cls, rows, true)}<div style="font-size:11px;color:#555;margin-top:6px;text-align:center">${rows.length} حصة أسبوعياً — ${cls.length} فصلاً</div></div>`,
-      { land: true, sub: "الجدول المدرسي العام" });
+      { land: true, sub: "الجدول المدرسي العام", sig: ["vice", "principal"] });
   }
 
   /* ═══ (5) 🔁 سجل حركات النقل ═══ */
@@ -474,7 +504,10 @@
       ts: Date.now(), hijri: hijStamp(), greg: Ad.isoDate(), meta: s.D.meta || null,
       teachers, classes: s.D.classes || [], schedule: s.D.schedule || [],
       recs: sd.recs || {}, grades: sd.grades || {}, comms: sd.comms || {},
-      moves: sd.moves || [], assign: sd.assign || [], subs, sedits: sd.sedits || {}, adminlog: sd.adminlog || []
+      moves: sd.moves || [], assign: sd.assign || [], subs, sedits: sd.sedits || {}, adminlog: sd.adminlog || [],
+      // إعدادات المدرسة الجديدتان: بدونهما تعود المدرسة بعد الاستعادة إلى جرس 7:00 · 45د · 7 حصص وإلى نقاط بدل أسماء الإدارة في كل مطبوع
+      bell: (s.D && s.D.bell) || (s.DB && s.DB.bell) || null,
+      cfgSchool: (s.D && s.D.cfgSchool) || (s.DB && s.DB.cfgSchool) || null
     };
     const txt = JSON.stringify(out);
     download(txt, `نسخة سجلي الشاملة - ${s.META.school.name} - ${hijStamp()} - ${Ad.isoDate()}.json`);
@@ -483,6 +516,25 @@
     return out;
   }
   const cnt = (o) => o ? Object.keys(o).length : 0;
+  /* إعدادات المدرسة داخل النسخة: تُطبَّع قبل الكتابة (normBell) فلا يدخل مستند cfg/bell معطوب من ملف قديم أو محرَّر يدوياً */
+  function bellRec(b, tn) {
+    const Ad = A(), src = b && b.bell;
+    if (!src || typeof src !== "object" || Array.isArray(src) || typeof Ad.normBell !== "function") return null;
+    let c = null; try { c = Ad.normBell(src); } catch (e) { warn("bellRec", e); return null; }
+    if (!c) return null;
+    const rec = { start: c.start, len: c.len, n: c.n, breaks: (c.breaks || []).map(x => ({ after: x.after, min: x.min, n: x.n })), tn: tn || "", ts: Date.now() };
+    if (c.lens && Object.keys(c.lens).length) rec.lens = c.lens;
+    if (c.days && Object.keys(c.days).length) rec.days = c.days;
+    return rec;
+  }
+  function staffRec(b, tn) {
+    const Ad = A(), src = b && b.cfgSchool;
+    if (!src || typeof src !== "object" || Array.isArray(src)) return null;
+    const keys = Array.isArray(Ad.STAFF_KEYS) ? Ad.STAFF_KEYS : ["principal", "vice", "agent", "counselor"];
+    const rec = { tn: tn || "", ts: Date.now() }; let n = 0;
+    keys.forEach(k => { const v = String(src[k] == null ? "" : src[k]).trim().slice(0, 80); if (v) { rec[k] = v; n++; } });
+    return n ? rec : null;
+  }
   /* طيّ خرائط النسخة (tid_cid → cid) — تُستعمل في العدّ قبل التنفيذ وفي التنفيذ نفسه حتى لا يختلف الرقمان */
   function foldMap(map, kind) {
     const out = {}, Ad = A();
@@ -500,7 +552,8 @@
       (b.moves || []).length + cnt(b.sedits && typeof b.sedits === "object" ? b.sedits : {}) +
       (Array.isArray(b.schedule) ? 1 : 0) +
       ((Array.isArray(b.classes) && b.classes.length) ? b.classes.length : 0) +
-      ((Array.isArray(b.teachers) && b.teachers.length) ? b.teachers.length : 0);
+      ((Array.isArray(b.teachers) && b.teachers.length) ? b.teachers.length : 0) +
+      (bellRec(b) ? 1 : 0) + (staffRec(b) ? 1 : 0);
   }
   function summarize(b) {
     return {
@@ -523,6 +576,8 @@
       ${line("حركات النقل", sm.moves + " حركة", isDemo() ? "" : "تُضاف الجديدة فقط (لا تُعدَّل القديمة)")}
       ${line("الأوراق التفاعلية", `${sm.assign} ورقة · ${sm.subs} تسليماً`)}
       ${line("تعديلات بيانات الطلاب", sm.sedits + " فصلاً")}
+      ${line("⏰ أوقات الحصص والفسح", bellRec(b) ? "مشمولة — ستُستبدل الأوقات الحالية" : "<span style=\"color:var(--muted)\">غير مشمولة في هذا الملف — تبقى الأوقات الحالية</span>")}
+      ${line("🏫 أسماء إدارة المدرسة", staffRec(b) ? "مشمولة — ستُستبدل أسماء التواقيع" : "<span style=\"color:var(--muted)\">غير مشمولة في هذا الملف — تبقى الأسماء الحالية</span>")}
     </div>`;
   }
   // بناء مهام الكتابة السحابية (مستند لكل مهمة) — القواعد تمنع classes/meta وتمنع تعديل moves القديمة
@@ -546,8 +601,15 @@
     });
     (b.assign || []).forEach(a => { if (!a.id) return; const x = Object.assign({}, a); delete x.id; push("الأوراق", () => s.fdb.doc("assign/" + a.id).set(x)); });
     (b.subs || []).forEach(u => { if (!u.id) return; const x = Object.assign({}, u); delete x.id; push("التسليمات", () => s.fdb.doc("subs/" + u.id).set(x)); });
+    // إعدادات المدرسة (القواعد تسمح: match /cfg/{doc}) — وتُحدَّث الحالة الحية فوراً بعد نجاح الكتابة
+    const bl = bellRec(b, tn);
+    if (bl) push("أوقات الحصص", async () => { await s.fdb.doc("cfg/bell").set(bl); s.D.bell = bl; cacheD(s); bellEvent(); });
+    const sc = staffRec(b, tn);
+    if (sc) push("أسماء الإدارة", async () => { await s.fdb.doc("cfg/school").set(sc); s.D.cfgSchool = sc; cacheD(s); bellEvent(); });
     return T;
   }
+  const cacheD = (s) => { try { localStorage.setItem("sijil.cloudD", JSON.stringify(s.D)); } catch (e) { } };
+  const bellEvent = () => { try { window.dispatchEvent(new CustomEvent("sijil:bell")); } catch (e) { } };
   // الوضع التجريبي: كتابة كاملة في DB المحلية + D الحية (بلا إعادة تطبيق الحركات — اللقطة مطبَّقة أصلاً)
   function restoreDemo(b) {
     const s = S(), D = s.D, DB = s.DB, Ad = A(), done = {};
@@ -577,7 +639,11 @@
       D.teachers.sort((a, b2) => String(a.id).localeCompare(String(b2.id)));
       done["المعلمون"] = b.teachers.length;
     }
+    const tn = String((s.TE && s.TE.name) || "الإدارة").slice(0, 80);
+    const bl = bellRec(b, tn); if (bl) { DB.bell = bl; D.bell = bl; done["أوقات الحصص"] = 1; }
+    const sc = staffRec(b, tn); if (sc) { DB.cfgSchool = sc; D.cfgSchool = sc; done["أسماء الإدارة"] = 1; }
     s.save();
+    if (bl || sc) bellEvent();
     try { if (typeof Ad.refreshHeader === "function") Ad.refreshHeader(); } catch (e) { }
     // العدد نفسه المعروض في التأكيد (demoDocs) — مستند لكل فصل/معلم + مستند الجدول
     return { done, docs: demoDocs(b) };
@@ -610,7 +676,7 @@
   }
   function backupHtml() {
     const h = H();
-    return h.note("نسخة واحدة بصيغة JSON تضم: المعلمين (بلا أرقام الدخول)، الفصول والطلاب، الجدول، الرصد اليومي، الدرجات، سجل التواصل، حركات النقل، الأوراق التفاعلية وتسليماتها، تعديلات بيانات الطلاب، وسجل الإدارة.") +
+    return h.note("نسخة واحدة بصيغة JSON تضم: المعلمين (بلا أرقام الدخول)، الفصول والطلاب، الجدول، الرصد اليومي، الدرجات، سجل التواصل، حركات النقل، الأوراق التفاعلية وتسليماتها، تعديلات بيانات الطلاب، وسجل الإدارة، وأوقات الحصص والفسح، وأسماء إدارة المدرسة.") +
       h.tools(`${h.btn("⬇️ تصدير نسخة شاملة", 'id="mg-bk"')}${h.btn("⬆️ استعادة من ملف", 'id="mg-rs"', "btn-plain")}`) +
       `<input type="file" id="mg-file" accept="application/json,.json" style="display:none">` +
       `<div class="mg-prog hidden" id="mg-prog"><div class="bar"><i></i></div><div class="tx"></div></div>` +
@@ -738,7 +804,7 @@
           esc(Ad.sortedClasses().filter(c => (t.classes || []).includes(c.id)).map(c => c.name).join("، ") || "—"),
           esc(Ad.normMob(mobOf(t)) || mobOf(t) || "—"), isReg(t) ? "سجّل" : (isDemo() ? "تجريبي" : "لم يسجّل"),
           last[t.id] ? esc(Ad.fmtDate(last[t.id])) : "—", esc((t.lead || []).map(clsName).join("، ") || "—")]),
-        { sub: "⚙️ الإدارة — المعلمون", land: true });
+        { sub: "⚙️ الإدارة — المعلمون", land: true, sig: ["vice", "principal"] });
     });
     // طباعة الفصول
     on("mg-p-cls", () => {
@@ -748,19 +814,19 @@
           return [esc(c.name), esc(s.GNAME[c.gc] || "—"), String(nActive(c)), String(nMoved(c)),
             String(new Set(ts.map(t => t.subject).filter(Boolean)).size), esc(ts.map(t => shortName(t.name)).join("، ") || "—"), ld ? esc(ld.name) : "—"];
         }),
-        { sub: "⚙️ الإدارة — الفصول", foot: ["الإجمالي", "", String(Ad.sortedClasses().reduce((a, c) => a + nActive(c), 0)), String(Ad.sortedClasses().reduce((a, c) => a + nMoved(c), 0)), "", "", ""] });
+        { sub: "⚙️ الإدارة — الفصول", sig: ["vice", "principal"], foot: ["الإجمالي", "", String(Ad.sortedClasses().reduce((a, c) => a + nActive(c), 0)), String(Ad.sortedClasses().reduce((a, c) => a + nMoved(c), 0)), "", "", ""] });
     });
     on("mg-p-sch", printSchedule);
     // حركات النقل
     on("mg-mv-open", () => { try { s.adminMoves(); } catch (e) { warn("adminMoves", e); Ad.toast("تعذّر فتح نافذة النقل"); } });
     on("mg-p-mv", () => Ad.printTable("سجل حركات نقل الطلاب", ["م", "الطالب", "من", "إلى", "التاريخ", "بواسطة", "الحالة"],
       movesList().map((m, i) => [String(i + 1), esc(m.name || "—"), esc(clsName(m.from)), esc(clsName(m.to)), esc(Ad.fmtTs(m.ts)), esc(m.tn || "—"), m.conflict ? "لم تُطبَّق" : "تمّت"]),
-      { sub: "⚙️ الإدارة — حركات النقل" }));
+      { sub: "⚙️ الإدارة — حركات النقل", sig: ["agent", "principal"] }));
     // سجل الإدارة
     on("mg-log-more", () => { logAll = !logAll; draw(b, sd); });
     on("mg-p-log", () => Ad.printTable("سجل عمليات الإدارة", ["العملية", "التفاصيل", "بواسطة", "الوقت"],
       (sd.adminlog || []).map(l => [esc((ACTS[l.act] || l.act || "").replace(/^\S+\s/, "")), esc(l.note || ""), esc(l.tn || "—"), esc(Ad.fmtTs(l.ts))]),
-      { sub: "⚙️ الإدارة — السجل" }));
+      { sub: "⚙️ الإدارة — السجل", sig: ["principal"] }));
     // المناهج
     on("mg-curr", () => { try { const r = s.toolCurriculum(); if (r && typeof r.catch === "function") r.catch(e => warn("curriculum", e)); } catch (e) { warn("curriculum", e); Ad.toast("تعذّر فتح المناهج"); } });
     // النسخة الاحتياطية

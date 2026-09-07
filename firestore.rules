@@ -27,6 +27,26 @@ service cloud.firestore {
     function reqHas(tid){ return exists(/databases/$(database)/documents/pinreq/$(tid)); }
     function reqDoc(tid){ return get(/databases/$(database)/documents/pinreq/$(tid)).data; }
 
+    // ── مطالبة الجلسة sess/{uid}: «هذا الجهاز أثبت رقم دخول معلم بعينه» ──
+    //    يكتبها js/auth.js بعد كل دخول ناجح (ومعها بصمة الرقم إثباتاً)، ولا يقرؤها عميل أبداً.
+    //    وهي الهوية الوحيدة المتاحة بلا خادم. القاعدة: الكتابة التي تُنمّي البيانات تبقى مفتوحة
+    //    كما كانت (رصد المعلم اليومي وغيره لا يتأثر إطلاقاً)، أما الكتابة المُتلِفة — تفريغ رصد
+    //    أو درجات أو تواصل أو جدول، أو سلب فصول معلم فيختفي من قائمة الدخول، أو تعيين رقم أول
+    //    لحساب لم يُسجَّل، أو تغيير إعدادات المدرسة — فتُشترط بمطالبة. وبهذا لا يستطيع زائر فتح
+    //    الطرفية ومحو عمل المدرسة، ولا انتحال حساب معلم لم يُسجَّل رقمه بعد.
+    function claimTid() {
+      return exists(/databases/$(database)/documents/sess/$(request.auth.uid))
+           ? get(/databases/$(database)/documents/sess/$(request.auth.uid)).data.get('tid', '') : '';
+    }
+    function isClaim(tid) { return claimTid() != '' && claimTid() == tid; }
+    function isAdminClaim() {
+      return claimTid() != '' && tHas(claimTid()) && tDoc(claimTid()).get('admin', false) == true;
+    }
+    function anyClaim() { return claimTid() != ''; }
+    // صاحب مستند الرصد/الدرجات/التواصل: الجزء الأول من معرّفه «معلم_فصل»
+    function ownerOf(id) { return id.split('_')[0]; }
+    function mayShrink(tid) { return isClaim(tid) || isAdminClaim(); }
+
     // ── بيانات أساسية تُزرع بالسكربت فقط: قراءة نعم، كتابة لا ──
     match /meta/{doc}      { allow read: if signedIn(); allow write: if false; }
     // ── المعلمون: يحرّرهم المدير من لوحته (الواجهة تخفي ذلك عن غيره؛ القواعد لا تعرف هوية المدير) ──
@@ -48,7 +68,10 @@ service cloud.firestore {
       allow read: if signedIn();
       // إنشاء معلم جديد من لوحة المدير: بلا صلاحية مدير، وبلا أي بصمة في المستند —
       //   رقم الدخول الأولي يُسجَّل في pins وحدها (مستند المعلم مقروء للجميع فلا بصمة فيه أبداً).
+      //   وإنشاؤه يحتاج مطالبةَ مدير: بغيرها كان أي زائر يزرع معلمين وهميين في قائمة الدخول
+      //   ثم يسجّل لهم أرقاماً (لأن الحساب الجديد «غير مسجّل») فيدخل التطبيق بحساب من صنعه.
       allow create: if signedIn() && tid.matches('^t[0-9]{2,3}$') && teacherShape()
+          && isAdminClaim()
           && request.resource.data.get('admin', false) == false
           // معلم جديد يولد غير مسجّل وبلا ختم — التسجيل يمرّ بقناة الإثبات وحدها
           && request.resource.data.get('reg', false) == false
@@ -79,13 +102,32 @@ service cloud.firestore {
           // علم التسجيل reg لا يعود إلى false أبداً (وإلا أمكن إعادة حساب مسجّل إلى حالة «بلا إثبات»)
           && (resource.data.get('reg', false) == false
               || request.resource.data.get('reg', false) == true)
+          // ورفعه من false إلى true دعوى أن الرقم «صار في pins» — فلا يرفعه إلا من فعل ذلك فعلاً:
+          //   ترقية صامتة (بصمته المنشورة صار لها مستند pins حيّ)، أو قناة إثبات قائمة، أو مطالبة
+          //   مدير (تسجيل أول رقم). وبغير هذا كان زائر يرفع reg لمعلم لم يُسجَّل ثم يمحو بصمته
+          //   المنشورة، فيصير الحساب «مسجّلاً» بلا بصمة في pins ⇒ لا سبيل لصاحبه إلى الدخول.
+          && (resource.data.get('reg', false) == true
+              || request.resource.data.get('reg', false) != true
+              || (isHash(resource.data.get('pinHash', '')) && pinHas(resource.data.get('pinHash', '')))
+              || reqHas(tid)
+              || isAdminClaim())
           // ختم الرقم pt لا يتغيّر إلا بقيمة قناة الإثبات نفسها ⇒ لا يعطّل زائرٌ حساباً بختم عشوائي
           && (request.resource.data.get('pt', 0) == resource.data.get('pt', 0)
               || (reqHas(tid) && request.resource.data.get('pt', 0) == reqDoc(tid).ts))
-          // حساب المدير: لا يُمَسّ علم التسجيل ولا الختم من العميل إطلاقاً — لا تسجيل ولا تعطيل
+          // حساب المدير: علم التسجيل مجمّد (js/auth.js لا يرسله له أصلاً، ومساره القديم يبقى سالكاً).
+          //   أما الختم pt فيتبع بند قناة الإثبات أعلاه — وإنشاء قناة لحساب المدير لا يكون إلا بمعرفة
+          //   رقمه هو، فلا يعطّله زائر. وبتجميد pt مطلقاً كان المدير وحده عاجزاً عن تغيير رقمه من
+          //   داخل التطبيق رغم أن الواجهة تَعِد به (مقيس وموثَّق في docs/AUTH_SPEC.md §11-ج).
           && (resource.data.get('admin', false) == false
-              || (request.resource.data.get('reg', false) == resource.data.get('reg', false)
-                  && request.resource.data.get('pt', 0) == resource.data.get('pt', 0)));
+              || request.resource.data.get('reg', false) == resource.data.get('reg', false))
+          // فصول المعلم وريادته: تنقص بمطالبة صاحبها أو مطالبة مدير فقط. قائمة الدخول في
+          //   js/app.js تُبنى ممن له فصل، فتفريغ الفصول من زائر كان يمحو المعلم من القائمة
+          //   فلا يجد اسمه ليدخل — قفلُ حسابٍ بلا حذف ولا تغيير رقم. والزيادة تبقى بلا شرط
+          //   (ختم الرقم وعلم التسجيل من js/auth.js لا يمسّان الفصول فلا يتأثران).
+          && (request.resource.data.classes.size() >= resource.data.get('classes', []).size()
+              || mayShrink(tid))
+          && (request.resource.data.get('lead', []).size() >= resource.data.get('lead', []).size()
+              || mayShrink(tid));
       allow delete: if false;
     }
 
@@ -103,15 +145,24 @@ service cloud.firestore {
           && request.resource.data.tid.matches('^t[0-9]{2,3}$')
           && request.resource.data.ts is number
           && tHas(request.resource.data.tid)
-          && ((tDoc(request.resource.data.tid).get('reg', false) != true
-               && tDoc(request.resource.data.tid).get('admin', false) == false)
-              || (reqHas(request.resource.data.tid)
-                  && reqDoc(request.resource.data.tid).h == h));
+          && ((reqHas(request.resource.data.tid)
+               && reqDoc(request.resource.data.tid).h == h)
+              // أول تسجيل لحساب لم يُسجَّل: للمدير من لوحته، أو ترقية صامتة لمن دخل ببصمته
+              //   القديمة المنشورة في مستنده. بغير هذا القيد كان أي زائر يسجّل رقماً لمعلم
+              //   لم يصل دوره في الترحيل ثم يدخل باسمه — انتحالٌ كامل بلا معرفة أي رقم.
+              || (tDoc(request.resource.data.tid).get('reg', false) != true
+                  && tDoc(request.resource.data.tid).get('admin', false) == false
+                  && (tDoc(request.resource.data.tid).get('pinHash', '') == h
+                      || isAdminClaim())));
       allow update: if false;
+      //    والحاذف لا بد أن يكون صاحب الحساب أو المدير: قناةٌ بقيت من تغيير رقم متعثّر كانت
+      //    تكفي أيَّ زائر لحذف بصمة الرقم القديم قبل أن يُختم مستند المعلم — فيُقفل الحساب،
+      //    لا رقمه القديم يعمل ولا الجديد.
       allow delete: if signedIn()
           && reqHas(resource.data.tid)
           && (reqDoc(resource.data.tid).h == h
-              || reqDoc(resource.data.tid).get('old', '') == h);
+              || reqDoc(resource.data.tid).get('old', '') == h)
+          && (isClaim(resource.data.tid) || isAdminClaim());
     }
 
     // ── pinreq/{tid}: قناة إثبات مؤقتة لا يقرأها أحد — وجودها هو الإذن بتغيير الرقم ──
@@ -141,13 +192,37 @@ service cloud.firestore {
                   && pinDoc(request.resource.data.byPin).tid == request.resource.data.by));
       allow delete: if signedIn();
     }
+
+    // ── sess/{uid}: مطالبة جهاز واحد بهوية معلم — لا تُقرأ من أي عميل، ولا تُكتب إلا ببصمة رقم حيّة ──
+    //    المعرّف هو uid المصادقة المجهولة نفسه، فلا يكتب جهازٌ مطالبةَ جهاز آخر. والبصمة bp تُفحص
+    //    وقت الكتابة (pins/{bp}.tid == tid) ثم لا تُقرأ أبداً — وجود المستند وحده هو الإثبات لاحقاً.
+    match /sess/{uid} {
+      allow read: if false;
+      allow create, update: if signedIn() && uid == request.auth.uid
+          && request.resource.data.keys().hasOnly(['tid', 'bp', 'ts'])
+          && request.resource.data.tid is string
+          && request.resource.data.tid.matches('^t[0-9]{2,3}$')
+          && request.resource.data.ts is number
+          && isHash(request.resource.data.bp)
+          // بصمةٌ منشورة في مستند المعلم يقرؤها أي جهاز ⇒ لا تصلح إثباتاً (كما في pinreq تماماً)،
+          //   وإلا انتحل قارئُها هوية صاحبها وحاز صلاحية الكتابة المُتلِفة.
+          && tHas(request.resource.data.tid)
+          && tDoc(request.resource.data.tid).get('pinHash', '') != request.resource.data.bp
+          && pinHas(request.resource.data.bp)
+          && pinDoc(request.resource.data.bp).tid == request.resource.data.tid;
+      allow delete: if signedIn() && uid == request.auth.uid;
+    }
+
     match /classes/{cid}   { allow read: if signedIn(); allow write: if false; }
     // ── الجدول المدرسي schedule/all: {rows:[{t,d,p,c}], tn, ts} — يحدّثه المدير من محرّر الجدول (استبدال كامل بلا merge)، لا إنشاء ولا حذف ──
     match /schedule/{doc} {
       allow read: if signedIn();
       allow update: if signedIn() && doc == 'all' && stamped()
           && request.resource.data.rows is list && request.resource.data.rows.size() <= 600
-          && request.resource.data.keys().hasOnly(['rows', 'tn', 'ts']);
+          && request.resource.data.keys().hasOnly(['rows', 'tn', 'ts'])
+          // نقص الصفوف (وأقصاه المحو الكامل) يحتاج مطالبة جلسة — والزيادة كما كانت
+          && (request.resource.data.rows.size() >= resource.data.get('rows', []).size()
+              || anyClaim());
       allow create, delete: if false;
     }
 
@@ -173,36 +248,59 @@ service cloud.firestore {
     }
     match /cfg/{doc} {
       allow read: if signedIn();
-      allow create, update: if signedIn() && stamped()
+      // تُقرأ في كل مطبوعات المدرسة وفي مواقيت كل حصة — فتحريفها من زائر يفسدها كلها.
+      //   لا استبدال لها إلا من جهاز أثبت رقم دخول معلم (مطالبة sess).
+      allow create, update: if signedIn() && stamped() && anyClaim()
           && ((doc == 'bell' && bellShape()) || (doc == 'school' && schoolShape()));
       allow delete: if false;
     }
 
     // ── رصد المعلم لفصله: {d: خريطة الأيام, tn, ts} ──
+    //    الأيام المرصودة لا تُنزع: كتابة الموقع دمجٌ دائماً (فتنمو الخريطة)، والاستبدال المُفرِّغ
+    //    من زائر كان يمحو فصلاً دراسياً كاملاً بلا حاجة إلى صلاحية حذف. النزع يحتاج مطالبة
+    //    صاحب الرصد أو مطالبة مدير (استعادة نسخة احتياطية).
     match /recs/{id} {
       allow read: if signedIn();
-      allow create, update: if signedIn() && isPairKey(id) && stamped()
+      allow create: if signedIn() && isPairKey(id) && stamped()
           && request.resource.data.d is map
           && request.resource.data.keys().hasOnly(['d', 'tn', 'ts']);
+      allow update: if signedIn() && isPairKey(id) && stamped()
+          && request.resource.data.d is map
+          && request.resource.data.keys().hasOnly(['d', 'tn', 'ts'])
+          && (request.resource.data.d.keys().hasAll(resource.data.get('d', {}).keys())
+              || mayShrink(ownerOf(id)));
       allow delete: if false;
     }
 
     // ── الدرجات: {g: خريطة الطلاب, tn, ts} ──
     match /grades/{id} {
       allow read: if signedIn();
-      allow create, update: if signedIn() && isPairKey(id) && stamped()
+      allow create: if signedIn() && isPairKey(id) && stamped()
           && request.resource.data.g is map
           && request.resource.data.keys().hasOnly(['g', 'tn', 'ts']);
+      allow update: if signedIn() && isPairKey(id) && stamped()
+          && request.resource.data.g is map
+          && request.resource.data.keys().hasOnly(['g', 'tn', 'ts'])
+          && (request.resource.data.g.keys().hasAll(resource.data.get('g', {}).keys())
+              || mayShrink(ownerOf(id)));
       allow delete: if false;
     }
 
     // ── سجل التواصل مع أولياء الأمور: {c: قائمة, tn, ts} ──
     match /comms/{id} {
       allow read: if signedIn();
-      allow create, update: if signedIn() && isPairKey(id) && stamped()
+      allow create: if signedIn() && isPairKey(id) && stamped()
           && request.resource.data.c is list
           && request.resource.data.c.size() <= 500
           && request.resource.data.keys().hasOnly(['c', 'tn', 'ts']);
+      // القائمة تُدمج في js/app.js قبل كل رفع فلا تنقص إلا عند بلوغ السقف (slice(-500))
+      allow update: if signedIn() && isPairKey(id) && stamped()
+          && request.resource.data.c is list
+          && request.resource.data.c.size() <= 500
+          && request.resource.data.keys().hasOnly(['c', 'tn', 'ts'])
+          && (request.resource.data.c.size() >= resource.data.get('c', []).size()
+              || resource.data.get('c', []).size() >= 500
+              || mayShrink(ownerOf(id)));
       allow delete: if false;
     }
 
@@ -335,17 +433,15 @@ service cloud.firestore {
     }
 
     // ── سجل الإرسال pushlog/{tid_التاريخ_الحصة}: {tid, p, date, ts} — إنشاء ذرّي يمنع تكرار الإشعار ──
-    //    القراءة ممنوعة (لا تُتصفَّح عادات المعلمين)، ولا تحديث ولا حذف من العميل.
+    //    مغلق تماماً أمام العميل. كاتبه الوحيد هو المهمة المجدولة (tools/push_send.py) بحساب
+    //    خدمة، وحساب الخدمة لا تسري عليه هذه القواعد — فلا حاجة إطلاقاً لصلاحية عميل هنا.
+    //    كان الإنشاء مفتوحاً لأي جهاز مصادَق على أي معرّف معلم: يكفي أن يكتب المهاجم مسبقاً
+    //    pushlog/{معلم}_{تاريخ}_{حصة} لتظنّ المهمة أنها أرسلت («أُرسل سابقاً») فتصمت تنبيه ذلك
+    //    المعلم — والقراءة والحذف ممنوعان فلا يُكتشف التزييف ولا يُنظَّف. لا شيء في العميل
+    //    يكتب هذه المجموعة (تحقّق: لا ذكر لـ pushlog في js/ ولا sw.js ولا w/ ولا v/).
     match /pushlog/{id} {
       allow read: if false;
-      allow create: if signedIn()
-          && id.matches('^t[0-9]{2,3}_[0-9]{4}-[0-9]{2}-[0-9]{2}_[0-9]{1,2}$')
-          && request.resource.data.keys().hasOnly(['tid', 'p', 'date', 'ts'])
-          && request.resource.data.tid is string && request.resource.data.tid.matches('^t[0-9]{2,3}$')
-          && request.resource.data.p is int && request.resource.data.p >= 1 && request.resource.data.p <= 12
-          && request.resource.data.date is string && request.resource.data.date.matches('^[0-9]{4}-[0-9]{2}-[0-9]{2}$')
-          && request.resource.data.ts is number;
-      allow update, delete: if false;
+      allow create, update, delete: if false;
     }
 
     // ── المرفقات: بطاقة الملف files/{id} ومحتواه مقسّماً على قطع files/{id}/parts/{i} ──
@@ -357,6 +453,12 @@ service cloud.firestore {
           && request.resource.data.t is string && request.resource.data.t.size() <= 40
           && (request.resource.data.t == 'application/pdf'
               || request.resource.data.t.matches('^(image|audio)/[a-zA-Z0-9.+-]{1,24}$'))
+          // SVG ليس صورة خاملة: مستند يحمل سكربتاً يُنفَّذ على أصل الموقع حين يُفتح برابط blob،
+          //   حيث تعيش جلسة المعلم وتخزينه. js/files.js يردّه عند الباب، وهذا هو الحاجز الثاني
+          //   (ملفات قديمة، أو عميل معدَّل، أو كتابة مباشرة من الطرفية).
+          && request.resource.data.t != 'image/svg+xml'
+          && request.resource.data.t != 'image/svg'
+          && !request.resource.data.n.lower().matches('.*[.]svgz?$')
           && request.resource.data.sz is int && request.resource.data.sz > 0
           && request.resource.data.sz <= 6291456
           && request.resource.data.nc is int && request.resource.data.nc >= 1 && request.resource.data.nc <= 16

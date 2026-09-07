@@ -19,6 +19,9 @@
     { k: "p2", n: "تطبيق عملي 2", max: 15 },
   ];
   const $ = (s) => document.querySelector(s);
+  const pad2 = (n) => (n < 10 ? "0" : "") + n;
+  // تاريخ اليوم بتقويم الجهاز المحلي — toISOString() يعطي تاريخ الأمس بين منتصف الليل والثالثة فجراً بتوقيت السعودية (UTC+3)
+  const todayISO = (dt) => { const d = dt || new Date(); return d.getFullYear() + "-" + pad2(d.getMonth() + 1) + "-" + pad2(d.getDate()); };
   const esc = (s) => String(s == null ? "" : s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
   async function sha256(msg) {
     const b = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(msg));
@@ -87,10 +90,34 @@
     el2.style.background = ok ? "#2e9e5b" : "#e8a23d"; el2.style.color = "#fff";
   }
   function rec(cid, date, si, make) {
+    if (!make) { const day = (DB.recs[cid] || {})[date]; return (day && day[si]) || null; }   // قراءة محضة: لا تُنشئ يوماً ولا سجلاً
     DB.recs[cid] = DB.recs[cid] || {};
     DB.recs[cid][date] = DB.recs[cid][date] || {};
-    if (make && !DB.recs[cid][date][si]) DB.recs[cid][date][si] = { a: null, part: 0, hw: null, sh: 0, beh: [], note: "" };
-    return DB.recs[cid][date][si] || null;
+    if (!DB.recs[cid][date][si]) DB.recs[cid][date][si] = { a: null, part: 0, hw: null, sh: 0, beh: [], note: "" };
+    return DB.recs[cid][date][si];
+  }
+  /* سجل يوم بلا رصد فعلي: يتخلّف عن فتح بطاقة الطالب أو نافذة الحالة ثم الإغلاق، أو عن «مسح الحالة».
+     لا يُعدّ «يوم رصد» في calcStudent (فلا يهبط الحضور ولا الدرجة التلقائية)، ويُحذف من المخزون فور صيرورته فارغاً. */
+  const emptyRec = (e) => !e || (e.a == null && !e.part && e.hw == null && !e.sh && !((e.beh || []).length) && !String(e.note || "").trim());
+  /* الأجهزة العاملة تحمل بالفعل سجلات وأياماً فارغة تراكمت قبل هذا الإصلاح:
+     تُكنس مرة واحدة عند الدخول، ولا يُرفع شيء إن لم يُحذف شيء. */
+  function sweepRecs() {
+    let n = 0;
+    Object.keys(DB.recs || {}).forEach(cid => {
+      const days = DB.recs[cid] || {}; let hit = false;
+      Object.keys(days).forEach(dt => {
+        const day = days[dt] || {};
+        Object.keys(day).forEach(si => { if (emptyRec(day[si])) { delete day[si]; hit = true; } });
+        if (!Object.keys(day).length) { delete days[dt]; hit = true; }
+      });
+      if (hit) { n++; save("recs:" + cid); }
+    });
+    return n;
+  }
+  function pruneRec(cid, date, si) {
+    const day = ((DB.recs[cid] || {})[date]); if (!day) return;
+    if (emptyRec(day[si])) delete day[si];
+    if (!Object.keys(day).length) delete DB.recs[cid][date];
   }
 
   /* ═══ التاريخ الهجري ═══ */
@@ -226,11 +253,21 @@
   }
 
   /* ═══ النقاط والدرجات ═══ */
+  /* تعريف واحد لحالات الحضور تستعمله الدرجة التلقائية ونسبة الحضور في البطاقة ورسائل أولياء الأمور:
+     «عن بعد» حضور كامل · «متأخر» نصف حضور · «مستأذن/غائب بعذر» خارج المقام (غياب مأذون لا يُحاسَب). */
+  const stIdx = (name) => STATES.findIndex(x => (x.name || "").includes(name));
+  const stCnt = (t, name) => { const k = stIdx(name); return k >= 0 ? (t.st[k] || 0) : 0; };
+  const attPct = (t) => {
+    const tot = t.st.reduce((x, y) => x + y, 0); if (!tot) return null;
+    const denom = tot - (stCnt(t, "مستأذن") + stCnt(t, "بعذر")); if (denom <= 0) return null;
+    const attended = stCnt(t, "حاضر") + stCnt(t, "عن بعد") + 0.5 * stCnt(t, "متأخر");
+    return Math.round(Math.min(1, attended / denom) * 100);
+  };
   function calcStudent(cid, si, recsOverride) {
     const out = { pts: 0, days: 0, st: STATES.map(() => 0), part: 0, hwY: 0, hwN: 0, sh: 0, behP: 0, behN: 0, notes: [] };
     const cd = recsOverride || DB.recs[cid] || {};
     for (const date of Object.keys(cd)) {
-      const e = cd[date][si]; if (!e) continue;
+      const e = cd[date][si]; if (emptyRec(e)) continue;      // سجل فارغ (فتح بطاقة/نافذة حالة) ليس يوم رصد
       out.days++;
       if (e.a != null && STATES[e.a]) { out.st[e.a]++; out.pts += (+STATES[e.a].pts || 0); }
       if (e.part) { out.part += e.part; out.pts += e.part * W.part; }
@@ -267,14 +304,15 @@
   function autoGrade(cid, si, recsOverride) {
     const t = calcStudent(cid, si, recsOverride); const v = {}, why = {};
     const A = (k) => ASSESS.find(a => a.k === k);
-    const idx = (name) => STATES.findIndex(x => (x.name || "").includes(name));
-    const cnt = (name) => { const k = idx(name); return k >= 0 ? (t.st[k] || 0) : 0; };
-    if (t.days && A("part")) {
-      const pres = cnt("حاضر"), late = cnt("متأخر"), remote = cnt("عن بعد"), exc = cnt("مستأذن") + cnt("بعذر");
-      const denom = Math.max(1, t.days - exc), attended = pres + remote + 0.5 * late;
+    const cnt = (name) => stCnt(t, name);
+    // كل الأيام المرصودة بعذر (مستأذن/غائب بعذر) ⇒ لا مقام للحضور: يُترك البند بلا درجة تلقائية بدل إعطاء صفر ظالم
+    const excD = cnt("مستأذن") + cnt("بعذر");
+    if (t.days && A("part") && t.days - excD > 0) {
+      const pres = cnt("حاضر"), late = cnt("متأخر"), remote = cnt("عن بعد");
+      const denom = t.days - excD, attended = pres + remote + 0.5 * late;
       const attRate = Math.min(1, attended / denom), partRate = Math.min(1, t.part / Math.max(1, pres + remote + late));
       const mx = A("part").max; v.part = Math.round((mx * 0.6 * attRate + mx * 0.4 * partRate) * 10) / 10;
-      why.part = "حضور " + Math.round(attRate * 100) + "% (60%) + مشاركة " + Math.round(partRate * 100) + "% (40%) من " + t.days + " يوم رصد";
+      why.part = "حضور " + Math.round(attRate * 100) + "% (60%) + مشاركة " + Math.round(partRate * 100) + "% (40%) من " + denom + " يوم رصد" + (excD ? " (استُثني " + excD + " بعذر)" : "");
     }
     if (t.days && A("behave")) {
       let sum = 0; const cd = recsOverride || DB.recs[cid] || {};
@@ -403,7 +441,18 @@
       try { const old = JSON.parse(localStorage.getItem("sijil.cloudD") || "null"); if (old) { bellCfg = old.bell || null; schoolCfg = old.cfgSchool || null; } } catch (x) { }
       try { console.warn("[سجلي] تعذّرت قراءة إعدادات المدرسة (cfg/bell وcfg/school) — استُعملت النسخة المحفوظة على الجهاز إن وُجدت:", (e && e.message) || e); } catch (x) { }
     }
-    D = { meta: metaS.data(), teachers, classes, schedule: (schS.data() || {}).rows || [], moves, sedits, bell: bellCfg, cfgSchool: schoolCfg };
+    /* meta/app هو أصل كل شيء (الأوزان والحالات والسلوكيات واسم المدرسة). كان يُمرَّر
+       metaS.data() كما هو، فإن لم يوجد المستند أو رُفضت قراءته صار undefined ثم انفجر
+       `META.weights` بعد الـtry فمات الإقلاع صامتاً: الشاشة تقول «☁️ متصل بقاعدة المدرسة —
+       دخول المعلم» وقائمة المعلمين فارغة تماماً بلا أي تفسير. نعامله معاملة حركات النقل:
+       آخر نسخة محفوظة على الجهاز، وإلا فشل صريح برسالة. */
+    let meta = (metaS && metaS.exists) ? (metaS.data() || null) : null;
+    if (!meta) {
+      try { const old = JSON.parse(localStorage.getItem("sijil.cloudD") || "null"); if (old && old.meta) meta = old.meta; } catch (e) { }
+      try { console.warn("[سجلي] تعذّرت قراءة meta/app — " + (meta ? "استُعملت النسخة المحفوظة على الجهاز" : "لا نسخة محفوظة")); } catch (e) { }
+    }
+    if (!meta) throw new Error("META_UNAVAILABLE");
+    D = { meta, teachers, classes, schedule: (schS.data() || {}).rows || [], moves, sedits, bell: bellCfg, cfgSchool: schoolCfg };
     try { localStorage.setItem("sijil.cloudD", JSON.stringify(D)); } catch (e) { }
   }
   function bootOffline() {
@@ -416,6 +465,7 @@
       try { await bootCloud(); $("#lg-demo").innerHTML = "☁️ متصل بقاعدة المدرسة<br><b>دخول المعلم: رقم هويتك المسجل — الطالب: يختار صفه واسمه</b>" + (MOVES_OK ? "" : "<br>⚠️ تعذّر تحميل حركات نقل الطلاب — تُعرض آخر قائمة محفوظة على هذا الجهاز، والنقل معطّل حتى إعادة التحميل"); }
       catch (e) {
         if (e && e.message === "MOVES_UNAVAILABLE") { $("#lg-demo").innerHTML = "❌ تعذّر تحميل حركات نقل الطلاب من السحابة ولا نسخة محفوظة على هذا الجهاز — لا يُفتح السجل بقائمة قديمة. أعد تحميل الصفحة."; return; }
+        if (e && e.message === "META_UNAVAILABLE") { $("#lg-demo").innerHTML = "❌ تعذّر تحميل بيانات المدرسة الأساسية (meta/app) ولا نسخة محفوظة على هذا الجهاز. أعد تحميل الصفحة، وإن تكرّر فتواصل مع أ. ضيف الله."; return; }
         if (bootOffline()) $("#lg-demo").innerHTML = "⚠️ لا اتصال بالإنترنت — نسخة محفوظة على جهازك، وسيُرفع رصدك عند عودة الاتصال";
         else { $("#lg-demo").innerHTML = "❌ تعذر الاتصال. تأكد من الإنترنت وأعد تحميل الصفحة."; return; }
       }
@@ -427,7 +477,8 @@
       applySedits(D.classes, DB.sedits); D.sedits = DB.sedits;
       D.bell = DB.bell || null; D.cfgSchool = DB.cfgSchool || null;   // الوضع التجريبي: إعدادات المدرسة على هذا الجهاز
     }
-    META = D.meta; W = META.weights; STATES = META.states; BEH = META.behaviors;
+    META = D.meta || {}; META.school = META.school || { name: "مدرستي", term_lbl: "" };
+    W = META.weights || {}; STATES = META.states || []; BEH = META.behaviors || [];
     ASSESS = (META.assess && META.assess.length) ? META.assess : DEFAULT_ASSESS;
     TERM = (META.school.term_lbl || "").includes("الثاني") ? "t2" : "t1";
     initLogin();
@@ -439,11 +490,16 @@
   }
 
   /* ═══ الدخول ═══ */
+  /* رقم دخول قصير (أقل من ٦ خانات): js/auth.js يعيد weak:true ولم يكن أحد يقرؤه، فالتنبيه
+     الذي يَعِد به التصميم لا يظهر لأحد. يُعرض سطراً واحداً في «المزيد» فوق بطاقة الحساب
+     (حيث زر «🔐 تغيير رقم الدخول»)، ويُخفى نهائياً إن صرفه المعلم. */
+  let PIN_WEAK = false;
+  const weakSeenKey = () => "sijil.pinweak.off." + ((TE && TE.id) || "");
   function initLogin() {
     $("#lg-school").textContent = META.school.name;
     const sel = $("#lg-teacher");
     sel.innerHTML = '<option value="">— اختر اسمك —</option>' +
-      D.teachers.filter(t => (t.classes || []).length || t.admin).map(t => `<option value="${t.id}">${esc(t.name)}${t.admin ? " (المدير)" : ""}</option>`).join("");
+      D.teachers.filter(t => (t.classes || []).length || t.admin || t.reg === true).map(t => `<option value="${t.id}">${esc(t.name)}${t.admin ? " (المدير)" : ""}</option>`).join("");
     $("#lg-btn").onclick = async () => {
       const t = D.teachers.find(x => x.id === sel.value);
       const pin = $("#lg-pin").value.trim();
@@ -460,6 +516,7 @@
         $("#lg-err").textContent = "جارِ التحقق…";
         let vr = null;
         try { vr = await AU.verify(t.id, pin); } catch (e) { vr = null; }
+        PIN_WEAK = !!(vr && vr.ok && vr.weak);
         if (!vr || !vr.ok) {
           const m = vr && vr.err, M = AU.MSG || {};
           $("#lg-err").textContent = (!m || m === M.bad || m === M.fmt || m === M.pick) ? badMsg() : m;
@@ -496,6 +553,7 @@
         save();
       } catch (e) { syncBadge(false); }
     }
+    try { sweepRecs(); } catch (e) { }                        // تنظيف أيام الرصد الفارغة المتراكمة قبل أول رسم
     try { loadLogo(true); } catch (e) { }                     // شعار المدرسة لترويسة المطبوعات (لا ينتظره أحد)
     renderToday(); renderReg(); renderGrades(); renderRep(); renderMore();
     // لوحة المدير (js/admin/core.js): تعيد بناء شريط التبويبات — سبعة إدارية، أو تبويبات المعلم مع زر التبديل في الرأس إن كان للمدير فصول
@@ -619,7 +677,10 @@
      يعرض اسم الحصة ووقتها والدقائق المتبقية، أو اسم الفسحة ووقت انتهائها، أو «انتهى الدوام».
      يُحدَّث عند بداية كل دقيقة، ويُلغى مؤقّته فور مغادرة التبويب (switchTab) أو دخول الحصة الحية. */
   let bellTm = null;
+  /* صيغتان إعرابيتان: مرفوعة بعد «تبقّى» («تبقّى دقيقتان») ومجرورة بعد «بعد» («بعد دقيقتين»).
+     كانت دالة واحدة مرفوعة تُركَّب في الموضعين فيخرج «بعد دقيقتان». */
   const minsAr = (n) => n === 1 ? "دقيقة واحدة" : n === 2 ? "دقيقتان" : (n >= 3 && n <= 10) ? n + " دقائق" : n + " دقيقة";
+  const minsArObl = (n) => n === 1 ? "دقيقة واحدة" : n === 2 ? "دقيقتين" : (n >= 3 && n <= 10) ? n + " دقائق" : n + " دقيقة";
   function stopBell() { if (bellTm) { clearTimeout(bellTm); bellTm = null; } }
   // أول رسم فوري، ثم إعادة رسم على المهمة التالية (قد تُحمَّل js/admin/core.js بعد app.js فتتغير أوقات المدرسة)
   function startBell() { stopBell(); tickBell(); setTimeout(paintBell, 0); }
@@ -663,7 +724,14 @@
      يظهر فوق شريط الحصة الحالية حين تقترب الحصة بمقدار المهلة المختارة (5 أو 10 أو 15 دقيقة)،
      ومعه زر «ابدأ الحصة الحية». يُرسم مع مؤقّت الجرس نفسه (كل دقيقة) فيُلغى معه عند مغادرة
      التبويب أو إخفاء الصفحة. مصدر الحصة القادمة js/notify.js، وإن لم يُحمَّل فحساب محلي مطابق. */
-  const NLEAD_KEY = "sijil.notify.lead", NSND_KEY = "sijil.notify.sound", NFP_KEY = "sijil.ics.fp";
+  const NLEAD_KEY = "sijil.notify.lead", NSND_KEY = "sijil.notify.sound";
+  /* مفتاح بصمة الجدول لكل معلم على حدة (js/ics.js:fpKey): كان عامّاً للجهاز، فمعلم ثانٍ على
+     الجهاز نفسه — لم ينزّل ملف تقويم قط — يرى لافتة «تغيّر جدولك» فور فتح «المزيد». */
+  const fpKeyOf = () => {
+    const I = window.SIJIL_ICS;
+    if (I && typeof I.fpKey === "function" && TE) { try { return I.fpKey(TE.id); } catch (e) { } }
+    return "sijil.ics.fp" + (TE && TE.id ? "." + TE.id : "");
+  };
   const lsGet = (k) => { try { return localStorage.getItem(k); } catch (e) { return null; } };
   const lsSet = (k, v) => { try { localStorage.setItem(k, v); } catch (e) { } };
   const lsDel = (k) => { try { localStorage.removeItem(k); } catch (e) { } };
@@ -707,7 +775,7 @@
     if (!nx || nx.mins > lead) { el.className = "nextbar"; el.innerHTML = ""; nextKey = ""; return; }
     const B = BELL();
     el.className = "nextbar on";
-    el.innerHTML = `<span class="ic">⏰</span><span class="tx">بعد <b>${esc(minsAr(nx.mins))}</b>: الحصة <b>${esc(B.ord(nx.p))}</b>${nx.cname ? ` — <b>${esc(nx.cname)}</b>` : ""}</span><button class="btn-gold" id="next-live">🎬 ابدأ الحصة الحية</button>`;
+    el.innerHTML = `<span class="ic">⏰</span><span class="tx">بعد <b>${esc(minsArObl(nx.mins))}</b>: الحصة <b>${esc(B.ord(nx.p))}</b>${nx.cname ? ` — <b>${esc(nx.cname)}</b>` : ""}</span><button class="btn-gold" id="next-live">🎬 ابدأ الحصة الحية</button>`;
     const b = $("#next-live"); if (b) b.onclick = () => liveSession(nx.cid);
     const k = nx.cid + "|" + nx.p + "|" + new Date().toDateString();
     if (k !== nextKey) { nextKey = k; if (soundOn()) beep(); }
@@ -723,11 +791,12 @@
     if (!st || !st.ready) return;
     const d = new Date(), two = (n) => (n < 10 ? "0" : "") + n;
     const day = d.getFullYear() + "-" + two(d.getMonth() + 1) + "-" + two(d.getDate());
-    const key = "sijil.notified." + day + "." + nx.p;
+    // العلامة نفسها التي يستعملها js/notify.js — ومفتاحها صار مقروناً برقم المعلم هناك
+    const key = "sijil.notified." + TE.id + "." + day + "." + nx.p;
     if (lsGet(key) === "1") return;
     lsSet(key, "1"); leadBusy = true;
     const B = BELL(), cl = classById(nx.cid), n = cl ? activeCount(cl) : 0;
-    const title = "الحصة " + B.ord(nx.p) + " بعد " + minsAr(nx.mins);
+    const title = "الحصة " + B.ord(nx.p) + " بعد " + minsArObl(nx.mins);
     const body = [nx.cname, n ? (n === 1 ? "طالب واحد" : n === 2 ? "طالبان" : (n <= 10 ? n + " طلاب" : n + " طالباً")) : ""].filter(Boolean).join(" — ");
     const ready = (navigator.serviceWorker && navigator.serviceWorker.ready) ? navigator.serviceWorker.ready : Promise.reject(new Error("no-sw"));
     ready.then(reg => reg.showNotification(title, { body, tag: "sijil-class-" + day + "-" + nx.p, dir: "rtl", lang: "ar", icon: "icon-192.png", badge: "icon-192.png" }))
@@ -745,8 +814,14 @@
   } catch (e) { }
 
   /* ═══ التحضير ═══ */
-  let regClass = null, regDate = new Date().toISOString().slice(0, 10);
+  let regClass = null, regAuto = todayISO(), regDate = regAuto;
+  /* التطبيق PWA يبقى مفتوحاً أياماً: التاريخ يتبع اليوم الجديد ما لم يكن المعلم قد اختار تاريخاً بنفسه */
+  function refreshRegDate() {
+    const t = todayISO();
+    if (t !== regAuto) { if (regDate === regAuto) regDate = t; regAuto = t; }
+  }
   function renderReg() {
+    refreshRegDate();
     const box = $("#tab-reg"), cls = myClasses();
     if (!cls.length) { box.innerHTML = '<div class="empty-note">لا فصول مسندة لك' + (TE.admin ? " — لوحة المدير في «المزيد»" : "") + "</div>"; return; }
     if (!regClass || !cls.find(c => c.id === regClass)) regClass = cls[0].id;
@@ -766,33 +841,75 @@
       return `<div class="stu" data-i="${i}"><span class="num">${k + 1}</span>
         <span class="nm" data-act="card">${esc(s.n)}<small>الترتيب ${calc[i].rank} من ${actv.length}</small></span>
         <button class="statepill" data-act="state" style="${st ? "background:" + STCOLORS[e.a] : ""}">${st ? esc(st.name) : "الحالة"}</button>
-        <button class="mini ${e.part ? "on" : ""}" data-act="part">🙋${e.part ? `<span class="b">${e.part}</span>` : ""}</button>
+        <button class="mini ${e.part ? "on" : ""}" data-act="part" title="نقرة: مشاركة إضافية · ضغطة مطوّلة: تصفير العدّاد">🙋${e.part ? `<span class="b">${e.part}</span>` : ""}</button>
         <button class="mini ${e.hw != null ? "on" : ""}" data-act="hw">${e.hw === 1 ? "✅" : e.hw === 0 ? "❌" : "📚"}</button>
         <button class="mini ${(e.beh || []).length ? "on" : ""}" data-act="beh">⭐${(e.beh || []).length ? `<span class="b">${e.beh.length}</span>` : ""}</button>
         <span class="pts ${t.pts < 0 ? "neg" : ""}">${t.pts}</span></div>`;
     }).join("");
-    list.querySelectorAll(".stu").forEach(row => { const i = +row.dataset.i; row.querySelectorAll("[data-act]").forEach(b => b.onclick = () => act(b.dataset.act, i)); });
+    list.querySelectorAll(".stu").forEach(row => {
+      const i = +row.dataset.i;
+      row.querySelectorAll("[data-act]").forEach(b => { if (b.dataset.act === "part") bindPart(b, i); else b.onclick = () => act(b.dataset.act, i); });
+    });
+  }
+  /* 🙋 المشاركة: نقرة = +1 بلا سقف — نفس قاعدة الحصة الحية (applyLive) حتى لا تنهار مشاركات الحصة إلى بقية القسمة على 6.
+     والتصحيح بضغطة مطوّلة (أو الزر الأيمن) تُصفّر العدّاد. */
+  function bindPart(b, i) {
+    let tm = null, held = false;
+    const clear = () => { if (tm) { clearTimeout(tm); tm = null; } };
+    const zero = () => {
+      held = true; clear();
+      const e = rec(regClass, regDate, i, false);
+      if (e && e.part) { e.part = 0; pruneRec(regClass, regDate, i); save("recs:" + regClass); drawRows(); }
+    };
+    b.addEventListener("pointerdown", () => { held = false; clear(); tm = setTimeout(zero, 600); });
+    ["pointerup", "pointerleave", "pointercancel"].forEach(ev => b.addEventListener(ev, clear));
+    b.addEventListener("contextmenu", (ev) => { ev.preventDefault(); zero(); });
+    b.onclick = () => { if (held) { held = false; return; } act("part", i); };
   }
   function act(what, i) {
+    // فتح البطاقة أو نافذة الحالة أو نافذة السلوك قراءةٌ لا رصد: لا يُنشأ سجل يوم إلا عند تسجيل شيء فعلاً
+    if (what === "card") { studentCard(regClass, i); return; }
+    if (what === "state") { stateSheet(i); return; }
+    if (what === "beh") { behSheet(i); return; }
     const e = rec(regClass, regDate, i, true);
-    if (what === "part") { e.part = (e.part + 1) % 6; save("recs:" + regClass); drawRows(); }
-    else if (what === "hw") { e.hw = e.hw === null ? 1 : e.hw === 1 ? 0 : null; save("recs:" + regClass); drawRows(); }
-    else if (what === "state") stateSheet(i, e);
-    else if (what === "beh") behSheet(i, e);
-    else if (what === "card") studentCard(regClass, i);
+    if (what === "part") { e.part = (+e.part || 0) + 1; save("recs:" + regClass); drawRows(); }
+    else if (what === "hw") { e.hw = e.hw === null ? 1 : e.hw === 1 ? 0 : null; pruneRec(regClass, regDate, i); save("recs:" + regClass); drawRows(); }
   }
-  function stateSheet(i, e) {
-    const c = classById(regClass);
-    openSheet(`<h4>${esc(c.students[i].n)} — حالة الحضور</h4><div class="stategrid">${STATES.map((s, k) => `<button style="background:${STCOLORS[k]}" data-k="${k}">${esc(s.name)} <small>(${s.pts >= 0 ? "+" : ""}${s.pts})</small></button>`).join("")}<button style="background:#c9cfd6" data-k="-1">مسح الحالة</button></div>`,
-      (o) => o.querySelectorAll("[data-k]").forEach(b => b.onclick = () => { const k = +b.dataset.k; e.a = k < 0 ? null : k; save("recs:" + regClass); closeSheet(); drawRows(); }));
+  function stateSheet(i) {
+    const c = classById(regClass), cur = rec(regClass, regDate, i, false) || {};
+    openSheet(`<h4>${esc(c.students[i].n)} — حالة الحضور</h4><div class="stategrid">${STATES.map((s, k) => `<button style="background:${STCOLORS[k]}" class="${cur.a === k ? "sel" : ""}" data-k="${k}">${esc(s.name)} <small>(${s.pts >= 0 ? "+" : ""}${s.pts})</small></button>`).join("")}<button style="background:#c9cfd6" data-k="-1">مسح الحالة</button></div>`,
+      (o) => o.querySelectorAll("[data-k]").forEach(b => b.onclick = () => {
+        const k = +b.dataset.k;
+        // «مسح الحالة» يمحو السجل إن لم يبقَ فيه رصد — وإلا بقي يوماً وهمياً يخفض الحضور والدرجة التلقائية
+        if (k < 0) { const e = rec(regClass, regDate, i, false); if (e) { e.a = null; pruneRec(regClass, regDate, i); save("recs:" + regClass); } }
+        else { rec(regClass, regDate, i, true).a = k; save("recs:" + regClass); }
+        closeSheet(); drawRows();
+      }));
   }
-  function behSheet(i, e) {
-    const c = classById(regClass), sel = new Set(e.beh || []);
-    openSheet(`<h4>${esc(c.students[i].n)} — السلوك والتقييم</h4><div class="behgrid">${BEH.map((b, k) => `<button data-k="${k}" class="${sel.has(k) ? "sel" : ""}">${esc(b.name)} <span class="p ${b.pts >= 0 ? "pos" : "neg"}">${b.pts >= 0 ? "+" : ""}${b.pts}</span></button>`).join("")}</div><textarea class="note" id="bh-note" rows="2" placeholder="ملاحظة (اختياري)…">${esc(e.note || "")}</textarea><div class="sheet-actions"><button class="btn-plain" id="bh-x">إغلاق</button><button class="btn-primary" id="bh-ok">حفظ</button></div>`,
+  /* السلوك يتكرّر: الحصة الحية تسجّل «مميز» في كل مرة (beh=[3,3,3] أي ثلاث نقاط).
+     فالنافذة تعرض عدد المرات وتحفظها كما هي — لا تسحقها بـ Set كما كانت تفعل، فتضيع نقاط الحصة بضغطة «حفظ» بريئة.
+     إلغاء تحديد سلوك يحذف كل مراته (قصد صريح)، وتحديد سلوك جديد يضيفه مرة واحدة. */
+  function behSheet(i) {
+    const c = classById(regClass), cur = rec(regClass, regDate, i, false) || {};
+    const orig = (cur.beh || []).slice(), cnt = {};
+    orig.forEach(k => cnt[k] = (cnt[k] || 0) + 1);
+    const sel = new Set(orig), rep = Object.keys(cnt).some(k => cnt[k] > 1);
+    openSheet(`<h4>${esc(c.students[i].n)} — السلوك والتقييم</h4><div class="behgrid">${BEH.map((b, k) => `<button data-k="${k}" class="${sel.has(k) ? "sel" : ""}">${esc(b.name)}${cnt[k] > 1 ? `<span class="x">×${cnt[k]}</span>` : ""} <span class="p ${b.pts >= 0 ? "pos" : "neg"}">${b.pts >= 0 ? "+" : ""}${b.pts}</span></button>`).join("")}</div>${rep ? `<div class="empty-note" style="padding:2px 4px 6px;text-align:right;font-size:12px">×العدد = مرات رُصدت في الحصة الحية، وتبقى كما هي بعد الحفظ.</div>` : ""}<textarea class="note" id="bh-note" rows="2" placeholder="ملاحظة (اختياري)…">${esc(cur.note || "")}</textarea><div class="sheet-actions"><button class="btn-plain" id="bh-x">إغلاق</button><button class="btn-primary" id="bh-ok">حفظ</button></div>`,
       (o) => {
         o.querySelectorAll("[data-k]").forEach(b => b.onclick = () => { const k = +b.dataset.k; if (sel.has(k)) sel.delete(k); else sel.add(k); b.classList.toggle("sel"); });
         o.querySelector("#bh-x").onclick = closeSheet;
-        o.querySelector("#bh-ok").onclick = () => { e.beh = [...sel]; e.note = o.querySelector("#bh-note").value.trim(); save("recs:" + regClass); closeSheet(); drawRows(); };
+        o.querySelector("#bh-ok").onclick = () => {
+          const note = o.querySelector("#bh-note").value.trim();
+          const kept = orig.filter(k => sel.has(k));                       // التكرارات محفوظة بترتيبها
+          sel.forEach(k => { if (orig.indexOf(k) < 0) kept.push(k); });    // ما أضافه المعلم الآن: مرة واحدة
+          if (rec(regClass, regDate, i, false) || kept.length || note) {
+            const e = rec(regClass, regDate, i, true);
+            e.beh = kept; e.note = note;
+            pruneRec(regClass, regDate, i);
+            save("recs:" + regClass);
+          }
+          closeSheet(); drawRows();
+        };
       });
   }
 
@@ -815,17 +932,35 @@
       <div class="card" id="gr-analysis"></div>`;
     if (CLOUD && !(SUBS[grClass] && Date.now() - SUBS[grClass].ts < 60000)) { const want = grClass; loadSubs(want).then(() => { if (grClass === want && !$("#tab-grades").classList.contains("hidden")) renderGrades(); }); }
     box.querySelectorAll(".chip").forEach(ch => ch.onclick = () => { grClass = ch.dataset.c; renderGrades(); });
+    /* الخانة اليدوية: النص غير الرقمي لا يُخزَّن صفراً صامتاً (كان «abc» يصير 0 فيهبط التقدير)،
+       والدرجة الأكبر من العظمى تُقصّ وتُصحَّح في الخانة نفسها عند مغادرتها فلا يرى المعلم رقماً غير المخزَّن. */
+    const grSync = (inp, i, k) => {
+      const au = autoGrade(grClass, i), man = (DB.grades[grClass] || {})[i] || {};
+      const has = man[k] != null;
+      inp.placeholder = !has && au.v[k] != null ? au.v[k] : "";
+      inp.classList.toggle("auto", !has && au.v[k] != null);
+      inp.title = has ? "درجة يدوية" : (au.why[k] || "");
+      const gp = gradePct(grClass, i), lv = gp == null ? null : levelOf(gp);
+      inp.closest("tr").querySelector(".tot").textContent = gp == null ? "—" : gradeTotal(grClass, i);
+      const lc = inp.closest("tr").querySelector(".lvlcell"); lc.innerHTML = lv ? `<span class="lvl lvl${lv.i}">${lv.t}</span>` : '<span style="color:#bbb">—</span>';
+      save("grades:" + grClass); drawAnalysis(maxTot);
+    };
     box.querySelectorAll(".gr-in").forEach(inp => {
+      const i = +inp.dataset.i, k = inp.dataset.k, a = ASSESS.find(x => x.k === k);
       inp.oninput = () => {
-        const i = +inp.dataset.i, k = inp.dataset.k;
         DB.grades[grClass] = DB.grades[grClass] || {}; DB.grades[grClass][i] = DB.grades[grClass][i] || {};
-        let v = inp.value.trim();
-        if (v === "") { delete DB.grades[grClass][i][k]; const au = autoGrade(grClass, i); inp.placeholder = au.v[k] != null ? au.v[k] : ""; inp.classList.toggle("auto", au.v[k] != null); inp.title = au.why[k] || ""; }
-        else { const a = ASSESS.find(x => x.k === k); let n = Math.max(0, Math.min(+v || 0, a.max)); DB.grades[grClass][i][k] = n; inp.classList.remove("auto"); inp.title = "درجة يدوية"; }
-        const tot = gradeTotal(grClass, i), gp = gradePct(grClass, i), lv = gp == null ? null : levelOf(gp);
-        inp.closest("tr").querySelector(".tot").textContent = tot;
-        const lc = inp.closest("tr").querySelector(".lvlcell"); lc.innerHTML = lv ? `<span class="lvl lvl${lv.i}">${lv.t}</span>` : '<span style="color:#bbb">—</span>';
-        save("grades:" + grClass); drawAnalysis(maxTot);
+        const v = inp.value.trim().replace(/[٫،]/g, ".");
+        const num = v === "" ? null : Number(v);
+        if (v === "" || num == null || !isFinite(num)) { delete DB.grades[grClass][i][k]; inp.classList.toggle("bad", v !== ""); }
+        else { DB.grades[grClass][i][k] = Math.max(0, Math.min(num, a.max)); inp.classList.remove("bad"); }
+        grSync(inp, i, k);
+      };
+      inp.onblur = () => {
+        const cur = ((DB.grades[grClass] || {})[i] || {})[k], want = cur != null ? String(cur) : "";
+        if (inp.value === want && !inp.classList.contains("bad")) return;   // لا شيء يُصحَّح: لا رفع ولا إعادة حساب
+        inp.value = want;                        // ما يراه المعلم = ما هو مخزَّن فعلاً (بعد القصّ)
+        inp.classList.remove("bad");
+        grSync(inp, i, k);
       };
     });
     $("#gr-print").onclick = () => printGrades(grClass);
@@ -833,14 +968,14 @@
   }
   function printGrades(cid) {
     const c = classById(cid), maxTot = ASSESS.reduce((a, b) => a + b.max, 0);
-    const rows = activeStudents(c).map(({ s, i }) => { const g = effGrades(cid, i), man = (DB.grades[cid] || {})[i] || {}, tot = gradeTotal(cid, i), gp = gradePct(cid, i), lv = gp == null ? null : levelOf(gp); return { s, i, g, man, tot, lv }; });
+    const rows = activeStudents(c).map(({ s, i }) => { const g = effGrades(cid, i), man = (DB.grades[cid] || {})[i] || {}, tot = gradeTotal(cid, i), gp = gradePct(cid, i), lv = gp == null ? null : levelOf(gp); return { s, i, g, man, tot, gp, lv }; });
     const scored = rows.filter(r => Object.keys(r.g).length);
     const avg = scored.length ? (scored.reduce((a, r) => a + r.tot, 0) / scored.length).toFixed(1) : "—";
     printDoc("كشف درجات " + c.name, `
       <div class="h"><div class="bar">${esc(META.school.name)}</div><div class="m">${esc(TE.subject)} — معلم المادة: ${esc(TE.name)} — ${esc(hijriLabel())}</div></div>
       <div class="tt">كشف درجات ${esc(c.name)}</div>
       <table class="compact"><tr><th>م</th><th style="min-width:150px">الطالب</th>${ASSESS.map(a => `<th>${esc(a.n)}<br><small>(${a.max})</small></th>`).join("")}<th>المجموع<br><small>(${maxTot})</small></th><th>التقدير</th></tr>
-      ${rows.map((r, k) => `<tr><td>${k + 1}</td><td class="nm">${esc(r.s.n)}</td>${ASSESS.map(a => `<td class="${r.man[a.k] == null && r.g[a.k] != null ? "auto" : ""}">${r.g[a.k] != null ? r.g[a.k] : ""}</td>`).join("")}<td><b>${r.tot}</b></td><td class="${r.lv ? "lv" + r.lv.i : ""}">${r.lv ? r.lv.t : "—"}</td></tr>`).join("")}
+      ${rows.map((r, k) => `<tr><td>${k + 1}</td><td class="nm">${esc(r.s.n)}</td>${ASSESS.map(a => `<td class="${r.man[a.k] == null && r.g[a.k] != null ? "auto" : ""}">${r.g[a.k] != null ? r.g[a.k] : ""}</td>`).join("")}<td><b>${r.gp == null ? "—" : r.tot}</b></td><td class="${r.lv ? "lv" + r.lv.i : ""}">${r.lv ? r.lv.t : "—"}</td></tr>`).join("")}
       <tr><td></td><td class="nm"><b>متوسط الفصل</b></td>${ASSESS.map(a => { const v = scored.map(r => +r.g[a.k]).filter(x => !isNaN(x)); return `<td>${v.length ? (v.reduce((x, y) => x + y, 0) / v.length).toFixed(1) : ""}</td>`; }).join("")}<td><b>${avg}</b></td><td></td></tr></table>
       <div class="note">التقدير من البنود المرصودة حتى الآن (لا من ${maxTot} قبل رصد الاختبارات). الدرجات الرمادية محسوبة تلقائياً من الرصد اليومي (الحضور والمشاركة، السلوك) والواجبات والأوراق التفاعلية، وما كتبه المعلم يدوياً مُثبت بالأسود.</div>
       ${sigLine([{ l: "معلم المادة", v: TE.name }, "principal"])}`, { land: ASSESS.length >= 6 });
@@ -848,7 +983,7 @@
   // التقدير من البنود المرصودة حتى الآن (gradePct) لا من 100 — البنود التلقائية سقفها 40، فالنسبة من 100 تجعل المنتظم «دون المطلوب»
   function grRow(i, s, maxTot, n) {
     const g = (DB.grades[grClass] || {})[i] || {}, au = autoGrade(grClass, i), tot = gradeTotal(grClass, i), gp = gradePct(grClass, i), lv = gp == null ? null : levelOf(gp);
-    return `<tr><td>${n || i + 1}</td><td class="nm">${esc(s.n)}</td>${ASSESS.map(a => `<td><input class="gr-in${g[a.k] == null && au.v[a.k] != null ? " auto" : ""}" data-i="${i}" data-k="${a.k}" inputmode="numeric" value="${g[a.k] != null ? g[a.k] : ""}" placeholder="${g[a.k] == null && au.v[a.k] != null ? au.v[a.k] : ""}" title="${esc(g[a.k] != null ? "درجة يدوية" : (au.why[a.k] || ""))}"></td>`).join("")}<td class="tot">${tot}</td><td class="lvlcell">${lv ? `<span class="lvl lvl${lv.i}">${lv.t}</span>` : '<span style="color:#bbb">—</span>'}</td></tr>`;
+    return `<tr><td>${n || i + 1}</td><td class="nm">${esc(s.n)}</td>${ASSESS.map(a => `<td><input class="gr-in${g[a.k] == null && au.v[a.k] != null ? " auto" : ""}" data-i="${i}" data-k="${a.k}" inputmode="numeric" value="${g[a.k] != null ? g[a.k] : ""}" placeholder="${g[a.k] == null && au.v[a.k] != null ? au.v[a.k] : ""}" title="${esc(g[a.k] != null ? "درجة يدوية" : (au.why[a.k] || ""))}"></td>`).join("")}<td class="tot">${gp == null ? "—" : tot}</td><td class="lvlcell">${lv ? `<span class="lvl lvl${lv.i}">${lv.t}</span>` : '<span style="color:#bbb">—</span>'}</td></tr>`;
   }
   function drawAnalysis(maxTot) {
     const c = classById(grClass);
@@ -947,7 +1082,7 @@
       <div class="stu-head" data-si="${i}"><div style="font-size:34px">${medal}</div><div class="big">${esc(s.n)}</div><div class="sub">${esc(c.name)} — الترتيب ${rank} من ${activeCount(c)}${S.lv ? ` — <span class="lvl lvl${S.lv.i}">${S.lv.t}</span>` : ""}</div></div>
       <div class="statrow">
         <div class="stat"><div class="v">${t.pts}</div><div class="l">النقاط</div></div>
-        <div class="stat"><div class="v">${S.hasG ? S.gtot : "—"}</div><div class="l">الدرجة من ${S.maxTot}</div></div>
+        <div class="stat" title="${S.filledMax && S.filledMax < S.maxTot ? `من البنود المرصودة حتى الآن — ${S.maxTot} عند اكتمال الرصد` : ""}"><div class="v">${S.hasG ? S.gtot : "—"}</div><div class="l">الدرجة من ${S.filledMax || S.maxTot}</div></div>
         <div class="stat"><div class="v">${S.att != null ? Math.round(S.att) + "%" : "—"}</div><div class="l">الحضور</div></div>
         <div class="stat"><div class="v">${t.hwY}${t.hwN ? `<small style="color:var(--bad)">/${t.hwN}✗</small>` : ""}</div><div class="l">واجبات ✓</div></div>
         <div class="stat"><div class="v">${t.days}</div><div class="l">أيام مرصودة</div></div></div>
@@ -1101,11 +1236,13 @@
   function printReport(cid, i) {
     const c = classById(cid), s = c.students[i], calc = classCalc(cid), t = calc[i].t, rank = calc[i].rank;
     const maxTot = ASSESS.reduce((a, b) => a + b.max, 0), g = effGrades(cid, i), gtot = gradeTotal(cid, i);
+    const gmax = gradedMax(cid, i), gp = gradePct(cid, i), lv = gp == null ? null : levelOf(gp);   // التقدير من المرصود لا من 100 الثابتة
     printDoc("تقرير الطالب " + s.n, `
       <div class="h"><div class="bar">${esc(META.school.name)}</div><div class="m">تقرير متابعة الطالب — مادة ${esc(TE.subject)} — ${esc(hijriLabel())}</div></div>
       <div class="tt">${esc(s.n)}</div>
       <table><tr><th>الفصل</th><td>${esc(c.name)}</td><th>الترتيب</th><td>${rank} من ${activeCount(c)}</td></tr>
-      <tr><th>مجموع النقاط</th><td>${t.pts}</td><th>الدرجة</th><td>${gtot} / ${maxTot}</td></tr></table>
+      <tr><th>مجموع النقاط</th><td>${t.pts}</td><th>الدرجة</th><td>${gmax ? `${gtot} / ${gmax}${lv ? ` — ${esc(lv.t)}` : ""}` : "لم تُرصد بعد"}</td></tr></table>
+      ${gmax && gmax < maxTot ? `<div class="note">الدرجة والتقدير من البنود المرصودة حتى الآن (${gmax} درجة)، لا من ${maxTot} قبل رصد بقية الاختبارات.</div>` : ""}
       <table><tr><th>الحضور</th>${STATES.map(st => `<th>${esc(st.name)}</th>`).join("")}</tr>
       <tr><td>عدد</td>${STATES.map((st, k) => `<td>${t.st[k] || 0}</td>`).join("")}</tr></table>
       <table><tr><th>المشاركة</th><td>${t.part}</td><th>الواجبات المنجزة</th><td>${t.hwY}</td><th>أيام الرصد</th><td>${t.days}</td></tr></table>
@@ -1240,6 +1377,7 @@
     if (TE.admin) adminHtml += `<div class="card"><h3><span class="dot"></span>📊 مستويات الطلاب</h3><div style="display:grid;grid-template-columns:1fr 1fr;gap:8px"><button class="btn-gold" id="adm-levels">📊 حسب الفصل وكل المواد</button><button class="btn-gold" id="adm-school">🏫 ملخص المدرسة حسب المادة</button></div></div>`;
     if (TE.admin) { const mvOff = CLOUD && (!fdb || !MOVES_OK); adminHtml += `<div class="card"><h3><span class="dot"></span>👥 إدارة الطلاب</h3><button class="btn-gold" id="adm-moves" style="width:100%${mvOff ? ";opacity:.55" : ""}" ${mvOff ? "disabled" : ""}>👥 نقل الطلاب</button><div class="empty-note" style="padding:8px 4px 0">نقل طالب إلى فصل آخر مع كل بياناته، أو تسجيل خروجه من المدرسة — ينعكس على كل المعلمين عند فتح التطبيق${(D.moves || []).length ? ` · ${D.moves.length} حركة مسجلة` : ""}${MOVE_CONFLICTS.length ? ` · <span style="color:var(--bad)">⚠️ ${MOVE_CONFLICTS.length} حركة متعارضة لم تُطبَّق (انظر سجل الحركات)</span>` : ""}${mvOff ? '<div style="color:var(--bad);margin-top:6px">⚠️ النقل معطّل: لم تُحمَّل حركات النقل من السحابة عند فتح التطبيق (تُعرض آخر قائمة محفوظة على هذا الجهاز) — أعد تحميل الصفحة مع اتصال بالإنترنت</div>' : ""}</div></div>`; }
     box.innerHTML = `
+      ${PIN_WEAK && lsGet(weakSeenKey()) !== "1" ? '<div class="nt-warn" id="pin-weak">🔐 رقم دخولك قصير (أقل من ٦ خانات) ويسهل تخمينه — غيّره من «🔐 تغيير رقم الدخول» أدناه. <button class="btn-soft" id="pin-weak-x" style="margin-right:6px;padding:3px 10px">لا تُذكّرني</button></div>' : ""}
       <div id="me-slot"></div>
       <div class="card"><h3><span class="dot"></span>🧰 أدوات المعلم</h3>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
@@ -1274,6 +1412,8 @@
         else { document.querySelectorAll(".adm-pane.hidden #mg-profile").forEach(x => { x.innerHTML = ""; }); ADM.profileCard(slot); }
       }
     } catch (e) { }
+    const pwx = $("#pin-weak-x");
+    if (pwx) pwx.onclick = () => { lsSet(weakSeenKey(), "1"); const w = $("#pin-weak"); if (w) w.remove(); };
     // أدوات المعلم
     const al = $("#adm-levels"); if (al) al.onclick = adminLevels;
     const as = $("#adm-school"); if (as) as.onclick = schoolSummary;
@@ -1303,17 +1443,26 @@
       const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = "نسخة سجل المتابعة - " + TE.name + ".json"; a.click();
     };
     $("#bk-in").onclick = () => $("#bk-file").click();
+    /* الاستعادة تستبدل كل الرصد ولا تُراجَع: لا تُنفَّذ إلا بعد ملخّص صريح لما سيُفقد،
+       ومع تحذير إضافي إن كان الملف لمعلم آخر (فيصير سجل زميله سجلَّك ويُرفع سحابياً باسمك). */
     $("#bk-file").onchange = (ev) => {
-      const f = ev.target.files[0]; if (!f) return;
+      const f = ev.target.files[0]; ev.target.value = ""; if (!f) return;
       const rd = new FileReader();
+      const nDays = (o) => Object.keys(o || {}).reduce((a, cid) => a + Object.keys((o[cid]) || {}).length, 0);
       rd.onload = () => {
-        try {
-          const j = JSON.parse(rd.result); if (!j.recs) throw 0;
-          DB.recs = j.recs || {}; DB.grades = j.grades || {}; DB.comms = j.comms || {};
-          Object.keys(DB.recs).forEach(cid => save("recs:" + cid));
-          Object.keys(DB.grades).forEach(cid => save("grades:" + cid));
-          alert("تمت الاستعادة بنجاح ✓"); renderToday();
-        } catch (e) { alert("ملف غير صالح"); }
+        let j = null;
+        try { j = JSON.parse(rd.result); } catch (e) { j = null; }
+        if (!j || !j.recs || typeof j.recs !== "object" || Array.isArray(j.recs)) { alert("ملف غير صالح"); return; }
+        if (j.teacher && TE && j.teacher !== TE.id) {
+          const who = (D.teachers.find(x => x.id === j.teacher) || {}).name || j.teacher;
+          if (!confirm("⚠️ هذه النسخة تخصّ المعلم: " + who + "، لا حسابك.\n\nاستعادتها تجعل سجلك سجلَّه — بما فيه فصول لا تدرّسها — ويُرفع باسمك أنت.\n\nهل تريد المتابعة رغم ذلك؟")) return;
+        }
+        if (!confirm("سيُستبدل رصدك الحالي بالكامل ولا يمكن التراجع:\n\nالحالي: " + nDays(DB.recs) + " يوم رصد في " + Object.keys(DB.recs).length + " فصلاً\nالملف:  " + nDays(j.recs) + " يوم رصد في " + Object.keys(j.recs).length + " فصلاً\n\nهل تريد المتابعة؟")) return;
+        const before = Object.keys(DB.recs).concat(Object.keys(DB.grades), Object.keys(DB.comms));
+        DB.recs = j.recs || {}; DB.grades = (j.grades && typeof j.grades === "object") ? j.grades : {}; DB.comms = (j.comms && typeof j.comms === "object") ? j.comms : {};
+        // كل فصل مسّته الاستعادة (في الملف أو في سجلك قبلها) يُعلَّم للرفع، لا فصول الملف وحدها
+        [...new Set(before.concat(Object.keys(DB.recs), Object.keys(DB.grades), Object.keys(DB.comms)))].forEach(cid => { save("recs:" + cid); save("grades:" + cid); save("comms:" + cid); });
+        alert("تمت الاستعادة بنجاح ✓"); renderToday();
       };
       rd.readAsText(f);
     };
@@ -1339,7 +1488,7 @@
     const lead = notifyLead(), snd = soundOn();
     let fp = "", changed = false;
     if (I && typeof I.fingerprint === "function") { try { fp = I.fingerprint(TE.id); } catch (e) { fp = ""; } }
-    const old = lsGet(NFP_KEY);
+    const old = lsGet(fpKeyOf());
     changed = !!(fp && old && old !== fp);
     opts.innerHTML = `
       ${changed ? '<div class="nt-warn">📅 تغيّر جدولك — حدّث تقويمك بإعادة إضافة الملف.</div>' : ""}
@@ -1355,7 +1504,7 @@
       nextKey = ""; try { paintNext(); } catch (e) { }
       try { const N2 = window.SIJIL_NOTIFY; if (N2 && typeof N2.refresh === "function") N2.refresh(); } catch (e) { }
       const m = $("#nt-cal-msg");
-      if (m) m.textContent = "✔ سيصلك التنبيه قبل الحصة بـ " + minsAr(notifyLead()) + " ما دام «سجلي» مفتوحاً؛ وإن كان مغلقاً فقد يصل قبلها بقليل.";
+      if (m) m.textContent = "✔ سيصلك التنبيه قبل الحصة بـ " + minsArObl(notifyLead()) + " ما دام «سجلي» مفتوحاً؛ وإن كان مغلقاً فقد يصل قبلها بقليل.";
     };
     const sb = $("#nt-snd");
     if (sb) sb.onclick = () => { if (soundOn()) lsDel(NSND_KEY); else { lsSet(NSND_KEY, "1"); beep(); } paintNotifyCard(); };
@@ -1363,10 +1512,16 @@
     if (ib) ib.onclick = () => {
       const m = $("#nt-cal-msg");
       try {
-        const r = I.download(TE.id, { alarm: lead });
-        if (fp) lsSet(NFP_KEY, fp);
-        if (m) m.textContent = r && r.count ? `✔ نُزِّل الملف «${r.name}» ويحوي ${r.count} موعداً — افتحه من التنزيلات ليُضاف إلى تقويمك.`
-          : "لا حصص في جدولك لإضافتها إلى التقويم.";
+        const r = I.download(TE.id, { alarm: notifyLead() });
+        if (fp) lsSet(fpKeyOf(), fp);
+        /* الحصص التي رقمها خارج عدد حصص ذلك اليوم تسقط من الملف؛ كانت تسقط صامتة والرسالة
+           تقول «يحوي N موعداً» فيظن المعلم جدوله كاملاً. النصّ جاهز من js/ics.js. */
+        const note = (r && r.skippedNote) ? " " + r.skippedNote : "";
+        if (m) {
+          m.textContent = (r && r.count ? `✔ نُزِّل الملف «${r.name}» ويحوي ${r.count} موعداً — افتحه من التنزيلات ليُضاف إلى تقويمك.`
+            : "لا حصص في جدولك لإضافتها إلى التقويم.") + note;
+          m.style.color = note ? "var(--bad)" : "";
+        }
         const w = card.querySelector(".nt-warn"); if (w) w.remove();
       } catch (e) { if (m) m.textContent = "تعذّر إنشاء ملف التقويم — أعد تحميل الصفحة ثم حاول مرة أخرى."; }
     };
@@ -1416,11 +1571,23 @@
       build();
     });
   }
+  /* أعمدة سجل الحصص من محرك أجراس المدرسة (وليست ح1..ح7 ثابتة): تظهر الأوقات والفسح،
+     وتُضاف حصة مسندة رقمها خارج إعداد المدرسة بلا وقت بدل أن تختفي من الجدول وحده بينما يعدّها العنوان. */
   function toolSessions() {
     const rows = D.schedule.filter(r => r.t === TE.name);
-    const days = ["الأحد", "الإثنين", "الثلاثاء", "الأربعاء", "الخميس"];
-    let html = `<div class="table-scroll"><table class="report-table"><tr><th>اليوم</th>${[1, 2, 3, 4, 5, 6, 7].map(p => `<th>ح${p}</th>`).join("")}</tr>`;
-    days.forEach(d => { html += `<tr><td class="nm">${d}</td>` + [1, 2, 3, 4, 5, 6, 7].map(p => { const s = rows.find(x => x.d === d && x.p === p); return `<td>${s ? esc(classById(s.c).name) : ""}</td>`; }).join("") + `</tr>`; });
+    const B = BELL(), days = SDAYS();
+    const cols = B.periodsOf().map(b => b.brk ? { brk: true, n: b.n || "الفسحة", tm: B.hm(b.from) + "–" + B.hm(b.to) } : { p: b.p, tm: B.periodTime(b.p) });
+    const have = {}; cols.forEach(x => { if (!x.brk) have[x.p] = 1; });
+    const ex = []; rows.forEach(r => { const p = Number(r.p) || 0; if (p > 0 && p <= 12 && !have[p] && ex.indexOf(p) < 0) ex.push(p); });
+    ex.sort((a, b) => a - b).forEach(p => cols.push({ p, tm: "" }));
+    let html = `<div class="table-scroll"><table class="report-table"><tr><th>اليوم</th>${cols.map(x => x.brk ? `<th>${esc(x.n)}<br><small>${esc(x.tm)}</small></th>` : `<th>ح${x.p}${x.tm ? `<br><small>${esc(x.tm)}</small>` : ""}</th>`).join("")}</tr>`;
+    days.forEach(d => {
+      html += `<tr><td class="nm">${esc(d)}</td>` + cols.map(x => {
+        if (x.brk) return `<td style="color:var(--muted)">☕</td>`;
+        const s = rows.find(y => y.d === d && +y.p === x.p), c = s ? classById(s.c) : null;
+        return `<td>${c ? esc(c.name) : ""}</td>`;
+      }).join("") + `</tr>`;
+    });
     html += `</table></div>`;
     openSheet(`<h4>🗓️ سجل الحصص — ${rows.length} حصة أسبوعياً</h4><div class="rep-head"><div class="rt">جدول حصص ${esc(TE.name)}</div><div class="rs">${esc(META.school.name)} — ${esc(TE.subject)}</div></div>${html}<div class="sheet-actions"><button class="btn-plain" onclick="window._printSheet()">🖨️ طباعة</button><button class="btn-primary" onclick="window._sheetClose()">إغلاق</button></div>`);
   }
@@ -1478,14 +1645,21 @@
       <div class="sheet-actions"><button class="btn-primary" onclick="window._sheetClose()">إغلاق</button></div>`, (o) => {
       const rowsBox = o.querySelector("#calc-rows");
       const rows = () => [...o.querySelectorAll("#calc-rows>div")].map(r => ({ n: r.querySelector(".cname").value.trim(), sc: +r.querySelector(".cscore").value || 0, mx: +r.querySelector(".cmax").value || 0 }));
-      function totals() { const rs = rows(); const sum = rs.reduce((a, r) => a + Math.min(r.sc, r.mx || r.sc), 0), max = rs.reduce((a, r) => a + r.mx, 0); return { sum: Math.round(sum * 10) / 10, max, pct: max ? Math.round(sum / max * 100) : 0 }; }
+      /* المعيار الذي تُرك حقل «من» فيه فارغاً ناقص: كان يدخل بدرجته كاملة في المجموع ولا يدخل في السقف،
+         فتتجاوز النسبة 100% وتُحفظ درجة أكبر من الدرجة العظمى للعمود. الآن يُستبعد من الطرفين ويُنبَّه عليه. */
+      function totals() {
+        const all = rows(), rs = all.filter(r => r.mx > 0);
+        const sum = rs.reduce((a, r) => a + Math.min(Math.max(0, r.sc), r.mx), 0), max = rs.reduce((a, r) => a + r.mx, 0);
+        const skipped = all.filter(r => !(r.mx > 0) && (r.sc || r.n)).length;
+        return { sum: Math.round(sum * 10) / 10, max, skipped, pct: max ? Math.min(100, Math.round(sum / max * 100)) : 0 };
+      }
       function preview() {
         const pv = o.querySelector("#calc-preview"); if (!pv) return;
         const a = ASSESS.find(x => x.k === o.querySelector("#calc-col").value) || ASSESS[0], t = totals();
-        const v = t.max ? Math.round(t.sum / t.max * a.max * 10) / 10 : 0;
+        const v = t.max ? Math.min(a.max, Math.round(t.sum / t.max * a.max * 10) / 10) : 0;
         const st = o.querySelector("#calc-stu"); const nm = st && st.selectedOptions[0] ? st.selectedOptions[0].textContent : "";
         const curV = st ? effGrades(cid, +st.value)[a.k] : null;
-        pv.textContent = (t.max ? `ستُسجَّل ${v} من ${a.max} في «${a.n}» ${nm ? "للطالب " + nm : ""}` : "أدخل الدرجات العظمى أولاً") + (curV != null ? ` · الدرجة الحالية المسجّلة: ${curV}` : " · لا درجة مسجّلة بعد");
+        pv.textContent = (t.max ? `ستُسجَّل ${v} من ${a.max} في «${a.n}» ${nm ? "للطالب " + nm : ""}` : "أدخل الدرجات العظمى أولاً") + (curV != null ? ` · الدرجة الحالية المسجّلة: ${curV}` : " · لا درجة مسجّلة بعد") + (t.skipped ? ` · ⚠️ ${t.skipped} معياراً بلا حقل «من» لم يُحتسب` : "");
       }
       function calc() {
         const t = totals(), lv = levelOf(t.pct);
@@ -1527,7 +1701,7 @@
         const a = ASSESS.find(x => x.k === o.querySelector("#calc-col").value) || ASSESS[0];
         const si = +o.querySelector("#calc-stu").value; const c = classById(cid); const stu = c && c.students && c.students[si];
         if (!stu) { msg.textContent = "اختر الطالب"; return; }
-        const v = Math.round(t.sum / t.max * a.max * 10) / 10;
+        const v = Math.min(a.max, Math.round(t.sum / t.max * a.max * 10) / 10);
         DB.grades[cid] = DB.grades[cid] || {}; DB.grades[cid][si] = DB.grades[cid][si] || {};
         DB.grades[cid][si][a.k] = v; save("grades:" + cid);
         msg.innerHTML = `✔ سُجِّلت <b>${v} من ${a.max}</b> في «${esc(a.n)}» للطالب ${esc(stu.n)} — انعكست فوراً في الدرجات والتقارير ومستوياته.`;
@@ -1611,18 +1785,22 @@
   }
   function liveSession(cid, initialView) {
     stopBell();
-    liveCid = cid; liveDate = new Date().toISOString().slice(0, 10); livePrevTop = null; liveTurns = { done: new Set(), cur: null };
+    liveCid = cid; liveDate = todayISO(); livePrevTop = null; liveTurns = { done: new Set(), cur: null };
     const c = classById(cid);
     $("#view-app").classList.add("hidden");
     const V = $("#view-live"); V.classList.remove("hidden");
+    // V.innerHTML يُعاد بناؤه لكن الأصناف تبقى: بلا هذا السطر تبدأ كل حصة تالية بلا أدوات ولا لوحة، وزراهما يقولان «إخفاء»
+    V.classList.remove("board-hidden", "tools-hidden");
+    timerReset();
     V.innerHTML = `
       <div class="live-top">
         <button class="live-btn" id="live-exit">✕ إنهاء</button>
         <div class="live-title">🎬 ${esc(c.name)} <small id="live-sub"></small></div>
         <div style="display:flex;gap:6px">
-          <button class="live-btn" id="live-tools-t" title="إخفاء/إظهار الأدوات">🎛️ إخفاء الأدوات</button>
-          <button class="live-btn" id="live-board-t" title="إخفاء/إظهار لوحة الشرف">🏆 إخفاء اللوحة</button>
-          <button class="live-btn" id="live-fs">⛶ ملء الشاشة</button>
+          <button class="live-btn live-tchip" id="live-tchip" hidden title="مؤقّت النشاط — اضغط للعودة إليه">⏱ 00:00</button>
+          <button class="live-btn" id="live-tools-t" title="إخفاء/إظهار الأدوات">🎛️ <span class="lbl">إخفاء الأدوات</span><span class="sh">إخفاء</span></button>
+          <button class="live-btn" id="live-board-t" title="إخفاء/إظهار لوحة الشرف">🏆 <span class="lbl">إخفاء اللوحة</span><span class="sh">إخفاء</span></button>
+          <button class="live-btn" id="live-fs"><span class="ic">⛶</span><span class="lbl"> ملء الشاشة</span></button>
         </div>
       </div>
       <div class="live-wrap">
@@ -1642,7 +1820,7 @@
         </div>
         <div class="live-board" id="live-board"></div>
       </div>`;
-    $("#live-exit").onclick = () => { if (timerIv) { clearInterval(timerIv); timerIv = null; } stopStory(); stopGame(); try { if (document.fullscreenElement) document.exitFullscreen(); } catch (e) { } V.classList.add("hidden"); $("#view-app").classList.remove("hidden"); renderReg(); renderToday(); renderGrades(); };
+    $("#live-exit").onclick = () => { timerReset(); stopStory(); stopGame(); stopWheel(); try { if (document.fullscreenElement) document.exitFullscreen(); } catch (e) { } V.classList.add("hidden"); $("#view-app").classList.remove("hidden"); renderReg(); renderToday(); renderGrades(); };
     $("#live-fs").onclick = () => {
       const d = document, el = V;
       const isFS = d.fullscreenElement || d.webkitFullscreenElement || d.mozFullScreenElement || d.msFullscreenElement;
@@ -1650,10 +1828,13 @@
         if (isFS) { (d.exitFullscreen || d.webkitExitFullscreen || d.mozCancelFullScreen || d.msExitFullscreen).call(d); }
         else { const req = el.requestFullscreen || el.webkitRequestFullscreen || el.mozRequestFullScreen || el.msRequestFullscreen; const p = req && req.call(el); if (p && p.catch) p.catch(() => { try { (document.documentElement.requestFullscreen || document.documentElement.webkitRequestFullscreen).call(document.documentElement); } catch (e) { } }); }
       } catch (e) { try { (document.documentElement.requestFullscreen || document.documentElement.webkitRequestFullscreen).call(document.documentElement); } catch (e2) { } }
-      setTimeout(() => { const on = document.fullscreenElement || document.webkitFullscreenElement; const b = $("#live-fs"); if (b) b.innerHTML = on ? "⛶ إنهاء الملء" : "⛶ ملء الشاشة"; }, 350);
+      setTimeout(() => { const on = document.fullscreenElement || document.webkitFullscreenElement; const b = $("#live-fs"); if (b) b.innerHTML = on ? `<span class="ic">⛶</span><span class="lbl"> إنهاء الملء</span>` : `<span class="ic">⛶</span><span class="lbl"> ملء الشاشة</span>`; }, 350);
     };
-    $("#live-board-t").onclick = () => { const h = V.classList.toggle("board-hidden"); $("#live-board-t").classList.toggle("off", h); $("#live-board-t").innerHTML = h ? "🏆 إظهار اللوحة" : "🏆 إخفاء اللوحة"; };
-    $("#live-tools-t").onclick = () => { const h = V.classList.toggle("tools-hidden"); $("#live-tools-t").classList.toggle("off", h); $("#live-tools-t").innerHTML = h ? "🎛️ إظهار الأدوات" : "🎛️ إخفاء الأدوات"; };
+    // التسمية تُشتق من الحالة الفعلية دائماً (لا من نصّ ثابت) فلا ينقلب معنى الزر
+    const togLbl = (id, ic, h, what) => { const b = $(id); if (!b) return; b.classList.toggle("off", h); b.innerHTML = `${ic} <span class="lbl">${h ? "إظهار" : "إخفاء"} ${what}</span><span class="sh">${h ? "إظهار" : "إخفاء"}</span>`; };
+    $("#live-board-t").onclick = () => togLbl("#live-board-t", "🏆", V.classList.toggle("board-hidden"), "اللوحة");
+    $("#live-tools-t").onclick = () => togLbl("#live-tools-t", "🎛️", V.classList.toggle("tools-hidden"), "الأدوات");
+    const tchip = $("#live-tchip"); if (tchip) tchip.onclick = () => { const b = V.querySelector('.live-tools button[data-v="timer"]'); if (b) b.click(); };
     V.querySelectorAll(".live-tools button").forEach(b => b.onclick = () => {
       V.querySelectorAll(".live-tools button").forEach(x => x.classList.toggle("on", x === b));
       liveView(b.dataset.v);
@@ -1673,33 +1854,39 @@
     if (tb) { V.querySelectorAll(".live-tools button").forEach(x => x.classList.toggle("on", x === tb)); }
     liveView(startView); drawLiveBoard(true);
   }
-  let liveMainView = "roster";
+  let liveMainView = "roster", liveViewSeq = 0;
+  /* محطات الدرس والقصة والألعاب تنتظر ملفات الدرس من الشبكة ثم تكتب في #live-main.
+     على شبكة المدرسة البطيئة قد يكون المعلم قد انتقل إلى «الطلاب» قبل وصول الملف، فتخطف المحطة المتأخرة
+     الشاشةَ بينما يُبرز شريط الأدوات محطةً أخرى. liveFresh(seq) يوقف كل كتابة متأخرة. */
+  const liveFresh = (seq) => seq === liveViewSeq && !!$("#live-main");
   async function liveView(v) {
     liveMainView = v;
-    if (timerIv) { clearInterval(timerIv); timerIv = null; }
-    stopStory(); stopGame();
+    const seq = ++liveViewSeq;
+    stopStory(); stopGame(); stopWheel();   // المؤقّت لا يُوقَف هنا: نشاط الطلاب يستمر بينما يعرض المعلم قائمةً أو سؤالاً
     const box = $("#live-main"); if (!box) return;
     const c = classById(liveCid), sc = subjCode(TE.subject), wk = curWeek(), code = sc + c.gc + TERM;
     if (v === "roster") { drawLiveRoster(); return; }
     if (v === "lesson") {
       box.innerHTML = `<div class="empty-note" style="color:#c9d5e3">جارِ تحميل الدرس…</div>`;
       const rows = (await loadCurr(code)).filter(r => r.w === wk);
+      if (!liveFresh(seq)) return;
       const m = rows.find(r => r.lesson && !String(r.lesson).includes("تابع")) || rows[0];
       if (!sc || !m || String(m.lesson).includes("إجازة")) { box.innerHTML = `<div class="empty-note" style="color:#c9d5e3">لا درس متاح لهذا الأسبوع</div>`; return; }
       const data = await lessonData(code, wk);
+      if (!liveFresh(seq)) return;
       if (data) renderRichLesson(box, data);
       else box.innerHTML = `<div class="live-stage"><div class="stage-bar"><span style="color:#fff;font-weight:800">▶️ ${esc(m.lesson)}</span></div><div class="rl-scroll"><div class="rl-wrap"><div class="rl-title">${esc(m.lesson)}</div><div style="color:#c9d5e3;text-align:center;margin-top:20px">درس هذا الأسبوع من وحدة «${esc(m.unit || "")}».<br>الدرس التفاعلي الغني لهذا الدرس قيد الإعداد — استخدم «سؤال» و«ورقة تفاعلية» و«العجلة» لتفعيل الحصة.<br><br><button class="btn-gold" id="rl-author" style="font-size:16px">✏️ ألّف هذا الدرس الآن (يعمل عليه كل شيء فوراً)</button></div></div></div></div>`;
       const ab = box.querySelector("#rl-author"); if (ab) ab.onclick = () => authorLesson(code, wk, m.lesson, () => liveView("lesson"));
       try { lessonFilesBar(box, code, wk); } catch (e) { }
       return;
     }
-    if (v === "yt") { stageYouTube(box, code, wk, c); return; }
-    if (v === "story") { stageStory(box, code, wk); return; }
+    if (v === "yt") { stageYouTube(box, code, wk, c, seq); return; }
+    if (v === "story") { stageStory(box, code, wk, seq); return; }
     if (v === "wheel") { stageWheel(box, c); return; }
-    if (v === "quiz") { stageQuiz(box, code, wk); return; }
-    if (v === "iws") { stageWorksheet(box, code, wk); return; }
+    if (v === "quiz") { stageQuiz(box, code, wk, seq); return; }
+    if (v === "iws") { stageWorksheet(box, code, wk, seq); return; }
     if (v === "timer") { stageTimer(box); return; }
-    if (v === "games") { stageGames(box, code, wk, c); return; }
+    if (v === "games") { stageGames(box, code, wk, c, seq); return; }
   }
   // ▶️ درس تفاعلي غنيّ (محتوانا الخاص)
   function renderRichLesson(box, d) {
@@ -1743,15 +1930,17 @@
     if (list) return "https://www.youtube.com/embed/videoseries?list=" + list;
     return "";
   }
-  async function stageYouTube(box, code, wk, c) {
+  async function stageYouTube(box, code, wk, c, seq) {
     const key = code + "w" + wk;
     const d = await lessonData(code, wk);
+    if (!liveFresh(seq)) return;
     let les = d && d.title ? d.title : "";
     if (!les) { try { const rows = (await loadCurr(code)).filter(r => r.w === wk); const m = rows.find(x => x.lesson && !String(x.lesson).includes("تابع")) || rows[0]; les = m ? m.lesson : ""; } catch (e) { } }
     // رابط محفوظ سابقاً لهذا الدرس (سحابي مشترك، أو محلي)
     let saved = "";
     if (d && d.yt) saved = Array.isArray(d.yt) ? d.yt[0] : d.yt;
     if (!saved) { try { if (CLOUD && fdb) { const s = await fdb.doc("lessonyt/" + key).get(); if (s.exists) saved = (s.data() || {}).url || ""; } else { saved = localStorage.getItem("yt:" + key) || ""; } } catch (e) { } }
+    if (!liveFresh(seq)) return;
     const q = encodeURIComponent((les ? les + " " : "") + TE.subject + " " + GNAME[c.gc] + " ابتدائي شرح");
     const frame = (src) => `<iframe id="yt-frame" src="${src}" allow="autoplay; fullscreen" allowfullscreen style="flex:1;width:100%;border:0"></iframe>`;
     const placeholder = `<div id="yt-frame" style="flex:1;display:flex;align-items:center;justify-content:center;color:#c9d5e3;text-align:center;padding:20px">اضغط «🔎 بحث» لإيجاد شرح «${esc(les)}» في يوتيوب، ثم الصق رابط الفيديو هنا — وسيُحفظ للدرس ويظهر تلقائياً في كل مرة.</div>`;
@@ -1815,15 +2004,23 @@
     } catch (e) { return null; }
   }
   const fmtT = (s) => { s = Math.max(0, Math.floor(s || 0)); return Math.floor(s / 60) + ":" + String(s % 60).padStart(2, "0"); };
-  async function stageStory(box, code, wk) {
+  async function stageStory(box, code, wk, seq) {
     const d = await lessonData(code, wk);
+    if (!liveFresh(seq)) return;
     if (!d) { box.innerHTML = `<div class="empty-note" style="color:#c9d5e3">قصة هذا الدرس قيد الإعداد</div>`; return; }
     const scenes = buildStory(d);
-    storyActive = true;
     // مقطع صوتي واحد متواصل لهذا الدرس؟
     const url = "data/lessons/audio/" + code + "w" + wk + ".mp3";
     let hasAudio = false;
-    try { const h = await fetch(url, { method: "HEAD" }); hasAudio = h.ok; } catch (e) { }
+    /* يُستهلك جسم الرد ولو كان فارغاً: تركُه مُعلَّقاً يجعل المتصفح يشطب الطلب ERR_ABORTED
+       بعد أن ردّ 200 فعلاً، فيظهر في سجل الشبكة «طلب فاشل» في كل مرة تُفتح فيها محطة القصة. */
+    try {
+      const h = await fetch(url, { method: "HEAD" });
+      hasAudio = h.ok;
+      try { await h.arrayBuffer(); } catch (e) { }
+    } catch (e) { }
+    if (!liveFresh(seq)) return;                 // غادر المعلم أثناء انتظار الصوت: لا تُعِد تفعيل القصة فوق محطته الجديدة
+    storyActive = true;
     if (!storyAudio) { storyAudio = new Audio(); }
     storyAudio.preload = "auto";
     box.innerHTML = `<div class="live-stage">
@@ -1899,6 +2096,8 @@
     }
   }
   // 🎡 عجلة اختيار الطلاب
+  let wheelIv = null;
+  function stopWheel() { if (wheelIv) { clearInterval(wheelIv); wheelIv = null; } }   // دورة جارية لا تُكمل فوق محطة أخرى
   function stageWheel(box, c) {
     box.innerHTML = `<div class="live-stage"><div class="stage-bar"><span style="color:#fff;font-weight:800">🎡 عجلة اختيار الطلاب</span>
       <label style="color:#c9d5e3;font-size:13px;margin-inline-start:auto"><input type="checkbox" id="wh-present" checked> الحاضرون فقط</label></div>
@@ -1909,30 +2108,34 @@
       </div></div>`;
     const nameEl = box.querySelector("#wh-name");
     box.querySelector("#wh-spin").onclick = () => {
-      const calc = classCalc(liveCid);
+      stopWheel();
       let pool = activeStudents(c).map(x => x.i);
+      // «الحاضر» = من ليس غائباً/مستأذناً/بعذر/هارباً — نفس تعريف لوحة الشرف (liveAway).
+      // كان الشرط a===0 حرفياً فيسقط المتأخر ومن يدرس عن بعد، وتنكمش البِركة أحياناً إلى اسم واحد يتكرر كل دورة.
       if (box.querySelector("#wh-present").checked) {
-        const withPresence = pool.filter(i => { const day = (DB.recs[liveCid] || {})[liveDate]; return day && day[i] && day[i].a === 0; });
-        if (withPresence.length) pool = withPresence;
+        const here = pool.filter(i => !liveAway(i));
+        if (here.length) pool = here;
       }
       // دورة مشاركة: استبعد من شارك في هذه الحصة حتى يشارك الجميع، ثم ابدأ دورة جديدة
       const fresh = pool.filter(i => !liveTurns.done.has(i));
       if (fresh.length) pool = fresh; else liveTurns.done.clear();
       box.querySelector("#wh-act").innerHTML = "";
+      const here = activeStudents(c).map(x => x.i).filter(i => !liveAway(i));   // مقام العدّاد = الحاضرون، كما في «من يجيب؟»
       let ticks = 0, max = 22 + Math.floor(Math.random() * 10);
-      const iv = setInterval(() => {
+      wheelIv = setInterval(() => {
         const i = pool[Math.floor(Math.random() * pool.length)];
         nameEl.textContent = c.students[i].n;
         nameEl.style.transform = "scale(1.05)";
         ticks++;
         if (ticks >= max) {
-          clearInterval(iv);
+          stopWheel();
           const win = pool[Math.floor(Math.random() * pool.length)]; liveTurns.done.add(win); liveTurns.cur = win;
           nameEl.textContent = "🎉 " + c.students[win].n;
           nameEl.style.transform = "scale(1.15)";
           confetti();
-          const pres = pool.length; const doneN = activeStudents(c).filter(x => liveTurns.done.has(x.i)).length;
-          box.querySelector("#wh-act").innerHTML = `<button class="btn-gold" id="wh-eval" style="font-size:16px">⭐ قيّم ${esc(c.students[win].n.split(" ")[0])}</button><div class="btip" style="margin-top:8px">شارك ${doneN} من ${activeCount(c)} — لن يتكرر اسم حتى يشارك الجميع</div>`;
+          const base = here.length ? here : activeStudents(c).map(x => x.i);
+          const doneN = base.filter(i => liveTurns.done.has(i)).length;
+          box.querySelector("#wh-act").innerHTML = `<button class="btn-gold" id="wh-eval" style="font-size:16px">⭐ قيّم ${esc(c.students[win].n.split(" ")[0])}</button><div class="btip" style="margin-top:8px">شارك ${doneN} من ${base.length} — لن يتكرر اسم حتى يشارك الجميع</div>`;
           box.querySelector("#wh-eval").onclick = () => liveActions(win);
         }
       }, 70 + ticks * 4);
@@ -1970,8 +2173,9 @@
   }
   // ❓ سؤال تفاعلي — يحمّل بنك أسئلة الدرس تلقائياً
   let quizState = { q: "", opts: ["", "", "", ""], correct: 0 };
-  async function stageQuiz(box, code, wk) {
+  async function stageQuiz(box, code, wk, seq) {
     const bank = await lessonQuestions(code, wk);
+    if (!liveFresh(seq)) return;
     box.innerHTML = `<div class="live-stage"><div class="stage-bar"><span style="color:#fff;font-weight:800">❓ أسئلة الدرس</span>
       ${bank.length ? `<span style="color:#9fb0c4;font-size:12px;margin-inline-start:auto">${bank.length} سؤال من صلب الدرس</span>` : ""}
       <button class="live-btn" id="qz-edit" style="margin-inline-start:${bank.length ? "10px" : "auto"}">✏️ سؤال خاص</button></div>
@@ -2035,11 +2239,12 @@
   }
   // 📝 ورقة عمل تفاعلية (تُحمَّل من صلب الدرس تلقائياً)
   let wsItems = [], wsIdx = 0, wsLoadedFor = "";
-  async function stageWorksheet(box, code, wk) {
+  async function stageWorksheet(box, code, wk, seq) {
     const key = code + "w" + wk;
     // حمّل أسئلة الدرس تلقائياً أول مرة (ما لم يبنِ المعلم ورقته الخاصة)
     if (wsLoadedFor !== key && (!wsItems.length || wsItems._auto)) {
       const bank = await lessonQuestions(code, wk);
+      if (!liveFresh(seq)) return;
       if (bank.length) { wsItems = bank.map(q => ({ t: q.t, q: q.q, opts: q.opts || [], correct: q.correct || 0, ans: q.ans || "", img: q.img || "" })); wsItems._auto = true; wsLoadedFor = key; wsIdx = 0; }
     }
     box.innerHTML = `<div class="live-stage"><div class="stage-bar"><span style="color:#fff;font-weight:800">📝 ورقة الدرس التفاعلية</span>
@@ -2060,7 +2265,8 @@
         ${wsItems.length ? `<button class="btn-primary" id="iws-start">▶️ ابدأ العرض (${wsItems.length} سؤال)</button>` : '<div style="color:#9fb0c4">أضف أسئلة لتكوين الورقة</div>'}</div>`;
       const list = body.querySelector("#iws-list");
       list.innerHTML = wsItems.map((it, n) => `<div class="comm-item" style="color:#fff;border-color:rgba(255,255,255,.15)"><b>${n + 1}. [${it.t === "mcq" ? "اختيار" : it.t === "tf" ? "صح/خطأ" : "أكمل"}]</b> ${esc(it.q || "(بلا نص)")} <button class="live-btn" data-del="${n}" style="float:left;padding:3px 9px">🗑</button></div>`).join("");
-      list.querySelectorAll("[data-del]").forEach(b => b.onclick = () => { wsItems.splice(+b.dataset.del, 1); builder(); });
+      // الحذف/الإضافة يجعلان الورقة ورقةَ المعلم: تُطبع كما هي بدل الورقة الأصلية كاملةً كأنه لم يعدّل شيئاً
+      list.querySelectorAll("[data-del]").forEach(b => b.onclick = () => { wsItems.splice(+b.dataset.del, 1); wsItems._auto = false; builder(); });
       body.querySelectorAll("[data-add]").forEach(b => b.onclick = () => addItemForm(b.dataset.add));
       const st = body.querySelector("#iws-start"); if (st) st.onclick = () => { wsIdx = 0; present(); };
     }
@@ -2079,7 +2285,7 @@
         if (t === "mcq") { body.querySelectorAll(".it-opt").forEach(inp => it.opts[+inp.dataset.k] = inp.value.trim()); }
         if (t === "mcq" || t === "tf") { const r = body.querySelector("input[name=itc]:checked"); it.correct = r ? +r.dataset.c : 0; }
         if (t === "fill") it.ans = body.querySelector("#it-ans").value.trim();
-        wsItems.push(it); builder();
+        wsItems.push(it); wsItems._auto = false; builder();
       };
     }
     function present() {
@@ -2110,14 +2316,41 @@
     const bb = box.querySelector("#iws-build"); if (bb) bb.onclick = builder;
     const sb = box.querySelector("#iws-send");
     if (sb) sb.onclick = async () => { const d = await lessonData(code, wk); sendSheet(code, wk, (d && d.title) || "ورقة عمل", wsItems, liveCid); };
-    const pb = box.querySelector("#iws-print"); if (pb) pb.onclick = async () => { const d = await lessonData(code, wk); printWorksheet((d && d.title) || "درس الأسبوع", d && wsItems._auto ? d : { title: "ورقة المعلم", questions: wsItems }); };
+    const pb = box.querySelector("#iws-print"); if (pb) pb.onclick = async () => { const d = await lessonData(code, wk); printWorksheet((d && d.title) || "درس الأسبوع", (d && wsItems._auto) ? d : { title: (d && d.title) || "ورقة المعلم", questions: wsItems.slice(), vocab: (d && wsItems._auto) ? d.vocab : [], objectives: (d && d.objectives) || [], story: (d && d.story) || [] }); };
     const pp = box.querySelector("#iws-present"); if (pp) pp.onclick = () => { wsIdx = 0; present(); };
     if (wsItems.length) { wsIdx = 0; present(); } else builder();
   }
-  // ⏱️ مؤقّت النشاط
-  let timerIv = null;
+  /* ⏱️ مؤقّت النشاط — حالته خارج محطته:
+     كان العدّ يموت صامتاً بمجرد عرض قائمة الطلاب أو سؤال أثناء النشاط، ويعود 00:00 كأن شيئاً لم يكن.
+     الآن يواصل العدّ عبر المحطات، وشارة في رأس الحصة تعرض المتبقّي وتعيد المعلم إليه بنقرة. */
+  let timerIv = null, timerLeft = 0, timerRun = false, timerDone = false;
+  const timerFmt = (n) => { const v = Math.max(0, n | 0); return String(Math.floor(v / 60)).padStart(2, "0") + ":" + String(v % 60).padStart(2, "0"); };
+  function timerPaint() {
+    const d = $("#tm-disp"); if (d) { d.textContent = timerFmt(timerLeft); d.style.color = timerDone ? "#ff6b6b" : "var(--goldl)"; }
+    const b = $("#tm-se"); if (b) b.textContent = timerRun ? "⏸ إيقاف" : "▶️ ابدأ";
+    const chip = $("#live-tchip");
+    if (chip) {
+      chip.hidden = !(timerRun || timerDone || timerLeft > 0);
+      chip.textContent = (timerDone ? "⏰ " : "⏱ ") + timerFmt(timerLeft);
+      chip.classList.toggle("done", !!timerDone);
+      chip.classList.toggle("run", !!timerRun);
+    }
+  }
+  function timerStop() { if (timerIv) { clearInterval(timerIv); timerIv = null; } timerRun = false; timerPaint(); }
+  function timerStart() {
+    if (timerLeft <= 0) timerLeft = 60;               // افتراضي دقيقة إن لم يُختر وقت
+    timerDone = false; timerRun = true;
+    if (timerIv) clearInterval(timerIv);
+    timerIv = setInterval(() => {
+      timerLeft--;
+      if (timerLeft <= 0) { timerLeft = 0; timerDone = true; timerStop(); confetti(); return; }
+      timerPaint();
+    }, 1000);
+    timerPaint();
+  }
+  function timerReset() { timerStop(); timerLeft = 0; timerDone = false; timerPaint(); }
   function stageTimer(box) {
-    box.innerHTML = `<div class="live-stage"><div class="stage-bar"><span style="color:#fff;font-weight:800">⏱️ مؤقّت النشاط</span></div>
+    box.innerHTML = `<div class="live-stage"><div class="stage-bar"><span style="color:#fff;font-weight:800">⏱️ مؤقّت النشاط</span><span style="color:#9fb0c4;font-size:12px;margin-inline-start:auto">يواصل العدّ ولو انتقلت إلى محطة أخرى</span></div>
       <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:24px">
         <div id="tm-disp" style="font-size:min(22vw,150px);font-weight:800;color:var(--goldl);font-variant-numeric:tabular-nums">00:00</div>
         <div style="display:flex;gap:10px;flex-wrap:wrap;justify-content:center">
@@ -2125,18 +2358,10 @@
         </div>
         <div style="display:flex;gap:10px"><button class="btn-primary" id="tm-se" style="min-width:120px">▶️ ابدأ</button><button class="live-btn" id="tm-reset">↺ صفر</button></div>
       </div></div>`;
-    let left = 0, running = false;
-    const disp = box.querySelector("#tm-disp");
-    const fmt = () => { const m = Math.floor(left / 60), s = left % 60; disp.textContent = String(m).padStart(2, "0") + ":" + String(s).padStart(2, "0"); };
-    const stop = () => { clearInterval(timerIv); timerIv = null; running = false; box.querySelector("#tm-se").textContent = "▶️ ابدأ"; };
-    box.querySelectorAll("[data-s]").forEach(b => b.onclick = () => { left = +b.dataset.s; fmt(); });
-    box.querySelector("#tm-se").onclick = () => {
-      if (running) { stop(); return; }
-      if (left <= 0) { left = 60; fmt(); }   // افتراضي دقيقة إن لم يُختر وقت
-      running = true; box.querySelector("#tm-se").textContent = "⏸ إيقاف";
-      timerIv = setInterval(() => { left--; fmt(); if (left <= 0) { stop(); disp.style.color = "#ff6b6b"; confetti(); } }, 1000);
-    };
-    box.querySelector("#tm-reset").onclick = () => { stop(); left = 0; fmt(); disp.style.color = "var(--goldl)"; };
+    box.querySelectorAll("[data-s]").forEach(b => b.onclick = () => { timerLeft = +b.dataset.s; timerDone = false; timerPaint(); });
+    box.querySelector("#tm-se").onclick = () => { if (timerRun) timerStop(); else timerStart(); };
+    box.querySelector("#tm-reset").onclick = timerReset;
+    timerPaint();
   }
   function drawLiveRoster() {
     if (liveMainView !== "roster") return;
@@ -2198,10 +2423,10 @@
   }
   function closeLiveBox() { const d = $("#live-act"); if (d) d.remove(); }
   function applyLive(i, k, idx) {
+    if (k === "x") return;                       // «إغلاق» قراءة: لا يُنشئ سجل يوم فارغاً للطالب
     const e = rec(liveCid, liveDate, i, true);
     const pos = behIndex("مميز", true), neg = behIndex("مخالف", false);
     let delta = 0;
-    if (k === "x") return;
     if (k === "state" && STATES[idx]) { const had = e.a; e.a = idx; delta = (+STATES[idx].pts || 0) - (had != null && STATES[had] ? (+STATES[had].pts || 0) : 0); }
     else if (k === "beh" && BEH[idx]) { e.beh = e.beh || []; e.beh.push(idx); delta = +BEH[idx].pts || 0; }
     else if (k === "hwno") { const had = e.hw; e.hw = 0; delta = had === 1 ? -W.hw : 0; }
@@ -2211,6 +2436,7 @@
     else if (k === "hw") { if (e.hw !== 1) { e.hw = 1; delta = W.hw; } }
     else if (k === "bad" && neg >= 0) { e.beh = e.beh || []; e.beh.push(neg); delta = +BEH[neg].pts; }
     else if (k === "absent") { const had = e.a; e.a = 1; delta = (STATES[1].pts || 0) - (had != null && STATES[had] ? STATES[had].pts : 0); }
+    pruneRec(liveCid, liveDate, i);              // إجراء لم يغيّر شيئاً (واجب مسجَّل مسبقاً) لا يترك سجلاً فارغاً
     save("recs:" + liveCid);
     const card = document.querySelector(`.rcard[data-i="${i}"]`);
     if (card && delta) floatPoints(card, delta);
@@ -2232,13 +2458,18 @@
 
   // 🎮 استوديو ألعاب الدرس — تخمين وصور وفرق (لوحة الشرف تبقى للتقييم اللحظي)
   let gameIv = null, gameIv2 = null;
-  function stopGame() { if (gameIv) { clearInterval(gameIv); gameIv = null; } if (gameIv2) { clearInterval(gameIv2); gameIv2 = null; } }
+  /* كل مؤجَّل داخل لعبة يُسجَّل هنا: الجولة التالية بعد التسوية، وقلب البطاقات، وشاشة النهاية…
+     بلا ذلك كانت الجولة التالية تنطلق بعد 1.7 ثانية فتخطف الشاشة إن بدّل المعلم إلى «الطلاب»، أو تُعيد رسم الحصة بعد إنهائها. */
+  const gameTOs = [];
+  const gameWait = (fn, ms) => { const t = setTimeout(() => { const k = gameTOs.indexOf(t); if (k >= 0) gameTOs.splice(k, 1); fn(); }, ms); gameTOs.push(t); return t; };
+  function stopGame() { if (gameIv) { clearInterval(gameIv); gameIv = null; } if (gameIv2) { clearInterval(gameIv2); gameIv2 = null; } while (gameTOs.length) clearTimeout(gameTOs.pop()); }
   const shuffle = (a) => { a = a.slice(); for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
   const GEN_CAPS = ["لوحة المفاتيح", "فأرة الحاسب", "طابعة", "شاشة الحاسب", "الإنترنت", "روبوت", "ميكروفون", "كتب", "مخطط بياني", "جدول بيانات", "جهاز لوحي", "ساعة ذكية", "كاميرا", "محرك البحث"];
-  async function stageGames(box, code, wk, c) {
+  async function stageGames(box, code, wk, c, seq) {
     stopGame();
     const d = await lessonData(code, wk);
     const vocab = (d && d.vocab) || [], bank = await lessonQuestions(code, wk);
+    if (!liveFresh(seq)) return;
     const scenes = (d && d.story) || [];
     const imgs = []; const seenCap = new Set();
     scenes.forEach(s => { if (s.img && s.cap && !seenCap.has(s.cap)) { seenCap.add(s.cap); imgs.push({ img: s.img, cap: s.cap, t: s.t }); } });
@@ -2246,12 +2477,12 @@
     const L = ["أ", "ب", "ج", "د"];
     const bar = (title, extra) => `<div class="stage-bar"><button class="live-btn" id="gm-back">◀ الألعاب</button><span style="color:#fff;font-weight:800">${title}</span>${extra || ""}</div>`;
     // 🎡 اختيار طالب عشوائي (الحاضرون أولاً) للإجابة
-    const roster = () => { let pool = activeStudents(c).map(x => x.i); const day = (DB.recs[liveCid] || {})[liveDate]; const pres = pool.filter(i => day && day[i] && day[i].a === 0); return (pres.length ? pres : pool).map(i => c.students[i].n); };
+    const roster = () => { const pool = activeStudents(c).map(x => x.i), pres = pool.filter(i => !liveAway(i)); return (pres.length ? pres : pool).map(i => c.students[i].n); };
     const pickBtn = `<div class="gm-pickwrap"><button class="live-btn gm-pick" id="gm-pick">🎡 من يجيب؟</button><span class="gm-who" id="gm-who"></span><span class="gm-prog" id="gm-prog"></span><div class="gm-award" id="gm-award"></div></div>`;
     function wirePick() {
       const b = box.querySelector("#gm-pick"), w = box.querySelector("#gm-who"), pr = box.querySelector("#gm-prog"), aw = box.querySelector("#gm-award"); if (!b || !w) return;
       const T = liveTurns;
-      const present = () => { const day = (DB.recs[liveCid] || {})[liveDate]; const pool = activeStudents(c).map(x => x.i); const pres = pool.filter(i => day && day[i] && day[i].a === 0); return pres.length ? pres : pool; };
+      const present = () => { const pool = activeStudents(c).map(x => x.i), pres = pool.filter(i => !liveAway(i)); return pres.length ? pres : pool; };
       const prog = () => { const p = present(); pr.textContent = `شارك ${p.filter(i => T.done.has(i)).length}/${p.length}`; };
       const land = (i) => {
         T.cur = i; T.done.add(i); w.textContent = c.students[i].n; w.classList.add("pop"); prog();
@@ -2328,7 +2559,7 @@
           box.querySelectorAll(".qz-opt-card").forEach(b => { b.onclick = null; if (opts[+b.dataset.k] === it.cap) b.classList.add("ok"); });
           pts.innerHTML = ok ? `<span class="gm-fb ok">✅ ${esc(it.cap)} — +${gain}</span>` : `<span class="gm-fb no">${timeout ? "⏰ انكشفت الصورة" : "❌ ليست هذه"} — الجواب: ${esc(it.cap)}</span>`;
           if (ok) confetti();
-          setTimeout(() => { ri++; round(); }, 1700);
+          gameWait(() => { ri++; round(); }, 1700);
         }
         box.querySelectorAll(".qz-opt-card").forEach(b => b.onclick = () => { if (locked) return; if (opts[+b.dataset.k] === it.cap) settle(true); else { b.classList.add("no"); b.onclick = null; left = Math.max(0, left - 2); reveal(2); } });
       }
@@ -2351,7 +2582,7 @@
         b.classList.add("flip"); open.push(b);
         if (open.length === 2) {
           moves++; lock = true; const [x, y] = open; const same = cards[+x.dataset.i].id === cards[+y.dataset.i].id;
-          setTimeout(() => { if (same) { x.classList.add("done"); y.classList.add("done"); found++; confetti(); } else { x.classList.remove("flip"); y.classList.remove("flip"); } open = []; lock = false; tick(); if (found === pairs.length) { stopGame(); setTimeout(() => finish("🧠 الذاكرة المصوّرة", `أنهيتم ${pairs.length} أزواج في ${fmtT((Date.now() - t0) / 1000)} بـ${moves} محاولة`), 500); } }, same ? 350 : 900);
+          gameWait(() => { if (same) { x.classList.add("done"); y.classList.add("done"); found++; confetti(); } else { x.classList.remove("flip"); y.classList.remove("flip"); } open = []; lock = false; tick(); if (found === pairs.length) { stopGame(); gameWait(() => finish("🧠 الذاكرة المصوّرة", `أنهيتم ${pairs.length} أزواج في ${fmtT((Date.now() - t0) / 1000)} بـ${moves} محاولة`), 500); } }, same ? 350 : 900);
         }
       });
     }
@@ -2370,8 +2601,8 @@
           <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:center"><button class="live-btn" id="rd-letter">🔡 اكشف حرفاً</button><button class="btn-primary" id="rd-got" style="padding:10px 22px">✅ عرفناها!</button><button class="live-btn" id="rd-skip">⏭ تخطٍّ</button></div></div></div>`;
         box.querySelector("#gm-back").onclick = menu; wirePick();
         const w = box.querySelector("#rd-w"), pts = box.querySelector("#rd-pts");
-        box.querySelector("#rd-letter").onclick = () => { if (solved || !hidden.size) return; const arr = [...hidden]; hidden.delete(arr[Math.floor(Math.random() * arr.length)]); w.innerHTML = draw(); pts.textContent = "النقاط الآن: " + (10 + hidden.size * 5); if (!hidden.size) { pts.innerHTML = `<span class="gm-fb no">انكشفت كلها — الجواب: ${esc(term)}</span>`; solved = true; setTimeout(() => { i++; show(); }, 1500); } };
-        box.querySelector("#rd-got").onclick = () => { if (solved) return; solved = true; const gain = 10 + hidden.size * 5; total += gain; hidden.clear(); w.innerHTML = draw(); pts.innerHTML = `<span class="gm-fb ok">✅ ${esc(term)} — +${gain}</span>`; confetti(); setTimeout(() => { i++; show(); }, 1500); };
+        box.querySelector("#rd-letter").onclick = () => { if (solved || !hidden.size) return; const arr = [...hidden]; hidden.delete(arr[Math.floor(Math.random() * arr.length)]); w.innerHTML = draw(); pts.textContent = "النقاط الآن: " + (10 + hidden.size * 5); if (!hidden.size) { pts.innerHTML = `<span class="gm-fb no">انكشفت كلها — الجواب: ${esc(term)}</span>`; solved = true; gameWait(() => { i++; show(); }, 1500); } };
+        box.querySelector("#rd-got").onclick = () => { if (solved) return; solved = true; const gain = 10 + hidden.size * 5; total += gain; hidden.clear(); w.innerHTML = draw(); pts.innerHTML = `<span class="gm-fb ok">✅ ${esc(term)} — +${gain}</span>`; confetti(); gameWait(() => { i++; show(); }, 1500); };
         box.querySelector("#rd-skip").onclick = () => { i++; show(); };
       }
       show();
@@ -2390,7 +2621,7 @@
       chk.onclick = () => {
         let ok = 0; picked.forEach((di, pos) => { const right = disp[di].k === src[pos].k; cards[di].classList.add(right ? "ok" : "no"); if (right) ok++; });
         box.querySelector("#gm-hud").textContent = `${ok}/${disp.length} في مكانها الصحيح`;
-        if (ok === disp.length) { confetti(); setTimeout(() => finish("🧩 رتّب القصة", "ترتيب صحيح بالكامل — القصة اكتملت!"), 900); }
+        if (ok === disp.length) { confetti(); gameWait(() => finish("🧩 رتّب القصة", "ترتيب صحيح بالكامل — القصة اكتملت!"), 900); }
       };
     }
     // ⚔️ تحدّي الفرق — الأخضر ضد الذهبي
@@ -2412,7 +2643,7 @@
         box.querySelector("#gm-back").onclick = menu; wirePick();
         const fill = box.querySelector("#gm-tf"), headEl = box.querySelector("#tm-head");
         const startTimer = (secs) => { stopGame(); left = secs; fill.style.width = "100%"; gameIv = setInterval(() => { left -= 0.1; fill.style.width = Math.max(0, left / secs * 100) + "%"; if (left <= 0) timeout(); }, 100); };
-        const next = () => setTimeout(() => { qi++; turn = 1 - turn; show(); }, 1500);
+        const next = () => gameWait(() => { qi++; turn = 1 - turn; show(); }, 1500);
         function timeout() { stopGame(); box.querySelectorAll(".qz-opt-card").forEach(b => { b.onclick = null; if (+b.dataset.k === it.correct) b.classList.add("ok"); }); box.querySelector("#gm-stmt").insertAdjacentHTML("beforeend", `<div class="gm-fb no">⏰ انتهى الوقت</div>`); next(); }
         function wire() {
           box.querySelectorAll(".qz-opt-card").forEach(b => b.onclick = () => {
@@ -2443,9 +2674,9 @@
         if (selT === null || b.classList.contains("done")) return;
         const tb = box.querySelector(`[data-t="${selT}"]`);
         if (+b.dataset.d === selT) { b.classList.add("done"); tb.classList.add("done"); tb.classList.remove("sel"); score += 10; done++; selT = null; }
-        else { b.classList.add("bad"); tb.classList.add("bad"); score = Math.max(0, score - 2); setTimeout(() => { b.classList.remove("bad"); tb.classList.remove("bad"); }, 450); }
+        else { b.classList.add("bad"); tb.classList.add("bad"); score = Math.max(0, score - 2); gameWait(() => { b.classList.remove("bad"); tb.classList.remove("bad"); }, 450); }
         tick();
-        if (done === pairs.length) { stopGame(); confetti(); const tt = fmtT((Date.now() - t0) / 1000); setTimeout(() => finish("🔗 مطابقة المصطلحات", `أنهيتم ${pairs.length} مطابقات في ${tt} — النقاط ${score}`), 600); }
+        if (done === pairs.length) { stopGame(); confetti(); const tt = fmtT((Date.now() - t0) / 1000); gameWait(() => finish("🔗 مطابقة المصطلحات", `أنهيتم ${pairs.length} مطابقات في ${tt} — النقاط ${score}`), 600); }
       });
     }
     // 🪜 سلّم المليون
@@ -2466,8 +2697,8 @@
         box.querySelectorAll(".qz-opt-card").forEach(b => b.onclick = () => {
           const ok = +b.dataset.k === it.correct; b.classList.add(ok ? "ok" : "no");
           box.querySelectorAll(".qz-opt-card").forEach(x => x.onclick = null);
-          if (ok) { confetti(); lvl++; qi++; setTimeout(draw, 1100); }
-          else { const r = box.querySelector(`.qz-opt-card[data-k="${it.correct}"]`); if (r) r.classList.add("ok"); box.querySelector("#gm-stmt").insertAdjacentHTML("beforeend", `<div class="gm-fb no">❌ للأسف… نعود إلى أول السلّم</div>`); setTimeout(() => { lvl = 0; qi++; qs = shuffle(qs); draw(); }, 1800); }
+          if (ok) { confetti(); lvl++; qi++; gameWait(draw, 1100); }
+          else { const r = box.querySelector(`.qz-opt-card[data-k="${it.correct}"]`); if (r) r.classList.add("ok"); box.querySelector("#gm-stmt").insertAdjacentHTML("beforeend", `<div class="gm-fb no">❌ للأسف… نعود إلى أول السلّم</div>`); gameWait(() => { lvl = 0; qi++; qs = shuffle(qs); draw(); }, 1800); }
         });
       }
       draw();
@@ -2480,7 +2711,7 @@
   function daySeries(recsCid, i) {
     const out = [];
     Object.keys(recsCid || {}).sort().forEach(date => {
-      const e = recsCid[date][i]; if (!e) return; let p = 0;
+      const e = recsCid[date][i]; if (emptyRec(e)) return; let p = 0;
       if (e.a != null && STATES[e.a]) p += +STATES[e.a].pts || 0;
       if (e.part) p += e.part * W.part; if (e.hw === 1) p += W.hw; if (e.sh) p += e.sh * W.sheets;
       (e.beh || []).forEach(bi => { if (BEH[bi]) p += +BEH[bi].pts || 0; });
@@ -2489,10 +2720,12 @@
     return out;
   }
   const trendOf = (ser) => { if (ser.length < 4) return ""; const h = Math.ceil(ser.length / 2); const a = ser.slice(0, h).reduce((x, y) => x + y.p, 0) / h, b = ser.slice(h).reduce((x, y) => x + y.p, 0) / (ser.length - h); return b > a + 0.5 ? "📈 في تحسّن" : b < a - 0.5 ? "📉 يحتاج متابعة" : "➡️ مستقر"; };
-  const attPct = (t) => { const n = t.st.reduce((x, y) => x + y, 0); return n ? Math.round(t.st[0] / n * 100) : null; };
   // كل مواد الفصل من السحابة: [{tid, subject, tname, recs, grades}] — وفي المحلي مادتي فقط
+  /* مواد الطالب عبر كل معلميه. الاحتياطي المحلي كان مشروطاً بـ !TE.admin، فتفتح «البطاقة
+     الشاملة» و«المستويات» فارغة تماماً للمدير في الوضع التجريبي («0 مواد مرصودة» وجدول فارغ)
+     بينما صفّ الطالب نفسه يعرض نقاطاً. ويُعلَّم فشل القراءة السحابية بدل بطاقة خالية صامتة. */
   async function classDocs(cid) {
-    const out = [];
+    const out = []; let failed = false;
     if (CLOUD && fdb) {
       try {
         const [rs, gs] = await Promise.all([fdb.collection("recs").get(), fdb.collection("grades").get()]);
@@ -2500,9 +2733,21 @@
         rs.forEach(x => { if (x.id.endsWith(suf)) { const tid = x.id.slice(0, -suf.length); byT[tid] = byT[tid] || {}; byT[tid].recs = (x.data() || {}).d || {}; } });
         gs.forEach(x => { if (x.id.endsWith(suf)) { const tid = x.id.slice(0, -suf.length); byT[tid] = byT[tid] || {}; byT[tid].grades = (x.data() || {}).g || {}; } });
         Object.keys(byT).forEach(tid => { const t = D.teachers.find(z => z.id === tid); out.push({ tid, subject: t ? t.subject : tid, tname: t ? t.name : "", recs: byT[tid].recs || {}, grades: byT[tid].grades || {} }); });
-      } catch (e) { }
+      } catch (e) { failed = true; }
     }
-    if (!out.length && TE && !TE.admin) out.push({ tid: TE.id, subject: TE.subject, tname: TE.name, recs: DB.recs[cid] || {}, grades: DB.grades[cid] || {} });
+    if (!out.length && TE && (DB.recs[cid] || DB.grades[cid])) {
+      /* صاحب الرصد لا المُطَّلِع عليه: DB.by["recs:cid"] يكتبه save() عند كل حفظ تجريبي، وهو
+         مصدر النسبة نفسه الذي تستعمله لوحة المدير (js/admin/core.js) — فلا تُنسب مادة زميل
+         إلى المدير في بطاقة الطالب بينما اللوحة تنسبها إلى صاحبها. */
+      const by = (DB.by && typeof DB.by === "object" && !Array.isArray(DB.by)) ? DB.by : {};
+      const oid = by["recs:" + cid] || by["grades:" + cid] || "";
+      const ot = (D.teachers || []).find(x => x.id === oid)
+        || (((TE.classes || []).indexOf(cid) >= 0) ? TE : null)
+        || (D.teachers || []).find(x => !x.admin && (x.classes || []).indexOf(cid) >= 0)
+        || TE;
+      out.push({ tid: ot.id, subject: ot.subject, tname: ot.name, recs: DB.recs[cid] || {}, grades: DB.grades[cid] || {} });
+    }
+    try { Object.defineProperty(out, "failed", { value: failed, enumerable: false }); } catch (e) { }
     return out;
   }
   const maxTotal = () => ASSESS.reduce((a, b) => a + b.max, 0);
@@ -2517,6 +2762,12 @@
       const ps = rows.filter(r => r.pct != null).map(r => r.pct); const overall = ps.length ? Math.round(ps.reduce((a, b) => a + b, 0) / ps.length) : null;
       const bars = (ser) => { const last = ser.slice(-14); const mx = Math.max(5, ...last.map(x => Math.abs(x.p))); return `<div class="pg-bars">${last.map(x => `<div class="pg-bar" title="${x.date}: ${x.p}"><div style="height:${Math.round(Math.abs(x.p) / mx * 100)}%;background:${x.p >= 0 ? "var(--ok)" : "var(--bad)"}"></div><small>${x.date.slice(5).replace("-", "/")}</small></div>`).join("")}</div>`; };
       const b = o.querySelector("#pg-body"); if (!b) return;
+      if (!rows.length) {
+        b.innerHTML = docs.failed
+          ? '<div class="empty-note">تعذّر جلب مواد الطالب من السحابة — تحقق من الاتصال ثم أعد فتح البطاقة.</div>'
+          : '<div class="empty-note">لا رصد لهذا الطالب في أي مادة بعد.</div>';
+        return;
+      }
       b.innerHTML = `
         <div class="statrow"><div class="stat"><div class="v">${overall != null ? overall + "%" : "—"}</div><div class="l">المعدل العام</div></div><div class="stat"><div class="v" style="font-size:14px">${overall != null ? esc(levelOf(overall).t) : "—"}</div><div class="l">المستوى العام</div></div><div class="stat"><div class="v">${rows.length}</div><div class="l">مواد مرصودة</div></div><div class="stat"><div class="v">${mine && mine.att != null ? mine.att + "%" : "—"}</div><div class="l">حضور ${esc(mine ? mine.subject : "")}</div></div></div>
         ${mine ? `<div style="font-weight:800;color:var(--navy);margin:8px 0 4px">نقاط ${esc(mine.subject)} في الحصص الأخيرة — ${trendOf(mine.series) || "بداية الرصد"}</div>${mine.series.length ? bars(mine.series) : '<div class="empty-note">لا رصد بعد</div>'}` : ""}
@@ -2701,8 +2952,9 @@
   function periodText(cid, from, to) {
     const c = classById(cid), recs = recsInRange(cid, from, to), maxTot = maxTotal();
     const rows = activeStudents(c).map(({ s, i }) => ({ s, i, t: calcStudent(cid, i, recs) }));
-    const days = Object.keys(recs).length; const rated = rows.filter(r => r.t.days);
-    const attN = rows.reduce((a, r) => a + r.t.st.reduce((x, y) => x + y, 0), 0); const att = attN ? Math.round(rows.reduce((a, r) => a + (r.t.st[0] || 0), 0) / attN * 100) : null;
+    const days = Object.keys(recs).filter(dt => Object.keys(recs[dt] || {}).some(k => !emptyRec(recs[dt][k]))).length; const rated = rows.filter(r => r.t.days);
+    // نسبة حضور الفصل بنفس تعريف بطاقة الطالب والدرجة التلقائية، لا «حاضر» وحدها على كل الحالات
+    const att = attPct({ st: STATES.map((x, k) => rows.reduce((a, r) => a + (r.t.st[k] || 0), 0)) });
     const part = rows.reduce((a, r) => a + r.t.part, 0), hw = rows.reduce((a, r) => a + r.t.hwY, 0);
     const top = rows.filter(r => r.t.pts > 0).sort((a, b) => b.t.pts - a.t.pts).slice(0, 5);
     const need = rows.filter(r => r.t.st[1] > 0 || r.t.hwN > 0 || r.t.behN > 0).slice(0, 8);
@@ -2715,10 +2967,10 @@
   function studentText(cid, i, from, to) {
     const c = classById(cid), s = c.students[i], recs = recsInRange(cid, from, to), t = calcStudent(cid, i, recs), maxTot = maxTotal();
     const all = activeStudents(c).map(x => calcStudent(cid, x.i, recs).pts).sort((a, b) => b - a); const rank = all.indexOf(t.pts) + 1;
-    const hasG = hasGrades(cid, i), gt = gradeTotal(cid, i); const a = attPct(t);
+    const hasG = hasGrades(cid, i), gt = gradeTotal(cid, i), gm = gradedMax(cid, i), gp = gradePct(cid, i); const a = attPct(t);
     const tip = t.st[1] > 0 ? "نرجو متابعة الحضور." : t.hwN > 0 ? "نرجو متابعة إنجاز الواجبات." : t.pts >= 10 ? "أداء مميز، بارك الله فيه." : "نأمل مزيداً من المشاركة.";
     return `السلام عليكم ورحمة الله\nولي أمر الطالب: *${s.n}* — ${c.name}\n📊 تقرير ${TE.subject} للفترة ${hLabelShort(from)} → ${hLabelShort(to)}\n` +
-      `⭐ النقاط: ${t.pts} | الترتيب: ${rank} من ${activeCount(c)}\n✅ الحضور: ${a != null ? a + "%" : "—"} (${STATES.map((st, k) => t.st[k] ? `${st.name} ${t.st[k]}` : "").filter(Boolean).join("، ") || "لا رصد"})\n🙋 المشاركة: ${t.part} | 📚 الواجبات: ${t.hwY}${t.hwN ? ` (ناقص ${t.hwN})` : ""}${hasG ? `\n📝 الدرجة: ${gt}/${maxTot} — ${levelOf(gt / maxTot * 100).t}` : ""}\n💡 ${tip}\n${META.school.name} — ${TE.name}`;
+      `⭐ النقاط: ${t.pts} | الترتيب: ${rank} من ${activeCount(c)}\n✅ الحضور: ${a != null ? a + "%" : "—"} (${STATES.map((st, k) => t.st[k] ? `${st.name} ${t.st[k]}` : "").filter(Boolean).join("، ") || "لا رصد"})\n🙋 المشاركة: ${t.part} | 📚 الواجبات: ${t.hwY}${t.hwN ? ` (ناقص ${t.hwN})` : ""}${hasG && gp != null ? `\n📝 الدرجة: ${gt}/${gm}${gm < maxTot ? ` مرصودة (من أصل ${maxTot})` : ""} — ${levelOf(gp).t}` : ""}\n💡 ${tip}\n${META.school.name} — ${TE.name}`;
   }
   function parentReportsCard(box) {
     const cls = myClasses(); if (!cls.length) return;

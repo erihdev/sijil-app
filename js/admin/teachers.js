@@ -138,6 +138,24 @@
     rebuildLoginSelect();
     return t;
   }
+  /* ═══ إعادة تسمية معلم ⇒ إعادة كتابة صفوف الجدول ═══
+     صفوف الجدول تُخزَّن باسم المعلم نصاً (r.t) ويرشّحها كل مستهلكيها بـ r.t === TE.name، فكان تصحيح
+     الاسم يقطع صلة المعلم بجدوله بصمت: «حصص اليوم» صفر، وشبكة الحصص كلها «—»، ولا تنبيه حصة،
+     وملف التقويم بلا مواعيد، والاسم القديم يبقى معلماً شبحاً في الجدول العام. */
+  const schedCount = (name) => (Array.isArray(S().D.schedule) ? S().D.schedule : []).filter(r => r && r.t === name).length;
+  async function renameInSchedule(oldName, newName) {
+    const s = S(), all = Array.isArray(s.D.schedule) ? s.D.schedule : [];
+    const n = all.filter(r => r && r.t === oldName).length;
+    if (!n) return 0;
+    const rows = all.map(r => ({ t: (r && r.t === oldName) ? newName : String((r && r.t) || ""), d: String((r && r.d) || ""), p: Number(r && r.p) || 0, c: String((r && r.c) || "") }));
+    if (s.CLOUD && s.fdb) {
+      await s.fdb.doc("schedule/all").set({ rows: rows, tn: String((s.TE && s.TE.name) || "الإدارة").slice(0, 80), ts: Date.now() });
+      s.D.schedule = rows;
+      try { localStorage.setItem("sijil.cloudD", JSON.stringify(s.D)); } catch (e) { }
+    } else { s.D.schedule = rows; s.DB.schedule = rows; s.save(); }
+    try { const SC = window.SIJIL_ADMIN_SCHEDULE; if (SC && typeof SC.reload === "function") SC.reload(); } catch (e) { }
+    return n;
+  }
   // الكتابة: سحابياً مستند كامل مُنظَّف (بعد قراءة الحالي حتى لا نمسح pinHash حديثاً من جهاز آخر) — تجريبياً DB.tedits
   async function writeTeacher(tid, patch, isNew) {
     const s = S(), cur = byId(tid);
@@ -238,9 +256,19 @@
         try {
           const s = S(), wasMe = !!(s.TE && s.TE.id === tid), clsChanged = ch.some(x => x.indexOf("الفصول") === 0);
           const p = Object.assign({}, r.patch); p.phone = "";                       // الجوال الجديد يحل محل القديم (phone القديم يُسقط دائماً)
-          await writeTeacher(tid, p, false);
-          await A().adminlog("edit", `تعديل بيانات ${r.patch.name}: ${ch.join("، ")}`, tid);
-          s.closeSheet(); A().toast("✔ حُفظت بيانات " + r.patch.name);
+          /* الجدول أولاً ثم مستند المعلم: لو تعذّرت كتابة الجدول لم يُغيَّر شيء أصلاً، ولو تعذّرت كتابة
+             المستند بعدها أعدنا الجدول إلى الاسم القديم — فلا يبقى الجدول معلَّقاً باسم لا وجود له. */
+          const oldName = t.name || "", newName = r.patch.name, renamed = oldName !== newName;
+          let moved = 0;
+          if (renamed) {
+            try { moved = await renameInSchedule(oldName, newName); }
+            catch (e2) { warn("rename/schedule", e2); err.textContent = "تعذّر تحديث الجدول بالاسم الجديد — لم يُحفظ التعديل: " + ((e2 && e2.message) || e2); $("#tf-ok", o).disabled = false; return; }
+          }
+          try { await writeTeacher(tid, p, false); }
+          catch (e3) { if (moved) { try { await renameInSchedule(newName, oldName); } catch (e4) { warn("rollback/schedule", e4); } } throw e3; }
+          await A().adminlog("edit", `تعديل بيانات ${newName}: ${ch.join("، ")}` + (moved ? ` (أُعيدت تسمية ${moved} حصة في الجدول)` : ""), tid);
+          s.closeSheet(); A().toast("✔ حُفظت بيانات " + newName + (moved ? ` — وحُدِّث اسمه في ${moved} حصة بالجدول` : ""), moved ? 3600 : 2200);
+          if (moved) { try { s.rerenderTab(); } catch (e5) { } }
           if (wasMe && s.TE.admin && clsChanged) { A().init(s.TE); s.switchTab(A().currentTab() || "teachers"); }   // زر «واجهتي كمعلم» يظهر/يختفي
           else if (after) after();
         } catch (e) { warn("edit", e); err.textContent = "تعذّر الحفظ: " + ((e && e.message) || e); $("#tf-ok", o).disabled = false; }
@@ -431,10 +459,10 @@
       shown.map((t, i) => [String(i + 1), esc(t.name) + (t.admin ? " (المدير)" : ""), esc(t.subject || "—"), esc(clsOf(t).map(c => c.name).join("، ") || "—"),
       esc(A().normMob(mobOf(t)) || mobOf(t) || "—"), isReg(t) ? "سجّل" : isDemo() ? "تجريبي" : "لم يسجّل",
       last[t.id] ? A().fmtDate(last[t.id]) : "—", esc(leadOf(t).map(clsName).join("، ") || "—")]),
-      { sub: "👨‍🏫 المعلمون", land: true, foot: ["", `${shown.length} معلماً`, "", "", "", `${nReg} سجّلوا`, "", ""] });
+      { sub: "👨‍🏫 المعلمون", land: true, sig: ["vice", "principal"], foot: ["", `${shown.length} معلماً`, "", "", "", `${nReg} سجّلوا`, "", ""] });
     $("#tch-print-leads", box).onclick = () => A().printTable("رواد الفصول", ["الفصل", "الطلاب", "الرائد", "مادته"],
       A().sortedClasses().map(c => { const cur = leaderOf(c.id); return [esc(c.name), String(nActive(c)), cur ? esc(cur.name) : "—", cur ? esc(cur.subject || "—") : "—"]; }),
-      { sub: "🎖️ رواد الفصول" });
+      { sub: "🎖️ رواد الفصول", sig: ["vice", "principal"] });
   }
 
   /* ═══ 🏫 أسماء إدارة المدرسة (cfg/school) — داخل «بياناتي» وللمدير وحده ═══
@@ -556,7 +584,9 @@
     const docs = Ad.classDocsOf(sd, cid);
     const rows = s.activeStudents(c).map(x => ({ i: x.i, s: x.s, agg: Ad.aggStudent(sd, cid, x.i) }));
     // الغياب المتكرر: يوم الغياب يُعدّ مرة واحدة ولو رصده أكثر من معلم
-    const absA = new Set(s.STATES.map((x, k) => /غائب|هارب/.test(x.name || "") ? k : -1).filter(k => k >= 0));
+    /* تعريف الغياب نفسه في كل الشاشات (core.attBucketOf): «غائب بعذر» عذر لا غياب — كان /غائب/ يبتلعه
+       فينفخ عدّاد «الغياب المتكرر» في تقرير الرائد وفي رسالة قروب أولياء الأمور بخلاف لوحة القيادة. */
+    const absA = new Set(s.STATES.map((x, k) => (typeof Ad.attBucketOf === "function" ? Ad.attBucketOf(k) === 1 : (!/عذر|مستأذن/.test(x.name || "") && /غائب|هارب/.test(x.name || ""))) ? k : -1).filter(k => k >= 0));
     const byDate = {};
     docs.forEach(dc => Object.keys(dc.recs || {}).forEach(date => {
       const day = dc.recs[date] || {};

@@ -35,6 +35,14 @@
    التوافق أثناء الترحيل: verify يجرّب pins أولاً ثم يسقط إلى pinHash القديمة لمن لم يُسجَّل
    بعد (reg != true)، وعند نجاح السقوط يرقّي الحساب صامتاً: ينشئ pins/{h} ثم يمسح pinHash.
 
+   • مطالبة الجلسة sess/{uid} = { tid, bp, ts } — read ممنوع للجميع، وuid هو معرّف المصادقة
+     المجهولة لهذا الجهاز. تُكتب بعد كل دخول ناجح وbp بصمة الرقم إثباتاً (القواعد تتحقق أنها
+     بصمة حيّة لهذا المعلم)، ثم لا تُقرأ أبداً — وجودها وحده هو الهوية التي تحتجّ بها القواعد.
+     وهي الجواب على «الخادم لا يعرف من يكتب»: الكتابة التي تُنمّي البيانات تبقى مفتوحة كما
+     كانت، أما المُتلِفة (تفريغ رصد أو درجات أو جدول، أو سلب فصول معلم فيختفي من قائمة الدخول،
+     أو تعيين رقم أول لحساب لم يُسجَّل، أو تغيير إعدادات المدرسة) فلا تمرّ إلا بمطالبة.
+     أثرها على المستخدم: صفر — تُكتب في الخلفية ولا تُبطئ الدخول ولا تُفشله إن تعذّرت.
+
    حدّ النموذج (مشروح في docs/AUTH_SPEC.md): يبقى تخمين الرقم عبر الشبكة ممكناً — قراءة
    لكل محاولة. لذلك يُنصح برقم من ٦ خانات فأكثر، ونعيد weak:true للواجهة لتنبّه المستخدم.
    ═══════════════════════════════════════════════════════════════════════════════════════ */
@@ -72,10 +80,19 @@
     notAdmin: "إعادة التعيين للمدير وحده",
     byOld: "رقم دخولك أنت لم يُنقل بعد إلى الحفظ الآمن، ولا يمكن تعيين أرقام المعلمين قبله — تواصل مع مطوّر التطبيق لتهيئة حساب المدير مرة واحدة",
     noTeacher: "لم أجد هذا المعلم",
+    // بصمة الرقم الحالي منشورة في مستند المعلم (وهو مقروء لأي جهاز) ⇒ لا تصلح إثباتاً في القواعد،
+    //   وكانت تُردّ برسالة «تعذّر إثبات هويتك» فيظنّ المعلم أنه أخطأ في رقمه ويعيد المحاولة بلا طائل.
+    exposed: "رقمك الحالي محفوظ بالطريقة القديمة فلا يصلح لإثبات هويتك — اطلب من المدير «إعادة تعيين رقم الدخول»، ثم غيّره بنفسك متى شئت",
+    claim: "هذه الخطوة تحتاج جلسة أثبتَّ فيها رقم دخولك على هذا الجهاز — سجّل خروجاً ثم دخولاً برقمك وأعد المحاولة",
     advice: "رقم من 6 خانات فأكثر أصعب في التخمين"
   };
 
   const warn = (w, e) => { try { console.warn("[auth] " + w, e); } catch (x) { } };
+  // رفضٌ من القواعد لا انقطاعُ شبكة: يُقال للمستخدم ما يفعله بدل «تأكد من الإنترنت»
+  const isPerm = (e) => {
+    const c = String((e && (e.code || e.message)) || "").toLowerCase();
+    return c.indexOf("permission-denied") >= 0 || c.indexOf("permission_denied") >= 0;
+  };
   const cloud = () => !!(S() && S().CLOUD);
   const teacherById = (tid) => { const s = S(); return (s && s.D && (s.D.teachers || []).find(t => t.id === tid)) || null; };
   const nameOf = (tid) => { const t = teacherById(tid); return (t && t.name) ? String(t.name).slice(0, 80) : String(tid || ""); };
@@ -179,6 +196,41 @@
     return !!k && k === r.k;
   }
 
+  /* ═══ مطالبة الجلسة sess/{uid}: إثبات «هذا الجهاز يخصّ هذا المعلم» تحتجّ به القواعد ═══
+     تُكتب مرة واحدة بعد كل دخول ناجح، في الخلفية، ولا يتوقف عليها شيء في تجربة المستخدم:
+     من فشلت مطالبته يعمل كل شيء عنده كما كان، ولا يُمنع إلا من الكتابة المُتلِفة. */
+  const CKEY = "sijil.auth.claim";     // أثر محلي «كُتبت مطالبة لهذا الجهاز» (القواعد تمنع قراءتها)
+  function authUid() {
+    try {
+      if (!cloud() || !window.firebase || !firebase.auth) return "";
+      const u = firebase.auth().currentUser;
+      return (u && u.uid) ? String(u.uid) : "";
+    } catch (e) { return ""; }
+  }
+  let claimKey = "";                   // آخر مطالبة كُتبت في هذه الصفحة — فلا تتكرر الكتابة عبثاً
+  let cq = Promise.resolve();          // سلسلة المطالبات (ينتظرها flush في الاختبارات)
+  function claimSession(tid, h) {
+    tid = String(tid || ""); h = String(h || "");
+    if (!cloud() || !TID_RE.test(tid) || !HEX_RE.test(h)) return Promise.resolve(false);
+    const u = authUid();
+    if (!u) return Promise.resolve(false);
+    const k = u + "|" + tid + "|" + h;
+    if (claimKey === k) return Promise.resolve(true);
+    claimKey = k;
+    const p = setDoc("sess/" + u, { tid: tid, bp: h, ts: Date.now() }, false).then(
+      () => { try { localStorage.setItem(CKEY, u + "|" + tid); } catch (e) { } return true; },
+      (e) => { claimKey = ""; warn("claim " + tid, e); return false; });
+    cq = cq.then(() => p).catch(() => { });
+    return p;
+  }
+  // هل لهذا الجهاز مطالبة كُتبت من هذا التطبيق؟ (للواجهة: تفسير رفضٍ قبل وقوعه)
+  function hasClaim(tid) {
+    const u = authUid(); if (!u) return false;
+    let v = ""; try { v = localStorage.getItem(CKEY) || ""; } catch (e) { }
+    const p = v.split("|");
+    return p[0] === u && (!tid || p[1] === String(tid));
+  }
+
   /* ═══ مستند المعلم: الختم والعلم — نقرأهما من بيانات المدرسة المحمّلة، ونكتبهما دمجاً ═══ */
   const ptOf = (t) => (t && typeof t.pt === "number" && t.pt > 0) ? t.pt : 0;
   /* ختم جديد: لا يجوز أن يساوي ختماً حياً آخر لهذا المعلم، وإلا بقي رقم قديم صالحاً.
@@ -238,7 +290,8 @@
       if (!canDel) return { ok: true, ts: +d.ts || 0 };          // مستند سليم بختم أقدم: نستعمله كما هو
       try { await delDoc("pins/" + h); } catch (e) { return { ok: false, why: "stale" }; }
     }
-    try { await setDoc("pins/" + h, { tid: tid, ts: ts }); } catch (e) { return { ok: false, why: "write" }; }
+    try { await setDoc("pins/" + h, { tid: tid, ts: ts }); }
+    catch (e) { warn("pins " + tid, e); return { ok: false, why: isPerm(e) ? "perm" : "write" }; }
     let back = null;
     try { back = await getDoc("pins/" + h); } catch (e) { return { ok: false, why: "net" }; }
     return (back && back.exists) ? { ok: true, ts: ts } : { ok: false, why: "lost" };
@@ -310,6 +363,7 @@
         const d = snap.data() || {};
         if (d.tid === tid && stampOk(d, t)) {
           saveLocal(tid, h, +d.ts || 0).catch(() => { });
+          claimSession(tid, h).catch(() => { });    // مطالبة هذا الجهاز بهذه الهوية (في الخلفية)
           dropStaleHash(tid).catch(() => { });      // تنظيف صامت لبصمة ميتة بقيت في المستند المقروء
           return { ok: true, via: "pins", weak: weakOf(pin) };
         }
@@ -318,6 +372,7 @@
     if (online && t && t.reg !== true && typeof t.pinHash === "string" && t.pinHash === h) {
       const up = await upgrade(tid, h);          // نجح الرقم بالطريقة القديمة ⇒ رقِّ الحساب الآن
       saveLocal(tid, h, up.ts || 0).catch(() => { });
+      if (up.ts) claimSession(tid, h).catch(() => { });   // البصمة صارت في pins ⇒ تصلح مطالبة
       return { ok: true, via: "legacy", upgraded: up.ok, weak: weakOf(pin) };
     }
     if (demo && (!t || t.reg !== true) && pin === DEMO_PIN) return { ok: true, via: "demo", weak: weakOf(pin) };
@@ -343,7 +398,7 @@
     const ts = stampTs(tid);
     const h = await hash(pin, tid);
     const r = await ensurePin(tid, h, ts, false);
-    if (!r.ok) return { ok: false, err: r.why === "taken" ? MSG.taken : MSG.net };
+    if (!r.ok) return { ok: false, err: r.why === "taken" ? MSG.taken : r.why === "perm" ? MSG.claim : MSG.net };
     if (!(await stampTeacher(tid, 0, false))) return { ok: false, err: MSG.half, pinLive: true };
     return { ok: true, ts: r.ts || ts, weak: weakOf(pin) };
   }
@@ -362,12 +417,17 @@
     if (v.via === "offline" || v.via === "offline-legacy") return { ok: false, err: MSG.needNet };
     const ts = stampTs(tid);
     const hOld = await hash(oldPin, tid), hNew = await hash(newPin, tid);
+    // القواعد ترفض بصمةً منشورة في المستند المقروء إثباتاً (وإلا ادّعى بها كل من قرأها). وهذه
+    //   حال كل حساب رُحّل رقمه ولم تُمحَ بصمته بعد — فكانت المحاولة تنتهي بـ«تعذّر إثبات هويتك».
+    if (cloud() && HEX_RE.test(String((teacherById(tid) || {}).pinHash || "")) &&
+        String(teacherById(tid).pinHash) === hOld) return { ok: false, err: MSG.exposed };
     try { await setDoc("pinreq/" + tid, { h: hNew, old: hOld, ts: ts, tn: nameOf(tid) }); }
-    catch (e) { warn("pinreq", e); return { ok: false, err: MSG.proof }; }
+    catch (e) { warn("pinreq", e); return { ok: false, err: isPerm(e) ? MSG.exposed : MSG.proof }; }
     const r = await ensurePin(tid, hNew, ts, true);
-    if (!r.ok) { cleanup(tid); return { ok: false, err: r.why === "taken" ? MSG.taken : MSG.net }; }
+    if (!r.ok) { cleanup(tid); return { ok: false, err: r.why === "taken" ? MSG.taken : r.why === "perm" ? MSG.claim : MSG.net }; }
     if (!(await stampTeacher(tid, ts, true))) { await rollback(tid, hNew); return { ok: false, err: MSG.half }; }
     saveLocal(tid, hNew, ts).catch(() => { });
+    claimSession(tid, hNew).catch(() => { });      // مطالبة هذا الجهاز بالبصمة الجديدة (القديمة ستُحذف)
     try { await delDoc("pins/" + hOld); } catch (e) { warn("drop old", e); }   // أُبطلت بالختم أصلاً
     cleanup(tid);
     dropStaleHash(tid).catch(() => { });        // ماتت البصمة القديمة الآن ⇒ تُمحى من المستند المقروء
@@ -391,6 +451,9 @@
     if (v.via === "legacy" && !v.upgraded) return { ok: false, err: MSG.byOld };
     const ts = stampTs(targetTid);
     const byPin = await hash(adminPin, adminTid), hNew = await hash(newPin, targetTid);
+    // بصمة المدير نفسه منشورة في مستنده ⇒ القواعد لا تقبلها إثباتاً (كما في changePin)
+    if (cloud() && HEX_RE.test(String(adm.pinHash || "")) && String(adm.pinHash) === byPin)
+      return { ok: false, err: MSG.byOld };
     const tgt = teacherById(targetTid);
     const req = { h: hNew, by: adminTid, byPin: byPin, ts: ts, tn: nameOf(adminTid) };
     // البصمة القديمة معروفة فقط ما دامت في مستند المعلم (قبل ترحيله) — نمرّرها ليُسمح بحذفها
@@ -398,7 +461,7 @@
     try { await setDoc("pinreq/" + targetTid, req); }
     catch (e) { warn("pinreq/admin", e); return { ok: false, err: MSG.proof }; }
     const r = await ensurePin(targetTid, hNew, ts, true);
-    if (!r.ok) { cleanup(targetTid); return { ok: false, err: r.why === "taken" ? MSG.taken : MSG.net }; }
+    if (!r.ok) { cleanup(targetTid); return { ok: false, err: r.why === "taken" ? MSG.taken : r.why === "perm" ? MSG.claim : MSG.net }; }
     if (!(await stampTeacher(targetTid, ts, true))) { await rollback(targetTid, hNew); return { ok: false, err: MSG.half }; }
     if (req.old) { try { await delDoc("pins/" + req.old); } catch (e) { warn("drop old/admin", e); } }
     cleanup(targetTid);
@@ -450,10 +513,13 @@
     // بصمة رقمه ما تزال منشورة في مستنده المقروء ⇒ رقمه في حكم المكشوف ويحتاج رقماً جديداً
     exposed: (x) => { const t = (typeof x === "string") ? teacherById(x) : x; return !!(cloud() && t && typeof t.pinHash === "string" && HEX_RE.test(t.pinHash)); },
     dropStaleHash: dropStaleHash,
+    // مطالبة الجلسة: يكتبها الدخول تلقائياً، وhasClaim تخبر الواجهة أن الكتابة المُتلِفة ستُقبل
+    claim: claimSession,
+    hasClaim: hasClaim,
     PIN_RE: PIN_RE,
     STRONG_RE: STRONG_RE,
     MSG: MSG,
-    flush: () => lq,
-    demoReset: () => { try { localStorage.removeItem(DKEY); localStorage.removeItem(LKEY); } catch (e) { } demoApplied = false; }
+    flush: () => Promise.all([lq, cq]),
+    demoReset: () => { try { localStorage.removeItem(DKEY); localStorage.removeItem(LKEY); localStorage.removeItem(CKEY); } catch (e) { } demoApplied = false; claimKey = ""; }
   };
 })();

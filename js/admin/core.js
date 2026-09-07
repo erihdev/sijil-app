@@ -180,6 +180,33 @@
     add(sd.recs, "recs"); add(sd.grades, "grades"); add(sd.comms, "comms");
     return Object.keys(byC).sort().map(cid => { const c = S().classById(cid); return { cid, cname: c ? c.name : cid, recs: byC[cid].recs || {}, grades: byC[cid].grades || {}, comms: byC[cid].comms || [] }; });
   }
+  /* ═══ تعريف واحد لـ«الحضور» في كل شاشات لوحة المدير ═══
+     كانت الشاشات تختلف: bucketOf يعدّ «عن بعد» حضوراً بينما att كان st[0] وحده (حاضر فقط) — فيظهر الطالب
+     نفسه 100% في تقرير الحضور و0% في عمود الطالب. المصدر الآن واحد هنا: الحاضر = «حاضر» أو «عن بعد»،
+     والغائب = «غائب» أو «هارب» (لا «غائب بعذر»)، والمعذور = «بعذر/مستأذن»، والمتأخر وحده، وما عداها «أخرى». */
+  const BUCKET_N = ["حاضر", "غائب", "متأخر", "مستأذن", "أخرى"];
+  const BUCKET_PRIO = { 1: 4, 2: 3, 3: 2, 0: 1, 4: 0 };     // الأسوأ يغلب عند تعدد المعلمين في اليوم نفسه
+  let bucketMap = null;
+  function attBuckets() {
+    if (!bucketMap) {
+      const st = (S() && S().STATES) || [];
+      bucketMap = st.map(x => { const n = (x && x.name) || ""; return /عذر|مستأذن/.test(n) ? 3 : /غائب|هارب/.test(n) ? 1 : /متأخر/.test(n) ? 2 : /حاضر|عن بعد/.test(n) ? 0 : 4; });
+      if (!bucketMap.length) bucketMap = null;
+    }
+    return bucketMap || [];
+  }
+  const attBucketOf = (a) => { const b = attBuckets()[a]; return b == null ? 4 : b; };
+  /* نسبة الحضور من عدّاد الحالات st[] (نفس ترتيب STATES) — null إن لا رصد.
+     المصدر الأول SIJIL.attPct (تعريف app.js الواحد: «عن بعد» حضور كامل، «متأخر» نصف حضور، والمأذون خارج
+     المقام) حتى يتطابق رقم لوحة المدير مع بطاقة الطالب ورسائل أولياء الأمور. والحساب المحلي احتياط فقط. */
+  function attOf(st) {
+    if (!Array.isArray(st)) return null;
+    const s = S();
+    if (s && typeof s.attPct === "function") { try { const v = s.attPct({ st: st }); if (v !== undefined) return v; } catch (e) { } }
+    const n = st.reduce((a, b) => a + (b || 0), 0); if (!n) return null;
+    let p = 0; st.forEach((v, k) => { if (v && attBucketOf(k) === 0) p += v; });
+    return Math.round(p / n * 100);
+  }
   // تجميع الطالب عبر كل معلميه: { pts, days, st[], att (نسبة الحاضرين من المرصود أو null), n (مواد بها رصد), grades: [{tid, subject, pct}], avg }
   function aggStudent(sd, cid, si) {
     const s = S(), docs = classDocsOf(sd, cid);
@@ -191,7 +218,7 @@
       if (s.hasGrades(cid, si, dc.grades, dc.recs)) { const p = s.gradePct(cid, si, dc.grades, dc.recs); if (p != null) out.grades.push({ tid: dc.tid, subject: dc.subject, pct: p, max: s.gradedMax(cid, si, dc.grades, dc.recs) }); }
     });
     out.pts = Math.round(out.pts * 10) / 10;
-    const marks = out.st.reduce((a, b) => a + b, 0); out.att = marks ? Math.round(out.st[0] / marks * 100) : null;
+    out.att = attOf(out.st);
     if (out.grades.length) out.avg = Math.round(out.grades.reduce((a, g) => a + g.pct, 0) / out.grades.length);
     return out;
   }
@@ -238,8 +265,12 @@
 
   /* ═══ مساعدات الطباعة (كلها عبر SIJIL.printDoc — مستند نظيف صفحة واحدة) ═══ */
   function printHead(sub) { const s = S(); return `<div class="h"><div class="bar">${esc(s.META.school.name)}</div><div class="m">${esc(sub || "لوحة مدير المدرسة")} — ${esc(s.TE ? s.TE.name : "")} — ${esc(s.hijriLabel())}</div></div>`; }
-  // printHtml(title, bodyHtml, {land, sub, cls})
-  function printHtml(title, bodyHtml, opts) { opts = opts || {}; S().printDoc(title, printHead(opts.sub) + `<div class="tt">${esc(title)}</div><div class="sheetdoc">${bodyHtml}</div>`, { appCss: true, land: !!opts.land, cls: opts.cls }); }
+  // printHtml(title, bodyHtml, {land, sub, cls, sig}) — sig: أدوار سطر التواقيع (سلسلة أو مصفوفة) تُضاف أسفل المستند
+  function printHtml(title, bodyHtml, opts) {
+    opts = opts || {};
+    const body = bodyHtml + (opts.sig ? sigLine(opts.sig) : "");
+    S().printDoc(title, printHead(opts.sub) + `<div class="tt">${esc(title)}</div><div class="sheetdoc">${body}</div>`, { appCss: true, land: !!opts.land, cls: opts.cls });
+  }
   function cleanClone(el) {
     const c = el.cloneNode(true);
     c.querySelectorAll(".sheet-actions, button, .no-print, .class-chips, select, input[type=checkbox], input[type=date], input[type=file], .search-box, .adm-tools, .hidden").forEach(x => x.remove());
@@ -249,7 +280,7 @@
   const isWide = (root) => [...root.querySelectorAll("table tr")].some(tr => tr.children.length > 8);
   // طباعة عنصر من الصفحة (يُنظَّف من الأزرار والحقول) — أفقي تلقائياً إن كان الجدول عريضاً
   function printEl(el, title, opts) { if (!el) return; const c = cleanClone(el); printHtml(title, c.innerHTML, Object.assign({ land: isWide(c) }, opts || {})); }
-  // printTable(title, cols, rows, {land, sub, foot})
+  // printTable(title, cols, rows, {land, sub, foot, sig})
   function printTable(title, cols, rows, opts) { opts = opts || {}; printHtml(title, H.table(cols, rows, { foot: opts.foot }), Object.assign({ land: cols.length > 8 }, opts)); }
 
   /* ═══ مكوّنات مشتركة (HTML) — الخلايا/النصوص تُهرَّب من المستدعي بـ SIJIL.esc ═══ */
@@ -288,8 +319,17 @@
   const teacherOf = (tid) => (S().D.teachers || []).find(t => t.id === tid) || null;
   const teacherByName = (name) => (S().D.teachers || []).find(t => t.name === name) || null;
   const todayName = () => S().DAYS[new Date().getDay()];
-  const isoDate = (d) => (d ? new Date(d) : new Date()).toISOString().slice(0, 10);     // نفس مفتاح recs في app.js
-  const daysAgo = (dateStr) => dateStr ? Math.floor((Date.now() - new Date(dateStr + "T00:00:00Z").getTime()) / 864e5) : null;
+  /* مفتاح اليوم بالتوقيت المحلي لا بـ UTC: في الرياض (UTC+3) كان toISOString() يعيد يوم أمس بين 00:00 و02:59،
+     فيخالف todayName() وhijriLabel() وperiodNow() ويقرأ تقرير «حضور اليوم» رصد اليوم السابق تحت عنوان اليوم. */
+  const pad2n = (n) => String(n).padStart(2, "0");
+  const isoDate = (d) => { const x = (d == null) ? new Date() : (d instanceof Date ? d : new Date(d)); return x.getFullYear() + "-" + pad2n(x.getMonth() + 1) + "-" + pad2n(x.getDate()); };
+  // فرق الأيام بين تاريخين محليين (منتصف ليل محلي إلى منتصف ليل محلي) — لا يعود بسالب في نافذة ما بعد منتصف الليل
+  function daysAgo(dateStr) {
+    if (!dateStr) return null;
+    const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(String(dateStr)); if (!m) return null;
+    const a = new Date(+m[1], +m[2] - 1, +m[3]), n = new Date(), b = new Date(n.getFullYear(), n.getMonth(), n.getDate());
+    return Math.round((b - a) / 864e5);
+  }
   const fmtDate = (dateStr) => dateStr ? String(dateStr).slice(5).replace("-", "/") : "—";
   const fmtTs = (ts) => { if (!ts) return "—"; try { return new Intl.DateTimeFormat("ar-SA-u-ca-islamic-umalqura", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }).format(new Date(ts)); } catch (e) { return new Date(ts).toLocaleString("ar"); } };
   /* ═══════════ جدول الأجراس: أوقات الحصص والفسح — المصدر الوحيد لأي وقت في التطبيق ═══════════
@@ -342,10 +382,12 @@
     let t = c.start, fit = 0;
     for (let p = 1; p <= c.n; p++) {
       const L = c.lens[String(p)] || c.len;
-      if (t + L > MAXDAY) break;
+      /* يوم ينتهي عند 24:00 بالتمام ممنوع لا مسموح: hm(1440) يطبع «24:00»، وملف التقويم (ics.js) يلفّ
+         الساعة بـ %24 بلا تقديم التاريخ فيخرج DTEND أبكر من DTSTART فيرفض التطبيق الموعد أو الملف كله. */
+      if (t + L >= MAXDAY) break;
       t += L; fit = p;
       const b = c.breaks.find(x => x.after === p);
-      if (b && p < c.n) { if (t + b.min > MAXDAY) break; t += b.min; }
+      if (b && p < c.n) { if (t + b.min >= MAXDAY) break; t += b.min; }
     }
     if (fit >= c.n) return c;
     if (fit < 1) return fb;
@@ -450,7 +492,7 @@
       const b = br.find(x => num((x || {}).after) === p);
       if (b && p < n) t += num(b.min);
     }
-    if (t > MAXDAY) return w + "الدوام يتجاوز منتصف الليل — راجع وقت البداية والمدد";
+    if (t >= MAXDAY) return w + "الدوام يبلغ منتصف الليل أو يتجاوزه — راجع وقت البداية والمدد";
     return null;
   }
   function validateBell(cfg) {
@@ -560,18 +602,27 @@
     let el = $("#adm-toast"); if (!el) { el = document.createElement("div"); el.id = "adm-toast"; el.className = "adm-toast"; document.body.appendChild(el); }
     el.textContent = msg; el.classList.add("show"); clearTimeout(toastT); toastT = setTimeout(() => el.classList.remove("show"), ms || 2200);
   }
-  // confirm(title, html, {ok, no, danger}) → Promise<boolean> (إغلاق النافذة بالنقر خارجها = false)
+  /* confirm(title, html, {ok, no, danger}) → Promise<boolean> (النقر خارج النافذة = false)
+     نافذة مستقلة تُضاف فوق ما هو مفتوح ولا تمرّ بـ openSheet: openSheet يمسح #overlay-root كاملاً،
+     فكان طلب تأكيد من داخل نافذة (حذف مرفق مثلاً) يمحو النافذة الأصلية ثم يغلق كل شيء بعد التأكيد.
+     وhtml اختياري: نداء بوسيط واحد كان يطبع كلمة «undefined» تحت السؤال. */
   function confirm(title, html, opts) {
     opts = opts || {};
+    const txt = (html == null || html === "") ? "" : String(html);
     return new Promise(res => {
-      let done = false; const fin = (v) => { if (done) return; done = true; try { ob.disconnect(); } catch (e) { } S().closeSheet(); res(v); };
       const root = $("#overlay-root");
-      const ob = new MutationObserver(() => { if (root && !root.firstChild) fin(false); });
-      S().openSheet(`<h4>${title}</h4><div style="font-size:14px;line-height:1.9;margin:6px 0 4px">${html}</div><div class="sheet-actions"><button class="btn-plain" id="adm-cf-no">${opts.no || "إلغاء"}</button><button class="btn-primary" id="adm-cf-ok"${opts.danger ? ' style="background:var(--bad)"' : ""}>${opts.ok || "تأكيد"}</button></div>`, (o) => {
-        o.querySelector("#adm-cf-no").onclick = () => fin(false);
-        o.querySelector("#adm-cf-ok").onclick = () => fin(true);
-        try { if (root) ob.observe(root, { childList: true }); } catch (e) { }
-      });
+      const t = document.createElement("template");
+      t.innerHTML = `<div class="overlay adm-cf"><div class="sheet"><h4>${title}</h4>${txt ? `<div style="font-size:14px;line-height:1.9;margin:6px 0 4px">${txt}</div>` : ""}<div class="sheet-actions"><button class="btn-plain" id="adm-cf-no">${opts.no || "إلغاء"}</button><button class="btn-primary" id="adm-cf-ok"${opts.danger ? ' style="background:var(--bad)"' : ""}>${opts.ok || "تأكيد"}</button></div></div></div>`;
+      const o = t.content.firstChild;
+      if (!root || !o) { res(false); return; }
+      let done = false;
+      const fin = (v) => { if (done) return; done = true; try { o.remove(); } catch (e) { } try { document.removeEventListener("keydown", onKey, true); } catch (e) { } res(v); };
+      const onKey = (e) => { if (e.key === "Escape") { e.stopPropagation(); fin(false); } };
+      o.addEventListener("click", (e) => { if (e.target === o) fin(false); });
+      root.appendChild(o);
+      o.querySelector("#adm-cf-no").onclick = () => fin(false);
+      o.querySelector("#adm-cf-ok").onclick = () => fin(true);
+      try { document.addEventListener("keydown", onKey, true); } catch (e) { }
     });
   }
 
@@ -579,12 +630,14 @@
     TABS, TEACHER_TABS, VIEW_KEY,
     init, render, register, refresh, currentTab: () => cur, isAdminView, setView, get TE() { return TE; }, modules: () => Object.keys(MODS),
     schoolDocs, invalidate, splitKey, classDocsOf, teacherDocsOf, aggStudent, lastRecDate,
+    // تعريف الحضور الموحّد (لوحة المدير كلها): الحاضر = حاضر أو عن بعد
+    attBucketOf, attOf, BUCKET_N, BUCKET_PRIO,
     adminlog, saveSedit,
     printHead, printHtml, printEl, printTable, cleanClone,
     H, toast, confirm,
     sortedClasses, staff, allAccounts, showActiveTab, classTeachers, teacherOf, teacherByName, todayName, schoolDays, isSchoolDay, isoDate, daysAgo, fmtDate, fmtTs, normMob, waPhone, waHref, nextTeacherId,
     // جدول الأجراس (PERIODS = الحصص فقط بلا الفسح، محسوبة الآن من الإعداد — بنفس شكلها القديم [{p, from, to}])
-    bell, defaultBell, periodsOf, periodsOnly, periodNow, breakNow, periodTime, bellLine, dayEnd, validateBell, saveBell, hm, hhmm, parseHM, ord, nPer, mins,
+    bell, defaultBell, normBell, periodsOf, periodsOnly, periodNow, breakNow, periodTime, bellLine, dayEnd, validateBell, saveBell, hm, hhmm, parseHM, ord, nPer, mins,
     get PERIODS() { return periodsOnly(); },
     // أسماء إدارة المدرسة وسطر التواقيع
     schoolStaff, sigLine, saveStaff, validateStaff, STAFF_KEYS, STAFF_LBL

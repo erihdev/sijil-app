@@ -76,14 +76,19 @@
   function hijriMonthKey(dateStr) { if (hCache[dateStr]) return hCache[dateStr]; let k = ""; try { const h = S().hijriParts(new Date(dateStr + "T12:00:00")); k = h.y + "-" + h.m; } catch (e) { k = String(dateStr).slice(0, 7); } return hCache[dateStr] = k; }
   const thisHijriMonth = () => hijriMonthKey(today());
   const hijriMonthName = () => { try { return new Intl.DateTimeFormat("ar-SA-u-ca-islamic-umalqura", { month: "long" }).format(new Date()); } catch (e) { return "هذا الشهر"; } };
-  // تصنيف حالة الحضور إلى 5 فئات: 0 حاضر · 1 غائب · 2 متأخر · 3 مستأذن/بعذر · 4 أخرى — والأسوأ يغلب عند تعدد المعلمين في اليوم نفسه
-  const BUCKET_N = ["حاضر", "غائب", "متأخر", "مستأذن", "أخرى"];
-  const PRIO = { 1: 4, 2: 3, 3: 2, 0: 1, 4: 0 };
+  /* تصنيف حالة الحضور إلى 5 فئات: 0 حاضر (يشمل «عن بعد») · 1 غائب/هارب · 2 متأخر · 3 مستأذن/بعذر · 4 أخرى
+     — والأسوأ يغلب عند تعدد المعلمين في اليوم نفسه. التعريف نفسه في core.js (attBucketOf/attOf) حتى لا يختلف
+     رقم «الحضور» بين تقرير الحضور وعمود الطالب ومتوسط الفصل. النسخة المحلية احتياط لو كانت النواة قديمة في الكاش. */
+  const BUCKET_N = (function () { try { const n = A().BUCKET_N; if (Array.isArray(n) && n.length === 5) return n; } catch (e) { } return ["حاضر", "غائب", "متأخر", "مستأذن", "أخرى"]; })();
+  const PRIO = (function () { try { const p = A().BUCKET_PRIO; if (p && typeof p === "object") return p; } catch (e) { } return { 1: 4, 2: 3, 3: 2, 0: 1, 4: 0 }; })();
   let bucketMap = null;
   function bucketOf(a) {
+    if (typeof A().attBucketOf === "function") return A().attBucketOf(a);
     if (!bucketMap) bucketMap = S().STATES.map(st => { const n = st.name || ""; return /عذر|مستأذن/.test(n) ? 3 : /غائب|هارب/.test(n) ? 1 : /متأخر/.test(n) ? 2 : /حاضر|عن بعد/.test(n) ? 0 : 4; });
     const b = bucketMap[a]; return b == null ? 4 : b;
   }
+  // نسبة الحضور من عدّاد الحالات (نفس تعريف bucketOf) — مصدر واحد لكل أعمدة «الحضور» في اللوحة
+  const attOfSt = (st) => { try { if (typeof A().attOf === "function") return A().attOf(st); } catch (e) { } const n = (st || []).reduce((a, b) => a + (b || 0), 0); if (!n) return null; let p = 0; (st || []).forEach((v, k) => { if (v && bucketOf(k) === 0) p += v; }); return Math.round(p / n * 100); };
 
   /* ═══ اشتقاقات من schoolDocs (مخبّأة لكل عملية رسم) ═══ */
   function ctx(sd) { return { sd, ag: {}, docs: {} }; }
@@ -100,7 +105,7 @@
       const per = docs.map(dc => { const t = s.calcStudent(cid, i, dc.recs || {}); const has = s.hasGrades(cid, i, dc.grades || {}, dc.recs || {}); return { tid: dc.tid, subject: dc.subject, tname: dc.tname, t, pct: has ? s.gradePct(cid, i, dc.grades || {}, dc.recs || {}) : null, gmax: has ? s.gradedMax(cid, i, dc.grades || {}, dc.recs || {}) : 0 }; });
       let pts = 0, days = 0, n = 0; const stc = s.STATES.map(() => 0);
       per.forEach(x => { if (x.t.days) { n++; days += x.t.days; pts += x.t.pts; x.t.st.forEach((v, k) => stc[k] += v); } });
-      const marks = stc.reduce((a, b) => a + b, 0), att = marks ? Math.round(stc[0] / marks * 100) : null;
+      const att = attOfSt(stc);
       const ps = per.filter(x => x.pct != null).map(x => x.pct), avg = ps.length ? Math.round(avgOf(ps)) : null;
       return { i, s: st, c, per, pts: r1(pts), days, n, st: stc, att, avg, low: per.filter(x => x.pct != null && x.pct < 50) };
     });
@@ -153,7 +158,8 @@
     if (typeof Ad.backupAll === "function") return Ad.backupAll();     // وحدة الإدارة إن وفّرتها
     const sd = await Ad.schoolDocs(true);
     const teachers = (s.D.teachers || []).map(t => { const x = Object.assign({}, t); delete x.pinHash; return x; });
-    const out = { v: 3, kind: "sijil-school-backup", school: s.META.school.name, ts: Date.now(), cloud: !!s.CLOUD, teachers, classes: s.D.classes, schedule: s.D.schedule || [], recs: sd.recs, grades: sd.grades, comms: sd.comms, moves: sd.moves, assign: sd.assign, sedits: sd.sedits, adminlog: sd.adminlog, subs: s.SUBS || {} };
+    // إعدادات المدرسة (أوقات الحصص وأسماء الإدارة) جزء من النسخة: بدونها تعود المدرسة بعد الاستعادة إلى جرس 7:00/45د/7 حصص وإلى نقاط في التواقيع
+    const out = { v: 3, kind: "sijil-school-backup", school: s.META.school.name, ts: Date.now(), cloud: !!s.CLOUD, teachers, classes: s.D.classes, schedule: s.D.schedule || [], recs: sd.recs, grades: sd.grades, comms: sd.comms, moves: sd.moves, assign: sd.assign, sedits: sd.sedits, adminlog: sd.adminlog, subs: s.SUBS || {}, bell: (s.D && s.D.bell) || (s.DB && s.DB.bell) || null, cfgSchool: (s.D && s.D.cfgSchool) || (s.DB && s.DB.cfgSchool) || null };
     const blob = new Blob([JSON.stringify(out)], { type: "application/json" });
     const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = "نسخة مدرسية شاملة - " + s.META.school.name + " - " + today() + ".json"; a.click();
     setTimeout(() => URL.revokeObjectURL(a.href), 4000);
@@ -167,7 +173,8 @@
     const Ad = A(), out = [], have = {};
     (Ad.periodsOf(day) || []).forEach(x => {
       const t = Ad.hm(x.from) + "–" + Ad.hm(x.to);
-      if (x.brk) out.push({ brk: true, n: x.n, t: t }); else { out.push({ p: x.p, t: t }); have[x.p] = 1; }
+      // الفسحة تُعرَّف بوقتها لا باسمها: فسحتان بالاسم نفسه (الواجهة تسمح به) كانتا تُبرَزان معاً وقت واحدة منهما
+      if (x.brk) out.push({ brk: true, n: x.n, t: t, from: x.from }); else { out.push({ p: x.p, t: t }); have[x.p] = 1; }
     });
     const ex = [];
     (rows || []).forEach(r => { const p = Number(r.p) || 0; if (p > 0 && p <= 12 && !have[p] && ex.indexOf(p) < 0) ex.push(p); });
@@ -195,7 +202,7 @@
         const bar = $("#hm-brk", box);
         if (bar) { bar.hidden = !(isT && bN); if (isT && bN) bar.innerHTML = brkBarTxt(bN); }
         box.querySelectorAll("#hm-grid [data-p]").forEach(el => el.classList.toggle("now", !!(isT && Number(el.dataset.p) === pN)));
-        box.querySelectorAll("#hm-grid th[data-brk]").forEach(el => el.classList.toggle("now", !!(isT && bN && el.dataset.brk === String(bN.n))));
+        box.querySelectorAll("#hm-grid th[data-brk]").forEach(el => el.classList.toggle("now", !!(isT && bN && el.dataset.brk === String(bN.from))));
       } catch (e) { clearInterval(nowTimer); nowTimer = null; }
     };
     try { nowTimer = setInterval(upd, 30000); } catch (e) { }
@@ -223,12 +230,12 @@
     const rowsDay = (D.schedule || []).filter(r => r.d === day);
     const cols = dayCols(day, rowsDay), isToday = day === tName;
     const isNow = (p) => p === pNow && isToday;
-    const brkOn = (x) => !!(isToday && bNow && x.n === bNow.n);
+    const brkOn = (x) => !!(isToday && bNow && x.from === bNow.from);
     const cell = (c, p) => { const r = rowsDay.find(x => x.c === c.id && x.p === p); if (!r) return `<td class="${isNow(p) ? "now" : ""}" data-p="${p}" style="color:#ccc">—</td>`; const t = Ad.teacherByName(r.t); return `<td class="${isNow(p) ? "now" : ""}" data-p="${p}" title="${esc(r.t + (t ? " — " + t.subject : ""))}"><span class="sj">${esc(t ? t.subject : "—")}</span><span class="tn">${esc(shortName(r.t))}</span></td>`; };
     const grid = `<div class="table-scroll" id="hm-grid"><table class="report-table adm-grid"><tr><th style="min-width:78px">الفصل</th>${cols.map(x => x.brk
-      ? `<th class="brk${brkOn(x) ? " now" : ""}" data-brk="${esc(x.n)}" title="${esc(x.n + " " + x.t)}">☕<span class="pt">${ltr(x.t)}</span></th>`
+      ? `<th class="brk${brkOn(x) ? " now" : ""}" data-brk="${x.from}" title="${esc(x.n + " " + x.t)}">☕<span class="pt">${ltr(x.t)}</span></th>`
       : `<th class="${isNow(x.p) ? "now" : ""}" data-p="${x.p}">ح${x.p}<span class="dot"> ●</span><span class="pt">${x.t ? ltr(x.t) : "&nbsp;"}</span></th>`).join("")}</tr>
-      ${cls.map(c => `<tr><td class="nm">${esc(c.name)}</td>${cols.map(x => x.brk ? `<td class="brk" data-brk="${esc(x.n)}"></td>` : cell(c, x.p)).join("")}</tr>`).join("")}</table></div>`;
+      ${cls.map(c => `<tr><td class="nm">${esc(c.name)}</td>${cols.map(x => x.brk ? `<td class="brk" data-brk="${x.from}"></td>` : cell(c, x.p)).join("")}</tr>`).join("")}</table></div>`;
     const brkBar = `<div class="hm-brk" id="hm-brk"${(isToday && bNow) ? "" : " hidden"}>${(isToday && bNow) ? brkBarTxt(bNow) : ""}</div>`;
     const nowTxt = nowText(tName, pNow, bNow);
     // ── التنبيهات الذكية الأربعة
@@ -375,7 +382,7 @@
   // حسب المادة: فصل (ومعلمه) × مؤشرات المادة
   function subjectRows(cx, subj) {
     const s = S(), out = [];
-    A().sortedClasses().forEach(c => { const ag = classAgg(cx, c.id); ag.docs.forEach((dc, j) => { if (dc.subject !== subj) return; const ps = [], att = [], lv = [0, 0, 0, 0, 0]; let pts = 0; ag.rows.forEach(r => { const x = r.per[j]; if (x.pct != null) { ps.push(x.pct); lv[s.levelOf(x.pct).i]++; } const a = s.attPct(x.t); if (a != null) att.push(a); pts += x.t.pts; }); out.push({ c, dc, n: ps.length, avg: avgOf(ps), att: avgOf(att), lv, pts: r1(pts), students: ag.rows.length }); }); });
+    A().sortedClasses().forEach(c => { const ag = classAgg(cx, c.id); ag.docs.forEach((dc, j) => { if (dc.subject !== subj) return; const ps = [], att = [], lv = [0, 0, 0, 0, 0]; let pts = 0; ag.rows.forEach(r => { const x = r.per[j]; if (x.pct != null) { ps.push(x.pct); lv[s.levelOf(x.pct).i]++; } const a = attOfSt(x.t.st); if (a != null) att.push(a); pts += x.t.pts; }); out.push({ c, dc, n: ps.length, avg: avgOf(ps), att: avgOf(att), lv, pts: r1(pts), students: ag.rows.length }); }); });
     return out;
   }
   const allSubjects = () => [...new Set(staff().map(t => t.subject).filter(Boolean))].sort((a, b) => a.localeCompare(b, "ar"));

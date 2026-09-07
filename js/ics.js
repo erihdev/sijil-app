@@ -6,12 +6,20 @@
 
    الواجهة:
      window.SIJIL_ICS.build(tid, opts)        → نص الملف (سلسلة نصية)
-     window.SIJIL_ICS.download(tid, opts)     → ينزّل الملف ويعيد {name, count, bytes}
+     window.SIJIL_ICS.download(tid, opts)     → ينزّل الملف ويعيد {name, count, bytes, skipped, skippedRows}
      window.SIJIL_ICS.fingerprint(tid)        → بصمة ثابتة 16 خانة تتغيّر إذا تغيّر الجدول
      window.SIJIL_ICS.plan(tid, opts)         → (للفحص) قائمة المواعيد قبل التحويل
 
    tid: رقم المعلم ("t11") أو اسمه أو كائن المعلم، وإن تُرك فارغاً فالمعلم الحالي SIJIL.TE.
-   opts: { alarm: 5|10|15 (افتراضي 10) , from: "YYYY-MM-DD" , until: "YYYY-MM-DD" }
+   opts: { alarm: 5|10|15 , from: "YYYY-MM-DD" , until: "YYYY-MM-DD" }
+   المهلة: مصدرها الوحيد خيار المعلم المحفوظ sijil.notify.lead (تكتبه بطاقة «المزيد»)، ويُقرأ
+   لحظة البناء لا لحظة رسم البطاقة، فلا يخرج الملف بمهلة قديمة. opts.alarm احتياطي حين لا خيار.
+
+   هوية الموعد (UID): المعلم + رقم الحصة + الفصل فقط — بلا وقت وبلا أيام. تغيير أوقات الأجراس
+   أو نقل الحصة إلى يوم آخر يُحدِّث الموعد القائم في تقويم المعلم (مع SEQUENCE) بدل تكراره.
+
+   الإجازات: أسابيع الفصل في meta.weeks بها فجوات (إجازة منتصف الفصل، رمضان، العيدان)، فتُكتب
+   EXDATE لكل يوم دراسي يقع خارجها حتى لا يرنّ الجوال في يوم عطلة.
 
    الأوقات: من محرك الأجراس SIJIL_ADMIN.periodsOnly/periodsOf — وإن لم تُحمّل لوحة
    المدير فالافتراضي التاريخي: بداية 7:00 · حصة 45 دقيقة · 7 حصص · فسحة 30 دقيقة
@@ -98,7 +106,15 @@
   }
   const pad = (n) => String(n).padStart(2, "0");
   const ymd = (d) => `${d.getUTCFullYear()}${pad(d.getUTCMonth() + 1)}${pad(d.getUTCDate())}`;
-  const localAt = (d, min) => `${ymd(d)}T${pad(Math.floor(min / 60) % 24)}${pad(Math.round(min) % 60)}00`;   // وقت محلي بلا Z (مع TZID)
+  /* وقت محلي بلا Z (مع TZID). الدقيقة تتجاوز 1440 حين ينتهي يوم الدوام عند منتصف الليل أو
+     بعده (إعداد أجراس قديم أو مكتوب من جهة أخرى): كان `% 24` يلفّ الساعة على التاريخ نفسه
+     فتخرج حصةُ آخرِ اليوم بـ DTEND (00:00) أبكرَ من DTSTART (22:00) — VEVENT مخالف لـ RFC 5545
+     تُسقطه تطبيقات التقويم أو ترفض معه الملف كلَّه. الصواب تقديم التاريخ يوماً لكل 1440 دقيقة. */
+  const localAt = (d, min) => {
+    const t = Math.max(0, Math.round(min)), over = Math.floor(t / 1440), r = t % 1440;
+    const dd = over ? new Date(d.getTime() + over * 86400000) : d;
+    return `${ymd(dd)}T${pad(Math.floor(r / 60))}${pad(r % 60)}00`;
+  };
   // UNTIL يجب أن يكون بتوقيت UTC: نهاية آخر يوم في الرياض 23:59:59+03:00 = 20:59:59Z من اليوم نفسه
   const untilUTC = (d) => `${ymd(d)}T205959Z`;
   function stampUTC(t) {
@@ -164,6 +180,17 @@
     return Array.isArray(w) && w.length ? w : [];
   }
 
+  /* ═══ مدد الأسابيع الدراسية ميلادياً — ما بينها إجازة لا حصص فيها ═══
+     تُحسب مرة واحدة لكل نداء build لأن fromHijri مسح تقويمي لا نداء رخيص. */
+  function termSpans() {
+    const out = [];
+    termWeeks().forEach(w => {
+      const a = fromHijri(w && w.from), b = fromHijri(w && w.to);
+      if (a && b && b.getTime() >= a.getTime()) out.push([a.getTime(), b.getTime()]);
+    });
+    return out;
+  }
+
   /* ═══ المدى الزمني: من بداية الفصل (أو اليوم إن كنا داخله) إلى آخر أسبوع فيه ═══ */
   function range(opts) {
     opts = opts || {};
@@ -181,13 +208,21 @@
   }
 
   const ALARMS = [5, 10, 15];
+  const LEAD_KEY = "sijil.notify.lead";                                              // خيار المعلم — يكتبه تبويب «المزيد» ويقرؤه js/notify.js
+  function storedLead() {
+    try { const v = +localStorage.getItem(LEAD_KEY); return ALARMS.indexOf(v) > -1 ? v : null; } catch (e) { return null; }
+  }
+  function nearest(v) { return ALARMS.reduce((b, x) => Math.abs(x - v) < Math.abs(b - v) ? x : b, 10); }
+  /* المهلة: خيار المعلم المحفوظ هو المصدر — يُقرأ الآن لا حين رُسمت البطاقة، فزرّ التقويم
+     بعد تغيير القائمة مباشرةً يُخرج الملف بالمهلة الجديدة. opts.alarm احتياطي حين لا خيار محفوظ. */
   function alarmOf(opts) {
+    const live = storedLead();
+    if (live != null) return live;
     const raw = (opts || {}).alarm;
-    if (raw == null || raw === "") return 10;                                        // لم يُحدَّد خيار → 10 دقائق
+    if (raw == null || raw === "") return 10;                                        // لا خيار ولا وسيط → 10 دقائق
     const v = Math.round(Number(raw));
     if (!isFinite(v)) return 10;
-    if (ALARMS.indexOf(v) > -1) return v;
-    return ALARMS.reduce((b, x) => Math.abs(x - v) < Math.abs(b - v) ? x : b, 10);   // أي رقم آخر → أقرب خيار مسموح
+    return ALARMS.indexOf(v) > -1 ? v : nearest(v);                                  // أي رقم آخر → أقرب خيار مسموح
   }
 
   /* ═══ تجميع الحصص: كل (حصة + فصل + وقت) موعد واحد يتكرر في أيامه ═══
@@ -195,12 +230,17 @@
      مدة مختلفة (إعداد days في cfg/bell)، فلا تُدمج أوقات متباينة في تكرار واحد. */
   function plan(tid, opts) {
     const s = S(), te = teacherOf(tid);
-    if (!s || !te) return { teacher: null, groups: [], rows: 0, skipped: 0, range: range(opts), alarm: alarmOf(opts), bell: bellReady() };
+    if (!s || !te) return { teacher: null, groups: [], rows: 0, skipped: 0, skippedRows: [], range: range(opts), alarm: alarmOf(opts), bell: bellReady() };
     const DL = days(), rows = ((s.D && s.D.schedule) || []).filter(r => r && r.t === te.name);
-    const map = new Map(); let skipped = 0;
+    const map = new Map(), skippedRows = [];
     rows.forEach(r => {
       const di = DL.indexOf(r.d), b = slotOf(r.p, r.d);
-      if (di < 0 || !b || !(b.to > b.from)) { skipped++; return; }
+      // حصة برقم يتجاوز حصص ذلك اليوم في جدول الأجراس: لا وقت لها فلا موعد — تُسجَّل ليُخبَر المعلم
+      if (di < 0 || !b || !(b.to > b.from)) {
+        const c0 = classOf(r.c);
+        skippedRows.push({ p: +r.p, day: r.d, cid: r.c, cname: (c0 && c0.name) || r.c });
+        return;
+      }
       const key = `${+r.p}|${r.c}|${b.from}|${b.to}`;
       let g = map.get(key);
       if (!g) { g = { p: +r.p, cid: r.c, from: b.from, to: b.to, days: [] }; map.set(key, g); }
@@ -217,7 +257,16 @@
       g.title = `الحصة ${ord(g.p)} — ${g.cname}`;
     });
     groups.sort((a, b) => (a.days[0] - b.days[0]) || (a.p - b.p) || String(a.cid).localeCompare(String(b.cid)));
-    return { teacher: te, groups, rows: rows.length, skipped, range: range(opts), alarm: alarmOf(opts), bell: bellReady() };
+    /* هوية الموعد: رقم الحصة + الفصل. لا وقت فيها (فتغيير الأجراس يُحدِّث لا يُكرّر) ولا أيام
+       (فنقل الحصة إلى يوم آخر يُحدِّث كذلك). وحين يُقسّم محرك الأجراس الحصةَ الواحدة إلى
+       مجموعتين بأوقات مختلفة (إعداد days) نضيف الأيام للتمييز — وإلا تصادمت الهويتان. */
+    const dup = new Map();
+    groups.forEach(g => { const k = g.p + "|" + g.cid; dup.set(k, (dup.get(k) || 0) + 1); });
+    groups.forEach(g => {
+      const cid = String(g.cid).replace(/[^A-Za-z0-9_-]/g, "") || "c";
+      g.ukey = `p${g.p}-${cid}` + (dup.get(g.p + "|" + g.cid) > 1 ? "-" + g.byday.join("") : "");
+    });
+    return { teacher: te, groups, rows: rows.length, skipped: skippedRows.length, skippedRows, range: range(opts), alarm: alarmOf(opts), bell: bellReady() };
   }
 
   /* ═══ بناء نص الملف ═══ */
@@ -249,13 +298,24 @@
     const loc = schoolName(), subj = (te && te.subject) || "";
     const tkey = String((te && te.id) || (te && te.name) || "t").replace(/[^A-Za-z0-9_-]/g, "") || "t";
 
-    P.groups.forEach(g => {
-      // أول موعد: أقرب يوم من أيام الحصة يقع داخل المدى
-      let d0 = new Date(P.range.from.getTime());
-      for (let k = 0; k < 7 && g.days.indexOf(d0.getUTCDay()) < 0; k++) d0 = new Date(d0.getTime() + 864e5);
-      if (g.days.indexOf(d0.getUTCDay()) < 0 || d0.getTime() > P.range.to.getTime()) return;
+    const spans = termSpans();
+    const inTerm = (t) => !spans.length || spans.some(sp => t >= sp[0] && t <= sp[1]);
 
-      const uid = `sijil-${tkey}-p${g.p}-${String(g.cid).replace(/[^A-Za-z0-9_-]/g, "")}-${g.byday.join("")}-${hash16(tkey + "|" + g.from + "|" + g.to).slice(0, 6)}@sijil.erihdev.com`;
+    P.groups.forEach(g => {
+      // كل أيام هذه الحصة داخل المدى، ثم أولها الواقع في أسبوع دراسي = DTSTART
+      const occ = [];
+      for (let t = P.range.from.getTime(); t <= P.range.to.getTime(); t += 864e5) {
+        if (g.days.indexOf(new Date(t).getUTCDay()) > -1) occ.push(t);
+      }
+      let i0 = 0;
+      while (i0 < occ.length && !inTerm(occ[i0])) i0++;
+      if (i0 >= occ.length) return;                       // لا يوم دراسياً لهذه الحصة داخل المدى
+      const d0 = new Date(occ[i0]);
+      // ما بقي خارج الأسابيع الدراسية (إجازة منتصف الفصل، رمضان، العيدان) يُستثنى من التكرار
+      const ex = [];
+      for (let k = i0 + 1; k < occ.length; k++) if (!inTerm(occ[k])) ex.push(localAt(new Date(occ[k]), g.from));
+
+      const uid = `sijil-${tkey}-${g.ukey}@sijil.erihdev.com`;
       L.push("BEGIN:VEVENT");
       L.push("UID:" + uid);
       L.push("DTSTAMP:" + stamp);
@@ -263,6 +323,7 @@
       L.push("DTSTART;TZID=Asia/Riyadh:" + localAt(d0, g.from));
       L.push("DTEND;TZID=Asia/Riyadh:" + localAt(d0, g.to));
       L.push("RRULE:FREQ=WEEKLY;BYDAY=" + g.byday.join(",") + ";UNTIL=" + until);
+      if (ex.length) L.push("EXDATE;TZID=Asia/Riyadh:" + ex.join(","));
       L.push("SUMMARY:" + T(g.title));
       L.push("LOCATION:" + T(loc));
       L.push("DESCRIPTION:" + T("المادة: " + (subj || "—") + "\nعدد الطلاب: " + g.n));
@@ -280,7 +341,9 @@
     return L.map(fold).join("\r\n") + "\r\n";
   }
 
-  /* ═══ بصمة الجدول: تتغيّر متى تغيّر جدول المعلم أو أوقات الأجراس أو مدى الفصل ═══ */
+  /* ═══ بصمة الجدول: تتغيّر متى تغيّر جدول المعلم أو أوقات الأجراس أو مدى الفصل ═══
+     ولا تتغيّر بنقل طالب أو إضافته: عدد الطلاب سطرٌ في وصف الموعد لا في الجدول، وإدخاله هنا
+     كان يُطلق لافتة «تغيّر جدولك» على كل المعلمين مع كل حركة نقل. */
   function fingerprint(tid) {
     const s = S(), te = teacherOf(tid);
     if (!s || !te) return "0000000000000000";
@@ -288,14 +351,23 @@
     const key = rows.map(r => `${DL.indexOf(r.d)}:${+r.p}:${r.c}`).sort().join(",");
     const usedDays = Array.from(new Set(rows.map(r => r.d))).sort();
     const times = usedDays.map(d => d + "=" + periodsOnly(d).map(b => b.p + "@" + b.from + "-" + b.to).join("/")).join(";");
-    const counts = Array.from(new Set(rows.map(r => r.c))).sort().map(cid => cid + ":" + countOf(classOf(cid))).join(",");
-    const wks = termWeeks(), span = wks.length ? wks[0].from + ">" + wks[wks.length - 1].to : "-";
-    return hash16([te.id || "", te.name || "", te.subject || "", schoolName(), termLbl(), span, key, times, counts].join("|"));
+    const names = Array.from(new Set(rows.map(r => r.c))).sort().map(cid => { const c = classOf(cid); return cid + ":" + ((c && c.name) || ""); }).join(",");
+    const wks = termWeeks(), span = wks.map(w => w.from + ">" + w.to).join("~") || "-";
+    return hash16([te.id || "", te.name || "", te.subject || "", schoolName(), termLbl(), span, key, times, names].join("|"));
   }
 
   /* ═══ التنزيل ═══ */
+  // نصّ عربي جاهز للعرض عن الحصص التي لا وقت لها في جدول الأجراس (تظهر «بلا وقت» في بقية الشاشات)
+  function skippedNote(rowsOut) {
+    const a = rowsOut || [];
+    if (!a.length) return "";
+    const one = (r) => `${ord(r.p)} — ${r.cname} (${r.day})`;
+    const n = a.length === 1 ? "حصة واحدة" : a.length === 2 ? "حصتان" : (a.length <= 10 ? a.length + " حصص" : a.length + " حصة");
+    return `⚠️ لم تُضَف ${n} إلى التقويم لأن رقمها خارج عدد حصص ذلك اليوم في جدول الأجراس: ${a.map(one).join("، ")} — راجع المدير.`;
+  }
+
   function download(tid, opts) {
-    const te = teacherOf(tid), text = build(tid, opts);
+    const te = teacherOf(tid), P = plan(tid, opts), text = build(tid, opts);
     const count = (text.match(/BEGIN:VEVENT/g) || []).length;
     const name = `حصص ${(te && te.name) || "المعلم"}${termLbl() ? " - " + termLbl() : ""}.ics`;
     const blob = new Blob([text], { type: "text/calendar;charset=utf-8" });
@@ -303,8 +375,18 @@
     a.href = URL.createObjectURL(blob); a.download = name;
     document.body.appendChild(a); a.click(); a.remove();
     setTimeout(() => { try { URL.revokeObjectURL(a.href); } catch (e) { } }, 4000);
-    return { name, count, bytes: blob.size, text };
+    return {
+      name, count, bytes: blob.size, text, alarm: P.alarm,
+      skipped: P.skipped, skippedRows: P.skippedRows, skippedNote: skippedNote(P.skippedRows)
+    };
   }
 
-  window.SIJIL_ICS = { build, download, fingerprint, plan, fold, fromHijri, periodsOnly };
+  /* مفتاح تخزين البصمة — لكل معلم على حدة: لافتة «تغيّر جدولك» تخصّ من نزّل الملف، فلا يراها
+     زميله على الجهاز نفسه وهو لم ينزّل شيئاً قط. */
+  function fpKey(tid) {
+    const te = teacherOf(tid), k = String((te && te.id) || (te && te.name) || "").replace(/[^A-Za-z0-9_-]/g, "");
+    return "sijil.ics.fp" + (k ? "." + k : "");
+  }
+
+  window.SIJIL_ICS = { build, download, fingerprint, fpKey, plan, fold, fromHijri, periodsOnly, skippedNote };
 })();

@@ -331,7 +331,7 @@
       const pts = Math.round(view.rows.reduce((x, r) => x + r.agg.pts, 0) * 10) / 10;
       try {
         a.printTable(view.title, PCOLS, printRows(view.rows, view.withClass), {
-          sub: "👥 قائمة الطلاب — لوحة مدير المدرسة", cls: "compact",
+          sub: "👥 قائمة الطلاب — لوحة مدير المدرسة", cls: "compact", sig: ["agent", "principal"],
           foot: ["", `الإجمالي: ${view.rows.length} طالباً`, "", pts, avg == null ? "—" : avg + "%", ""]
         });
       } catch (e) { toast("تعذّر فتح نافذة الطباعة — اسمح بالنوافذ المنبثقة"); }

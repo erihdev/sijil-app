@@ -76,7 +76,7 @@ button{font-family:inherit;font-size:16px}
 </head>
 <body>
 <div class="bar"><span id="bar-t">ورقة عمل</span><small id="bar-s"></small></div>
-<div class="wrap" id="app"><div class="err">جارِ التحميل…</div></div>
+<div class="wrap" id="app"><div class="err" id="ld">جارِ التحميل…</div></div>
 
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-check-compat.js"></script>
@@ -94,6 +94,13 @@ button{font-family:inherit;font-size:16px}
   const MODE_T = { ws: "ورقة عمل", quiz: "اختبار", race: "تحدٍّ" };
   let db = null, A = null, C = null, si = -1, sname = "", answers = [], qi = 0, t0 = 0, tIv = null, left = 0;
   let PREV = null;   // تسليم سابق: المحاولة الأولى هي المعتمدة
+  /* مفتاح «هذا الجهاز هو صاحب التسليم»: صفحة الطالب بلا حساب ولا كلمة سر (يختار اسمه من
+     قائمة الفصل)، فمراجعة الأخطاء — وفيها الإجابة الصحيحة لكل سؤال — لا تُعرض إلا للجهاز
+     الذي أرسل ذلك التسليم. بدونه كان اختيار اسم زميل استنفد محاولته يكشف مفتاح الإجابة
+     كاملاً لمن لم يحلّ شيئاً. */
+  const mineKey = (i) => "sijil.solved." + AID + "." + i;
+  const isMine = (i) => { try { return localStorage.getItem(mineKey(i)) === "1"; } catch (e) { return false; } };
+  const markMine = (i) => { try { localStorage.setItem(mineKey(i), "1"); } catch (e) { } };
   // عدد المحاولات المسموحة: tries (0 = بلا حد حتى 12)؛ للأوراق القديمة: retry=false → 1، وإلا 12 لورقة العمل و1 للاختبار/السباق
   function allowed() {
     const t = +A.tries;
@@ -109,6 +116,13 @@ button{font-family:inherit;font-size:16px}
   }
 
   const fail = (t, s) => { app.innerHTML = `<div class="err"><b>${esc(t)}</b>${esc(s || "")}</div>`; };
+  const TMO = 15000;                 // لا انتظار بلا نهاية: شبكة المدرسة الضعيفة تعلّق الوعد أبداً بلا رسالة
+  function withTimeout(p, ms) {
+    return new Promise((res, rej) => {
+      const t = setTimeout(() => { const e = new Error("timeout"); e.code = "timeout"; rej(e); }, ms || TMO);
+      Promise.resolve(p).then(v => { clearTimeout(t); res(v); }, e => { clearTimeout(t); rej(e); });
+    });
+  }
   // حركات نقل الطلاب: نفس اشتقاق التطبيق — المنقول يبقى في مصفوفته معلَّماً moved، والقادم يوضع عند الفهرس newSi المسجَّل في الحركة (لا بالدفع)
   // لأن بياناته رُحِّلت إليه؛ الفجوات تُملأ بعناصر شاغرة، والموضع المحجوز بطالب فعلي ⇒ تُهمل الحركة، والمكررة (نفس from,si) تُهمل وتستهلك موضعها.
   // هنا لا يُحمَّل إلا فصل الورقة، فإن غاب الفصل المصدر يُركَّب الطالب من اسم الحركة (synth).
@@ -147,32 +161,36 @@ button{font-family:inherit;font-size:16px}
     .replace(/^ال/, "").replace(/\s+/g, " ").toLowerCase();
 
   async function boot() {
-    if (!AID) return fail("رابط غير مكتمل", "اطلب من معلمك إرسال الرابط كاملاً.");
+    if (!AID || !/^[a-z0-9]{4,12}$/.test(AID)) return fail("رابط غير مكتمل", "اطلب من معلمك إرسال الرابط كاملاً.");
+    const slow = setTimeout(() => { const el = $("#ld"); if (el) el.textContent = "الاتصال يستغرق وقتاً أطول من المعتاد…"; }, 5000);
     try {
       firebase.initializeApp(window.FIREBASE_CONFIG);
       try { if (firebase.appCheck && window.APPCHECK_SITE_KEY) firebase.appCheck().activate(new firebase.appCheck.ReCaptchaEnterpriseProvider(window.APPCHECK_SITE_KEY), true); } catch (e) { }
-      await firebase.auth().signInAnonymously();
+      await withTimeout(firebase.auth().signInAnonymously());
       db = firebase.firestore();
-      const s = await db.doc("assign/" + AID).get();
-      if (!s.exists) return fail("الورقة غير موجودة", "تأكد من الرابط، أو اسأل معلمك.");
+      const s = await withTimeout(db.doc("assign/" + AID).get());
+      if (!s.exists) { clearTimeout(slow); return fail("الورقة غير موجودة", "تأكد من الرابط، أو اسأل معلمك."); }
       A = s.data();
-      const c = await db.doc("classes/" + A.cid).get();
+      if (!A || !Array.isArray(A.qs) || !A.qs.length || !A.cid) { clearTimeout(slow); return fail("الورقة غير مكتملة", "اطلب من معلمك إعادة إرسالها."); }
+      const c = await withTimeout(db.doc("classes/" + A.cid).get());
       C = c.exists ? c.data() : { students: [] }; C.id = A.cid; C.students = C.students || [];
       // حركات النقل: بدونها تُعرض قائمة قديمة (المنقول يختار اسمه القديم ويُسلِّم بفهرسه القديم) — لذا محاولتان ثم رسالة فشل صريحة لا متابعة صامتة
       let mvOK = false;
       for (let tryN = 0; tryN < 2 && !mvOK; tryN++) {
         try {
-          const [toS, fromS] = await Promise.all([db.collection("moves").where("to", "==", A.cid).get(), db.collection("moves").where("from", "==", A.cid).get()]);
+          const [toS, fromS] = await withTimeout(Promise.all([db.collection("moves").where("to", "==", A.cid).get(), db.collection("moves").where("from", "==", A.cid).get()]));
           const mv = {}; toS.forEach(d => mv[d.id] = Object.assign({ id: d.id }, d.data())); fromS.forEach(d => mv[d.id] = Object.assign({ id: d.id }, d.data()));
           applyMoves([C], Object.values(mv), true); mvOK = true;
         } catch (e) { }
       }
+      clearTimeout(slow);
       if (!mvOK) return fail("تعذّر تحميل قائمة الفصل", "لم تصل حركات نقل الطلاب من السحابة، ولا تُعرض الأسماء بقائمة قديمة — تحقق من اتصال الإنترنت ثم أعد تحميل الصفحة.");
       $("#bar-t").textContent = MODE_T[A.mode] || "ورقة عمل";
       $("#bar-s").textContent = A.cname || "";
       answers = A.qs.map(() => null);
       pickName();
     } catch (e) {
+      clearTimeout(slow);
       fail("تعذّر فتح الورقة", "تحقق من اتصال الإنترنت ثم أعد المحاولة.");
     }
   }
@@ -203,7 +221,9 @@ button{font-family:inherit;font-size:16px}
     $("#start").onclick = async () => {
       if (PV) { if (si < 0) { si = -1; sname = "معاينة المعلم"; } PREV = null; }
       else {
-        const prev = await db.doc("subs/" + AID + "_" + si).get();
+        let prev;
+        try { prev = await withTimeout(db.doc("subs/" + AID + "_" + si).get()); }
+        catch (e) { return fail("تعذّر بدء الحل", "تحقق من اتصال الإنترنت ثم أعد تحميل الصفحة."); }
         if (prev.exists) {
           PREV = prev.data();
           if ((PREV.att || 1) >= allowed()) { return done(PREV, true); }
@@ -263,10 +283,13 @@ button{font-family:inherit;font-size:16px}
     };
   }
 
-  function grade() {
+  /* التصحيح: مصدر الإجابات وسيط لا متغيّر عام — فمراجعة تسليم سابق تُصحَّح من إجاباته
+     المحفوظة (rec.ans) لا من مصفوفة هذه الجلسة الفارغة. */
+  function grade(src) {
+    const list = src || answers;
     let sc = 0; const detail = [];
     A.qs.forEach((q, i) => {
-      const a = answers[i];
+      const a = list[i];
       let ok = false, right = "";
       if (q.t === "fill") { right = q.ans || ""; ok = a != null && norm(a) === norm(right) && norm(right) !== ""; }
       else { right = (q.opts || [])[q.correct] || ""; ok = a === q.correct; }
@@ -299,20 +322,43 @@ button{font-family:inherit;font-size:16px}
         secs: secs, late: isLate(), ts: now, lts: now
       };
     }
-    if (!PV && (rec.att || 1) <= 12) { try { await db.doc("subs/" + AID + "_" + si).set(rec); } catch (e) { } }
+    if (!PV && (rec.att || 1) <= 12) {
+      // فشل الكتابة كان يُبتلع فيرى الطالب «أُرسلت إلى معلمك ✓» وحلّه لم يصل إلى أحد
+      try { await withTimeout(db.doc("subs/" + AID + "_" + si).set(rec)); }
+      catch (e) { return sendFail(); }
+    }
     PREV = PV ? null : rec;
+    if (!PV) markMine(si);
     done(rec, false, detail, sc);
   }
 
+  function sendFail() {
+    app.innerHTML = `<div class="card mid">
+      <div class="big">📡</div>
+      <p style="font-weight:800;font-size:20px;color:var(--navy);margin:0">لم تصل إجاباتك إلى معلمك</p>
+      <p class="sub" style="margin:6px 0 0">إجاباتك ما زالت محفوظة في هذه الصفحة. تحقق من اتصال الإنترنت ثم اضغط «إعادة الإرسال»، ولا تغلق الصفحة قبل ذلك.</p>
+      <button class="go gold" id="resend" style="margin-top:16px">↻ إعادة الإرسال</button>
+      <button class="go" id="reback" style="margin-top:9px">← العودة إلى الأسئلة</button>
+    </div>`;
+    $("#resend").onclick = () => { app.innerHTML = `<div class="err">جارِ الإرسال…</div>`; submit(); };
+    $("#reback").onclick = () => { qi = A.qs.length - 1; draw(); };
+  }
+
   function done(rec, again, detail, thisSc) {
-    if (!detail) detail = grade().detail;
+    /* مراجعة تسليم سابق: تُصحَّح من rec.ans المحفوظة. كانت تُصحَّح من answers الفارغة فتُعلَّم
+       كل الأسئلة خطأً وتُطبع الإجابة الصحيحة لكلٍّ منها — مفتاح إجابة كامل لطالب حصل 4 من 4. */
+    const saved = Array.isArray(rec && rec.ans) ? rec.ans : null;
+    if (!detail) detail = grade(saved || undefined).detail;
     const cur = thisSc == null ? rec.sc : thisSc;      // درجة هذه المحاولة
     const att = rec.att || 1, repeat = att > 1;
     const pct = Math.round(cur / rec.mx * 100);
-    const wrong = detail.filter(d => !d.ok);
+    /* المراجعة (وفيها الإجابات الصحيحة) لهذه الجلسة، أو لتسليم أرسله هذا الجهاز نفسه ونعرف
+       إجاباته. غير ذلك — اسم اختير من القائمة فقط — نعرض النتيجة بلا مفتاح. */
+    const owned = PV || !again || (isMine(rec.si != null ? rec.si : si) && !!saved);
+    const wrong = owned ? detail.filter(d => !d.ok) : [];
     const face = pct >= 90 ? "🏆" : pct >= 70 ? "🌟" : pct >= 50 ? "👍" : "💪";
     const word = pct >= 90 ? "ممتاز" : pct >= 70 ? "أحسنت" : pct >= 50 ? "جيد" : "حاول مرة أخرى";
-    const showAns = A.mode !== "quiz" || rec.late || true;
+    const showAns = owned;
     app.innerHTML = `<div class="card mid">
       <div class="big">${face}</div>
       <div class="ring" style="background:conic-gradient(${pct >= 50 ? "var(--ok)" : "var(--gold)"} 0 ${pct}%, #E8E2D5 ${pct}%)"><b>${cur} <i>من ${rec.mx}</i></b></div>
@@ -325,6 +371,7 @@ button{font-family:inherit;font-size:16px}
         ${wrong.map(d => `<div class="rev"><span class="x">✗</span> ${esc(d.q)}<div class="a">الصحيح: ${esc(d.right)}</div></div>`).join("")}
       </div>` : ""}
       ${showAns && !wrong.length ? `<p style="color:var(--ok);font-weight:800;margin-top:14px">كل إجاباتك صحيحة! 🎉</p>` : ""}
+      ${!owned ? `<div class="note2">هذه نتيجة مسجَّلة من جهاز آخر — لمراجعة الأخطاء افتح الورقة من الجهاز الذي حللت عليه، أو راجعها مع معلمك.</div>` : ""}
       ${!again && (PV || att < allowed()) ? `<button class="go" id="retry" style="margin-top:18px">↺ ${PV ? "أعد المعاينة" : `${allowed() - att === 1 ? "محاولة أخيرة" : "تدرّب مرة أخرى"} <small style="font-weight:500">(بقي ${allowed() - att} من ${allowed()})</small>`}</button>` : ""}
       ${!PV && att >= allowed() && allowed() > 1 ? `<p class="hint" style="margin-top:14px">وصلت إلى أقصى عدد للمحاولات (${allowed()}). راجع الدرس مع معلمك 🌱</p>` : ""}
     </div>`;

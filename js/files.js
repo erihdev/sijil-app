@@ -24,7 +24,8 @@
   "use strict";
 
   /* ═══ ثوابت ═══ */
-  const MAX_SRC = 6 * 1024 * 1024;   // أكبر ملف يُقبل من الجهاز: 6 ميجابايت
+  const MAX_SRC = 6 * 1024 * 1024;   // أكبر ملف يُحفظ في القاعدة: 6 ميجابايت
+  const MAX_IMG = 32 * 1024 * 1024;  // أكبر صورة تُقبل من الجهاز قبل الضغط (كاميرات الجوالات)
   const TARGET = 700 * 1024;         // هدف ضغط الصورة: 700 كيلوبايت
   const PART = 700000;               // حروف القطعة الواحدة (تقبل القسمة على 4 فتُفكّ كل قطعة وحدها)
   const IMG_W = 1600;                // أقصى عرض للصورة بعد الضغط
@@ -61,14 +62,35 @@
   }
   function fail(msg, code) { const e = new Error(msg); e.ar = msg; e.code = code || "bad"; return e; }
   const IMG_RE = /^image\//, AUD_RE = /^audio\//;
+  // SVG مستند برمجي لا صورة: يُنفَّذ ما فيه من سكربت على أصل الموقع إن فُتح كصفحة،
+  //   وصفحة ولي الأمر تفتح المرفق برابط blob على الأصل نفسه — فيُردّ عند الباب لا بعده.
+  const isSVG = (t, n) => String(t || "").toLowerCase().indexOf("svg") >= 0 || /\.svgz?$/.test(String(n || "").toLowerCase());
   function kindOf(f) {
     const t = String(f.type || "").toLowerCase(), n = String(f.name || "").toLowerCase();
+    if (isSVG(t, n)) return null;
     if (IMG_RE.test(t) || /\.(jpe?g|png|gif|bmp|webp|heic|heif)$/.test(n)) return "image";
     if (t === "application/pdf" || /\.pdf$/.test(n)) return "pdf";
     if (AUD_RE.test(t) || /\.(mp3|m4a|aac|ogg|wav|opus)$/.test(n)) return "audio";
     return null;
   }
   const kindOfType = (t) => { t = String(t || "").toLowerCase(); return IMG_RE.test(t) ? "image" : (t === "application/pdf" ? "pdf" : (AUD_RE.test(t) ? "audio" : "other")); };
+  // نوع يُعرض داخل الصفحة بأمان. ما عداه (SVG، ونوع غريب في بطاقة قديمة) يُسلَّم عند
+  //   الخروج من الصفحة بنوع محايد فيُحفظ ولا يُنفَّذ.
+  const VIEW_OK = /^(image\/(jpeg|png|gif|webp|bmp|avif|heic|heif)|audio\/[a-z0-9.+-]{1,24}|application\/pdf)$/;
+  const viewSafe = (t) => VIEW_OK.test(String(t || "").toLowerCase());
+  // نوع مقبول في قواعد الأمان: application/pdf أو image|audio بلا وسائط. النوع الذي يصل
+  //   من المتصفح قد يكون فارغاً أو بمعامل ("audio/mp4;codecs=…") فيرفضه الخادم بلا تفسير.
+  const TYPE_OK = /^(application\/pdf|(image|audio)\/[a-z0-9.+-]{1,24})$/;
+  function normType(kind, t, name) {
+    let s = String(t || "").toLowerCase().split(";")[0].trim();
+    if (s === "image/jpg") s = "image/jpeg";
+    if (TYPE_OK.test(s) && kindOfType(s) === kind && !isSVG(s, "")) return s;
+    const n = String(name || "").toLowerCase();
+    if (kind === "pdf") return "application/pdf";
+    if (kind === "audio") return /\.(m4a|aac|mp4)$/.test(n) ? "audio/mp4" : /\.(ogg|opus)$/.test(n) ? "audio/ogg" : /\.wav$/.test(n) ? "audio/wav" : "audio/mpeg";
+    return /\.png$/.test(n) ? "image/png" : /\.webp$/.test(n) ? "image/webp" : /\.gif$/.test(n) ? "image/gif"
+      : /\.bmp$/.test(n) ? "image/bmp" : /\.(heic|heif)$/.test(n) ? "image/heic" : "image/jpeg";
+  }
   const ICON = { image: "🖼️", pdf: "📕", audio: "🎧", other: "📄" };
   // زر «التقاط صورة» للأجهزة التي إصبعها هي المؤشر (جوال/لوحي) — لا لكل متصفح يعلن دعم اللمس
   // تنظيف وصف الموضع: Firestore يرفض القيم غير المعرّفة، والقيم الفارغة لا معنى لها في الفهرس
@@ -248,9 +270,21 @@
     const stop = ui.cancelled || function () { return false; };
     const kind = kindOf(file);
     if (!kind) throw fail("هذا النوع غير مدعوم — أرفق صورة أو ملف PDF أو مقطعاً صوتياً.");
-    if (file.size > MAX_SRC) throw fail("حجم الملف " + fmt(file.size) + "، والحد الأعلى 6 ميجابايت. اضغط الملف أو أرسله رابطاً.");
+    if (!file.size) throw fail("هذا الملف فارغ — اختر ملفاً آخر.");
+    // الصورة تُقاس بعد الضغط لا قبله: صور كاميرات الجوالات تتجاوز الحد أصلاً، وهي بالضبط
+    //   ما بُني الضاغط لها. الحد الأعلى قبل الضغط أوسع لأنه حدّ ذاكرة لا حدّ تخزين.
+    const cap = kind === "image" ? MAX_IMG : MAX_SRC;
+    if (file.size > cap) throw fail("حجم الملف " + fmt(file.size) + "، والحد الأعلى " + Math.round(cap / 1024 / 1024) + " ميجابايت. اضغط الملف أو أرسله رابطاً.");
     const q = await quota();
     if (q.left <= 0) throw fail("انتهت حصتك لهذا الشهر (" + QUOTA + " ملفاً). احذف ملفاً قديماً أو انتظر بداية الشهر.");
+    // الفهرس يقف عند 400 عنصر، وما يُزاح عنه يصير ملفاً لا يراه أحد ولا يُحذف ويظل يشغل حجمه
+    //   في القاعدة: فيُقال للمعلم «امتلأت القائمة» بدل أن يُبتلع أقدم ملفاته صامتاً.
+    if (q.total >= MAX_LIST) throw fail("امتلأت قائمة مرفقاتك (" + MAX_LIST + " ملفاً). احذف ملفات قديمة ثم أعد المحاولة.");
+    if (String((opts && opts.scope) || "school") === "school") {
+      let n = 0;
+      try { n = (((await idxGet("school")) || {}).list || []).length; } catch (e) { n = 0; }
+      if (n >= MAX_LIST) throw fail("امتلأت مكتبة المدرسة (" + MAX_LIST + " ملفاً). احذف ملفات قديمة ثم أعد المحاولة.");
+    }
 
     let blob = file, name = String(file.name || "ملف"), type = file.type || "";
     if (kind === "image") {
@@ -259,10 +293,12 @@
         blob = await compressImage(file);
         type = blob.type || "image/webp";
         name = name.replace(/\.[^.]+$/, "") + (type === "image/webp" ? ".webp" : ".jpg");
-      } catch (e) { blob = file; type = file.type || "image/jpeg"; }   // صورة يعجز المتصفح عن فكّها (HEIC مثلاً): تُرفع كما هي
+      } catch (e) { blob = file; type = file.type || ""; }   // صورة يعجز المتصفح عن فكّها (HEIC مثلاً): تُرفع كما هي
     }
-    if (!type) type = kind === "pdf" ? "application/pdf" : "application/octet-stream";
-    if (blob.size > MAX_SRC) throw fail("الملف بعد الضغط " + fmt(blob.size) + "، والحد الأعلى 6 ميجابايت.");
+    type = normType(kind, type, name);
+    if (blob.size > MAX_SRC) throw fail(kind === "image"
+      ? "الصورة بعد الضغط " + fmt(blob.size) + "، والحد الأعلى 6 ميجابايت — أرسلها بصيغة JPG أو صوّرها بدقة أقل."
+      : "الملف " + fmt(blob.size) + "، والحد الأعلى 6 ميجابايت.");
 
     say("جارِ التحضير…");
     const b64 = await toB64(blob);
@@ -288,10 +324,22 @@
     } catch (e) { await wipe(id, nc); throw e; }
     if (stop()) { await wipe(id, nc); throw fail("أُلغي الرفع.", "cancel"); }
     prog(0.98, nc, nc);
-    const item = { id, n: rec.n, t: rec.t, sz: rec.sz, scope: rec.scope, ref: rec.ref, ts: rec.ts };
+    // nc وtn في عنصر الفهرس: بهما تُرسم القائمة وتُفتح المصغّرة ويظهر صاحب الملف في مكتبة
+    //   المدرسة بلا قراءة بطاقة كل ملف على حدة.
+    const item = { id, n: rec.n, t: rec.t, sz: rec.sz, scope: rec.scope, ref: rec.ref, ts: rec.ts, nc: rec.nc, tn: String(rec.tn || "").slice(0, 40) };
     const add = (cur) => [item].concat((cur || []).filter(x => x && x.id !== id));
-    await idxWrite(me.id, add, me.name);
-    if (rec.scope === "school") { try { await idxWrite("school", add, me.name); } catch (e) { } }
+    const drop = (cur) => (cur || []).filter(x => x && x.id !== id);
+    // الفهرس ليس زينة للملف بل هو الملف: ما خرج عنه لا يراه أحد ولا يُحذف ولا يُفتح، ويظل
+    //   يشغل حجمه في القاعدة أبداً. فإن تعثّرت كتابته مُحي كل ما كُتب قبل إعلان الفشل.
+    try {
+      await idxWrite(me.id, add, me.name);
+      if (rec.scope === "school") await idxWrite("school", add, me.name);
+    } catch (e) {
+      try { await idxWrite(me.id, drop, me.name); } catch (e2) { }
+      try { if (rec.scope === "school") await idxWrite("school", drop, me.name); } catch (e2) { }
+      await wipe(id, nc);
+      throw fail("تعذّر حفظ المرفق. تحقق من الاتصال ثم أعد المحاولة.", "idx");
+    }
     prog(1, nc, nc);
     return Object.assign({ id }, rec);
   }
@@ -314,6 +362,62 @@
     return { rec, blob: b64ToBlob(b64, rec.t) };
   }
 
+  /* ═══ المصغّرات ═══
+     مربع 44×44 في القائمة كان يُنزّل الملف كاملاً في كل رسم — وبطاقة «مكتبة المدرسة» تُرسم
+     كلما فُتح تبويب «المزيد». فتُبنى المصغّرة مرة واحدة (64 بكسل) وتُحفظ نصاً على الجهاز،
+     والقائمة لا تقرأ بطاقة الملف أصلاً لأن نوعه وعدد قطعه صارا في الفهرس. */
+  const THUMB_W = 64, THUMB_KEEP = 40, THKEY = "sijil.fth.";
+  const thMem = new Map();
+  function thKeys() {
+    const out = [];
+    try { for (let i = 0; i < localStorage.length; i++) { const k = localStorage.key(i); if (k && k.indexOf(THKEY) === 0) out.push(k); } } catch (e) { }
+    return out;
+  }
+  function thGet(id) {
+    if (thMem.has(id)) return thMem.get(id);
+    let v = null;
+    try { v = localStorage.getItem(THKEY + id); } catch (e) { v = null; }
+    if (v != null) thMem.set(id, v);
+    return v;
+  }
+  function thPut(id, url) {
+    thMem.set(id, url);
+    if (thMem.size > 300) { thMem.clear(); thMem.set(id, url); }
+    try {
+      const ks = thKeys();
+      if (ks.length >= THUMB_KEEP) ks.forEach(k => { try { localStorage.removeItem(k); } catch (e) { } });
+      localStorage.setItem(THKEY + id, url);
+    } catch (e) { thKeys().forEach(k => { try { localStorage.removeItem(k); } catch (e2) { } }); }
+  }
+  function thDrop(id) {
+    thMem.delete(id);
+    try { localStorage.removeItem(THKEY + id); } catch (e) { }
+  }
+  async function shrink(blob) {
+    const src = await loadBitmap(blob);
+    const W0 = src.width || src.naturalWidth || 0, H0 = src.height || src.naturalHeight || 0;
+    if (!W0 || !H0) { if (src.close) src.close(); throw new Error("size"); }
+    const w = Math.max(1, Math.min(THUMB_W, W0)), h = Math.max(1, Math.round(H0 * (w / W0)));
+    const cv = document.createElement("canvas"); cv.width = w; cv.height = h;
+    const cx = cv.getContext("2d"); cx.fillStyle = "#fff"; cx.fillRect(0, 0, w, h); cx.drawImage(src, 0, 0, w, h);
+    if (src.close) src.close();
+    return cv.toDataURL(WEBP ? "image/webp" : "image/jpeg", 0.5);
+  }
+  async function thumbFor(id, k, nc, t) {
+    const c = thGet(id);
+    if (c != null) return c;                    // "" تعني: لا مصغّرة لهذا الملف — بلا قراءة ثانية
+    if (!k || !nc) {                            // عنصر فهرس قديم بلا نوع ولا عدد قطع
+      const rec = await metaGet(id);
+      if (!rec) { thMem.set(id, ""); return ""; }
+      k = kindOfType(rec.t); nc = Math.max(1, +rec.nc || 1); t = rec.t;
+    }
+    if (k !== "image" || nc > 2) { thMem.set(id, ""); return ""; }   // صورة على قطعتين تُبنى مرة واحدة ثم تُحفظ
+    const got = await blobOf(id, { t: t, nc: nc });
+    const url = await shrink(got.blob);
+    thPut(id, url);
+    return url;
+  }
+
   /* ═══ القائمة ═══ */
   const sameRef = (a, b) => {
     if (!b) return true;
@@ -330,18 +434,25 @@
   }
 
   /* ═══ الحذف ═══ */
+  // ترتيب الحذف (قطع ← بطاقة ← فهرس) يجعل أي تعثّر قابلاً لإعادة المحاولة بلا أثر جانبي،
+  //   ولا تُبتلع أخطاؤه: ما دامت البطاقة حيّة فرابط ولي الأمر العام يعمل ويعرض صورة الطالب،
+  //   فإعلان نجاح كاذب هنا أسوأ من الفشل نفسه.
   async function purge(id, rec) {
-    rec = rec || await metaGet(id);
+    if (rec === undefined) rec = await metaGet(id);
     const nc = rec ? Math.max(1, +rec.nc || 1) : 16;
-    for (let i = 0; i < nc; i++) { try { await partDel(id, i); } catch (e) { } }
-    try { await metaDel(id); } catch (e) { }
+    for (let i = 0; i < nc; i++) await partDel(id, i);
+    await metaDel(id);
     const drop = (cur) => (cur || []).filter(x => x && x.id !== id);
     const tid = (rec && rec.tid) || TEAM().id;
-    try { await idxWrite(tid, drop, (rec && rec.tn) || TEAM().name); } catch (e) { }
-    try { await idxWrite("school", drop, (rec && rec.tn) || TEAM().name); } catch (e) { }
+    const tn = (rec && rec.tn) || TEAM().name;
+    await idxWrite(tid, drop, tn);
+    if (!rec || rec.scope === "school") await idxWrite("school", drop, tn);
+    thDrop(id);
   }
   async function remove(id, opts) {
-    const rec = await metaGet(id);
+    let rec = null;
+    try { rec = await metaGet(id); }
+    catch (e) { toast("⚠️ تعذّر الوصول إلى الملف — تحقق من الاتصال"); return false; }
     const nm = rec ? rec.n : "هذا الملف";
     if (!(opts && opts.silent)) {
       const A = window.SIJIL_ADMIN;
@@ -350,7 +461,8 @@
       else ok = window.confirm("حذف «" + nm + "» نهائياً؟ لا يمكن التراجع.");
       if (!ok) return false;
     }
-    await purge(id, rec);
+    try { await purge(id, rec); }
+    catch (e) { toast("⚠️ تعذّر حذف الملف — تحقق من الاتصال ثم أعد المحاولة"); return false; }
     toast("🗑️ حُذف الملف");
     return true;
   }
@@ -412,7 +524,9 @@
   let onClose = null;
   function sheet(html, mount) {
     style();
-    closeSheet(true);
+    // نافذة تحلّ محلّ أخرى تُغلق الأولى إغلاقاً كاملاً: كان إغلاقها «صامتاً» يُسقط onClose بلا
+    //   استدعاء، فيبقى وعد attach() معلَّقاً أبداً ولا تتحدّث البطاقة التي خلفه.
+    closeSheet();
     const host = document.createElement("div"); host.id = "sjf-ov"; host.className = "sjf-ov";
     host.innerHTML = '<div class="sjf-sheet">' + html + "</div>";
     host.addEventListener("click", (e) => { if (e.target === host) closeSheet(); });
@@ -420,11 +534,11 @@
     if (mount) mount(host);
     return host;
   }
-  function closeSheet(quiet) {
+  function closeSheet() {
     const h = document.getElementById("sjf-ov");
     if (h) h.remove();
     const f = onClose; onClose = null;
-    if (f && !quiet) { try { f(); } catch (e) { } }
+    if (f) { try { f(); } catch (e) { } }
   }
 
   /* ═══ نافذة الإرفاق ═══ */
@@ -463,6 +577,11 @@
         const bar = $("#sjf-bar"), phase = $("#sjf-phase"), sub = $("#sjf-sub");
         const show = (on) => { work.style.display = on ? "" : "none"; pick.style.display = on ? "none" : ""; };
         const err = (t) => { msg.innerHTML = '<div class="sjf-err">' + esc(t) + "</div>"; };
+        async function refreshQuota() {
+          const q2 = await quota().catch(() => null);
+          const el = h.querySelector("#sjf-q");
+          if (q2 && el) el.innerHTML = `<b>ما الذي يُقبل؟</b> صورة (تُصغَّر تلقائياً) · ملف PDF حتى 6 ميجابايت · مقطع صوتي.<br>لك ${QUOTA} ملفاً في الشهر — استُخدم <b>${q2.used}</b>، وبقي <b>${q2.left}</b>.`;
+        }
 
         async function run(files) {
           if (busy) return;
@@ -476,7 +595,7 @@
               });
               done.push(rec);
               added.insertAdjacentHTML("afterbegin", itemHTML(rec, { del: true }));
-              wireItems(added, () => { });
+              wireItems(added, refreshQuota);
               toast("✅ حُفظ المرفق");
             } catch (e) {
               if (e && e.code === "cancel") { err("أُلغي الرفع، ولم يُحفظ شيء."); break; }
@@ -484,14 +603,16 @@
             }
           }
           bar.style.width = "0%"; show(false); busy = false;
-          const q2 = await quota().catch(() => null);
-          if (q2) { const el = h.querySelector("#sjf-q"); if (el) el.innerHTML = `<b>ما الذي يُقبل؟</b> صورة (تُصغَّر تلقائياً) · ملف PDF حتى 6 ميجابايت · مقطع صوتي.<br>لك ${QUOTA} ملفاً في الشهر — استُخدم <b>${q2.used}</b>، وبقي <b>${q2.left}</b>.`; }
+          await refreshQuota();
           if (typeof opts.onDone === "function" && done.length) { try { opts.onDone(done); } catch (e) { } }
         }
         $("#sjf-file").onclick = () => $("#sjf-in").click();
         const cam = $("#sjf-cam"); if (cam) cam.onclick = () => $("#sjf-in2").click();
-        $("#sjf-in").onchange = (e) => run(e.target.files);
-        $("#sjf-in2").onchange = (e) => run(e.target.files);
+        // تصفير قيمة الحقل بعد كل اختيار: بغيرها لا يُطلق المتصفح حدث change حين يختار المعلم
+        //   الملف نفسه مرة ثانية (بعد حذفه مثلاً) فلا يحدث شيء إطلاقاً عند الضغط.
+        const pickRun = async (e) => { const f = e.target.files; try { await run(f); } finally { try { e.target.value = ""; } catch (x) { } } };
+        $("#sjf-in").onchange = pickRun;
+        $("#sjf-in2").onchange = pickRun;
         $("#sjf-cancel").onclick = () => { cancelled = true; phase.textContent = "جارِ الإلغاء…"; };
         $("#sjf-close").onclick = () => { cancelled = true; closeSheet(); };
       });
@@ -505,7 +626,7 @@
     o = o || {};
     const k = kindOfType(rec.t);
     return `<div class="sjf-item" data-id="${esc(rec.id)}">
-      <div class="th" data-th="${esc(rec.id)}">${ICON[k]}</div>
+      <div class="th" data-th="${esc(rec.id)}" data-k="${esc(k)}" data-nc="${esc(rec.nc || "")}" data-t="${esc(rec.t || "")}">${ICON[k]}</div>
       <div class="tx"><div class="nm">${esc(rec.n)}</div>
         <div class="mt">${esc(fmt(rec.sz))} · ${esc(dateAr(rec.ts))}${o.who && rec.tn ? " · " + esc(rec.tn) : ""}</div></div>
       <div class="ac">
@@ -518,17 +639,20 @@
     root.querySelectorAll("[data-open]").forEach(b => { if (b._w) return; b._w = 1; b.onclick = () => open(b.dataset.open); });
     root.querySelectorAll("[data-del]").forEach(b => {
       if (b._w) return; b._w = 1;
-      b.onclick = async () => { if (await remove(b.dataset.del)) { const it = b.closest(".sjf-item"); if (it) it.remove(); if (after) after(); } };
+      b.onclick = async () => {
+        if (b.disabled) return;
+        b.disabled = true;
+        try { if (await remove(b.dataset.del)) { const it = b.closest(".sjf-item"); if (it) it.remove(); if (after) after(); } }
+        catch (e) { toast("⚠️ تعذّر حذف الملف — تحقق من الاتصال ثم أعد المحاولة"); }
+        b.disabled = false;
+      };
     });
     root.querySelectorAll("[data-th]").forEach(async (el) => {
       if (el._w) return; el._w = 1;
-      const id = el.dataset.th, it = el.closest(".sjf-item");
-      if (!it) return;
+      if (!el.closest(".sjf-item")) return;
       try {
-        const rec = await metaGet(id);
-        if (!rec || kindOfType(rec.t) !== "image" || (rec.nc || 1) > 2) return;
-        const { blob } = await blobOf(id, rec);
-        el.innerHTML = '<img alt="" src="' + URL.createObjectURL(blob) + '">';
+        const url = await thumbFor(el.dataset.th, el.dataset.k || "", +el.dataset.nc || 0, el.dataset.t || "");
+        if (url && el.isConnected) el.innerHTML = '<img alt="" src="' + url + '">';
       } catch (e) { }
     });
   }
@@ -546,6 +670,10 @@
       return null;
     }
     const rec = data.rec, url = URL.createObjectURL(data.blob), k = kindOfType(rec.t);
+    // داخل <img> لا يُنفَّذ شيء، أما الفتح في نافذة جديدة فيجعل الملف وثيقة عليا على أصل
+    //   الموقع — فالنوع غير المأمون (SVG وما شابهه) يُسلَّم محايداً فيُحفظ ولا يُنفَّذ.
+    const raw = viewSafe(rec.t) ? null : new Blob([data.blob], { type: "application/octet-stream" });
+    const out = raw ? URL.createObjectURL(raw) : url;
     const body = k === "image" ? `<img class="sjf-view img" alt="${esc(rec.n)}" src="${url}">`
       : k === "pdf" ? (isIOS()
         ? `<div class="sjf-note" style="text-align:center">📕 ملف PDF جاهز — اضغط «نافذة جديدة» لفتحه بقارئ جهازك.</div>`
@@ -557,12 +685,12 @@
       <div class="sjf-muted" style="text-align:center;margin-bottom:9px">${esc(fmt(rec.sz))} · ${esc(dateAr(rec.ts))}${rec.nc > 1 ? " · محفوظ على " + rec.nc + " أجزاء" : ""}</div>
       ${body}
       <div class="sjf-row" style="margin-top:11px">
-        <a class="sjf-btn soft" style="text-align:center;text-decoration:none;line-height:1.4" target="_blank" rel="noopener" href="${url}">↗️ نافذة جديدة</a>
+        <a class="sjf-btn soft" style="text-align:center;text-decoration:none;line-height:1.4" target="_blank" rel="noopener" ${raw ? `download="${esc(rec.n)}"` : ""} href="${out}">${raw ? "⬇️ حفظ الملف" : "↗️ نافذة جديدة"}</a>
         <a class="sjf-btn gold" style="text-align:center;text-decoration:none;line-height:1.4" target="_blank" rel="noopener" href="${esc(waLink(id))}">💬 مشاركة</a>
       </div>
       <button class="sjf-btn bad" id="sjf-del">🗑️ حذف الملف</button>`,
       (h) => {
-        h.querySelector("#sjf-close").onclick = () => { closeSheet(); setTimeout(() => URL.revokeObjectURL(url), 1000); };
+        h.querySelector("#sjf-close").onclick = () => { closeSheet(); setTimeout(() => { URL.revokeObjectURL(url); if (raw) URL.revokeObjectURL(out); }, 1000); };
         h.querySelector("#sjf-del").onclick = async () => { if (await remove(id)) closeSheet(); };
       });
     return rec;
@@ -601,7 +729,7 @@
 
   window.SIJIL_FILES = {
     attach, list, open, remove, waLink, libraryCard,
-    upload, quota, viewURL, itemHTML, wireItems, blobOf, purge, fmt, kindOf,
-    MAX_SRC, TARGET, PART, QUOTA, IMG_W
+    upload, quota, viewURL, itemHTML, wireItems, blobOf, purge, fmt, kindOf, normType, viewSafe,
+    MAX_SRC, MAX_IMG, TARGET, PART, QUOTA, IMG_W
   };
 })();

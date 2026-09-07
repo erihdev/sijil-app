@@ -13,6 +13,9 @@
      mount(el)        بطاقة جاهزة (زر + شرح) تُوضع في أي حاوية داخل تبويب «المزيد»
 
    لا تُطلب الأذونات تلقائياً أبداً: enable() وحدها تطلب الإذن، ولا تُستدعى إلا من onclick.
+   كل مفاتيح المعلم في localStorage مقرونة برقمه: التفعيل sijil.notify.on.<tid> وعلامة «أُرسل»
+   sijil.notified.<tid>.<التاريخ>.<الحصة> — فجهاز غرفة المعلمين لا يُخرِس تنبيه الثاني لأن الأول
+   نُبِّه لرقم الحصة نفسه، ولا يجد الثاني تنبيهاته «مفعّلة» دون أن يوافق هو عليها.
    أوقات الحصص تأتي من محرك الأجراس في لوحة المدير (SIJIL_ADMIN)، وإن لم يُحمَّل فمن
    الجدول الافتراضي نفسه المستعمل في app.js (7:00 · 45 دقيقة · 7 حصص · فسحة 30 بعد الثالثة).
    ═══════════════════════════════════════════════════════════════════════════════ */
@@ -22,8 +25,8 @@
   var VAPID = "BKOng8K19p2wBbjSGrOf2fufPNku7G0fF-Qr1BMe9oxsLoQcF5sZHPbkvQXQJLwp7mxgmyK7UCVZ1EBH8A35Tjc";
   var LEAD_KEY = "sijil.notify.lead"; // خيار المعلم: 5 أو 10 أو 15 دقيقة قبل الحصة (تكتبه بطاقة «المزيد»)
   var LEAD_DEF = 5;                   // المهلة حين لا يختار شيئاً
-  var ON_KEY = "sijil.notify.on";     // «المعلم فعّل التنبيهات» على هذا الجهاز
-  var FLAG = "sijil.notified.";       // sijil.notified.<التاريخ>.<الحصة> = 1  → لا يتكرر التنبيه
+  var ON_KEY = "sijil.notify.on";     // sijil.notify.on.<tid> = "1" → هذا المعلم فعّلها على هذا الجهاز
+  var FLAG = "sijil.notified.";       // sijil.notified.<tid>.<التاريخ>.<الحصة> = 1 → لا يتكرر التنبيه
   var TICK_MS = 30000;                // فحص كل نصف دقيقة ما دامت الصفحة مفتوحة
   var DAYS = ["الأحد", "الإثنين", "الثلاثاء", "الأربعاء", "الخميس", "الجمعة", "السبت"];
   var ORD = ["", "الأولى", "الثانية", "الثالثة", "الرابعة", "الخامسة", "السادسة", "السابعة", "الثامنة", "التاسعة", "العاشرة", "الحادية عشرة", "الثانية عشرة"];
@@ -85,20 +88,53 @@
       var map = { granted: "granted", denied: "denied", prompt: "default" };
       navigator.permissions.query({ name: "notifications" }).then(function (st) {
         permCache = map[st.state] || null;
-        try { st.onchange = function () { permCache = map[st.state] || null; paint(); }; } catch (e) { }
-        paint();
+        try { st.onchange = function () { permCache = map[st.state] || null; paint(); resume(); }; } catch (e) { }
+        paint(); resume();
       }).catch(function () { });
     });
   }
+  // سُمح بالتنبيهات من إعدادات المتصفح بعد الإقلاع: يستأنف المؤقّت بلا انتظار إعادة تحميل
+  function resume() { try { if (isOn() && perm() === "granted") start(); } catch (e) { } }
   function perm() {
     if (!supported()) return "none";
     var p = LS(function () { return Notification.permission; }, "default");
     if (p === "granted") return "granted";
     return permCache || p;
   }
-  function isOn() { return LS(function () { return localStorage.getItem(ON_KEY) === "1"; }, false); }
-  function setOn(v) { LS(function () { if (v) localStorage.setItem(ON_KEY, "1"); else localStorage.removeItem(ON_KEY); }); }
   function teacher() { var s = S(); return (s && s.TE) || null; }
+  function tid() { var t = teacher(); return (t && t.id) ? String(t.id).replace(/[^A-Za-z0-9_-]/g, "") : ""; }
+  function onKeyOf() { var t = tid(); return t ? ON_KEY + "." + t : ON_KEY; }
+  // مفتاح علامة «أُرسل تنبيه هذه الحصة» — عام حتى تستعمله بقية الشاشات فلا يصل التنبيه مرتين
+  function flagKey(now, p) { var t = tid(); return FLAG + (t ? t + "." : "") + dayKey(asDate(now)) + "." + p; }
+  function isOn() {
+    var t = tid();
+    if (!t) return LS(function () { return localStorage.getItem(ON_KEY) === "1"; }, false);
+    var v = LS(function () { return localStorage.getItem(onKeyOf()); }, null);
+    if (v != null) return v === "1";
+    // ترقية لمرة واحدة: جهاز فُعِّل قبل اقتران المفاتيح بالمعلم — يرثه أول معلم يفتحه ثم يُمحى العام
+    var old = LS(function () { return localStorage.getItem(ON_KEY); }, null);
+    if (old === "1") { LS(function () { localStorage.setItem(onKeyOf(), "1"); localStorage.removeItem(ON_KEY); }); return true; }
+    return false;
+  }
+  // نكتب "0" صراحةً عند الإيقاف (لا نحذف) حتى لا تعيد الترقيةُ تفعيلَ ما أوقفه المعلم
+  function setOn(v) {
+    var t = tid();
+    LS(function () {
+      localStorage.setItem(onKeyOf(), v ? "1" : "0");
+      if (t) localStorage.removeItem(ON_KEY);
+    });
+  }
+  // هل فعّلها أحدٌ على هذا الجهاز؟ (لتشغيل المؤقّت عند الإقلاع قبل معرفة المعلم — وtick هو من يقرّر لمن يرسل)
+  function anyOn() {
+    return LS(function () {
+      for (var i = 0; i < localStorage.length; i++) {
+        var k = localStorage.key(i);
+        if (!k || k.indexOf(ON_KEY) !== 0) continue;
+        if ((k === ON_KEY || k.charAt(ON_KEY.length) === ".") && localStorage.getItem(k) === "1") return true;
+      }
+      return false;
+    }, false);
+  }
 
   function state() {
     var sup = supported(), sec = secure(), pm = perm(), on = isOn();
@@ -117,6 +153,37 @@
       supported: sup, secure: sec, permission: pm, enabled: on, ready: ready,
       push: pushOn, lead: leadMin(), message: msg
     };
+  }
+
+  /* ═══ يوم دراسي فعلاً؟ ═══
+     أسابيع الفصل في meta.weeks بها فجوات (إجازة منتصف الفصل ورمضان والعيدان)، فلا معنى لأن
+     يرنّ جوال المعلم 7:35 صباحاً في يوم عطلة. التحويل الهجري مصدره js/ics.js، وإن لم يُحمَّل أو
+     لم توجد أسابيع فالجواب «نعم» — لا نُسكت التنبيهات بسبب نقص بيانات. */
+  var spanSrc = null, spanCache = null;                    // التحويل الهجري مسحٌ تقويمي: نحسب المدد مرة واحدة
+  function spans() {
+    var s = S(), I = window.SIJIL_ICS;
+    if (!s || !I || typeof I.fromHijri !== "function") return null;
+    var m = LS(function () { return s.META || (s.D && s.D.meta) || {}; }, {}) || {};
+    var all = m.weeks || null;
+    if (spanCache && spanSrc === all) return spanCache;
+    var list = [], k;
+    for (k in (all || {})) if (Object.prototype.hasOwnProperty.call(all, k) && Array.isArray(all[k])) list = list.concat(all[k]);
+    var out = [];
+    for (var i = 0; i < list.length; i++) {
+      var w = list[i];
+      var a = LS(function () { return I.fromHijri(w && w.from); }, null);
+      var b = LS(function () { return I.fromHijri(w && w.to); }, null);
+      if (a && b && b.getTime() >= a.getTime()) out.push([a.getTime(), b.getTime()]);
+    }
+    spanSrc = all; spanCache = out;
+    return out;
+  }
+  function inTerm(now) {
+    var sp = spans();
+    if (!sp || !sp.length) return true;                    // لا بيانات أسابيع → لا نُسكت شيئاً
+    var d = asDate(now), t = Date.UTC(d.getFullYear(), d.getMonth(), d.getDate());
+    for (var i = 0; i < sp.length; i++) if (t >= sp[i][0] && t <= sp[i][1]) return true;
+    return false;
   }
 
   /* ═══ الحصة القادمة اليوم ═══
@@ -171,15 +238,17 @@
   function tick(now) {
     var d = asDate(now), st = state();
     if (!st.ready) return Promise.resolve({ fired: false, reason: st.supported ? (st.enabled ? "permission" : "off") : "unsupported" });
+    if (!inTerm(d)) return Promise.resolve({ fired: false, reason: "holiday" });
     var nx = nextClass(d);
     if (!nx) return Promise.resolve({ fired: false, reason: "no-class" });
     if (nx.mins > leadMin()) return Promise.resolve({ fired: false, reason: "early", next: nx });
-    var key = FLAG + dayKey(d) + "." + nx.p;
+    var key = flagKey(d, nx.p), alias = FLAG + dayKey(d) + "." + nx.p;
     if (LS(function () { return localStorage.getItem(key) === "1"; }, false) || firing[key]) {
       return Promise.resolve({ fired: false, reason: "done", next: nx });
     }
     firing[key] = 1;
-    LS(function () { localStorage.setItem(key, "1"); prune(dayKey(d)); });     // نُعلّم قبل الإرسال حتى لا يتكرر أبداً
+    // نُعلّم قبل الإرسال حتى لا يتكرر أبداً — ومعه العلامة العامة التي تقرؤها بقية الشاشات فلا ترسله ثانيةً
+    LS(function () { localStorage.setItem(key, "1"); localStorage.setItem(alias, "1"); prune(dayKey(d)); });
     var tx = textOf(nx, DAYS[d.getDay()]);
     return swReg().then(function (reg) {
       var tag = "sijil-class-" + dayKey(d) + "-" + nx.p;
@@ -195,16 +264,16 @@
       });
     }).catch(function (e) {
       delete firing[key];
-      LS(function () { localStorage.removeItem(key); });                        // فشل الإرسال؟ نسمح بمحاولة أخرى
+      LS(function () { localStorage.removeItem(key); localStorage.removeItem(alias); });   // فشل الإرسال؟ نسمح بمحاولة أخرى
       return { fired: false, reason: "error", error: String(e && e.message || e), next: nx };
     });
   }
-  // تنظيف علامات الأيام السابقة حتى لا تتراكم
+  // تنظيف علامات الأيام السابقة حتى لا تتراكم — المفتاح يحوي التاريخ سواء اقترن بمعلم أو لا
   function prune(today) {
     var kill = [];
     for (var i = 0; i < localStorage.length; i++) {
       var k = localStorage.key(i);
-      if (k && k.indexOf(FLAG) === 0 && k.indexOf(FLAG + today + ".") !== 0) kill.push(k);
+      if (k && k.indexOf(FLAG) === 0 && k.indexOf("." + today + ".") < 0) kill.push(k);
     }
     kill.forEach(function (k) { try { localStorage.removeItem(k); } catch (e) { } });
   }
@@ -283,11 +352,18 @@
         return { ok: false, code: p === "denied" ? "denied" : "dismissed", message: p === "denied" ? state().message : "لم يتم السماح بالتنبيهات — أعد المحاولة" };
       }
       permCache = "granted"; permWatch();
-      setOn(true);
-      return swReg().then(function () { return subscribePush(); }).catch(function () { return { ok: false }; }).then(function (ps) {
-        start(); tick();
-        paint();
-        return { ok: true, push: !!(ps && ps.ok), saved: !!(ps && ps.saved), message: "تم التفعيل — سيصلك تنبيه قبل كل حصة بـ " + minsAr(leadMin()) };
+      /* بلا تسجيل عامل خدمة لا يمكن عرض أي تنبيه، فلا نزعم التفعيل: الفشل هنا يُبلَّغ صراحةً
+         بدل «تم التفعيل» ثم صمت أبدي. (اشتراك الدفع وحده اختياري: فشله لا يمنع التنبيه المحلي.) */
+      return swReg().then(function () {
+        setOn(true);
+        return subscribePush().catch(function () { return { ok: false }; }).then(function (ps) {
+          start(); tick();
+          paint();
+          return { ok: true, push: !!(ps && ps.ok), saved: !!(ps && ps.saved), message: "تم التفعيل — سيصلك تنبيه قبل كل حصة بـ " + minsAr(leadMin()) };
+        });
+      }, function (e) {
+        setOn(false); paint();
+        return { ok: false, code: "sw", message: "تعذّر تجهيز خدمة التنبيهات في هذا المتصفح — افتح «سجلي» من الشاشة الرئيسية بعد تثبيته، أو جرّب متصفحاً آخر", error: String(e && e.message || e) };
       });
     }).catch(function (e) {
       setOn(false); paint();
@@ -343,6 +419,7 @@
     host = (typeof el === "string") ? document.querySelector(el) : el;
     if (!host) return null;
     permWatch(); paint();
+    if (isOn() && perm() === "granted") start();     // معلم دخل بعد الإقلاع: يستأنف مؤقّته هنا
     return host;
   }
 
@@ -353,13 +430,15 @@
     LS(function () {
       document.addEventListener("visibilitychange", function () { if (!document.hidden) { try { tick(); } catch (e) { } } });
     });
-    if (isOn() && perm() === "granted") start();
+    // المفاتيح مقرونة بالمعلم ولا معلم بعد عند الإقلاع، فنشغّل المؤقّت متى فعّلها أحد على هذا
+    // الجهاز — وtick() هي التي تتحقّق من حالة المعلم الداخل قبل أن ترسل شيئاً.
+    if (anyOn() && perm() === "granted") start();
   }
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", boot); else setTimeout(boot, 0);
 
   window.SIJIL_NOTIFY = {
     supported: supported, state: state, enable: enable, disable: disable,
     tick: tick, nextClass: nextClass, subscribePush: subscribePush, mount: mount,
-    VAPID: VAPID, leadMin: leadMin, refresh: paint
+    VAPID: VAPID, leadMin: leadMin, refresh: paint, flagKey: flagKey, inTerm: inTerm
   };
 })();

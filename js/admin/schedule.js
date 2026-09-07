@@ -41,7 +41,8 @@
       let t = ""; try { t = Ad.periodTime(p, d); } catch (e) { t = ""; }
       out.push({ p: p, t: t });
       const b = after[p];
-      if (b && p < last) out.push({ brk: true, n: b.n, t: Ad.hm(b.from) + "–" + Ad.hm(b.to) });
+      // from تُميّز الفسحة بوقتها لا باسمها (فسحتان بالاسم نفسه كانتا تُبرَزان معاً كأنّ كلتيهما «الآن»)
+      if (b && p < last) out.push({ brk: true, n: b.n, t: Ad.hm(b.from) + "–" + Ad.hm(b.to), from: b.from });
     });
     return out;
   }
@@ -274,7 +275,7 @@
   /* ═══ الشبكة: الأيام × الحصص ═══ */
   function gridHtml() {
     const cks = conflictRows(conflicts()), today = A().todayName(), pNow = A().periodNow(), bNow = A().breakNow(), cl = gcols();
-    const brkOn = (x) => !!(bNow && x.n === bNow.n);
+    const brkOn = (x) => !!(bNow && x.from === bNow.from);
     let h = `<table class="sch-grid"><tr><th class="day">اليوم</th>${cl.map(x => x.brk
       ? `<th class="brk" title="${esc(x.n + " " + x.t)}">☕<div dir="ltr" style="font-weight:400;font-size:8.5px">${esc(x.t)}</div></th>`
       : `<th>ح${x.p}<div dir="ltr" style="font-weight:400;font-size:9.5px;color:#c9d5e3">${esc(x.t)}</div></th>`).join("")}</tr>`;
@@ -487,7 +488,7 @@
     rows.forEach(r => names[r.t] = (names[r.t] || 0) + 1);
     const key = Object.keys(names).sort((a, b) => String(a).localeCompare(String(b), "ar"));
     const legend = key.length ? `<div class="lg"><b>دليل المعلمين:</b> ${key.map(t => `${esc(shortName(t))}${subjOf(t) ? " — " + esc(subjOf(t)) : ""} (${names[t]})`).join(" · ")}</div>` : "";
-    A().printHtml("الجدول المدرسي العام", PCSS_ALL + `<div class="sd">${h}${legend}<div class="foot">${rows.length} حصة أسبوعياً — ${cls.length} فصلاً — ${key.length} معلماً${cf.hard.length ? ` — ⚠️ ${cf.hard.length} تعارض غير محلول` : ""}${unsavedNote()}<br>🔔 ${esc(bellNote())}</div></div>`, { land: true, sub: "الجدول المدرسي العام" });
+    A().printHtml("الجدول المدرسي العام", PCSS_ALL + `<div class="sd">${h}${legend}<div class="foot">${rows.length} حصة أسبوعياً — ${cls.length} فصلاً — ${key.length} معلماً${cf.hard.length ? ` — ⚠️ ${cf.hard.length} تعارض غير محلول` : ""}${unsavedNote()}<br>🔔 ${esc(bellNote())}</div></div>`, { land: true, sub: "الجدول المدرسي العام", sig: ["vice", "principal"] });
   }
   function oneGrid(fnCell) {
     const cl = gcols();
@@ -502,14 +503,14 @@
     const rows = rowsForPrint(), cnt = {};
     rows.filter(r => r.c === cid).forEach(r => cnt[r.t] = (cnt[r.t] || 0) + 1);
     const body = oneGrid((d, p) => { const r = cellC(d, p, cid, rows); return r ? esc(r.t) + `<span class="s">${esc(subjOf(r.t))}</span>` : "—"; });
-    A().printHtml(`جدول ${c.name}`, PCSS + `<div class="sd">${body}<div class="foot">${Object.keys(cnt).map(t => `${esc(shortName(t))}${subjOf(t) ? " (" + esc(subjOf(t)) + ")" : ""} ${cnt[t]}`).join(" · ")}${unsavedNote()}<br>🔔 ${esc(bellNote())}</div></div>`, { land: true, sub: "الجدول الأسبوعي للفصل" });
+    A().printHtml(`جدول ${c.name}`, PCSS + `<div class="sd">${body}<div class="foot">${Object.keys(cnt).map(t => `${esc(shortName(t))}${subjOf(t) ? " (" + esc(subjOf(t)) + ")" : ""} ${cnt[t]}`).join(" · ")}${unsavedNote()}<br>🔔 ${esc(bellNote())}</div></div>`, { land: true, sub: "الجدول الأسبوعي للفصل", sig: ["vice", "principal"] });
   }
   function printTeacher(name) {
     if (!name) return;
     const rows = rowsForPrint(), n = loadOf(name, rows), cnt = {};
     rows.filter(r => r.t === name).forEach(r => cnt[r.c] = (cnt[r.c] || 0) + 1);
     const body = oneGrid((d, p) => { const r = cellT(name, d, p, rows); return r ? esc(clsName(r.c)) : "—"; });
-    A().printHtml(`جدول حصص ${name}`, PCSS + `<div class="sd"><div style="text-align:center;font-size:13px;color:#555;margin-bottom:4px">${esc(subjOf(name) || "")} — ${n} حصة أسبوعياً</div>${body}<div class="foot">${Object.keys(cnt).map(c => `${esc(clsName(c))} ${cnt[c]}`).join(" · ")}${unsavedNote()}<br>🔔 ${esc(bellNote())}</div></div>`, { land: true, sub: "جدول حصص المعلم" });
+    A().printHtml(`جدول حصص ${name}`, PCSS + `<div class="sd"><div style="text-align:center;font-size:13px;color:#555;margin-bottom:4px">${esc(subjOf(name) || "")} — ${n} حصة أسبوعياً</div>${body}<div class="foot">${Object.keys(cnt).map(c => `${esc(clsName(c))} ${cnt[c]}`).join(" · ")}${unsavedNote()}<br>🔔 ${esc(bellNote())}</div></div>`, { land: true, sub: "جدول حصص المعلم", sig: [{ l: "المعلم", v: name }, "principal"] });
   }
 
   /* ═══ إرسال جدول المعلم واتساب (نص) ═══ */

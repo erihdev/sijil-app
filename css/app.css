@@ -164,6 +164,10 @@ button{font-family:inherit}
 .behgrid button .p{font-weight:800}
 .behgrid button .p.pos{color:var(--ok)} .behgrid button .p.neg{color:var(--bad)}
 .behgrid button.sel{border-color:var(--gold); background:#fdf6e3}
+/* ×العدد: مرات رُصد فيها السلوك في الحصة الحية — تُعرض حتى لا يظنّ المعلم أنها مرة واحدة فيمحوها بالحفظ */
+.behgrid button .x{background:var(--navy); color:var(--goldl); font-size:11px; font-weight:800;
+  border-radius:8px; padding:1px 6px; margin-inline-start:4px; direction:ltr; unicode-bidi:isolate}
+.stategrid button.sel{outline:3px solid var(--gold); outline-offset:-3px}
 .sheet .note{width:100%; border:1.5px solid var(--line); border-radius:10px; padding:10px;
   font-family:inherit; font-size:14px; margin-top:10px; background:#fbf9f4}
 .sheet-actions{display:flex; gap:8px; margin-top:14px}
@@ -277,10 +281,15 @@ button{font-family:inherit}
 .live-title small{color:#c9d5e3; font-weight:400; font-size:13px}
 .live-btn{background:rgba(255,255,255,.12); color:#fff; border:1px solid rgba(255,255,255,.3);
   border-radius:10px; padding:8px 14px; font-size:14px; font-weight:800; cursor:pointer; font-family:inherit}
-.live-wrap{flex:1; display:flex; gap:12px; padding:12px; overflow:hidden; transition:gap .35s ease}
-.live-center{flex:1; display:flex; flex-direction:column; min-width:0}
+.live-wrap{flex:1; min-height:0; display:flex; gap:12px; padding:12px; overflow:hidden; transition:gap .35s ease}
+.live-center{flex:1; display:flex; flex-direction:column; min-width:0; min-height:0}
 .live-tools{display:flex; gap:6px; margin-bottom:10px; flex-wrap:wrap; transition:max-height .32s ease, opacity .25s ease, margin .3s ease; max-height:220px; overflow:hidden}
 .live-btn.off{opacity:.5}
+/* شارة مؤقّت النشاط في رأس الحصة: تُبقي العدّ مرئياً ولو انتقل المعلم إلى محطة أخرى */
+.live-tchip{background:rgba(215,169,63,.22); border-color:var(--gold); color:var(--goldl); font-variant-numeric:tabular-nums}
+.live-tchip.done{background:rgba(214,69,69,.3); border-color:#ff8a8a; color:#ffd7d7; animation:tchip 1s ease infinite}
+@keyframes tchip{50%{opacity:.45}}
+.live-top .live-btn .sh{display:none}
 /* إخفاء/إظهار لوحة الشرف — تتمدّد الشاشة تلقائياً */
 .live-board{transition:width .35s ease, min-width .35s ease, max-width .35s ease, opacity .3s ease, padding .3s ease, margin .3s ease, border-width .3s ease}
 #view-live.board-hidden .live-wrap{gap:0}
@@ -384,20 +393,41 @@ button{font-family:inherit}
 .act:active{transform:scale(.95)}
 .act.g{background:linear-gradient(135deg,#2e9e5b,#227a45)} .act.r{background:linear-gradient(135deg,#d64545,#a83232)}
 .act.b{background:linear-gradient(135deg,#3f7fd7,#2a5aa0)} .act.close{background:#33415a; grid-column:1/3}
+/* ═══ الحصة الحية على الجوال ═══
+   العمود كله يجب أن ينكمش داخل ارتفاع النافذة (min-height:0 على كل حلقة في السلسلة) وإلا فاض المحتوى
+   خارج .live-wrap{overflow:hidden} فتُقصّ قائمة الطلاب وتُدفع لوحة الشرف خارج الشاشة بلا أي وسيلة تمرير.
+   وبعد ذلك يبقى الحيّز نفسه: الرأس وشريط الأدوات كانا يبتلعان نحو 270px من 740، فلا يبقى للدرس إلا 132px.
+   لذلك: رأس مضغوط بسطرين، وشريط أدوات في سطر واحد يُمرَّر أفقياً، ولوحة شرف بسقف 32vh. */
 @media (max-width:720px){
-  .live-wrap{flex-direction:column} .live-board{width:auto; max-width:none; max-height:40vh}
+  .live-wrap{flex-direction:column; min-height:0}
+  .live-center{min-height:0; flex:1 1 auto}
+  .live-board{width:auto; min-width:0; max-width:none; max-height:32vh; flex:0 0 auto; padding:10px 8px}
   .live-roster{grid-template-columns:repeat(auto-fill,minmax(110px,1fr))}
+  .bhead{font-size:17px; margin-bottom:6px}
+  .brow{padding:7px 8px; margin-bottom:5px}
+  /* شريط المحطات: سطر واحد يُمرَّر أفقياً بدل ثلاثة أسطر تأكل ثلث الشاشة */
+  .live-tools{flex-wrap:nowrap; overflow-x:auto; overflow-y:hidden; margin-bottom:8px; padding-bottom:2px;
+    scrollbar-width:none; -ms-overflow-style:none; -webkit-overflow-scrolling:touch}
+  .live-tools::-webkit-scrollbar{display:none}
+  .live-tools button{flex:0 0 auto; white-space:nowrap; padding:8px 11px; font-size:13.5px}
 }
-/* شريط الحصة الحية على الشاشات الضيقة: العنوان في سطر كامل والأزرار شبكة تحته (الشاشات العريضة/البروجكتر بلا تغيير) */
+/* شريط الحصة الحية على الشاشات الضيقة: العنوان في سطر والأزرار شبكة تحته (الشاشات العريضة/البروجكتر بلا تغيير) */
 @media (max-width:720px){
-  .live-top{display:grid; grid-template-columns:repeat(4,1fr); gap:8px; padding:10px 12px}
-  .live-top .live-title{grid-column:1/-1; order:-1; min-width:0; font-size:18px; line-height:1.4}
-  /* حاوية الأزرار الثلاثة تحمل display:flex كنمط مضمّن في app.js، لذا !important ضروري لتفكيكها إلى خلايا الشبكة */
+  .live-top{display:grid; grid-template-columns:repeat(4,1fr); gap:6px; padding:7px 10px; align-items:center}
+  .live-top .live-title{grid-column:1/-1; order:-1; min-width:0; font-size:16px; line-height:1.35;
+    white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+  .live-top .live-title small{display:block; font-size:11px; line-height:1.4; white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+  /* حاوية الأزرار تحمل display:flex كنمط مضمّن في app.js، لذا !important ضروري لتفكيكها إلى خلايا الشبكة */
   .live-top>div:not(.live-title){display:contents !important}
-  .live-top .live-btn{padding:8px 6px; font-size:13px; white-space:nowrap; min-width:0; overflow:hidden; text-overflow:ellipsis}
+  .live-top .live-btn{padding:7px 4px; font-size:12.5px; white-space:nowrap; min-width:0; overflow:hidden; text-overflow:ellipsis}
+  /* شارة المؤقّت تجلس بجانب العنوان لا في صفّ خامس يقتطع من الشاشة (:has غير مدعوم ⇒ تلتفّ كما كانت) */
+  .live-top:has(#live-tchip:not([hidden])) .live-title{grid-column:1/4}
+  .live-top .live-tchip{grid-row:1; grid-column:4; font-size:12px}
 }
 @media (max-width:600px){
-  .live-top{grid-template-columns:repeat(2,1fr)}
+  /* أربعة أزرار في سطر واحد بتسميات مختصرة (إخفاء/إظهار) بدل سطرين بتسميات كاملة */
+  .live-top .live-btn .lbl{display:none}
+  .live-top .live-btn .sh{display:inline}
 }
 
 @media (min-width:760px){
@@ -521,6 +551,7 @@ button{font-family:inherit}
 /* درجات تلقائية من الرصد */
 .gr-in.auto{background:#F1EEE6; color:#6b7280; font-style:italic}
 .gr-in.auto::placeholder{color:#4b5563; opacity:1}
+.gr-in.bad{border-color:var(--bad); background:#fff2f2; color:var(--bad)}
 
 /* التقييم اللحظي: مكتبة التقييمات كاملة */
 .live-act .box{max-height:92vh; overflow:auto}
