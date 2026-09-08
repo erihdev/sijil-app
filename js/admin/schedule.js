@@ -236,7 +236,13 @@
   // سطر الإجمالي: أعداد الجدول + سطر جدول الأجراس (بداية الدوام والحصة والفسح ونهاية الدوام)
   function totLine() {
     let bell = ""; try { bell = A().bellLine(refDay()); } catch (e) { bell = ""; }
-    return `${work.length + extra.length} حصة في الجدول · ${DAYS.length} أيام × ${PER.length} حصص · النصاب ${QUOTA} حصة`
+    /* «5 أيام × 7 حصص» بجوار «6 حصص» في سطر الأجراس كان يُقرأ رقمين متناقضين: الشبكة تتوسّع لأكبر حصة
+       في البيانات (calcPer) بينما جدول الأجراس يعرّف 6 فقط. فنكتب عدد الأجراس صريحاً ونفصل الأعمدة
+       الزائدة التي لا وقت لها بدل خلطها بالعدد المعتمد. */
+    const nb = bellMax(), extraCols = Math.max(0, PER.length - nb);
+    return `${work.length + extra.length} حصة في الجدول · ${DAYS.length} أيام × ${nb} حصص`
+      + (extraCols ? ` ⚠️ +${extraCols} عمود بلا وقت (ح${nb + 1}${extraCols > 1 ? "–ح" + PER.length : ""})` : "")
+      + ` · النصاب ${QUOTA} حصة`
       + (extra.length ? ` · ${extra.length} حصة خارج أيام الدراسة تُحفظ كما هي` : "") + (bell ? ` · 🔔 ${bell}` : "");
   }
   /* بطاقة «⏰ أوقات الحصص والفسح» في تبويب ⚙️ الإدارة — الفتح والتمرير من manage.js عبر SIJIL_ADMIN.openBell
@@ -278,7 +284,7 @@
     const brkOn = (x) => !!(bNow && x.from === bNow.from);
     let h = `<table class="sch-grid"><tr><th class="day">اليوم</th>${cl.map(x => x.brk
       ? `<th class="brk" title="${esc(x.n + " " + x.t)}">☕<div dir="ltr" style="font-weight:400;font-size:8.5px">${esc(x.t)}</div></th>`
-      : `<th>ح${x.p}<div dir="ltr" style="font-weight:400;font-size:9.5px;color:#c9d5e3">${esc(x.t)}</div></th>`).join("")}</tr>`;
+      : `<th${x.t ? "" : ' title="خارج عدد الحصص في ⏰ أوقات الحصص والفسح — بلا وقت"'}>ح${x.p}<div dir="ltr" style="font-weight:400;font-size:9.5px;color:#c9d5e3">${x.t ? esc(x.t) : "بلا وقت"}</div></th>`).join("")}</tr>`;
     DAYS.forEach(d => {
       h += `<tr><td class="day">${esc(d)}</td>` + cl.map(x => {
         if (x.brk) return `<td class="brk${(d === today && brkOn(x)) ? " now" : ""}" title="${esc(x.n + " " + x.t)}"></td>`;

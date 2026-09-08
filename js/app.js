@@ -352,7 +352,10 @@
     const c = classById(cid);
     const rows = c.students.map((s, i) => ({ i, s, active: !s.moved, t: calcStudent(cid, i) }));
     const sorted = rows.filter(r => r.active).sort((a, b) => b.t.pts - a.t.pts);
-    rows.forEach(r => r.rank = r.active ? sorted.findIndex(x => x.i === r.i) + 1 : 0);
+    // ترتيب تنافسي: المتساوون في النقاط يأخذون الرقم نفسه (1،1،1،4…) — الترتيب يُطبع لولي الأمر فلا يكسره موضع الاسم في المصفوفة
+    const rk = {}; let lastP = null, lastR = 0;
+    sorted.forEach((r, k) => { if (lastP === null || r.t.pts !== lastP) { lastR = k + 1; lastP = r.t.pts; } rk[r.i] = lastR; });
+    rows.forEach(r => r.rank = r.active ? (rk[r.i] || 0) : 0);
     return rows;
   }
   /* ═══ الدرجات التلقائية من الرصد اليومي وأوراق العمل التفاعلية ═══
@@ -734,7 +737,8 @@
     mine.forEach(r => { const p = Number(r.p) || 0; if (p > 0 && p <= 12 && !have[p] && ex.indexOf(p) < 0) ex.push(p); });
     ex.sort((a, b) => a - b).forEach(p => per.push(cell(p, "")));
     let all = []; myClasses().forEach(c => classCalc(c.id).forEach(r => { if (r.active) all.push({ c, r }); }));
-    const low = all.slice().sort((a, b) => a.r.t.pts - b.r.t.pts).slice(0, 5);
+    // من لا رصد له ليس «الأدنى نقاطاً» — كما تُرشَّح لوحة الشرف المجاورة
+    const low = all.filter(x => x.r.t.days > 0 || x.r.t.pts < 0).sort((a, b) => a.r.t.pts - b.r.t.pts).slice(0, 5);
     const high = all.slice().sort((a, b) => b.r.t.pts - a.r.t.pts).filter(x => x.r.t.pts > 0 && !lastAwayOf(x.c.id, x.r.i)).slice(0, 5);
     const MED = ["🥇", "🥈", "🥉", "🎖️", "🎖️"];
     box.innerHTML = `
@@ -1058,7 +1062,7 @@
         <button class="btn-gold no-print" style="margin-inline-start:auto" id="gr-print">🖨️ طباعة</button></h3>
         <div class="rep-head"><div class="rt">كشف درجات — ${esc(c.name)}</div><div class="rs">${esc(META.school.name)} — ${esc(TE.name)} — ${esc(TE.subject)}</div></div>
         <div class="table-scroll"><table class="grade-table" id="gr-table">
-          <tr><th>م</th><th style="min-width:120px">الطالب</th>${ASSESS.map(a => `<th>${esc(a.n)}<br>(${a.max})</th>`).join("")}<th>المجموع<br>(${maxTot})</th><th>التقدير</th></tr>
+          <tr><th>م</th><th style="min-width:120px">الطالب</th>${ASSESS.map(a => `<th>${esc(a.n)}<br>(${a.max})</th>`).join("")}<th>المجموع<br><small>(من المرصود)</small></th><th>التقدير</th></tr>
           ${activeStudents(c).map(({ s, i }, k) => grRow(i, s, maxTot, k + 1)).join("")}
         </table></div></div>
       <div class="empty-note" style="padding:6px 10px;text-align:right">الخلايا الرمادية تُحسب تلقائياً ولحظياً من التحضير اليومي (الحضور والمشاركة، السلوك) ومن الواجبات والأوراق التفاعلية المصحَّحة، وتتغير مع كل رصد. اكتب درجة لتعديلها يدوياً، وامسحها لتعود تلقائية. مرّر على الخلية لترى طريقة الحساب.</div>
@@ -1074,7 +1078,7 @@
       inp.classList.toggle("auto", !has && au.v[k] != null);
       inp.title = has ? "درجة يدوية" : (au.why[k] || "");
       const gp = gradePct(grClass, i), lv = gp == null ? null : levelOf(gp);
-      inp.closest("tr").querySelector(".tot").textContent = gp == null ? "—" : gradeTotal(grClass, i);
+      inp.closest("tr").querySelector(".tot").textContent = gp == null ? "—" : gradeTotal(grClass, i) + " / " + gradedMax(grClass, i);
       const lc = inp.closest("tr").querySelector(".lvlcell"); lc.innerHTML = lv ? `<span class="lvl lvl${lv.i}">${lv.t}</span>` : '<span style="color:#bbb">—</span>';
       save("grades:" + grClass); drawAnalysis(maxTot);
     };
@@ -1108,8 +1112,8 @@
     printDoc("كشف درجات " + c.name, `
       <div class="h"><div class="bar">${esc(META.school.name)}</div><div class="m">${esc(TE.subject)} — معلم المادة: ${esc(TE.name)} — ${esc(hijriLabel())}</div></div>
       <div class="tt">كشف درجات ${esc(c.name)}</div>
-      <table class="compact"><tr><th>م</th><th style="min-width:150px">الطالب</th>${ASSESS.map(a => `<th>${esc(a.n)}<br><small>(${a.max})</small></th>`).join("")}<th>المجموع<br><small>(${maxTot})</small></th><th>التقدير</th></tr>
-      ${rows.map((r, k) => `<tr><td>${k + 1}</td><td class="nm">${esc(r.s.n)}</td>${ASSESS.map(a => `<td class="${r.man[a.k] == null && r.g[a.k] != null ? "auto" : ""}">${r.g[a.k] != null ? r.g[a.k] : ""}</td>`).join("")}<td><b>${r.gp == null ? "—" : r.tot}</b></td><td class="${r.lv ? "lv" + r.lv.i : ""}">${r.lv ? r.lv.t : "—"}</td></tr>`).join("")}
+      <table class="compact"><tr><th>م</th><th style="min-width:150px">الطالب</th>${ASSESS.map(a => `<th>${esc(a.n)}<br><small>(${a.max})</small></th>`).join("")}<th>المجموع<br><small>(من المرصود)</small></th><th>التقدير</th></tr>
+      ${rows.map((r, k) => `<tr><td>${k + 1}</td><td class="nm">${esc(r.s.n)}</td>${ASSESS.map(a => `<td class="${r.man[a.k] == null && r.g[a.k] != null ? "auto" : ""}">${r.g[a.k] != null ? r.g[a.k] : ""}</td>`).join("")}<td><b>${r.gp == null ? "—" : r.tot + " / " + gradedMax(cid, r.i)}</b></td><td class="${r.lv ? "lv" + r.lv.i : ""}">${r.lv ? r.lv.t : "—"}</td></tr>`).join("")}
       <tr><td></td><td class="nm"><b>متوسط الفصل</b></td>${ASSESS.map(a => { const v = scored.map(r => +r.g[a.k]).filter(x => !isNaN(x)); return `<td>${v.length ? (v.reduce((x, y) => x + y, 0) / v.length).toFixed(1) : ""}</td>`; }).join("")}<td><b>${avg}</b></td><td></td></tr></table>
       <div class="note">التقدير من البنود المرصودة حتى الآن (لا من ${maxTot} قبل رصد الاختبارات). الدرجات الرمادية محسوبة تلقائياً من الرصد اليومي (الحضور والمشاركة، السلوك) والواجبات والأوراق التفاعلية، وما كتبه المعلم يدوياً مُثبت بالأسود.</div>
       ${sigLine([{ l: "معلم المادة", v: TE.name }, "principal"])}`, { land: ASSESS.length >= 6 });
@@ -1117,7 +1121,7 @@
   // التقدير من البنود المرصودة حتى الآن (gradePct) لا من 100 — البنود التلقائية سقفها 40، فالنسبة من 100 تجعل المنتظم «دون المطلوب»
   function grRow(i, s, maxTot, n) {
     const g = (DB.grades[grClass] || {})[i] || {}, au = autoGrade(grClass, i), tot = gradeTotal(grClass, i), gp = gradePct(grClass, i), lv = gp == null ? null : levelOf(gp);
-    return `<tr><td>${n || i + 1}</td><td class="nm">${esc(s.n)}</td>${ASSESS.map(a => `<td><input class="gr-in${g[a.k] == null && au.v[a.k] != null ? " auto" : ""}" data-i="${i}" data-k="${a.k}" inputmode="numeric" value="${g[a.k] != null ? g[a.k] : ""}" placeholder="${g[a.k] == null && au.v[a.k] != null ? au.v[a.k] : ""}" title="${esc(g[a.k] != null ? "درجة يدوية" : (au.why[a.k] || ""))}"></td>`).join("")}<td class="tot">${gp == null ? "—" : tot}</td><td class="lvlcell">${lv ? `<span class="lvl lvl${lv.i}">${lv.t}</span>` : '<span style="color:#bbb">—</span>'}</td></tr>`;
+    return `<tr><td>${n || i + 1}</td><td class="nm">${esc(s.n)}</td>${ASSESS.map(a => `<td><input class="gr-in${g[a.k] == null && au.v[a.k] != null ? " auto" : ""}" data-i="${i}" data-k="${a.k}" inputmode="numeric" value="${g[a.k] != null ? g[a.k] : ""}" placeholder="${g[a.k] == null && au.v[a.k] != null ? au.v[a.k] : ""}" title="${esc(g[a.k] != null ? "درجة يدوية" : (au.why[a.k] || ""))}"></td>`).join("")}<td class="tot">${gp == null ? "—" : tot + " / " + gradedMax(grClass, i)}</td><td class="lvlcell">${lv ? `<span class="lvl lvl${lv.i}">${lv.t}</span>` : '<span style="color:#bbb">—</span>'}</td></tr>`;
   }
   function drawAnalysis(maxTot) {
     const c = classById(grClass);
@@ -1127,7 +1131,10 @@
     /* المقارنة بالنسبة (gradePct) لا بالمجموع الخام: طالب رُصد له بند واحد 15/15 = 100% «ممتاز»
        كان يتصدّر «يحتاجون دعماً» فوق زملائه بـ 24/30 (80%). */
     const pcts = scored.map(x => x.p), avg = pcts.reduce((a, b) => a + b, 0) / pcts.length;
-    const hi = scored.slice().sort((a, b) => b.p - a.p || b.tot - a.tot), lo = hi.slice().reverse();
+    // القائمتان متمايزتان: لا يظهر الطالب نفسه في «الأعلى» و«يحتاجون دعماً» حين يقلّ العدد عن عشرة
+    const hi = scored.slice().sort((a, b) => b.p - a.p || b.tot - a.tot);
+    const hiTop = hi.slice(0, Math.min(5, Math.ceil(hi.length / 2)));
+    const lo = hi.slice(Math.max(hiTop.length, hi.length - 5)).reverse();
     const cell = (x) => `${esc(x.s.n)} — <b>${Math.round(x.p)}%</b> <small style="color:var(--muted)">(${x.tot})</small>`;
     const dist = [0, 0, 0, 0, 0]; scored.forEach(x => dist[levelOf(x.p).i]++);
     const passCount = scored.filter(x => x.p >= 50).length;
@@ -1142,8 +1149,8 @@
       <div style="font-weight:800;color:var(--navy);margin:6px 0">نسبة الإتقان: ${Math.round(passCount / scored.length * 100)}% (${passCount} من ${scored.length}) <small style="font-weight:500;color:var(--muted)">— من البنود المرصودة حتى الآن</small></div>
       ${dist.map((n, k) => `<div class="bar-row"><span class="lb">${LB[k]}</span><div class="bar-track"><div class="bar-fill" style="width:${Math.round(n / scored.length * 100)}%;background:${LC[k]}">${n || ""}</div></div></div>`).join("")}
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px">
-        <div><div style="font-weight:800;color:var(--ok);margin-bottom:4px">🏅 الأعلى</div>${hi.slice(0, 5).map(x => `<div style="font-size:13px;padding:3px 0">${cell(x)}</div>`).join("")}</div>
-        <div><div style="font-weight:800;color:var(--bad);margin-bottom:4px">📉 يحتاجون دعماً</div>${lo.slice(0, 5).map(x => `<div style="font-size:13px;padding:3px 0">${cell(x)}</div>`).join("")}</div>
+        <div><div style="font-weight:800;color:var(--ok);margin-bottom:4px">🏅 الأعلى</div>${hiTop.map(x => `<div style="font-size:13px;padding:3px 0">${cell(x)}</div>`).join("")}</div>
+        <div><div style="font-weight:800;color:var(--bad);margin-bottom:4px">📉 يحتاجون دعماً</div>${lo.length ? lo.map(x => `<div style="font-size:13px;padding:3px 0">${cell(x)}</div>`).join("") : '<div style="font-size:13px;padding:3px 0;color:var(--muted)">—</div>'}</div>
       </div>`;
   }
 
@@ -1344,9 +1351,21 @@
     ? String(html).replace(LOGO_ANCHOR, LOGO_ANCHOR + '<img class="plogo" src="' + LOGO + '" alt="">')
     : html;
 
+  // حجب النوافذ المنبثقة (سفاري على الآيفون والتطبيق المثبّت) يجعل window.open تعيد null: رسالة صريحة بدل استثناء صامت يُميت كل أزرار الطباعة
+  function printBlocked() {
+    const old = document.getElementById("print-blocked"); if (old) old.remove();
+    const b = document.createElement("div");
+    b.id = "print-blocked";
+    b.style.cssText = "position:fixed;inset-inline:12px;bottom:16px;z-index:99999;background:#7a1f1f;color:#fff;padding:12px 14px;border-radius:14px;font:600 14px/1.7 inherit;text-align:center;box-shadow:0 10px 30px rgba(0,0,0,.35)";
+    b.textContent = "تعذّر فتح نافذة الطباعة — المتصفح يحجب النوافذ المنبثقة. اسمح بالنوافذ لهذا الموقع ثم أعد المحاولة، أو افتح التطبيق من المتصفح بدل الأيقونة المثبّتة.";
+    b.onclick = () => b.remove();
+    (document.fullscreenElement || document.body).appendChild(b);
+    setTimeout(() => { if (b.parentNode) b.remove(); }, 9000);
+  }
   function printDoc(title, bodyHtml, opts) {
     bodyHtml = withLogo(bodyHtml);
     const w = window.open("", "_blank");
+    if (!w || !w.document) { printBlocked(); return; }
     const land = !!(opts && opts.land);
     const cls = (opts && opts.cls) ? " " + opts.cls : "";
     const appLink = (opts && opts.appCss) ? (() => { const l = document.querySelector('link[href*="css/app.css"]'); return l ? `<link rel="stylesheet" href="${l.href}">` : ""; })() : "";
@@ -1355,6 +1374,16 @@
     w.document.write(`<!DOCTYPE html><html dir="rtl" lang="ar"><head><meta charset="utf-8"><title>${esc(title)}</title>${appLink}<style>${PRINT_CSS}html,body{width:${land ? 277 : 190}mm}${land ? "@page{size:A4 landscape;margin:10mm}" : ""}</style></head><body><div class="frame${cls}">${bodyHtml}</div><script>onload=function(){${fit}}<\/script></body></html>`);
     w.document.close();
   }
+  /* صيغ العدد العربية في المطبوعات (كما في js/ics.js): «9 نقاط» لا «9 نقطة»، و«غيابين» لا «2 غياب» */
+  function cntAr(n, one, two, few, many) {
+    const v = Number(n);
+    if (!isFinite(v) || v !== Math.floor(v) || v < 0) return `${n} ${many}`;
+    if (v === 1) return one;
+    if (v === 2) return two;
+    if (v >= 3 && v <= 10) return `${v} ${few}`;
+    return `${v} ${many}`;
+  }
+  const ptsAr = (n) => cntAr(n, "نقطة واحدة", "نقطتين", "نقاط", "نقطة");
   function printCertificate(cid, i, aggPts) {
     const c = classById(cid), s = c.students[i];
     const pts = aggPts != null ? aggPts : calcStudent(cid, i).pts;
@@ -1365,7 +1394,7 @@
       <div class="tt" style="color:#b8860b;font-size:28px">شهادة تميّز وإنجاز</div>
       <div class="ctr">تتقدّم ${esc(META.school.name)} بخالص التقدير للطالب المتميّز</div>
       <div class="who">${esc(s.n)}</div>
-      <div class="ctr">من ${esc(c.name)}، تقديراً لتميّزه وحرصه وتفاعله المستمر،<br>حيث جمع <b>${pts}</b> نقطة. فله منّا كل الفخر، ونسأل الله له دوام التوفيق والعلا.</div>
+      <div class="ctr">من ${esc(c.name)}، تقديراً لتميّزه وحرصه وتفاعله المستمر،<br>حيث جمع <b>${esc(ptsAr(pts))}</b>. فله منّا كل الفخر، ونسأل الله له دوام التوفيق والعلا.</div>
       <div class="stars">${stars}</div>
       ${sigLine([{ l: "معلم المادة", v: TE ? TE.name : "" }, "principal"])}
       <div class="ctr" style="color:#888;font-size:12px;margin-top:14px">${esc(hijriLabel())}</div>`, { land: true });
@@ -1396,7 +1425,7 @@
       <p>المكرّم ولي أمر الطالب / <b>${esc(s.n)}</b> — الصف ${esc(c.name)} &nbsp;&nbsp; حفظه الله</p>
       <p>السلام عليكم ورحمة الله وبركاته،</p>
       <p>${weak
-        ? `نحيطكم علماً بأن ابنكم بحاجة إلى مزيد من المتابعة في مادة ${esc(TE.subject)}؛ حيث بلغت نقاطه ${t.pts}، وسجّل ${abs} غياب و${t.hwN} واجب غير منجز${att != null ? ` (نسبة الحضور ${att}%)` : ""}. نأمل تعاونكم في متابعته وحثّه على الانتظام وأداء الواجبات.`
+        ? `نحيطكم علماً بأن ابنكم بحاجة إلى مزيد من المتابعة في مادة ${esc(TE.subject)}؛ حيث بلغت نقاطه ${t.pts}، و${abs ? `سجّل ${esc(cntAr(abs, "غياباً واحداً", "غيابين", "غيابات", "غياباً"))}` : "لم يسجّل غياباً"}، و${t.hwN ? `تخلّف عن ${esc(cntAr(t.hwN, "واجب واحد", "واجبين", "واجبات", "واجباً"))}` : "لم يتخلّف عن أي واجب"}${att != null ? ` (نسبة الحضور ${att}%)` : ""}. نأمل تعاونكم في متابعته وحثّه على الانتظام وأداء الواجبات.`
         : `يسعدنا إشعاركم بتميّز ابنكم في مادة ${esc(TE.subject)}؛ حيث بلغت نقاطه ${t.pts} مع انتظام في الحضور وأداء الواجبات. نشكر لكم حسن متابعتكم، ونسأل الله له دوام التوفيق.`}</p>
       <p>شاكرين لكم تعاونكم الدائم مع المدرسة.</p>
       ${sigLine([{ l: "معلم المادة", v: TE.name }, "principal", { l: "توقيع ولي الأمر", dots: 16 }])}`);
@@ -1434,12 +1463,14 @@
     const lastAway = (i) => lastAwayOf(repClass, i);
     const top = rows.slice().sort((a, b) => b.t.pts - a.t.pts).filter(r => r.t.pts > 0 && !lastAway(r.i)).slice(0, 10);
     const MED = ["🥇", "🥈", "🥉"];
+    // ترتيب تنافسي داخل اللوحة: المتساوون في النقاط يأخذون الميدالية نفسها، لا يكسر التعادلَ موضعُ الاسم في المصفوفة
+    { let hr = 0, hp = null; top.forEach((r, k) => { if (hp === null || r.t.pts !== hp) { hr = k + 1; hp = r.t.pts; } r.hrank = hr; }); }
     const honor = document.createElement("div");
     honor.className = "card";
     honor.innerHTML = `<div class="rep-head"><div class="rt">🏆 لوحة شرف ${esc(c.name)}</div><div class="rs">${esc(META.school.name)} — ${esc(TE.subject)} — ${esc(hijriLabel())}</div></div>
       <h3 class="no-print"><span class="dot"></span>🏆 لوحة الشرف — ${esc(c.name)}<button class="btn-gold" style="margin-inline-start:auto" id="hon-print">🖨️ طباعة للتعليق</button></h3>
       ${top.length ? `<div class="table-scroll"><table class="report-table"><tr><th>الترتيب</th><th style="min-width:150px">الطالب المتميّز</th><th>النقاط</th></tr>
-        ${top.map((r, k) => `<tr><td style="font-size:16px">${k < 3 ? MED[k] : k + 1}</td><td class="nm">${esc(r.s.n)}</td><td><b>${r.t.pts}</b></td></tr>`).join("")}</table></div>`
+        ${top.map((r, k) => { const hk = r.hrank || k + 1; return `<tr><td style="font-size:16px">${hk <= 3 ? MED[hk - 1] : hk}</td><td class="nm">${esc(r.s.n)}</td><td><b>${r.t.pts}</b></td></tr>`; }).join("")}</table></div>`
         : '<div class="empty-note">ابدأ الرصد وستظهر أسماء المتميزين هنا 🌟</div>'}`;
     box.appendChild(honor);
     parentReportsCard(box);
@@ -1462,7 +1493,7 @@
       <div class="h"><div class="bar">${esc(META.school.name)}</div><div class="m">${esc(TE.subject)} — ${esc(hijriLabel())}</div></div>
       <div class="tt">🏆 لوحة الشرف — ${esc(c.name)}</div>
       <table><tr><th>الترتيب</th><th>الطالب المتميّز</th><th>النقاط</th></tr>
-      ${top.map((r, k) => `<tr><td style="font-size:20px">${k < 3 ? MED[k] : k + 1}</td><td style="font-weight:800">${esc(r.s.n)}</td><td><b>${r.t.pts}</b></td></tr>`).join("")}</table>
+      ${top.map((r, k) => { const hk = r.hrank || k + 1; return `<tr><td style="font-size:20px">${hk <= 3 ? MED[hk - 1] : hk}</td><td style="font-weight:800">${esc(r.s.n)}</td><td><b>${r.t.pts}</b></td></tr>`; }).join("")}</table>
       <p style="text-align:center;color:#666;margin-top:20px">نبارك لأبنائنا المتميّزين ونسأل الله لهم دوام التفوّق 🌟</p>
       ${sigLine([{ l: "معلم المادة", v: TE.name }, "principal"])}`);
   }
@@ -2580,7 +2611,8 @@
     const d = document.createElement("div"); d.className = "live-act"; d.id = "live-act";
     d.innerHTML = `<div class="box">${html}</div>`;
     d.addEventListener("click", (e) => { if (e.target === d) closeLiveBox(); });
-    document.body.appendChild(d); if (mount) mount(d);
+    // ملء الشاشة لا يرسم إلا عنصر الملء وأبناءه: نافذة التقييم المُلحقة بـ body تصير غير مرئية وتبتلع النقرات
+    (document.fullscreenElement || document.body).appendChild(d); if (mount) mount(d);
   }
   function closeLiveBox() { const d = $("#live-act"); if (d) d.remove(); }
   function applyLive(i, k, idx) {
@@ -2613,7 +2645,7 @@
     f.textContent = (delta >= 0 ? "+" : "") + (Math.round(delta * 10) / 10);
     f.style.left = (r.left + r.width / 2 - 16) + "px";
     f.style.top = (r.top + 8) + "px";
-    document.body.appendChild(f);
+    (document.fullscreenElement || document.body).appendChild(f);
     setTimeout(() => f.remove(), 1100);
   }
 
@@ -3419,7 +3451,7 @@
       c.className = "conf"; c.textContent = em[n % em.length];
       c.style.left = (Math.random() * 90 + 3) + "%";
       c.style.animationDelay = (Math.random() * 0.3) + "s";
-      document.body.appendChild(c);
+      (document.fullscreenElement || document.body).appendChild(c);
       setTimeout(() => c.remove(), 2000);
     }
   }

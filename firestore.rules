@@ -46,6 +46,10 @@ service cloud.firestore {
     // صاحب مستند الرصد/الدرجات/التواصل: الجزء الأول من معرّفه «معلم_فصل»
     function ownerOf(id) { return id.split('_')[0]; }
     function mayShrink(tid) { return isClaim(tid) || isAdminClaim(); }
+    // «نموّ بحت»: لا مفتاح نُزع ولا قيمةُ مفتاحٍ قائم تبدّلت — وهو حرفياً أثر الدمج
+    //   (set merge في js/app.js). وفحص المفاتيح وحده لا يرى تبديل القيم: خريطةٌ بالمفاتيح
+    //   نفسها وقيمٍ فارغة {} كانت تمرّ فتفرّغ كل يوم مرصود وكل درجة بلا مطالبة.
+    function growsOnly(nd, od) { return nd.diff(od).affectedKeys().hasOnly(nd.diff(od).addedKeys()); }
 
     // ── بيانات أساسية تُزرع بالسكربت فقط: قراءة نعم، كتابة لا ──
     match /meta/{doc}      { allow read: if signedIn(); allow write: if false; }
@@ -271,7 +275,10 @@ service cloud.firestore {
       allow update: if signedIn() && isPairKey(id) && stamped()
           && request.resource.data.d is map
           && request.resource.data.keys().hasOnly(['d', 'tn', 'ts'])
-          && (request.resource.data.d.keys().hasAll(resource.data.get('d', {}).keys())
+          // النموّ مفتوح كما كان، وتبديلُ قيمةِ يومٍ قائم (وتفريغُه أوضحه) يحتاج إثبات رقم دخول،
+          //   ونزعُ يومٍ يبقى على صاحبه أو المدير وحدهما.
+          && (growsOnly(request.resource.data.d, resource.data.get('d', {}))
+              || (request.resource.data.d.keys().hasAll(resource.data.get('d', {}).keys()) && anyClaim())
               || mayShrink(ownerOf(id)));
       allow delete: if false;
     }
@@ -285,7 +292,9 @@ service cloud.firestore {
       allow update: if signedIn() && isPairKey(id) && stamped()
           && request.resource.data.g is map
           && request.resource.data.keys().hasOnly(['g', 'tn', 'ts'])
-          && (request.resource.data.g.keys().hasAll(resource.data.get('g', {}).keys())
+          // كما في recs: تفريغ درجات طالب قائم لا يكشفه فحص المفاتيح — فيُشترط له إثبات رقم دخول.
+          && (growsOnly(request.resource.data.g, resource.data.get('g', {}))
+              || (request.resource.data.g.keys().hasAll(resource.data.get('g', {}).keys()) && anyClaim())
               || mayShrink(ownerOf(id)));
       allow delete: if false;
     }
@@ -376,7 +385,10 @@ service cloud.firestore {
           && (!('tries' in request.resource.data) || (request.resource.data.tries is int && request.resource.data.tries >= 0 && request.resource.data.tries <= 12));
     }
     match /assign/{id} {
-      allow read: if signedIn();
+      // get وحده لا list: ورقةُ الطالب تُفتح بمعرّفها من رابطها، أما تعداد أوراق المدرسة كلها
+      //   (وفيها qs[].correct وqs[].ans) فكان مفتوحاً لأي جهاز مصادَق. التعدادُ لمن أثبت رقم معلم.
+      allow get: if signedIn();
+      allow list: if anyClaim();
       allow create: if signedIn() && id.matches('^[a-z0-9]{4,12}$') && stamped() && assignShape();
       // js/app.js لا يعدّل ورقةً بعد إنشائها أبداً (يُنشئ معرّفاً جديداً في كل مرة)،
       //   والكاتب الوحيد للتحديث هو استعادة النسخة الاحتياطية من لوحة المدير. وكان أي زائر
@@ -399,7 +411,10 @@ service cloud.firestore {
           && request.resource.data.keys().hasOnly(['a','si','n','cid','tid','ans','sc','mx','best','lsc','att','secs','late','ts','lts']);
     }
     match /subs/{id} {
-      allow read: if signedIn();
+      // get وحده لا list: صفحة الطالب تقرأ تسليمها بمعرّفه (assign_si)، وتعدادُ تسليمات المدرسة
+      //   — الأسماء والإجابات والدرجات — كان مفتوحاً لأي زائر، وهو أضعف من قيد الحذف أسفله.
+      allow get: if signedIn();
+      allow list: if anyClaim();
       allow create: if signedIn() && id.matches('^[a-z0-9]{4,12}_[0-9]{1,3}$') && subShape();
       // المحاولة التالية في w/index.html تُبقي المحاولة الأولى كما هي حرفياً (a/si/n/ans/sc/ts)
       //   وتزيد att وbest وحدهما. وكان التحديث مفتوحاً بلا قيد: أي جهاز يستبدل تسليم أي طالب
@@ -548,8 +563,9 @@ service cloud.firestore {
           && request.resource.data.keys().hasOnly(['n', 't', 'sz', 'scope', 'ref', 'tid', 'tn', 'ts', 'nc']);
       // ﴿حدّ معلوم في هذا الإصدار﴾ الحذف مفتوح لأي جهاز مصادَق: حقل tid في البطاقة اسمٌ لا إثبات،
       //   ولا هوية حقيقية للعميل تُربط به. إغلاقه يحتاج مصادقة حقيقية أو Cloud Function.
-      //   وهو من جنس ما تشرحه بطاقة «الحسابات مبنية على ثقة داخل المدرسة».
-      allow delete: if signedIn();
+      //   وهو من جنس ما تشرحه بطاقة «الحسابات مبنية على ثقة داخل المدرسة». وأدنى ما يُضيَّق به:
+      //   إثبات رقم دخول معلم — فلا يمحو زائرٌ مرفقات المدرسة كلها من طرفيّة المتصفح.
+      allow delete: if signedIn() && anyClaim();
 
       // قطع المحتوى: لا تُكتب قطعة إلا تحت بطاقة ملف موجودة فعلاً، وبرقم قطعة داخل عدد قطعها
       //   المعلن nc. بغير هذا الربط كان أي جهاز يضخّ نصاً تحت معرّفات لا حصر لها بلا بطاقة ولا حدّ.
@@ -562,7 +578,7 @@ service cloud.firestore {
             && request.resource.data.d is string
             && request.resource.data.d.size() <= 700000
             && request.resource.data.keys().hasOnly(['d']);
-        allow delete: if signedIn();
+        allow delete: if signedIn() && anyClaim();
       }
     }
 
@@ -578,9 +594,11 @@ service cloud.firestore {
       allow update: if signedIn() && key.matches('^[A-Za-z0-9]{1,12}$') && stamped()
           && request.resource.data.list is list && request.resource.data.list.size() <= 400
           && request.resource.data.keys().hasOnly(['list', 'tn', 'ts'])
-          //   ويُستثنى نقصُ عنصرٍ واحد: هو حذف مرفق واحد من صاحبه (js/files.js:512)، وهو أيضاً تراجع
-          //   js/files.js:397 عن قيد أُضيف ثم فشل رفع محتواه — ومنعه كان يترك في الفهرس ملفاً لا يُفتح.
-          && (request.resource.data.list.size() >= resource.data.get('list', []).size() - 1
+          //   وحذفُ مرفق من صاحبه (js/files.js:512) وتراجعُ js/files.js:397 عن قيد فشل رفع محتواه
+          //   كلاهما من جلسة معلم أثبت رقمه، فلا يضيرهما اشتراط المطالبة. أما استثناء «نقص عنصر
+          //   واحد» بالحجم فكان يتكرر بلا حدّ: زائرٌ يمحو أربعمئة عنصر بأربعمئة كتابة، والحجمُ
+          //   وحده لا يمنع استبدال القائمة كلها بأخرى بالطول نفسه.
+          && (request.resource.data.list.hasAll(resource.data.get('list', []))
               || anyClaim());
       allow delete: if false;
     }

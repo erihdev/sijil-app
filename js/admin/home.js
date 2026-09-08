@@ -250,7 +250,7 @@
     const cell = (c, p) => { const r = rowsDay.find(x => x.c === c.id && x.p === p); if (!r) return `<td class="${isNow(p) ? "now" : ""}" data-p="${p}" style="color:#ccc">—</td>`; const t = Ad.teacherByName(r.t); return `<td class="${isNow(p) ? "now" : ""}" data-p="${p}" title="${esc(r.t + (t ? " — " + t.subject : ""))}"><span class="sj">${esc(t ? t.subject : "—")}</span><span class="tn">${esc(shortName(r.t))}</span></td>`; };
     const grid = `<div class="table-scroll" id="hm-grid"><table class="report-table adm-grid"><tr><th style="min-width:78px">الفصل</th>${cols.map(x => x.brk
       ? `<th class="brk${brkOn(x) ? " now" : ""}" data-brk="${x.from}" title="${esc(x.n + " " + x.t)}">☕<span class="pt">${ltr(x.t)}</span></th>`
-      : `<th class="${isNow(x.p) ? "now" : ""}" data-p="${x.p}">ح${x.p}<span class="dot"> ●</span><span class="pt">${x.t ? ltr(x.t) : "&nbsp;"}</span></th>`).join("")}</tr>
+      : `<th class="${isNow(x.p) ? "now" : ""}" data-p="${x.p}">ح${x.p}<span class="dot"> ●</span><span class="pt">${x.t ? ltr(x.t) : "بلا وقت"}</span></th>`).join("")}</tr>
       ${cls.map(c => `<tr><td class="nm">${esc(c.name)}</td>${cols.map(x => x.brk ? `<td class="brk" data-brk="${x.from}"></td>` : cell(c, x.p)).join("")}</tr>`).join("")}</table></div>`;
     const brkBar = `<div class="hm-brk" id="hm-brk"${(isToday && bNow) ? "" : " hidden"}>${(isToday && bNow) ? brkBarTxt(bNow) : ""}</div>`;
     const nowTxt = nowText(tName, pNow, bNow);
@@ -339,9 +339,27 @@
     return H().table(cols, trs);
   }
   // 3) أوائل المدرسة + لوحة شرف كل فصل
+  /* آخر حالة مرصودة للطالب عبر كل معلميه غياب/استئذان/هروب ⇒ لا يظهر في لوحة الشرف — نفس قاعدة
+     SIJIL.lastAwayOf في لوحتَي شرف المعلم (تبويب «اليوم» و«التقارير»). كانت لوحة المدير ترشّح بالنقاط
+     وحدها، فيتصدّر الطالبُ لوحةَ شرف المدير ويغيب عن لوحة معلمه — ورقتان معلَّقتان في المدرسة نفسها
+     بأسماء مختلفة. ولا تصلح SIJIL.lastAwayOf هنا لأنها تقرأ DB.recs (جهاز المعلم) بينما لوحة المدير
+     تقرأ مستندات المعلمين، فنقرأ آخر تاريخ فيها والأسوأ حالةً عند تساوي التاريخ. */
+  function lastAwayAdm(cx, cid, si) {
+    const s = S(); let best = null, code = null;
+    docsOf(cx, cid).forEach(dc => {
+      const recs = dc.recs || {};
+      Object.keys(recs).forEach(d => {
+        const e = (recs[d] || {})[si];
+        if (!e || e.a == null || !s.STATES[e.a]) return;
+        if (best == null || d > best) { best = d; code = e.a; }
+        else if (d === best && code != null && PRIO[bucketOf(e.a)] > PRIO[bucketOf(code)]) code = e.a;
+      });
+    });
+    return code != null && /غائب|مستأذن|بعذر|هارب/.test(s.STATES[code].name || "");
+  }
   function topData(cx) {
-    const all = []; const perClass = A().sortedClasses().map(c => { const rows = classAgg(cx, c.id).rows.filter(r => r.n > 0).sort((a, b) => b.pts - a.pts || (b.avg || 0) - (a.avg || 0)); rows.forEach(r => all.push(r)); return { c, top: rows.filter(r => r.pts > 0).slice(0, 3) }; });
-    return { top10: all.sort((a, b) => b.pts - a.pts || (b.avg || 0) - (a.avg || 0)).filter(r => r.pts > 0).slice(0, 10), perClass };
+    const all = []; const perClass = A().sortedClasses().map(c => { const rows = classAgg(cx, c.id).rows.filter(r => r.n > 0).sort((a, b) => b.pts - a.pts || (b.avg || 0) - (a.avg || 0)); rows.forEach(r => all.push(r)); return { c, top: rows.filter(r => r.pts > 0 && !lastAwayAdm(cx, c.id, r.i)).slice(0, 3) }; });
+    return { top10: all.sort((a, b) => b.pts - a.pts || (b.avg || 0) - (a.avg || 0)).filter(r => r.pts > 0 && !lastAwayAdm(cx, r.c.id, r.i)).slice(0, 10), perClass };
   }
   function topHtml(d, print) {
     const cols = ["#", "الطالب", "الفصل", "النقاط", "المواد", "المعدل"];
