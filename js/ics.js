@@ -171,40 +171,67 @@
     if (c && s && typeof s.activeCount === "function") { try { const n = s.activeCount(c); if (isFinite(n)) return n; } catch (e) { } }
     return c && Array.isArray(c.students) ? c.students.filter(x => x && !x.moved && !x.gap).length : 0;
   }
-  const schoolName = () => { const s = S(); const m = (s && (s.META || (s.D && s.D.meta))) || {}; return (m.school && m.school.name) || "المدرسة"; };
-  const termLbl = () => { const s = S(); const m = (s && (s.META || (s.D && s.D.meta))) || {}; return (m.school && m.school.term_lbl) || ""; };
-  function termWeeks() {
-    const s = S(); const m = (s && (s.META || (s.D && s.D.meta))) || {};
-    const t = (s && s.TERM) || (String((m.school && m.school.term_lbl) || "").includes("الثاني") ? "t2" : "t1");
-    const w = (m.weeks || {})[t];
-    return Array.isArray(w) && w.length ? w : [];
-  }
+  const metaOf = () => { const s = S(); return (s && (s.META || (s.D && s.D.meta))) || {}; };
+  const schoolName = () => { const m = metaOf(); return (m.school && m.school.name) || "المدرسة"; };
+  const termLbl = () => { const m = metaOf(); return (m.school && m.school.term_lbl) || ""; };
+  const termKey = () => { const s = S(), m = metaOf(); return (s && s.TERM) || (String((m.school && m.school.term_lbl) || "").includes("الثاني") ? "t2" : "t1"); };
 
   /* ═══ مدد الأسابيع الدراسية ميلادياً — ما بينها إجازة لا حصص فيها ═══
-     تُحسب مرة واحدة لكل نداء build لأن fromHijri مسح تقويمي لا نداء رخيص. */
-  function termSpans() {
+     fromHijri مسحٌ تقويمي لا نداء رخيص، وplan وbuild وfingerprint تسأل عن المدد في التنزيل
+     الواحد أكثر من مرة، فنحسبها مرة واحدة ونحفظها ما دام كائن meta.weeks هو نفسه. */
+  let spanSrc = null, spanMemo = null;
+  function spansOf(list) {
     const out = [];
-    termWeeks().forEach(w => {
+    (Array.isArray(list) ? list : []).forEach(w => {
       const a = fromHijri(w && w.from), b = fromHijri(w && w.to);
       if (a && b && b.getTime() >= a.getTime()) out.push([a.getTime(), b.getTime()]);
     });
+    out.sort((x, y) => x[0] - y[0]);
+    return out;
+  }
+  // كل فصول العام مرتبةً بالبداية: [{key, spans, start, end, weeks}]
+  function allTerms() {
+    const all = metaOf().weeks || null;
+    if (spanMemo && spanSrc === all) return spanMemo;
+    const out = [];
+    Object.keys(all || {}).forEach(k => {
+      const sp = spansOf(all[k]);
+      if (sp.length) out.push({ key: k, spans: sp, start: sp[0][0], end: sp[sp.length - 1][1], weeks: all[k] });
+    });
+    out.sort((a, b) => a.start - b.start);
+    spanSrc = all; spanMemo = out;
     return out;
   }
 
-  /* ═══ المدى الزمني: من بداية الفصل (أو اليوم إن كنا داخله) إلى آخر أسبوع فيه ═══ */
+  /* ═══ الفصل الفعّال ═══
+     الفصل الحالي ما دام لم ينتهِ آخرُ أسبوع فيه. فإن انتهى — والمدير لم يبدّل term_lbl بعدُ —
+     فأقربُ فصل في meta.weeks لم ينتهِ، وإلا فالجواب expired. بلا هذا الحارس كان الملف يخرج
+     ببداية الفصل المنتهي وUNTIL منقضٍ، أي نحو 285 موعداً كلُّها في الماضي تُحقن في تقويم
+     المعلم — نقيضَ ما تَعِد به الرسالة نفسها. */
+  function activeTerm() {
+    const all = allTerms(), t0 = todayUTC().getTime(), key = termKey();
+    let cur = null;
+    for (let i = 0; i < all.length; i++) if (all[i].key === key) { cur = all[i]; break; }
+    if (cur && t0 <= cur.end) return { term: cur, expired: false };
+    for (let i = 0; i < all.length; i++) if (all[i].end >= t0) return { term: all[i], expired: false };
+    return { term: cur || (all.length ? all[all.length - 1] : null), expired: all.length > 0 };
+  }
+
+  /* ═══ المدى الزمني: من بداية الفصل الفعّال (أو اليوم إن كنا داخله) إلى آخر أسبوع فيه ═══ */
   function range(opts) {
     opts = opts || {};
-    const wks = termWeeks();
-    let from = wks.length ? fromHijri(wks[0].from) : null;
-    let to = wks.length ? fromHijri(wks[wks.length - 1].to) : null;
+    const V = activeTerm(), T = V.term;
+    let from = T ? new Date(T.start) : null;
+    let to = T ? new Date(T.end) : null;
     const t0 = todayUTC();
     if (!from) from = t0;
     if (!to || to.getTime() <= from.getTime()) to = new Date(from.getTime() + 120 * 864e5);
     if (t0.getTime() > from.getTime() && t0.getTime() <= to.getTime()) from = t0;   // استيراد في منتصف الفصل: لا نملأ التقويم بحصص ماضية
+    if (V.expired) { from = t0; to = t0; }                                          // انتهت كل الفصول: لا مدى ولا مواعيد
     const of = fromISO(opts.from); if (of) from = of;
     const ou = fromISO(opts.until); if (ou) to = ou;
     if (to.getTime() < from.getTime()) to = new Date(from.getTime() + 6 * 864e5);
-    return { from, to };
+    return { from, to, spans: (T && T.spans) || [], term: (T && T.key) || "", expired: !!(V.expired && !of && !ou) };
   }
 
   const ALARMS = [5, 10, 15];
@@ -269,9 +296,39 @@
     return { teacher: te, groups, rows: rows.length, skipped: skippedRows.length, skippedRows, range: range(opts), alarm: alarmOf(opts), bell: bellReady() };
   }
 
-  /* ═══ بناء نص الملف ═══ */
-  function build(tid, opts) {
-    const P = plan(tid, opts), te = P.teacher;
+  /* ═══ ذاكرة ما صُدِّر سابقاً لهذا المعلم ═══
+     UID يحوي رقم الحصة والفصل، فنقل الحصة إلى رقم آخر (أو تقسيمُ إعدادِ days مجموعةً مدمجة)
+     يُنتج هويةً جديدة ويترك القديمة ترنّ أسبوعياً في تقويم الجوال إلى نهاية الفصل. نحفظ ما
+     صدّرناه، فإذا اختفى موعدٌ كتبنا له VEVENT بـ STATUS:CANCELLED — فتُصلح إعادةُ الاستيراد
+     التقويمَ كاملاً كما تَعِد لافتة «تغيّر جدولك» بدل أن تُضيف موعداً وتُبقي شبحاً بجانبه.
+     وSEQUENCE عدّادٌ متصاعد محفوظ لا رقمُ اليوم: تعديلان في يوم واحد كانا يخرجان بالرقم
+     نفسه فيتجاهل التقويم الملفَّ الثاني. */
+  const tkeyOf = (te) => String((te && te.id) || (te && te.name) || "t").replace(/[^A-Za-z0-9_-]/g, "") || "t";
+  const dayNum = () => Math.floor(Date.now() / 864e5);
+  const evKey = (te) => "sijil.ics.ev." + tkeyOf(te);
+  function stateOf(te) {
+    const base = { seq: dayNum(), ev: [] };
+    try {
+      const o = JSON.parse(localStorage.getItem(evKey(te)) || "null");
+      if (!o || typeof o !== "object") return base;
+      const q = Math.round(+o.seq);
+      return {
+        seq: (isFinite(q) && q > base.seq) ? q : base.seq,                      // لا ينزل أبداً تحت رقم اليوم
+        ev: Array.isArray(o.ev) ? o.ev.filter(x => x && typeof x.k === "string" && x.k) : []
+      };
+    } catch (e) { return base; }
+  }
+  function saveState(te, st) {
+    try { localStorage.setItem(evKey(te), JSON.stringify({ seq: st.seq, ev: st.ev })); } catch (e) { }
+  }
+
+  /* ═══ بناء نص الملف ═══
+     تعيد {text, count, weekly, cancelled, expired, plan, state}: count عدد المواعيد المُضافة
+     (بلا مواعيد الإلغاء)، وweekly عدد الحصص الأسبوعية التي تغطّيها — فالحصة نفسها في يومين
+     موعدٌ واحد بـ BYDAY=MO,TH، وكان المعلم يقرأ «15 موعداً» بعد «16 حصة أسبوعياً» فيظن أن
+     حصةً سقطت. */
+  function compose(tid, opts) {
+    const P = plan(tid, opts), te = P.teacher, st = stateOf(te);
     const L = [];
     L.push("BEGIN:VCALENDAR");
     L.push("VERSION:2.0");
@@ -293,15 +350,18 @@
     L.push("END:VTIMEZONE");
 
     const stamp = stampUTC();
-    const seq = Math.floor(Date.now() / 864e5);          // يزيد يومياً: إعادة الاستيراد تحدّث الموعد بدل تكراره
+    const seq = st.seq;                                  // عدّاد متصاعد محفوظ — يرتفع مع كل تنزيل
     const until = untilUTC(P.range.to);
     const loc = schoolName(), subj = (te && te.subject) || "";
-    const tkey = String((te && te.id) || (te && te.name) || "t").replace(/[^A-Za-z0-9_-]/g, "") || "t";
+    const tkey = tkeyOf(te);
+    const uidOf = (k) => `sijil-${tkey}-${k}@sijil.erihdev.com`;
 
-    const spans = termSpans();
+    const spans = P.range.spans || [];
     const inTerm = (t) => !spans.length || spans.some(sp => t >= sp[0] && t <= sp[1]);
+    const live = [];                                     // ما كُتب في هذا الملف فعلاً
+    let weekly = 0;
 
-    P.groups.forEach(g => {
+    (P.range.expired ? [] : P.groups).forEach(g => {
       // كل أيام هذه الحصة داخل المدى، ثم أولها الواقع في أسبوع دراسي = DTSTART
       const occ = [];
       for (let t = P.range.from.getTime(); t <= P.range.to.getTime(); t += 864e5) {
@@ -315,13 +375,15 @@
       const ex = [];
       for (let k = i0 + 1; k < occ.length; k++) if (!inTerm(occ[k])) ex.push(localAt(new Date(occ[k]), g.from));
 
-      const uid = `sijil-${tkey}-${g.ukey}@sijil.erihdev.com`;
+      const dts = localAt(d0, g.from), dte = localAt(d0, g.to);
+      live.push({ k: g.ukey, s: dts, e: dte, d: g.byday.join(","), u: until });
+      weekly += g.days.length;
       L.push("BEGIN:VEVENT");
-      L.push("UID:" + uid);
+      L.push("UID:" + uidOf(g.ukey));
       L.push("DTSTAMP:" + stamp);
       L.push("SEQUENCE:" + seq);
-      L.push("DTSTART;TZID=Asia/Riyadh:" + localAt(d0, g.from));
-      L.push("DTEND;TZID=Asia/Riyadh:" + localAt(d0, g.to));
+      L.push("DTSTART;TZID=Asia/Riyadh:" + dts);
+      L.push("DTEND;TZID=Asia/Riyadh:" + dte);
       L.push("RRULE:FREQ=WEEKLY;BYDAY=" + g.byday.join(",") + ";UNTIL=" + until);
       if (ex.length) L.push("EXDATE;TZID=Asia/Riyadh:" + ex.join(","));
       L.push("SUMMARY:" + T(g.title));
@@ -337,9 +399,36 @@
       L.push("END:VEVENT");
     });
 
+    /* مواعيد صُدِّرت من قبلُ ولم يعد لها وجود في الجدول: تُكتب ملغاةً بالهوية نفسها، فيحذفها
+       تقويم الجوال عند إعادة الاستيراد بدل أن تبقى ترنّ أسبوعياً. رقم التسلسل هو seq نفسه —
+       وهو أعلى ممّا صُدِّر به الموعدُ سابقاً لأن العدّاد يرتفع مع كل تنزيل — فإن أعاد المديرُ
+       الحصةَ إلى موضعها الأول تفوّق seq التالي على رقم الإلغاء فيعود الموعد لا يظل محذوفاً.
+       ولا نُلغي شيئاً حين ينتهي الفصل (لا ملف أصلاً) فمواعيدُه انقضت بـ UNTIL وحدها. */
+    const alive = {}; live.forEach(x => { alive[x.k] = 1; });
+    const gone = P.range.expired ? [] : st.ev.filter(x => !alive[x.k]);
+    gone.forEach(x => {
+      L.push("BEGIN:VEVENT");
+      L.push("UID:" + uidOf(x.k));
+      L.push("DTSTAMP:" + stamp);
+      L.push("SEQUENCE:" + seq);
+      L.push("DTSTART;TZID=Asia/Riyadh:" + x.s);
+      L.push("DTEND;TZID=Asia/Riyadh:" + (x.e || x.s));
+      if (x.d) L.push("RRULE:FREQ=WEEKLY;BYDAY=" + x.d + ";UNTIL=" + (x.u || until));
+      L.push("SUMMARY:" + T("حصة أُلغيت من الجدول"));
+      L.push("STATUS:CANCELLED");
+      L.push("TRANSP:TRANSPARENT");
+      L.push("END:VEVENT");
+    });
+
     L.push("END:VCALENDAR");
-    return L.map(fold).join("\r\n") + "\r\n";
+    return {
+      text: L.map(fold).join("\r\n") + "\r\n",
+      count: live.length, weekly: weekly, cancelled: gone.length, expired: !!P.range.expired,
+      plan: P, state: { seq: seq + 1, ev: live }
+    };
   }
+  // الواجهة العامة تبقى كما كانت: نصّ الملف وحده
+  function build(tid, opts) { return compose(tid, opts).text; }
 
   /* ═══ بصمة الجدول: تتغيّر متى تغيّر جدول المعلم أو أوقات الأجراس أو مدى الفصل ═══
      ولا تتغيّر بنقل طالب أو إضافته: عدد الطلاب سطرٌ في وصف الموعد لا في الجدول، وإدخاله هنا
@@ -352,31 +441,61 @@
     const usedDays = Array.from(new Set(rows.map(r => r.d))).sort();
     const times = usedDays.map(d => d + "=" + periodsOnly(d).map(b => b.p + "@" + b.from + "-" + b.to).join("/")).join(";");
     const names = Array.from(new Set(rows.map(r => r.c))).sort().map(cid => { const c = classOf(cid); return cid + ":" + ((c && c.name) || ""); }).join(",");
-    const wks = termWeeks(), span = wks.map(w => w.from + ">" + w.to).join("~") || "-";
+    const V = activeTerm(), wks = (V.term && V.term.weeks) || [];
+    const span = (V.expired ? "!" : "") + (Array.isArray(wks) ? wks.map(w => w.from + ">" + w.to).join("~") : "") || "-";
     return hash16([te.id || "", te.name || "", te.subject || "", schoolName(), termLbl(), span, key, times, names].join("|"));
   }
 
   /* ═══ التنزيل ═══ */
+  /* صيغ العدد العربية: مفرد · مثنى · جمع قلة (3–10) · تمييز مفرد منصوب (11+).
+     كانت رسالة النجاح تركّب العدد بصيغة واحدة «ويحوي 2 موعداً» بينما skippedNote في السطر
+     نفسه تتحرّى الصيغة بدقة. */
+  const nAr = (n, one, two, few, many) => n === 1 ? one : n === 2 ? two : (n >= 3 && n <= 10) ? n + " " + few : n + " " + many;
+  const clsAr = (n) => nAr(n, "حصة واحدة", "حصتان", "حصص", "حصة");            // فاعل/نائب فاعل: «لم تُضَف حصتان»
+  const clsArObl = (n) => nAr(n, "حصة واحدة", "حصتين", "حصص", "حصة");         // مفعول به: «تغطّي حصتين»
+  const evAr = (n) => nAr(n, "موعداً واحداً", "موعدين", "مواعيد", "موعداً");   // مفعول به: «يحوي موعدين»
+  const goneAr = (n) => nAr(n, "موعداً واحداً لم يعد في جدولك", "موعدين لم يعودا في جدولك", "مواعيد لم تعد في جدولك", "موعداً لم يعد في جدولك");
+  /* «15 موعداً تغطّي 16 حصة أسبوعياً»: الحصة نفسها في يومين موعدٌ واحد بـ BYDAY=MO,TH، فكان
+     المعلم يقارن «15 موعداً» بـ«16 حصة أسبوعياً» في الشاشة المجاورة ويظنّ أن حصةً سقطت. */
+  function countAr(count, weekly) {
+    const ev = evAr(count);
+    if (!(weekly > count)) return ev;
+    return ev + " " + (count === 1 ? "يغطّي" : count === 2 ? "يغطّيان" : "تغطّي") + " " + clsArObl(weekly) + " أسبوعياً";
+  }
   // نصّ عربي جاهز للعرض عن الحصص التي لا وقت لها في جدول الأجراس (تظهر «بلا وقت» في بقية الشاشات)
   function skippedNote(rowsOut) {
     const a = rowsOut || [];
     if (!a.length) return "";
     const one = (r) => `${ord(r.p)} — ${r.cname} (${r.day})`;
-    const n = a.length === 1 ? "حصة واحدة" : a.length === 2 ? "حصتان" : (a.length <= 10 ? a.length + " حصص" : a.length + " حصة");
-    return `⚠️ لم تُضَف ${n} إلى التقويم لأن رقمها خارج عدد حصص ذلك اليوم في جدول الأجراس: ${a.map(one).join("، ")} — راجع المدير.`;
+    return `⚠️ لم تُضَف ${clsAr(a.length)} إلى التقويم لأن رقمها خارج عدد حصص ذلك اليوم في جدول الأجراس: ${a.map(one).join("، ")} — راجع المدير.`;
   }
 
+  /* ينزّل الملف ويعيد وصفاً جاهزاً للعرض. لا يُنزَّل ملفٌ بلا فائدة: انتهاء الفصل أو خلوّ
+     الجدول يُعيد رسالةً صريحة بدل ملفٍ كلُّ مواعيده ماضية أو فارغ. */
   function download(tid, opts) {
-    const te = teacherOf(tid), P = plan(tid, opts), text = build(tid, opts);
-    const count = (text.match(/BEGIN:VEVENT/g) || []).length;
+    const te = teacherOf(tid), R = compose(tid, opts), P = R.plan, text = R.text;
     const name = `حصص ${(te && te.name) || "المعلم"}${termLbl() ? " - " + termLbl() : ""}.ics`;
-    const blob = new Blob([text], { type: "text/calendar;charset=utf-8" });
-    const a = document.createElement("a");
-    a.href = URL.createObjectURL(blob); a.download = name;
-    document.body.appendChild(a); a.click(); a.remove();
-    setTimeout(() => { try { URL.revokeObjectURL(a.href); } catch (e) { } }, 4000);
+    const worth = R.count > 0 || R.cancelled > 0;
+    let bytes = 0;
+    if (worth) {
+      const blob = new Blob([text], { type: "text/calendar;charset=utf-8" });
+      bytes = blob.size;
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(blob); a.download = name;
+      document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(() => { try { URL.revokeObjectURL(a.href); } catch (e) { } }, 4000);
+      saveState(te, R.state);                                   // ما صُدِّر فعلاً — لإلغائه لاحقاً إن اختفى
+    }
+    const cancelNote = R.cancelled ? ` ويحذف من تقويمك ${goneAr(R.cancelled)}.` : "";
+    const message = R.expired
+      ? "انتهى الفصل الدراسي ولا فصل قادم في التقويم المدرسي — لا حصص لإضافتها الآن."
+      : R.count ? `✔ نُزِّل الملف «${name}» ويحوي ${countAr(R.count, R.weekly)} — افتحه من التنزيلات ليُضاف إلى تقويمك.${cancelNote}`
+        : R.cancelled ? `✔ نُزِّل الملف «${name}» — افتحه من التنزيلات ليحذف من تقويمك ${goneAr(R.cancelled)}.`
+          : "لا حصص في جدولك لإضافتها إلى التقويم.";
     return {
-      name, count, bytes: blob.size, text, alarm: P.alarm,
+      name, count: R.count, weekly: R.weekly, cancelled: R.cancelled, expired: R.expired,
+      countText: countAr(R.count, R.weekly), message, downloaded: worth,
+      bytes, text, alarm: P.alarm,
       skipped: P.skipped, skippedRows: P.skippedRows, skippedNote: skippedNote(P.skippedRows)
     };
   }
@@ -388,5 +507,5 @@
     return "sijil.ics.fp" + (k ? "." + k : "");
   }
 
-  window.SIJIL_ICS = { build, download, fingerprint, fpKey, plan, fold, fromHijri, periodsOnly, skippedNote };
+  window.SIJIL_ICS = { build, download, fingerprint, fpKey, plan, fold, fromHijri, periodsOnly, skippedNote, countAr, activeTerm };
 })();

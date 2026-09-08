@@ -222,8 +222,23 @@
     if (out.grades.length) out.avg = Math.round(out.grades.reduce((a, g) => a + g.pct, 0) / out.grades.length);
     return out;
   }
-  // آخر تاريخ رصد (yyyy-mm-dd) في خرائط recs لمعلم/فصل — null إن لا رصد
-  function lastRecDate(recs) { let best = null; Object.keys(recs || {}).forEach(date => { if (Object.keys(recs[date] || {}).length && (!best || date > best)) best = date; }); return best; }
+  /* سجل فارغ (فتح بطاقة الطالب أو نافذة الحالة بلا اختيار) ليس رصداً — نفس تعريف emptyRec في app.js.
+     كنس app.js للأيام الفارغة يعمل على نسخة الجهاز ولا يصل السحابة (الرفع بـ set/merge لا يحذف مفتاحاً
+     متداخلاً)، ولوحة المدير تقرأ السحابة مباشرة — فكان اليوم الذي لا يحمل إلا سجلات فارغة يُحسب «يوم
+     رصد»: «آخر رصد» بتاريخ لم يرصد فيه المعلم شيئاً، ومعلمٌ يسقط من عدّاد «لم يرصدوا منذ 7 أيام». */
+  const emptyRec = (e) => !e || (e.a == null && !e.part && e.hw == null && !e.sh && !((e.beh || []).length) && !String(e.note || "").trim());
+  const hasMarks = (day) => { const d = day || {}; return Object.keys(d).some(si => !emptyRec(d[si])); };
+  /* سقف تواريخ الرصد المعتبرة: حقل التاريخ في «التحضير» بلا حدّ أعلى، فيكفي خطأ في كتابته (2026-12-25)
+     ليصير «آخر رصد» تاريخاً في المستقبل — فتُطبع «قبل ‎−110‎ يوم»، ويسقط المعلم من تنبيه «لم يرصدوا منذ
+     7 أيام» ولو لم يرصد منذ شهر، ويُحسب ذلك اليوم البعيد ضمن «أيام الرصد هذا الأسبوع». السقف هو الغد
+     لا اليوم، حتى لا يُخفى رصدُ جهازٍ تسبق ساعته ساعة جهاز المدير بساعات. */
+  function maxRecDate() { const d = new Date(); d.setDate(d.getDate() + 1); return isoDate(d); }
+  // آخر تاريخ رصد (yyyy-mm-dd) في خرائط recs لمعلم/فصل — null إن لا رصد. cap: أحدث تاريخ يُعتدّ به (الغد افتراضاً)
+  function lastRecDate(recs, cap) {
+    const mx = cap || maxRecDate(); let best = null;
+    Object.keys(recs || {}).forEach(date => { if (date <= mx && hasMarks(recs[date]) && (!best || date > best)) best = date; });
+    return best;
+  }
 
   /* ═══ سجل الإدارة adminlog/{id} = { act: 'pin'|'edit'|'schedule'|'move'|'sedit'|'add', tid?, note, tn, ts } — إنشاء فقط ═══ */
   const logId = () => (Date.now().toString(36) + S().shortId()).replace(/[^a-z0-9]/g, "").slice(0, 20);
@@ -529,7 +544,7 @@
     if (Object.keys(c.lens).length) rec.lens = c.lens;
     if (Object.keys(c.days).length) rec.days = c.days;
     if (s.CLOUD && s.fdb) {
-      try { await s.fdb.doc("cfg/bell").set(rec); } catch (e) { warn("saveBell", e && e.message); return { ok: false, err: "تعذّر الحفظ في السحابة — تحقّق من الاتصال ثم أعد المحاولة" }; }
+      try { await s.fdb.doc("cfg/bell").set(rec); } catch (e) { warn("saveBell", e && e.message); return { ok: false, err: writeErr(e, "حفظ أوقات الحصص") }; }
       s.D.bell = rec;
       try { localStorage.setItem("sijil.cloudD", JSON.stringify(s.D)); } catch (e) { }
     } else { s.DB.bell = rec; s.D.bell = rec; s.save(); }
@@ -582,7 +597,7 @@
     const rec = { tn: s.TE.name, ts: Date.now() };
     STAFF_KEYS.forEach(k => { const v = String(cfg[k] == null ? "" : cfg[k]).trim().slice(0, 80); if (v) rec[k] = v; });
     if (s.CLOUD && s.fdb) {
-      try { await s.fdb.doc("cfg/school").set(rec); } catch (e) { warn("saveStaff", e && e.message); return { ok: false, err: "تعذّر الحفظ في السحابة — تحقّق من الاتصال ثم أعد المحاولة" }; }
+      try { await s.fdb.doc("cfg/school").set(rec); } catch (e) { warn("saveStaff", e && e.message); return { ok: false, err: writeErr(e, "حفظ أسماء الإدارة") }; }
       s.D.cfgSchool = rec;
       try { localStorage.setItem("sijil.cloudD", JSON.stringify(s.D)); } catch (e) { }
     } else { s.DB.cfgSchool = rec; s.D.cfgSchool = rec; s.save(); }
@@ -595,6 +610,26 @@
   const waPhone = (p) => { const n = normMob(p); return n ? "966" + n.slice(1) : ""; };
   const waHref = (p, text) => S().waLink(waPhone(p), text || "");
   const nextTeacherId = () => { const used = new Set((S().D.teachers || []).map(t => t.id)); for (let n = 1; n < 1000; n++) { const id = "t" + String(n).padStart(2, "0"); if (!used.has(id)) return id; } return "t" + Date.now() % 1000; };
+
+  /* ═══ سبب فشل الكتابة: رفضُ قواعد أم انقطاعُ شبكة؟ ═══
+     كان كل رفض يُنسب إلى الإنترنت («تحقّق من الاتصال») أو يُعرض نصاً خاماً من محرك القواعد بأرقام
+     أسطره داخل النافذة — فيعيد المستخدم المحاولة بلا نهاية ولا يعرف ما يفعل. نميّزهما هنا مرة واحدة
+     لكل وحدات اللوحة، ولا نُظهر نص المحرك أبداً (يبقى في console وحده للمطوّر). */
+  function isPermErr(e) {
+    try { const a = window.SIJIL_AUTH; if (a && typeof a.isPerm === "function") return !!a.isPerm(e); } catch (x) { }
+    const c = String((e && (e.code || e.name)) || "").toLowerCase();
+    if (c.indexOf("permission-denied") >= 0 || c.indexOf("permission_denied") >= 0) return true;
+    return /permission[_-]denied|insufficient permissions/i.test(String((e && e.message) || e || ""));
+  }
+  function writeErr(e, what) {
+    const w = what || "الحفظ";
+    if (!isPermErr(e)) return `تعذّر ${w} — تحقّق من الاتصال ثم أعد المحاولة.`;
+    let noClaim = false;
+    try { const a = window.SIJIL_AUTH, s = S(); noClaim = !!(a && typeof a.hasClaim === "function" && s && s.TE && !a.hasClaim(s.TE.id)); } catch (x) { }
+    return noClaim
+      ? `⛔ رُفض ${w}: هذا الجهاز لم يعد مُثبِتاً هويتك. اضغط «خروج» ثم ادخل برقمك مرة أخرى، وأعد المحاولة.`
+      : `⛔ رُفض ${w}: صلاحيات حسابك لا تسمح بهذه العملية — وليست المشكلة في الاتصال.`;
+  }
 
   /* ═══ إشعار وتأكيد ═══ */
   let toastT = null;
@@ -629,12 +664,12 @@
   window.SIJIL_ADMIN = {
     TABS, TEACHER_TABS, VIEW_KEY,
     init, render, register, refresh, currentTab: () => cur, isAdminView, setView, get TE() { return TE; }, modules: () => Object.keys(MODS),
-    schoolDocs, invalidate, splitKey, classDocsOf, teacherDocsOf, aggStudent, lastRecDate,
+    schoolDocs, invalidate, splitKey, classDocsOf, teacherDocsOf, aggStudent, lastRecDate, maxRecDate, emptyRec, hasMarks,
     // تعريف الحضور الموحّد (لوحة المدير كلها): الحاضر = حاضر أو عن بعد
     attBucketOf, attOf, BUCKET_N, BUCKET_PRIO,
     adminlog, saveSedit,
     printHead, printHtml, printEl, printTable, cleanClone,
-    H, toast, confirm,
+    H, toast, confirm, isPermErr, writeErr,
     sortedClasses, staff, allAccounts, showActiveTab, classTeachers, teacherOf, teacherByName, todayName, schoolDays, isSchoolDay, isoDate, daysAgo, fmtDate, fmtTs, normMob, waPhone, waHref, nextTeacherId,
     // جدول الأجراس (PERIODS = الحصص فقط بلا الفسح، محسوبة الآن من الإعداد — بنفس شكلها القديم [{p, from, to}])
     bell, defaultBell, normBell, periodsOf, periodsOnly, periodNow, breakNow, periodTime, bellLine, dayEnd, validateBell, saveBell, hm, hhmm, parseHM, ord, nPer, mins,

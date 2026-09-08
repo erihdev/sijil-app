@@ -84,6 +84,7 @@
     //   وكانت تُردّ برسالة «تعذّر إثبات هويتك» فيظنّ المعلم أنه أخطأ في رقمه ويعيد المحاولة بلا طائل.
     exposed: "رقمك الحالي محفوظ بالطريقة القديمة فلا يصلح لإثبات هويتك — اطلب من المدير «إعادة تعيين رقم الدخول»، ثم غيّره بنفسك متى شئت",
     claim: "هذه الخطوة تحتاج جلسة أثبتَّ فيها رقم دخولك على هذا الجهاز — سجّل خروجاً ثم دخولاً برقمك وأعد المحاولة",
+    denied: "رُفضت هذه العملية — ليس السبب الإنترنت. أعد تحميل الصفحة، وإن تكررت فتواصل مع أ. ضيف الله",
     advice: "رقم من 6 خانات فأكثر أصعب في التخمين"
   };
 
@@ -209,11 +210,22 @@
   }
   let claimKey = "";                   // آخر مطالبة كُتبت في هذه الصفحة — فلا تتكرر الكتابة عبثاً
   let cq = Promise.resolve();          // سلسلة المطالبات (ينتظرها flush في الاختبارات)
-  function claimSession(tid, h) {
-    tid = String(tid || ""); h = String(h || "");
-    if (!cloud() || !TID_RE.test(tid) || !HEX_RE.test(h)) return Promise.resolve(false);
-    const u = authUid();
-    if (!u) return Promise.resolve(false);
+  let lastProof = null;                // آخر هوية أثبتها هذا الجهاز فعلاً {tid,h} — لإعادة المحاولة
+  /* المصادقة المجهولة قد لا تكون جاهزة لحظة الدخول (شاشة الدخول تظهر قبلها)،
+     وكان غياب uid يُسقط المطالبة صامتاً بلا إعادة محاولة — فيبقى الجهاز بلا مطالبة إلى الدخول التالي. */
+  function waitUid() {
+    return new Promise((res) => {
+      let done = false, off = null;
+      const fin = (v) => { if (done) return; done = true; try { if (off) off(); } catch (e) { } res(v); };
+      try {
+        if (!cloud() || !window.firebase || !firebase.auth) return fin("");
+        const now = authUid(); if (now) return fin(now);
+        off = firebase.auth().onAuthStateChanged((u) => { if (u && u.uid) fin(String(u.uid)); });
+      } catch (e) { return fin(""); }
+      setTimeout(() => fin(authUid()), WTO);
+    });
+  }
+  function writeClaim(u, tid, h) {
     const k = u + "|" + tid + "|" + h;
     if (claimKey === k) return Promise.resolve(true);
     claimKey = k;
@@ -223,12 +235,43 @@
     cq = cq.then(() => p).catch(() => { });
     return p;
   }
+  function claimSession(tid, h) {
+    tid = String(tid || ""); h = String(h || "");
+    if (!cloud() || !TID_RE.test(tid) || !HEX_RE.test(h)) return Promise.resolve(false);
+    lastProof = { tid: tid, h: h };
+    const u = authUid();
+    if (u) return writeClaim(u, tid, h);
+    const p = waitUid().then((u2) => u2 ? writeClaim(u2, tid, h) : false);
+    cq = cq.then(() => p).catch(() => { });
+    return p;
+  }
+  // مطالبة تعذّرت (انقطاع أو مصادقة متأخرة) تُعاد عند عودة الإنترنت — وإلا بقي الجهاز بلا مطالبة إلى الدخول التالي
+  try {
+    window.addEventListener("online", () => {
+      if (lastProof && !claimKey) claimSession(lastProof.tid, lastProof.h).catch(() => { });
+    });
+  } catch (e) { }
+  /* خطوتان تحتجّ لهما القواعد بمطالبة الجلسة: حذف بصمة رقم قديم، وحذف قناة الإثبات.
+     والمطالبة تُكتب في الخلفية حتى لا تُبطئ الدخول — فتُنتظر قبل هاتين الخطوتين وحدهما،
+     وإلا سبق الحذفُ المطالبةَ فرُفض، فبقيت البصمة القديمة والقناة معلّقتين. */
+  function claimReady() { return withTo(Promise.resolve(cq), WTO, "claim").then(() => true, () => false); }
   // هل لهذا الجهاز مطالبة كُتبت من هذا التطبيق؟ (للواجهة: تفسير رفضٍ قبل وقوعه)
   function hasClaim(tid) {
     const u = authUid(); if (!u) return false;
+    const t = tid ? String(tid) : "";
+    if (claimKey && claimKey.split("|")[0] === u && (!t || claimKey.split("|")[1] === t)) return true;
     let v = ""; try { v = localStorage.getItem(CKEY) || ""; } catch (e) { }
     const p = v.split("|");
-    return p[0] === u && (!tid || p[1] === String(tid));
+    return p[0] === u && (!t || p[1] === t);
+  }
+  /* الجلسة المستأنفة من قبل نشر المطالبة لا مطالبة لها ولا سبيل إلى اشتقاقها (الإثبات المحلي
+     مُشتقّ بـPBKDF2 فلا تُسترجع منه البصمة) — فلا حلّ إلا إدخال الرقم مرة واحدة.
+     تستعملها الواجهة لتطلب الرقم عند الاستئناف بدل أن تُرفض عمليات المدير وتُنسب إلى الإنترنت. */
+  function needsClaim(tid) { return !!cloud() && !hasClaim(tid); }
+  // ترجمة رفضِ القواعد إلى ما يفعله المستخدم — بدل «تحقّق من الاتصال» عن رفضٍ لا علاقة له بالشبكة
+  function explain(e, tid) {
+    if (!isPerm(e)) return "";
+    return needsClaim(tid) ? MSG.claim : MSG.denied;
   }
 
   /* ═══ مستند المعلم: الختم والعلم — نقرأهما من بيانات المدرسة المحمّلة، ونكتبهما دمجاً ═══ */
@@ -246,7 +289,9 @@
     return n;
   }
   // «سجّل هويته»: علم التسجيل، أو بصمة قديمة في مستنده، أو أنه المدير سحابياً (رقمه يُدار من الكونسول)
-  const isReg = (t) => !!(t && (t.reg === true || (typeof t.pinHash === "string" && t.pinHash) || (cloud() && t.admin === true)));
+  const isReg = (t) => !!(t && (t.reg === true || (typeof t.pinHash === "string" && t.pinHash)
+      || (typeof t.pt === "number" && t.pt > 0)          // مختوم ⊇ مرّ بقناة الإثبات وله بصمة حيّة في pins
+      || (cloud() && t.admin === true)));
   function stampOk(d, t) {
     const pt = ptOf(t);
     if (!pt) return true;                       // لم يُختم بعد ⇒ مستند البصمة الوحيد يكفي
@@ -254,9 +299,11 @@
   }
   // انعكاس فوري على البيانات المحمّلة حتى ترى الواجهة والدخول التالي الحالة الجديدة بلا إعادة تحميل
   //   (حساب المدير: علمه reg مجمّد في القواعد فلا يُرفع محلياً أيضاً، وإلا تعطّل مسار دخوله القديم في الجلسة نفسها)
+  //  تجريبياً لا قواعد تجمّد علم المدير، وتجميده هنا كان يُبقي 1234 يدخل حساب المدير
+  //  بعد تغيير رقمه — والشاشة تعد بعكسه: «بعد الحفظ لن يعمل الرقم 1234 لحسابك».
   function markLocalTeacher(tid, ts, dropped) {
     const t = teacherById(tid); if (!t) return;
-    if (t.admin !== true) t.reg = true;
+    if (!cloud() || t.admin !== true) t.reg = true;
     if (ts) t.pt = +ts;
     if (dropped) { try { delete t.pinHash; } catch (e) { } }
     const s = S();
@@ -324,7 +371,9 @@
     // ومستندات المدرسة الحالية أُنشئت بلا هذا الحقل — فبدونه تُرفض كتابة الدمج ويفشل تغيير الرقم.
     const t = teacherById(tid);
     const patch = { ts: Date.now() };
-    if (!(t && t.admin === true)) patch.reg = true;      // علم المدير مجمّد في القواعد: إرساله يُبطل الكتابة كلها
+    // علم المدير مجمّد في قواعد السحابة: إرساله يُبطل الكتابة كلها. وتجريبياً يُرفع للجميع
+    //   حتى يُبطل 1234 لحساب المدير أيضاً بعد تغيير رقمه (فرع DEMO_PIN في verify يقرأ reg).
+    if (!cloud() || !(t && t.admin === true)) patch.reg = true;
     if (withPt) patch.pt = +ts || Date.now();
     // البصمة القديمة لا تُرسل للمحو إلا إن صارت ميتة، وإلا رُفضت الكتابة كاملة فضاع الختم معها
     const asAfter = t ? Object.assign({}, t, patch.reg === true ? { reg: true } : {}) : null;
@@ -383,7 +432,10 @@
     }
     // «لم تُسجل هويتك» تُقال بعد أن نتأكد أن رقمه ليس في pins أصلاً — لا قبل السؤال:
     //   حساب رُحّل رقمه إلى pins ومُسحت بصمته القديمة كان يُردّ بهذه الرسالة خطأً فيُمنع من الدخول.
-    if (!demo && t && t.reg !== true && !t.pinHash) return { ok: false, err: MSG.noreg };
+    // ولا تُقال إلا لمن لا إثبات له أصلاً: قراءة reg الخام كانت تقولها لحساب المدير
+    //   (علمه مجمّد في القواعد) ولكل حساب نجحت له pins وتعثّر ختم مستنده — فيُصرف صاحبه
+    //   عن إعادة إدخال رقمه وهو الذي يدخله فوراً.
+    if (!demo && t && !isReg(t)) return { ok: false, err: MSG.noreg };
     return { ok: false, err: MSG.bad };
   }
 
@@ -394,7 +446,9 @@
     if (!TID_RE.test(tid)) return { ok: false, err: MSG.noTeacher };
     if (!STRONG_RE.test(pin)) return { ok: false, err: MSG.short };   // كل رقم جديد: 6 خانات فأكثر
     const t = teacherById(tid);
-    if (t && t.reg === true) return { ok: false, err: MSG.already };
+    // isReg لا reg الخام: حساب نجح ختمه pt وتعثّر علمه، أو بقيت له بصمة قديمة، له رقم دخول فعلاً.
+    //   وتسجيل «أول رقم» له ينشئ بصمة ثانية بلا ختم مطابق — فلا هي تعمل ولا هو يعرف لماذا. الطريق الصحيح: «إعادة التعيين».
+    if (t && isReg(t)) return { ok: false, err: MSG.already };
     const ts = stampTs(tid);
     const h = await hash(pin, tid);
     const r = await ensurePin(tid, h, ts, false);
@@ -428,6 +482,7 @@
     if (!(await stampTeacher(tid, ts, true))) { await rollback(tid, hNew); return { ok: false, err: MSG.half }; }
     saveLocal(tid, hNew, ts).catch(() => { });
     claimSession(tid, hNew).catch(() => { });      // مطالبة هذا الجهاز بالبصمة الجديدة (القديمة ستُحذف)
+    await claimReady();                            // الحذفان التاليان تشترطهما القواعد بمطالبة مكتوبة فعلاً
     try { await delDoc("pins/" + hOld); } catch (e) { warn("drop old", e); }   // أُبطلت بالختم أصلاً
     cleanup(tid);
     dropStaleHash(tid).catch(() => { });        // ماتت البصمة القديمة الآن ⇒ تُمحى من المستند المقروء
@@ -463,6 +518,7 @@
     const r = await ensurePin(targetTid, hNew, ts, true);
     if (!r.ok) { cleanup(targetTid); return { ok: false, err: r.why === "taken" ? MSG.taken : r.why === "perm" ? MSG.claim : MSG.net }; }
     if (!(await stampTeacher(targetTid, ts, true))) { await rollback(targetTid, hNew); return { ok: false, err: MSG.half }; }
+    await claimReady();                            // مطالبة المدير (كُتبت عند تحقق رقمه) هي إذن الحذفين التاليين
     if (req.old) { try { await delDoc("pins/" + req.old); } catch (e) { warn("drop old/admin", e); } }
     cleanup(targetTid);
     dropStaleHash(targetTid).catch(() => { });   // ماتت البصمة القديمة الآن ⇒ تُمحى من المستند المقروء
@@ -473,6 +529,7 @@
   /* تراجع: تعذّر ختم مستند المعلم بعد إنشاء البصمة الجديدة ⇒ نحذفها ما دامت قناة الإثبات قائمة
      (القواعد تسمح بحذفها لأن pinreq.h تساويها)، فلا يبقى رقمان صالحان. والرقم القديم يعمل كما كان. */
   async function rollback(tid, hNew) {
+    await claimReady();
     try { await delDoc("pins/" + hNew); } catch (e) { warn("rollback", e); }
     cleanup(tid);
   }
@@ -516,6 +573,8 @@
     // مطالبة الجلسة: يكتبها الدخول تلقائياً، وhasClaim تخبر الواجهة أن الكتابة المُتلِفة ستُقبل
     claim: claimSession,
     hasClaim: hasClaim,
+    needsClaim: needsClaim,
+    explain: explain,
     PIN_RE: PIN_RE,
     STRONG_RE: STRONG_RE,
     MSG: MSG,

@@ -5,9 +5,14 @@
 
 ماذا يفعل؟
   يقرأ من Firestore بحساب خدمة: جدول الحصص ``schedule/all``، وأوقات الأجراس ``cfg/bell``،
-  والمعلمين ``teachers``، والفصول ``classes``، واشتراكات الإشعارات ``push/*``.
-  ثم يحسب بتوقيت الرياض أي حصة ستبدأ خلال نافذة 3–12 دقيقة، ويرسل لصاحبها إشعاراً
-  عربياً عنوانه «الحصة الثالثة بعد قليل» ونصه «رابع (أ) — تبدأ 9:15».
+  وأسابيع الفصول ``meta/app``، والمعلمين ``teachers``، والفصول ``classes``، واشتراكات
+  الإشعارات ``push/*``. ثم يحسب بتوقيت الرياض أي حصة ستبدأ خلال نافذة 3–12 دقيقة، ويرسل
+  لصاحبها إشعاراً عربياً عنوانه «الحصة الثالثة بعد قليل» ونصه «رابع (أ) — تبدأ 9:15».
+
+الإجازات:
+  يوم لا يقع داخل أي أسبوع من ``meta.weeks`` إجازة (إجازة منتصف الفصل ورمضان والعيدان
+  والصيف)، فلا يُرسل فيه شيء — تماماً كما يصمت js/notify.js ويكتب js/ics.js لذلك اليوم
+  EXDATE. بلا هذا الحارس كانت المهمة المجدولة ترسل «الحصة الأولى بعد قليل» طوال الصيف.
 
 منع التكرار:
   قبل كل إرسال يُنشأ المستند ``pushlog/{معرّف المعلم}_{التاريخ}_{رقم الحصة}``.
@@ -74,6 +79,66 @@ LEAD_LO, LEAD_HI = 3, 12
 def log(*parts: object) -> None:
     """طباعة سطر عربي على الخرج القياسي."""
     print(" ".join(str(p) for p in parts), flush=True)
+
+
+# ═══════════════════════ أسابيع الفصل (التقويم الهجري) ═══════════════════════
+# أسابيع الفصول في meta.weeks هجرية «يوم/شهر/سنة» بتقويم أم القرى، وهو ما يستعمله
+# المتصفح عبر Intl في js/ics.js:fromHijri. لا يوجد في مكتبة بايثون القياسية تقويمُ أم
+# القرى، وإضافةُ مكتبة خارجية تعني تعديل ملف المهمة المجدولة، فنستعمل التقويم الهجري
+# الجدولي (tabular) بإزاحة −1 يوم.
+#
+# دقّة هذا التقريب مقيسة لا مقدَّرة: قُورنت حدود الأسابيع الـ76 كلها (فصلا 1448/1449 في
+# بيانات المدرسة) بما يعطيه المتصفح، فكان أقصى فرق **يوماً واحداً**. ولذلك نتسامح بيومين
+# على كل طرف قبل أن نحكم بـ«إجازة»: فلا نُسكت تنبيهاً في يوم دراسي حقيقي أبداً، بينما
+# تُسكَت الإجازاتُ الطويلة (إجازة منتصف الفصل ورمضان والعيدان والصيف) كلها.
+# القاعدة نفسها هنا وفي js/notify.js: لا بيانات أسابيع ⇒ لا نُسكت شيئاً.
+
+ISLAMIC_EPOCH = 1948438.5          # التقويم الجدولي بالإزاحة المقيسة (−1 يوم عن epoch المدني)
+TERM_SLACK = 2                     # هامش أمان بالأيام على طرفي كل أسبوع
+
+
+def hijri_to_greg(text: object):
+    """«10/3/1448» → datetime.date تقريبية (±يوم واحد)، أو None إن لم تكن صيغة صالحة."""
+    parts = str(text or "").strip().split("/")
+    if len(parts) != 3:
+        return None
+    try:
+        d, m, y = (int(x) for x in parts)
+    except (TypeError, ValueError):
+        return None
+    if not (1 <= d <= 30 and 1 <= m <= 12 and 1000 < y < 2000):
+        return None
+    jd = (d + math.ceil(29.5 * (m - 1)) + (y - 1) * 354
+          + (3 + 11 * y) // 30 + ISLAMIC_EPOCH) - 1
+    try:
+        return dt.date.fromordinal(int(jd - 1721424.5))
+    except (ValueError, OverflowError):
+        return None
+
+
+def term_spans(meta: object) -> list:
+    """كل أسابيع كل الفصول في meta.weeks → [(بداية, نهاية)] ميلادياً، مرتبةً."""
+    weeks = ((meta or {}).get("weeks") if isinstance(meta, dict) else None) or {}
+    if not isinstance(weeks, dict):
+        return []
+    out = []
+    for key in sorted(weeks):
+        for w in (weeks.get(key) or []):
+            if not isinstance(w, dict):
+                continue
+            a, b = hijri_to_greg(w.get("from")), hijri_to_greg(w.get("to"))
+            if a and b and b >= a:
+                out.append((a, b))
+    out.sort()
+    return out
+
+
+def in_term(day: "dt.date", spans: list) -> bool:
+    """هل هذا اليوم داخل أسبوع دراسي؟ بلا أسابيع ⇒ نعم (لا نُسكت بسبب نقص بيانات)."""
+    if not spans:
+        return True
+    slack = dt.timedelta(days=TERM_SLACK)
+    return any((a - slack) <= day <= (b + slack) for a, b in spans)
 
 
 # ═══════════════════════ محرك الأجراس ═══════════════════════
@@ -241,7 +306,7 @@ def periods_only(cfg: dict, day: str | None) -> list:
 
 def plan_alerts(now: dt.datetime, rows: list, bell_raw: object, teachers: list,
                 classes: dict, subs: dict, lo: int = LEAD_LO, hi: int = LEAD_HI,
-                url: str = "./") -> list:
+                url: str = "./", spans: list | None = None) -> list:
     """
     دالة خالصة (بلا شبكة) — قلب الحساب، وعليها تقوم اختبارات الوحدات.
 
@@ -252,9 +317,12 @@ def plan_alerts(now: dt.datetime, rows: list, bell_raw: object, teachers: list,
     classes   {معرّف الفصل: اسمه}
     subs      {معرّف المعلم: {ep, p256dh, auth}}
     lo, hi    نافذة الدقائق قبل بداية الحصة
+    spans     مدد الأسابيع الدراسية من term_spans() — خارجها إجازة فلا تنبيه
 
     تعيد قائمة تنبيهات جاهزة للإرسال، ومعها سبب تخطّي من لا اشتراك له.
     """
+    if not in_term(now.date(), spans or []):
+        return []                                 # إجازة رسمية: لا حصص ولا تنبيهات
     cfg = norm_bell(bell_raw)
     day = DAYS[(now.weekday() + 1) % 7]           # weekday: الإثنين 0 → نُعيده لترتيب getDay
     m = now.hour * 60 + now.minute
@@ -501,6 +569,7 @@ def main(argv=None) -> int:
     try:
         st = Store(load_sa(os.environ.get("SA_JSON", "")))
         bell_raw = st.get("cfg/bell")
+        spans = term_spans(st.get("meta/app"))
         sched = st.get("schedule/all") or {}
         rows = sched.get("rows") if isinstance(sched.get("rows"), list) else []
         teachers = [{"id": tid, "name": f.get("name")} for tid, f in st.list("teachers").items()]
@@ -517,9 +586,14 @@ def main(argv=None) -> int:
 
     # صيغة «الاسم: العدد» تقرأ صحيحة مع أي رقم بلا تعقيد صيغ الجمع العربية
     log("قُرئ — حصص الجدول:", len(rows), "· المعلمون:", len(teachers),
-        "· الفصول:", len(classes), "· الأجهزة المشتركة:", len(subs))
+        "· الفصول:", len(classes), "· الأجهزة المشتركة:", len(subs),
+        "· أسابيع دراسية:", len(spans) if spans else "غير محدّدة")
 
-    alerts = plan_alerts(now, rows, bell_raw, teachers, classes, subs, lo, hi, url)
+    if spans and not in_term(now.date(), spans):
+        log("اليوم خارج أسابيع الفصل (إجازة) — لا شيء يُرسل.")
+        return 0
+
+    alerts = plan_alerts(now, rows, bell_raw, teachers, classes, subs, lo, hi, url, spans)
     if not alerts:
         log("لا حصة تبدأ ضمن النافذة الآن — لا شيء يُرسل.")
         return 0

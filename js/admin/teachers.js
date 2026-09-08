@@ -73,6 +73,8 @@
   }
 
   /* ═══ أدوات ═══ */
+  // رسالة فشل الكتابة من النواة (تميّز رفض القواعد عن انقطاع الشبكة) — واحتياط لو كانت النواة قديمة في الكاش
+  const wErr = (e, what) => { const f = A().writeErr; try { if (typeof f === "function") return f(e, what); } catch (x) { } return "تعذّر " + (what || "الحفظ") + " — تحقّق من الاتصال ثم أعد المحاولة."; };
   const teachers = () => (S().D.teachers || []);
   const byId = (tid) => teachers().find(t => t.id === tid) || null;
   const mobOf = (t) => String((t && (t.mob || t.phone)) || "").trim();
@@ -91,11 +93,14 @@
   const exposedPin = (t) => { const a = AU(); return !!(a && typeof a.exposed === "function" && a.exposed(t)); };
   const loginState = (t) => exposedPin(t) ? { ok: false, t: "⚠️ يحتاج رقماً جديداً" }
     : isReg(t) ? { ok: true, t: "✅ سجّل هويته" } : isDemo() ? { ok: true, t: "🧪 تجريبي (1234)" } : { ok: false, t: "⏳ لم يسجّل" };
-  /* القواعد المنشورة (firestore.rules → teachers/{tid}) لا تسمح بكتابة أي بصمة في مستند المعلم، ورقم المدير يُدار من كونسول Firebase:
-     قراءة teachers مفتوحة لأي جهاز مصادَق (مجهولاً)، فالسماح بكتابة بصمة المدير من العميل = استيلاء على اللوحة.
-     لذلك تُعطَّل أزرار رقم الدخول لحساب المدير في الوضع السحابي بدل تركها ترمي «تعذّر الحفظ». */
-  const pinLocked = (t) => !isDemo() && !!(t && t.admin);
-  const PIN_LOCK = "رقم دخول حساب المدير لا يُغيَّر من داخل التطبيق — حمايةً للحساب (القراءة مفتوحة لأي جهاز). يُعاد تعيينه من كونسول Firebase.";
+  /* كان حساب المدير مقفلاً دائماً في الوضع السحابي لأن القواعد آنذاك جمّدت ختم الرقم pt له فلا يُغيَّر
+     رقمه إلا من كونسول Firebase. القواعد المنشورة اليوم تسمح له (firestore.rules: «ختم الرقم pt يتبع
+     قناة الإثبات» — وقناة المدير لا تُفتح إلا بمعرفة رقمه هو)، ولم تبقَ بصمة منشورة في مستندات المعلمين
+     بعد الحذف الجماعي، وهو ما تَعِد به docs/AUTH_SPEC.md §8. فبقي القفل حاجزاً بلا سبب: المدير وحده
+     عاجز عن تغيير رقمه لو تسرّب. القفل الآن للحالة الوحيدة التي تعجز عنها القواعد فعلاً: بصمة قديمة
+     ما تزال منشورة في مستند المدير — لا تصلح إثباتاً، ولا مديرَ فوقه يعيد تعيينها له. */
+  const pinLocked = (t) => !isDemo() && !!(t && t.admin) && exposedPin(t);
+  const PIN_LOCK = "رقم دخول حساب المدير محفوظ بالطريقة القديمة فلا يصلح لإثبات هويته — يُحذف حقل pinHash من مستند الحساب في كونسول Firebase، ثم يصير الرقم قابلاً للتغيير من هنا.";
   const randPin = () => { try { const a = new Uint32Array(1); crypto.getRandomValues(a); return String(100000 + (a[0] % 900000)); } catch (e) { return String(100000 + Math.floor(Math.random() * 900000)); } };
   const subjects = () => [...new Set(teachers().map(t => t.subject).filter(Boolean))].sort();
   const leadOf = (t) => ((t && t.lead) || []).filter(cid => !!S().classById(cid));
@@ -143,18 +148,33 @@
      الاسم يقطع صلة المعلم بجدوله بصمت: «حصص اليوم» صفر، وشبكة الحصص كلها «—»، ولا تنبيه حصة،
      وملف التقويم بلا مواعيد، والاسم القديم يبقى معلماً شبحاً في الجدول العام. */
   const schedCount = (name) => (Array.isArray(S().D.schedule) ? S().D.schedule : []).filter(r => r && r.t === name).length;
-  async function renameInSchedule(oldName, newName) {
+  /* حين يتشارك الاسمَ معلمان (خطأ في التعديل مثلاً) لم يعد الاسم يميّز صاحب الصف، فكانت إعادة التسمية
+     تنقل «كل» الصفوف الحاملة للاسم — بما فيها حصص الزميل — فيفقد جدوله كاملاً بلا تنبيه ولا تراجع.
+     نقصرها الآن على فصول هذا المعلم وحده، ونستثني الفصول التي يشاركه فيها حاملُ الاسم نفسه (ملتبسة).
+     null = الاسم فريد ⇒ كل صفوفه له (السلوك الطبيعي). */
+  function renameScope(oldName, tid) {
+    const others = teachers().filter(t => t.id !== tid && String(t.name || "") === oldName);
+    if (!tid || !others.length) return null;
+    const mine = new Set(((byId(tid) || {}).classes) || []);
+    others.forEach(t => (t.classes || []).forEach(c => mine.delete(c)));
+    return mine;
+  }
+  // ⇒ { n: صفوف أُعيدت تسميتها, skipped: صفوف بالاسم نفسه تُركت لأنها ملتبسة بين معلمين }
+  async function renameInSchedule(oldName, newName, tid) {
     const s = S(), all = Array.isArray(s.D.schedule) ? s.D.schedule : [];
-    const n = all.filter(r => r && r.t === oldName).length;
-    if (!n) return 0;
-    const rows = all.map(r => ({ t: (r && r.t === oldName) ? newName : String((r && r.t) || ""), d: String((r && r.d) || ""), p: Number(r && r.p) || 0, c: String((r && r.c) || "") }));
+    const scope = renameScope(oldName, tid);
+    const hit = (r) => !!(r && r.t === oldName && (!scope || scope.has(r.c)));
+    const n = all.filter(hit).length, skipped = all.filter(r => r && r.t === oldName).length - n;
+    if (!n) return { n: 0, skipped: skipped };
+    const rows = all.map(r => ({ t: hit(r) ? newName : String((r && r.t) || ""), d: String((r && r.d) || ""), p: Number(r && r.p) || 0, c: String((r && r.c) || "") }));
     if (s.CLOUD && s.fdb) {
       await s.fdb.doc("schedule/all").set({ rows: rows, tn: String((s.TE && s.TE.name) || "الإدارة").slice(0, 80), ts: Date.now() });
       s.D.schedule = rows;
       try { localStorage.setItem("sijil.cloudD", JSON.stringify(s.D)); } catch (e) { }
     } else { s.D.schedule = rows; s.DB.schedule = rows; s.save(); }
-    try { const SC = window.SIJIL_ADMIN_SCHEDULE; if (SC && typeof SC.reload === "function") SC.reload(); } catch (e) { }
-    return n;
+    // نمرّر نطاق التسمية لمحرّر الجدول ليطبّقه على تعديلاته المعلّقة بدل أن يعيد بناءها فيفقدها المدير
+    try { const SC = window.SIJIL_ADMIN_SCHEDULE; if (SC && typeof SC.reload === "function") SC.reload({ from: oldName, to: newName, cids: scope ? [...scope] : null }); } catch (e) { }
+    return { n: n, skipped: skipped };
   }
   // الكتابة: سحابياً مستند كامل مُنظَّف (بعد قراءة الحالي حتى لا نمسح pinHash حديثاً من جهاز آخر) — تجريبياً DB.tedits
   async function writeTeacher(tid, patch, isNew) {
@@ -243,7 +263,7 @@
   /* ═══ ✏️ تعديل معلم ═══ */
   function editTeacher(tid, after) {
     const t = byId(tid); if (!t) return;
-    css();
+    css(); dupOk = "";
     S().openSheet(`<h4>✏️ تعديل بيانات المعلم <span class="tch-id">(${esc(tid)})</span></h4>` + formHtml(t, false), (o) => {
       bindPicker(o);
       $("#tf-no", o).onclick = () => S().closeSheet();
@@ -252,6 +272,13 @@
         if (r.err) { err.textContent = r.err; return; }
         const ch = diffNote(t, r.patch);
         if (!ch.length) { S().closeSheet(); A().toast("لا تغيير"); return; }
+        /* الاسم المكرر يُدمج جدولَي المعلمَين فوراً (صفوف الجدول تُخزَّن بالاسم نصاً) ولا سبيل لفصلهما
+           بعدها — نطلب تأكيداً صريحاً كما يفعل نموذج الإضافة، بدل الحفظ الصامت. */
+        if (r.patch.name !== String(t.name || "") && teachers().some(x => x.id !== tid && String(x.name || "") === r.patch.name) && dupOk !== r.patch.name) {
+          dupOk = r.patch.name;
+          err.textContent = "⚠️ يوجد معلم آخر بالاسم نفسه — وصفوف الجدول تُخزَّن بالاسم، فسيندمج جدولاهما. اضغط «حفظ» مرة أخرى للتأكيد.";
+          return;
+        }
         $("#tf-ok", o).disabled = true; err.textContent = "جارِ الحفظ…";
         try {
           const s = S(), wasMe = !!(s.TE && s.TE.id === tid), clsChanged = ch.some(x => x.indexOf("الفصول") === 0);
@@ -260,18 +287,20 @@
              المستند بعدها أعدنا الجدول إلى الاسم القديم — فلا يبقى الجدول معلَّقاً باسم لا وجود له. */
           const oldName = t.name || "", newName = r.patch.name, renamed = oldName !== newName;
           let moved = 0;
+          let skipped = 0;
           if (renamed) {
-            try { moved = await renameInSchedule(oldName, newName); }
-            catch (e2) { warn("rename/schedule", e2); err.textContent = "تعذّر تحديث الجدول بالاسم الجديد — لم يُحفظ التعديل: " + ((e2 && e2.message) || e2); $("#tf-ok", o).disabled = false; return; }
+            try { const rs = await renameInSchedule(oldName, newName, tid); moved = rs.n; skipped = rs.skipped; }
+            catch (e2) { warn("rename/schedule", e2); err.textContent = wErr(e2, "تحديث الجدول بالاسم الجديد") + " — لم يُحفظ التعديل."; $("#tf-ok", o).disabled = false; return; }
           }
           try { await writeTeacher(tid, p, false); }
-          catch (e3) { if (moved) { try { await renameInSchedule(newName, oldName); } catch (e4) { warn("rollback/schedule", e4); } } throw e3; }
-          await A().adminlog("edit", `تعديل بيانات ${newName}: ${ch.join("، ")}` + (moved ? ` (أُعيدت تسمية ${moved} حصة في الجدول)` : ""), tid);
-          s.closeSheet(); A().toast("✔ حُفظت بيانات " + newName + (moved ? ` — وحُدِّث اسمه في ${moved} حصة بالجدول` : ""), moved ? 3600 : 2200);
+          catch (e3) { if (moved) { try { await renameInSchedule(newName, oldName, tid); } catch (e4) { warn("rollback/schedule", e4); } } throw e3; }
+          const skipTxt = skipped ? ` — وتُركت ${skipped} حصة باسمه القديم لأن معلماً آخر يحمل الاسم نفسه في الفصل ذاته` : "";
+          await A().adminlog("edit", `تعديل بيانات ${newName}: ${ch.join("، ")}` + (moved ? ` (أُعيدت تسمية ${moved} حصة في الجدول)` : "") + (skipped ? ` (تُركت ${skipped} حصة ملتبسة)` : ""), tid);
+          s.closeSheet(); A().toast("✔ حُفظت بيانات " + newName + (moved ? ` — وحُدِّث اسمه في ${moved} حصة بالجدول` : "") + skipTxt, (moved || skipped) ? 5200 : 2200);
           if (moved) { try { s.rerenderTab(); } catch (e5) { } }
           if (wasMe && s.TE.admin && clsChanged) { A().init(s.TE); s.switchTab(A().currentTab() || "teachers"); }   // زر «واجهتي كمعلم» يظهر/يختفي
           else if (after) after();
-        } catch (e) { warn("edit", e); err.textContent = "تعذّر الحفظ: " + ((e && e.message) || e); $("#tf-ok", o).disabled = false; }
+        } catch (e) { warn("edit", e); err.textContent = wErr(e, "حفظ بيانات المعلم"); $("#tf-ok", o).disabled = false; }
       };
     });
   }
@@ -307,7 +336,7 @@
           await A().adminlog("add", `إضافة معلم ${p.name} (${p.subject || "بلا مادة"}) — ${p.classes.length} فصول`, tid);
           if (after) { try { const r2 = after(); if (r2 && r2.catch) r2.catch(() => { }); } catch (e2) { warn("after/add", e2); } }   // الجدول يتحدّث فور نجاح الكتابة مهما أُغلقت النافذة
           showPin(o, p.name, tid, pin, "➕ أُضيف المعلم", after);
-        } catch (e) { warn("add", e); err.textContent = "تعذّرت الإضافة: " + ((e && e.message) || e); $("#tf-ok", o).disabled = false; }
+        } catch (e) { warn("add", e); err.textContent = wErr(e, "إضافة المعلم"); $("#tf-ok", o).disabled = false; }
       };
     });
   }
@@ -339,7 +368,7 @@
           await A().adminlog("pin", `إعادة تعيين رقم دخول ${t.name}`, tid);
           if (after) { try { const r2 = after(); if (r2 && r2.catch) r2.catch(() => { }); } catch (e2) { warn("after/pin", e2); } }
           showPin(o, t.name, tid, pin, "✔ عُيّن رقم الدخول", after);
-        } catch (e) { warn("pin", e); err.textContent = "تعذّر الحفظ: " + ((e && e.message) || e); $("#tp-ok", o).disabled = false; }
+        } catch (e) { warn("pin", e); err.textContent = wErr(e, "تعيين رقم الدخول"); $("#tp-ok", o).disabled = false; }
       };
     });
   }
@@ -368,7 +397,7 @@
     let halfWay = "";
     if (prev) {
       try { await writeTeacher(prev.id, { lead: (prev.lead || []).filter(c => c !== cid) }, false); }
-      catch (e) { warn("lead/prev", e); halfWay = ` — تعذّر رفع الفصل عن الرائد السابق ${prev.name}: ${(e && e.message) || e}`; }
+      catch (e) { warn("lead/prev", e); halfWay = ` — ${wErr(e, "رفع الفصل عن الرائد السابق " + prev.name)}`; }
     }
     const nm = tid ? (byId(tid) || {}).name : "";
     await A().adminlog("lead", (tid ? `تعيين ${nm} رائداً لفصل ${clsName(cid)}${prev ? ` بدل ${prev.name}` : ""}` : `إلغاء رائد فصل ${clsName(cid)}${prev ? ` (${prev.name})` : ""}`) + halfWay, tid || (prev ? prev.id : undefined));
@@ -409,7 +438,7 @@
       String(nCls),
       mob ? `<a class="tch-mob" href="${A().waHref(mob, "")}" target="_blank" rel="noopener">${esc(A().normMob(mob) || mob)}</a>` : '<span class="tch-none">—</span>',
       `<span class="tch-status ${st.ok ? "ok" : "no"}">${st.t}</span>`,
-      lr ? `${A().fmtDate(lr)}<div class="tch-id">${A().daysAgo(lr) === 0 ? "اليوم" : "قبل " + A().daysAgo(lr) + " يوم"}</div>` : (nCls ? '<span style="color:var(--bad)">لا رصد</span>' : "—"),
+      lr ? `${A().fmtDate(lr)}<div class="tch-id">${A().daysAgo(lr) <= 0 ? "اليوم" : "قبل " + A().daysAgo(lr) + " يوم"}</div>` : (nCls ? '<span style="color:var(--bad)">لا رصد</span>' : "—"),
       ld.length ? `🎖️ ${esc(ld.join("، "))}` : '<span class="tch-none">—</span>',
       `<div class="tch-act"><button data-act="edit" data-tid="${esc(t.id)}" title="تعديل بيانات المعلم">✏️</button>${pinLocked(t)
         ? `<button disabled style="opacity:.4;cursor:not-allowed" title="${esc(PIN_LOCK)}">🔒</button>`
@@ -452,7 +481,7 @@
     box.querySelectorAll("#tch-leads select").forEach(sel => sel.onchange = async () => {
       sel.disabled = true;
       try { const ch = await assignLead(sel.dataset.cid, sel.value || null); if (ch) A().toast(sel.value ? "🎖️ عُيّن الرائد" : "أُلغي الرائد"); again(); }
-      catch (e) { warn("lead", e); A().toast("تعذّر الحفظ: " + ((e && e.message) || e)); sel.disabled = false; again(); }   // إعادة الرسم تُظهر الحالة الحقيقية بعد فشل جزئي
+      catch (e) { warn("lead", e); A().toast(wErr(e, "حفظ رائد الفصل"), 5200); sel.disabled = false; again(); }   // إعادة الرسم تُظهر الحالة الحقيقية بعد فشل جزئي
     });
     $("#tch-print", box).onclick = () => A().printTable("قائمة المعلمين" + (ql ? " — بحث: " + ql : ""),
       ["م", "المعلم", "المادة", "الفصول", "الجوال", "الدخول", "آخر رصد", "الرائد"],
@@ -506,7 +535,7 @@
     const body = `<div class="me-head"><div class="me-avatar">${me.admin ? "🏫" : "👨‍🏫"}</div><div><div class="me-name">${esc(me.name)}</div><div class="me-sub">${esc(me.admin ? "مدير المدرسة" : (me.subject || "—"))} · ${esc(me.id)}</div>${leadBadge(me)}</div></div>
       ${H.row("الفصول", cls.length ? `<span class="tch-chips" style="justify-content:flex-start">${cls.map(c => `<span class="cc" style="background:${leads.has(c.id) ? "var(--gold)" : "var(--navy)"};color:${leads.has(c.id) ? "var(--navy)" : "#fff"}">${leads.has(c.id) ? "🎖️ " : ""}${esc(c.name)}</span>`).join("")}</span>` : "—")}
       ${H.row("حالة التسجيل", `<span class="tch-status ${st.ok ? "ok" : "no"}">${st.t}</span>`)}
-      ${exposedPin(me) ? H.alert("⚠️ رقم دخولك الحالي قديم ومحفوظ بطريقة يمكن كشفها — غيّره الآن من الزر أدناه ليصبح محفوظاً بالطريقة الآمنة.") : ""}
+      ${(exposedPin(me) && !pinLocked(me)) ? H.alert("⚠️ رقم دخولك الحالي قديم ومحفوظ بطريقة يمكن كشفها — غيّره الآن من الزر أدناه ليصبح محفوظاً بالطريقة الآمنة.") : ""}
       <div class="field" style="margin-top:12px"><label>📱 جوالي</label><div class="me-mobrow"><input id="me-mob" inputmode="tel" maxlength="20" value="${esc(mobN)}" placeholder="05xxxxxxxx" autocomplete="off"><button class="btn-gold" id="me-mob-save">حفظ</button></div></div>
       <div class="login-err" id="me-mob-err" style="margin-top:0"></div>
       ${pinLocked(me) ? H.alert("🔒 " + esc(PIN_LOCK)) : `<button class="btn-gold" id="me-pin-btn" style="width:100%">🔐 تغيير رقم الدخول</button>`}
@@ -540,7 +569,7 @@
         await writeTeacher(me.id, { mob: val, phone: "" }, false);
         await A().adminlog("edit", `${me.name} حدّث رقم جواله`, me.id);
         A().toast(val ? "✔ حُفظ الجوال" : "✔ حُذف الجوال"); profileCard(el, opts);
-      } catch (e) { warn("mob", e); err.textContent = "تعذّر الحفظ: " + ((e && e.message) || e); btn.disabled = false; }
+      } catch (e) { warn("mob", e); err.textContent = wErr(e, "حفظ الجوال"); btn.disabled = false; }
     };
     // 🔐 تغيير رقم الدخول (التحقق من الحالي محلياً بالبصمة نفسها التي يستخدمها الدخول)
     const pinBtn = $("#me-pin-btn", el);
@@ -560,7 +589,7 @@
         await A().adminlog("pin", `${me.name} غيّر رقم دخوله بنفسه`, me.id);
         A().toast("✔ تغيّر رقم الدخول — سيُطلب الجديد على كل أجهزتك", 3200);
         profileCard(el, opts);
-      } catch (e) { warn("pin/self", e); err.textContent = "تعذّر الحفظ: " + ((e && e.message) || e); btn.disabled = false; }
+      } catch (e) { warn("pin/self", e); err.textContent = wErr(e, "تغيير رقم الدخول"); btn.disabled = false; }
     };
   }
 

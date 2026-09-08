@@ -22,6 +22,7 @@
   // تمييز العدد في العربية (جمع القلة 3–10 ثم التمييز المفرد المنصوب)
   const nDays = (n) => n === 1 ? "يوم واحد" : n === 2 ? "يومان" : (n >= 3 && n <= 10) ? `${n} أيام` : `${n} يوماً`;
   const nTeachers = (n) => n === 1 ? "معلم واحد" : n === 2 ? "معلمان" : (n >= 3 && n <= 10) ? `${n} معلمين` : `${n} معلماً`;
+  const nCases = (n) => n === 1 ? "حالة واحدة" : n === 2 ? "حالتان" : (n >= 3 && n <= 10) ? `${n} حالات` : `${n} حالة`;
   // تعريف «المعلمين» واحد في كل اللوحة (core.js): غير إداري وله فصل مسند — حتى لا تختلف الأعداد بين التبويبات
   const staff = () => (typeof A().staff === "function" ? A().staff() : (S().D.teachers || []).filter(t => !t.admin && (t.classes || []).length));
 
@@ -117,14 +118,25 @@
     docsOf(cx, cid).forEach(dc => { const day = (dc.recs || {})[date] || {}; Object.keys(day).forEach(si => { const e = day[si]; if (!e || e.a == null) return; const b = bucketOf(e.a); if (out[si] == null || PRIO[b] > PRIO[out[si]]) out[si] = b; }); });
     return out;
   }
-  function classDates(cx, cid) { const set = new Set(); docsOf(cx, cid).forEach(dc => Object.keys(dc.recs || {}).forEach(d => { if (Object.keys(dc.recs[d] || {}).length) set.add(d); })); return [...set].sort(); }
+  // اليوم الذي لا يحمل إلا سجلات فارغة ليس يوم رصد (A().hasMarks — نفس تعريف emptyRec في app.js)
+  const dayHas = (day) => { try { return A().hasMarks(day); } catch (e) { return !!Object.keys(day || {}).length; } };
+  function classDates(cx, cid) { const set = new Set(); docsOf(cx, cid).forEach(dc => Object.keys(dc.recs || {}).forEach(d => { if (dayHas(dc.recs[d])) set.add(d); })); return [...set].sort(); }
   // حضور فصل عبر تواريخ: { cnt:[5], marked, absentees:[{si, n}] }
   function attendance(cx, cid, dates) {
     const c = S().classById(cid), cnt = [0, 0, 0, 0, 0], abs = {}; let marked = 0;
     dates.forEach(d => { const m = dayMarks(cx, cid, d); Object.keys(m).forEach(si => { if (!S().isActive(c, +si)) return; cnt[m[si]]++; marked++; if (m[si] === 1) abs[si] = (abs[si] || 0) + 1; }); });
     return { cnt, marked, absentees: Object.keys(abs).map(si => ({ si: +si, s: c.students[si], n: abs[si] })).sort((a, b) => b.n - a.n) };
   }
-  const attPctOf = (att) => att.marked ? Math.round(att.cnt[0] / att.marked * 100) : null;
+  /* نسبة الحضور من عدّادات الفئات — التعريف الموحّد نفسه في SIJIL.attPct وcore.js attOf:
+     «حاضر/عن بعد» (الفئة 0) حضور كامل · «متأخر» (2) نصف حضور · «مستأذن/بعذر» (3) خارج المقام.
+     كان الحساب هنا cnt[0]/marked وحده فيظهر الفصل ذاته بنسبتين مختلفتين داخل اللوحة: تقرير الحضور
+     ومؤشر «حضور اليوم» بتعريف، وعمود الطالب ومتوسط الفصل والمستويات بتعريف آخر. */
+  function attPctCnt(cnt, marked) {
+    const c = cnt || [], m = +marked || 0; if (!m) return null;
+    const denom = m - (c[3] || 0); if (denom <= 0) return null;   // كل المرصود بعذر ⇒ لا مقام: «—» لا 0%
+    return Math.round(Math.min(1, ((c[0] || 0) + 0.5 * (c[2] || 0)) / denom) * 100);
+  }
+  const attPctOf = (att) => attPctCnt(att.cnt, att.marked);
   /* الوضع التجريبي: مستندات DB بلا معرّف معلم — ما رُصد على هذا الجهاز يُنسب لمن رصده فعلاً (DB.by)،
      وما جاء مع البيانات التجريبية يُنسب تقديراً إلى أحد معلمي الفصل. نُعلنها في الشاشات التي تسمّي معلماً. */
   const demoNote = (sd) => (sd && (sd.demoGuess || []).length)
@@ -134,7 +146,9 @@
   // آخر رصد لمعلم عبر كل فصوله + أيام الرصد منذ تاريخ
   function teacherStats(cx, tid, since) {
     const docs = A().teacherDocsOf(cx.sd, tid); let last = null; const days = new Set(); let comms = 0;
-    docs.forEach(dc => { const l = A().lastRecDate(dc.recs); if (l && (!last || l > last)) last = l; Object.keys(dc.recs || {}).forEach(d => { if (d >= since && Object.keys(dc.recs[d] || {}).length) days.add(d); }); comms += (dc.comms || []).length; });
+    // السقف نفسه هنا: يوم في المستقبل ليس «يوم رصد هذا الأسبوع» ولا «آخر رصد» (A().maxRecDate)
+    const cap = (typeof A().maxRecDate === "function") ? A().maxRecDate() : "9999-12-31";
+    docs.forEach(dc => { const l = A().lastRecDate(dc.recs, cap); if (l && (!last || l > last)) last = l; Object.keys(dc.recs || {}).forEach(d => { if (d >= since && d <= cap && dayHas(dc.recs[d])) days.add(d); }); comms += (dc.comms || []).length; });
     const assign = (cx.sd.assign || []).filter(a => a.tid === tid).length;
     return { last, weekDays: days.size, comms, assign, classes: docs.length };
   }
@@ -219,13 +233,15 @@
     // ── المؤشرات الستة
     const students = cls.reduce((a, c) => a + s.activeCount(c), 0), teachers = staff();
     const todayRows = (D.schedule || []).filter(r => r.d === tName);
-    const marked = teachers.filter(t => Ad.teacherDocsOf(sd, t.id).some(dc => Object.keys(((dc.recs || {})[td]) || {}).length)).length;
-    let allMarks = 0, present = 0; cls.forEach(c => { const m = dayMarks(cx, c.id, td); Object.keys(m).forEach(si => { if (!s.isActive(c, +si)) return; allMarks++; if (m[si] === 0) present++; }); });
-    const attToday = allMarks ? Math.round(present / allMarks * 100) : null;
+    const marked = teachers.filter(t => Ad.teacherDocsOf(sd, t.id).some(dc => dayHas((dc.recs || {})[td]))).length;
+    // نفس تعريف تقرير الحضور وبطاقة الطالب (attPctCnt): المأذون خارج المقام والمتأخر نصف حضور
+    let allMarks = 0; const todayCnt = [0, 0, 0, 0, 0];
+    cls.forEach(c => { const m = dayMarks(cx, c.id, td); Object.keys(m).forEach(si => { if (!s.isActive(c, +si)) return; allMarks++; todayCnt[m[si]]++; }); });
+    const attToday = attPctCnt(todayCnt, allMarks), attDen = allMarks - todayCnt[3];
     const kpis = h.kpis([
       { v: cls.length, l: "الفصول", id: "kp-classes" }, { v: students, l: "الطلاب النشطون", id: "kp-students" }, { v: teachers.length, l: "المعلمون", id: "kp-teachers" },
       { v: todayRows.length, l: "حصص اليوم", id: "kp-periods", title: tName }, { v: `${marked}<span style="font-size:13px;color:#c9d5e3">/${teachers.length}</span>`, l: "من رصد اليوم", id: "kp-marked" },
-      { v: attToday == null ? "—" : attToday + "%", l: "حضور اليوم", id: "kp-att", title: allMarks ? `${present} حاضر من ${allMarks} مرصود` : "لا رصد اليوم بعد" }]).replace('class="kpis"', 'class="kpis six"');
+      { v: attToday == null ? "—" : attToday + "%", l: "حضور اليوم", id: "kp-att", title: !allMarks ? "لا رصد اليوم بعد" : (attDen > 0 ? `${todayCnt[0]} حاضر${todayCnt[2] ? ` و${todayCnt[2]} متأخر (نصف حضور)` : ""} من ${nCases(attDen)} محسوبة${todayCnt[3] ? ` — و${todayCnt[3]} بعذر خارج الحساب` : ""}` : `كل المرصود اليوم بعذر (${todayCnt[3]}) — لا مقام للنسبة`) }]).replace('class="kpis"', 'class="kpis six"');
     // ── جدول اليوم: الحصص × الفصول (الأعمدة كلها من محرك الأجراس، والفسح أعمدة فاصلة)
     const rowsDay = (D.schedule || []).filter(r => r.d === day);
     const cols = dayCols(day, rowsDay), isToday = day === tName;
@@ -301,21 +317,24 @@
       if (other) c.push(z(r.a.cnt[4]));
       return c.concat([r.a.marked || dash, pctTxt(attPctOf(r.a))]);
     });
-    const foot = ["الإجمالي", d.tot[0], d.tot[1], d.tot[2], d.tot[3]].concat(other ? [d.tot[4]] : [], [d.marked, d.marked ? Math.round(d.tot[0] / d.marked * 100) + "%" : "—"]);
+    const foot = ["الإجمالي", d.tot[0], d.tot[1], d.tot[2], d.tot[3]].concat(other ? [d.tot[4]] : [], [d.marked, pctTxt(attPctCnt(d.tot, d.marked))]);
     if (print) return `<table class="compact"><tr>${cols.map(c => `<th>${c}</th>`).join("")}</tr>${trs.map(r => `<tr>${r.map((x, j) => `<td${j === 0 ? ' class="nm"' : ""}>${x}</td>`).join("")}</tr>`).join("")}<tr style="font-weight:800;background:#F0D99A">${foot.map(x => `<td>${x}</td>`).join("")}</tr></table>`;
     return H().table(cols, trs, { foot });
   }
+  /* تعريف النسبة مكتوب تحت الجدول: المدير يوقّع المطبوع، ويقرأ الرقم نفسه في تبويبَي الطلاب والمستويات
+     كـ«متوسط» نسب الطلاب لا كنسبة الفصل المجمّعة — فيُبيَّن الفرق بدل أن يُقرأ رقمان متضاربان. */
+  const attRule = '<div class="empty-note" style="padding:6px 4px;text-align:right;min-height:0;font-size:11.5px">نسبة الحضور = (حاضر + عن بعد + نصف المتأخرين) ÷ المرصود بعد استثناء المستأذنين والغائبين بعذر. وفي تبويبَي «الطلاب» و«المستويات» يُعرض <b>متوسط</b> نسب الطلاب أنفسهم بالتعريف ذاته، وقد يختلف الرقمان قليلاً.</div>';
   const absenteesHtml = (d, mode) => d.absentees.length ? `<div style="font-weight:800;color:var(--navy);margin:8px 0 4px">${mode === "day" ? "الغائبون اليوم" : "الأكثر غياباً هذا الأسبوع"} (${d.absentees.length})</div><div style="font-size:12.5px;line-height:1.9">${d.absentees.slice(0, 60).map(x => `${esc(x.s.n)} <small style="color:var(--muted)">(${esc(x.c.name)}${mode === "day" ? "" : ` · ${x.n}`})</small>`).join("، ")}${d.absentees.length > 60 ? " …" : ""}</div>` : `<div class="empty-note" style="padding:8px">${d.marked ? "لا غائبين 🌟" : "لا رصد في هذه الفترة بعد"}</div>`;
   function printAttendance(cx, mode) {
     const d = attendanceData(cx, mode);
-    A().printHtml(d.title, attendanceTable(d, true) + `<div class="note">${absenteesHtml(d, mode)}</div>` + A().sigLine(["agent", "principal"]), { sub: d.psub, cls: "compact" });
+    A().printHtml(d.title, attendanceTable(d, true) + attRule + `<div class="note">${absenteesHtml(d, mode)}</div>` + A().sigLine(["agent", "principal"]), { sub: d.psub, cls: "compact" });
   }
   // 2) نشاط المعلمين
   function teacherRows(cx) { const ws = weekStart(); return staff().map(t => ({ t, st: teacherStats(cx, t.id, ws) })).sort((a, b) => b.st.weekDays - a.st.weekDays || (b.st.last || "").localeCompare(a.st.last || "")); }
   function teacherTable(rows, print) {
     const Ad = A(), cols = ["المعلم", "المادة", "الفصول", "أيام الرصد هذا الأسبوع", "آخر رصد", "أوراق تفاعلية", "رسائل أولياء الأمور"];
     // الأعمدة العددية تُطبع صفراً صريحاً (لا خانة فارغة تُقرأ «لا بيانات»)
-    const trs = rows.map(x => { const dd = Ad.daysAgo(x.st.last); return [esc(x.t.name), esc(x.t.subject), (x.t.classes || []).length, x.st.weekDays ? `<b>${x.st.weekDays}</b>` : '<span style="color:var(--bad)">0</span>', x.st.last ? `${Ad.fmtDate(x.st.last)}${dd ? ` <small style="color:${dd >= 7 ? "var(--bad)" : "var(--muted)"}">(منذ ${dd} ي)</small>` : " <small style=\"color:var(--ok)\">(اليوم)</small>"}` : '<span style="color:var(--bad)">لم يبدأ</span>', String(x.st.assign || 0), String(x.st.comms || 0)]; });
+    const trs = rows.map(x => { const dd = Ad.daysAgo(x.st.last); return [esc(x.t.name), esc(x.t.subject), (x.t.classes || []).length, x.st.weekDays ? `<b>${x.st.weekDays}</b>` : '<span style="color:var(--bad)">0</span>', x.st.last ? `${Ad.fmtDate(x.st.last)}${dd > 0 ? ` <small style="color:${dd >= 7 ? "var(--bad)" : "var(--muted)"}">(منذ ${dd} ي)</small>` : " <small style=\"color:var(--ok)\">(اليوم)</small>"}` : '<span style="color:var(--bad)">لم يبدأ</span>', String(x.st.assign || 0), String(x.st.comms || 0)]; });
     if (print) return `<table class="compact"><tr>${cols.map(c => `<th>${c}</th>`).join("")}</tr>${trs.map(r => `<tr>${r.map((x, j) => `<td${j === 0 ? ' class="nm"' : ""}>${x}</td>`).join("")}</tr>`).join("")}</table>`;
     return H().table(cols, trs);
   }
@@ -352,7 +371,7 @@
     const att = attendanceData(cx, attMode), tr = teacherRows(cx), td = topData(cx), th = topHtml(td), sg = strugglers(cx);
     const sec = (title, sub, id) => `<div class="adm-sec"><div><div class="t">${title}</div><div class="sub">${sub}</div></div>${h.printBtn(id, "🖨️ طباعة")}</div>`;
     box.innerHTML = `
-      <div class="card adm-rep" id="rp-att">${sec("📅 حضور الفصول", esc(att.sub), "rp-p-att")}<div class="class-chips" id="rp-mode" style="padding:0 0 8px">${[["day", "اليوم"], ["week", "هذا الأسبوع"]].map(([k, t]) => `<button class="chip ${k === attMode ? "on" : ""}" data-k="${k}" style="padding:6px 14px;font-size:13px">${t}</button>`).join("")}</div>${attendanceTable(att)}${absenteesHtml(att, attMode)}</div>
+      <div class="card adm-rep" id="rp-att">${sec("📅 حضور الفصول", esc(att.sub), "rp-p-att")}<div class="class-chips" id="rp-mode" style="padding:0 0 8px">${[["day", "اليوم"], ["week", "هذا الأسبوع"]].map(([k, t]) => `<button class="chip ${k === attMode ? "on" : ""}" data-k="${k}" style="padding:6px 14px;font-size:13px">${t}</button>`).join("")}</div>${attendanceTable(att)}${attRule}${absenteesHtml(att, attMode)}</div>
       <div class="card adm-rep" id="rp-teachers">${sec("👨‍🏫 نشاط المعلمين", `${tr.length} معلماً بفصول — الأسبوع من ${esc(Ad.fmtDate(weekStart()))}`, "rp-p-teachers")}${tr.length ? teacherTable(tr) : h.empty("لا معلمين مسندين")}${demoNote(sd)}</div>
       <div class="card adm-rep" id="rp-top">${sec("🏆 أوائل المدرسة", "أعلى 10 طلاب بالنقاط المجمّعة عبر كل المواد + لوحة شرف كل فصل", "rp-p-top")}${th.table}<div style="font-weight:800;color:var(--navy);margin:12px 0 6px">🎖️ لوحة شرف الفصول</div>${th.honor}</div>
       <div class="card adm-rep" id="rp-weak">${sec("🩺 الطلاب المتعثرون", `دون 50% في مادتين فأكثر — للخطط العلاجية (${sg.length})`, "rp-p-weak")}${strugglersTable(sg)}</div>`;

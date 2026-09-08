@@ -61,6 +61,18 @@
     clearTimeout(toast._t); toast._t = setTimeout(() => el.classList.remove("on"), 2600);
   }
   function fail(msg, code) { const e = new Error(msg); e.ar = msg; e.code = code || "bad"; return e; }
+  /* ═══ مهلة لكل عملية سحابية ═══
+     وعد فايربيس لا يُحسم أبداً ما دام الجهاز بلا اتصال — لا set() ولا get() ولا delete().
+     فبغير مهلة تتجمّد نافذة الإرفاق على «الجزء ٢ من ٤» أو نافذة العرض على «جارِ فتح الملف…»
+     إلى الأبد بلا رسالة ولا مخرج، وتبقى في القاعدة بطاقةُ ملفٍ لا يراه أحد ولا يُحذف.
+     (صفحة الورقة w/ والصفحة العامة v/ تحرسان نفسيهما بالمهلة ذاتها.) */
+  const TMO = { op: 20000, tx: 15000, del: 10000, net: 4000 };
+  function wt(p, ms) {
+    return new Promise((res, rej) => {
+      const t = setTimeout(() => rej(fail("تعذّر الوصول إلى الخادم — تحقق من الاتصال ثم أعد المحاولة.", "timeout")), ms || TMO.op);
+      Promise.resolve(p).then(v => { clearTimeout(t); res(v); }, e => { clearTimeout(t); rej(e); });
+    });
+  }
   const IMG_RE = /^image\//, AUD_RE = /^audio\//;
   // SVG مستند برمجي لا صورة: يُنفَّذ ما فيه من سكربت على أصل الموقع إن فُتح كصفحة،
   //   وصفحة ولي الأمر تفتح المرفق برابط blob على الأصل نفسه — فيُردّ عند الباب لا بعده.
@@ -99,6 +111,25 @@
     if (r && typeof r === "object") Object.keys(r).forEach(k => { const v = r[k]; if (v !== undefined && v !== null && v !== "") out[k] = v; });
     return out;
   }
+  // عنوانٌ يبدأ برمز تعبيري لا يُسبق برمز ثانٍ: كان «أدلة وأعمال» يصير «مرّتين» برمزين
+  function headTitle(t) {
+    const s = String(t == null ? "" : t).trim();
+    if (!s) return "\u{1F4CE} إضافة مرفق";
+    return s.codePointAt(0) >= 0x2000 ? s : "\u{1F4CE} " + s;
+  }
+  // العنوان مرة واحدة لكل نافذة: مَن يرسم عنوان نافذته بنفسه (نافذة المرفقات في التطبيق)
+  //   يمرّر العنوان نفسه ليكون اسماً لنافذة الإرفاق، فكان يُرسم مرتين متتاليتين حرفياً.
+  const flat = (s) => String(s == null ? "" : s).replace(/\s+/g, " ").trim();
+  function headAbove(el, title) {
+    const t = flat(title);
+    if (!t || !el) return false;
+    for (let n = el, hop = 0; n && hop < 4; n = n.parentElement, hop++) {
+      for (let p = n.previousElementSibling; p; p = p.previousElementSibling) {
+        if (/^H[1-6]$/.test(p.tagName) && flat(p.textContent) === t) return true;
+      }
+    }
+    return false;
+  }
   const isTouch = () => { try { return matchMedia("(pointer:coarse)").matches && navigator.maxTouchPoints > 0; } catch (e) { return false; } };
   const isIOS = () => { try { return /iP(hone|ad|od)/.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1); } catch (e) { return false; } };
 
@@ -134,39 +165,39 @@
   /* ═══ طبقة التخزين: السحابة إن وُجدت، وإلا مخزن الجهاز ═══ */
   async function metaGet(id) {
     const db = fdb();
-    if (db) { const s = await db.doc("files/" + id).get(); return s.exists ? Object.assign({ id }, s.data()) : null; }
+    if (db) { const s = await wt(db.doc("files/" + id).get()); return s.exists ? Object.assign({ id }, s.data()) : null; }
     const r = await idbDo("meta", "readonly", st => st.get(id));
     return r || null;
   }
   async function metaSet(id, rec) {
     const db = fdb();
-    if (db) return db.doc("files/" + id).set(rec);
+    if (db) return wt(db.doc("files/" + id).set(rec));
     return idbDo("meta", "readwrite", st => st.put(Object.assign({ id }, rec)));
   }
   async function metaDel(id) {
     const db = fdb();
-    if (db) return db.doc("files/" + id).delete();
+    if (db) return wt(db.doc("files/" + id).delete(), TMO.del);
     return idbDo("meta", "readwrite", st => st.delete(id));
   }
   async function partSet(id, i, d) {
     const db = fdb();
-    if (db) return db.doc("files/" + id + "/parts/" + i).set({ d });
+    if (db) return wt(db.doc("files/" + id + "/parts/" + i).set({ d }));
     return idbDo("parts", "readwrite", st => st.put({ k: id + ":" + i, d }));
   }
   async function partGet(id, i) {
     const db = fdb();
-    if (db) { const s = await db.doc("files/" + id + "/parts/" + i).get(); return s.exists ? (s.data() || {}).d : null; }
+    if (db) { const s = await wt(db.doc("files/" + id + "/parts/" + i).get()); return s.exists ? (s.data() || {}).d : null; }
     const r = await idbDo("parts", "readonly", st => st.get(id + ":" + i));
     return r ? r.d : null;
   }
   async function partDel(id, i) {
     const db = fdb();
-    if (db) return db.doc("files/" + id + "/parts/" + i).delete();
+    if (db) return wt(db.doc("files/" + id + "/parts/" + i).delete(), TMO.del);
     return idbDo("parts", "readwrite", st => st.delete(id + ":" + i));
   }
   async function idxGet(key) {
     const db = fdb();
-    if (db) { const s = await db.doc("filesidx/" + key).get(); return s.exists ? (s.data() || {}) : {}; }
+    if (db) { const s = await wt(db.doc("filesidx/" + key).get()); return s.exists ? (s.data() || {}) : {}; }
     const r = await idbDo("idx", "readonly", st => st.get(key));
     return r || {};
   }
@@ -175,15 +206,18 @@
     if (db) {
       const ref = db.doc("filesidx/" + key);
       try {
-        await db.runTransaction(async (tx) => {
+        await wt(db.runTransaction(async (tx) => {
           const s = await tx.get(ref);
           const cur = s.exists ? ((s.data() || {}).list || []) : [];
           tx.set(ref, { list: fn(cur).slice(0, MAX_LIST), tn: tn || "", ts: Date.now() });
-        });
+        }), TMO.tx);
       } catch (e) {                       // بعض الشبكات ترفض المعاملات — قراءة ثم كتابة
-        const s = await ref.get();
+        // إلا أن تكون المعاملة قد انتهت مهلتها: الشبكة ميتة، وإعادة المحاولة بقراءة
+        //   ثم كتابة تضاعف الانتظار بلا أمل وتؤخّر رسالة الفشل دقيقةً كاملة.
+        if (e && e.code === "timeout") throw e;
+        const s = await wt(ref.get());
         const cur = s.exists ? ((s.data() || {}).list || []) : [];
-        await ref.set({ list: fn(cur).slice(0, MAX_LIST), tn: tn || "", ts: Date.now() });
+        await wt(ref.set({ list: fn(cur).slice(0, MAX_LIST), tn: tn || "", ts: Date.now() }));
       }
       return;
     }
@@ -259,10 +293,15 @@
   }
 
   /* ═══ الرفع ═══ */
+  // مسحُ ما كُتب قبل التعثّر. متوازٍ ولا يُنتظر: رسالة الفشل تصل المعلم فوراً، وما
+  //   تعثّر من الحذف يبقى في طابور مكتبة فايربيس فيُطبّق وحده حين يعود الاتصال.
   async function wipe(id, upto) {
-    for (let i = 0; i < upto; i++) { try { await partDel(id, i); } catch (e) { } }
-    try { await metaDel(id); } catch (e) { }
+    const jobs = [];
+    for (let i = 0; i < upto; i++) jobs.push(Promise.resolve(partDel(id, i)).catch(() => { }));
+    jobs.push(Promise.resolve(metaDel(id)).catch(() => { }));
+    await Promise.all(jobs);
   }
+  function wipeBg(id, upto) { const p = wipe(id, upto); wipeBg.last = p; p.catch(() => { }); return p; }
   async function upload(file, opts, ui) {
     ui = ui || {};
     const say = ui.phase || function () { };
@@ -312,17 +351,33 @@
       tid: me.id, tn: me.name, ts: Date.now(), nc
     };
     say(nc > 1 ? "جارِ الرفع — الملف على " + nc + " أجزاء" : "جارِ الرفع…");
+    // انتظارُ كتابةٍ واحدة لا يجوز أن يبتلع ضغطَ «إلغاء» ولا انقطاعَ الشبكة: كان الفحص بين
+    //   قطعتين فقط، فإن تعلّقت القطعة بقي كل شيء واقفاً أبداً وزرّ الإلغاء بلا أثر. فيُفحص
+    //   الآن كل ثلث ثانية أثناء الانتظار نفسه، ويخرج الرفع فوراً بسبب مفهوم.
+    const guard = (p) => new Promise((res, rej) => {
+      let end = false, off = 0;
+      const fin = (f, v) => { if (end) return; end = true; clearInterval(iv); f(v); };
+      const iv = setInterval(() => {
+        if (stop()) return fin(rej, fail("أُلغي الرفع.", "cancel"));
+        // onLine=false تعني «لا واجهة شبكة أصلاً» — ومهلة قصيرة قبل التسليم تتجاوز الانقطاع العابر
+        if (navigator.onLine === false) {
+          if (!off) off = Date.now();
+          else if (Date.now() - off > TMO.net) fin(rej, fail("انقطع الاتصال أثناء الرفع، فلم يُحفظ المرفق. أعد المحاولة حين يعود الإنترنت.", "offline"));
+        } else off = 0;
+      }, 300);
+      Promise.resolve(p).then(v => fin(res, v), e => fin(rej, e));
+    });
     // بطاقة الملف أولاً ثم قطعه: قواعد الأمان لا تقبل قطعة إلا تحت بطاقة موجودة تُعلن عدد قطعها،
     //   وبذلك لا يستطيع أحد ضخّ محتوى بلا بطاقة ولا بلا حدّ. وإن تعثّر الرفع مُحيت البطاقة وقطعها.
-    await metaSet(id, rec);
     try {
+      await guard(metaSet(id, rec));
       for (let i = 0; i < nc; i++) {
-        if (stop()) { await wipe(id, i); throw fail("أُلغي الرفع.", "cancel"); }
+        if (stop()) throw fail("أُلغي الرفع.", "cancel");
         prog(i / nc, i, nc);
-        await partSet(id, i, b64.slice(i * PART, (i + 1) * PART));
+        await guard(partSet(id, i, b64.slice(i * PART, (i + 1) * PART)));
       }
-    } catch (e) { await wipe(id, nc); throw e; }
-    if (stop()) { await wipe(id, nc); throw fail("أُلغي الرفع.", "cancel"); }
+      if (stop()) throw fail("أُلغي الرفع.", "cancel");
+    } catch (e) { wipeBg(id, nc); throw e; }
     prog(0.98, nc, nc);
     // nc وtn في عنصر الفهرس: بهما تُرسم القائمة وتُفتح المصغّرة ويظهر صاحب الملف في مكتبة
     //   المدرسة بلا قراءة بطاقة كل ملف على حدة.
@@ -331,14 +386,20 @@
     const drop = (cur) => (cur || []).filter(x => x && x.id !== id);
     // الفهرس ليس زينة للملف بل هو الملف: ما خرج عنه لا يراه أحد ولا يُحذف ولا يُفتح، ويظل
     //   يشغل حجمه في القاعدة أبداً. فإن تعثّرت كتابته مُحي كل ما كُتب قبل إعلان الفشل.
+    let idxTried = 0;
     try {
-      await idxWrite(me.id, add, me.name);
-      if (rec.scope === "school") await idxWrite("school", add, me.name);
+      idxTried = 1; await guard(idxWrite(me.id, add, me.name));
+      if (rec.scope === "school") { idxTried = 2; await guard(idxWrite("school", add, me.name)); }
     } catch (e) {
-      try { await idxWrite(me.id, drop, me.name); } catch (e2) { }
-      try { if (rec.scope === "school") await idxWrite("school", drop, me.name); } catch (e2) { }
-      await wipe(id, nc);
-      throw fail("تعذّر حفظ المرفق. تحقق من الاتصال ثم أعد المحاولة.", "idx");
+      // التراجع لا يؤخّر رسالة الفشل: يُطلَق في الخلفية كما يُطلَق مسحُ القطع، فما تعثّر
+      //   منه يبقى في طابور المكتبة فيُطبّق حين يعود الاتصال. ويشمل الكتابةَ التي تعثّرت: قد تكون
+      //   وصلت الخادم وضاع ردّها، فلا يبقى في الفهرس عنصرٌ لملف مُحي.
+      if (idxTried >= 1) Promise.resolve(idxWrite(me.id, drop, me.name)).catch(() => { });
+      if (idxTried >= 2) Promise.resolve(idxWrite("school", drop, me.name)).catch(() => { });
+      wipeBg(id, nc);
+      // سبب الفشل يُقال كما هو (إلغاء/انقطاع/مهلة)؛ وما عداه رسالة الفهرس العامة
+      throw (e && (e.code === "cancel" || e.code === "offline" || e.code === "timeout")) ? e
+        : fail("تعذّر حفظ المرفق. تحقق من الاتصال ثم أعد المحاولة.", "idx");
     }
     prog(1, nc, nc);
     return Object.assign({ id }, rec);
@@ -440,7 +501,10 @@
   async function purge(id, rec) {
     if (rec === undefined) rec = await metaGet(id);
     const nc = rec ? Math.max(1, +rec.nc || 1) : 16;
-    for (let i = 0; i < nc; i++) await partDel(id, i);
+    // القطع معاً لا واحدة إثر أخرى: مع مهلة لكل حذف، كان حذفُ بطاقة بلا سجل (16 قطعة
+    //   احتياطاً) على شبكة ميتة يحبس الزرّ دقيقتين ونصف. وأولُ تعثّر يُرفع كما كان فلا يُعلن نجاح كاذب.
+    const jobs = []; for (let i = 0; i < nc; i++) jobs.push(partDel(id, i));
+    await Promise.all(jobs);
     await metaDel(id);
     const drop = (cur) => (cur || []).filter(x => x && x.id !== id);
     const tid = (rec && rec.tid) || TEAM().id;
@@ -548,15 +612,16 @@
     return new Promise(async (resolve) => {
       const done = [];
       let busy = false, cancelled = false;
-      const q = await quota().catch(() => ({ used: 0, quota: QUOTA, left: QUOTA }));
       const title = opts.title || "إضافة مرفق";
+      // سطر الحصة يُكتب في موضع واحد ويُحدَّث بعد ظهور النافذة: كان قراءةُ الفهرس تسبق
+      //   فتحها، فيُضغط «إرفاق» على شبكة ضعيفة فلا يحدث شيء عشرين ثانية وكأن الزرّ معطّل.
+      const qLine = (q) => `<b>ما الذي يُقبل؟</b> صورة (تُصغَّر تلقائياً) · ملف PDF حتى 6 ميجابايت · مقطع صوتي.<br>`
+        + (q ? `لك ${QUOTA} ملفاً في الشهر — استُخدم <b>${q.used}</b>، وبقي <b>${q.left}</b>.`
+             : `لك ${QUOTA} ملفاً في الشهر — <span class="sjf-muted">جارِ حساب المتبقي…</span>`);
       const html = `
         <button class="sjf-x" id="sjf-close">✕</button>
-        <h4>📎 ${esc(title)}</h4>
-        <div class="sjf-note" id="sjf-q">
-          <b>ما الذي يُقبل؟</b> صورة (تُصغَّر تلقائياً) · ملف PDF حتى 6 ميجابايت · مقطع صوتي.<br>
-          لك ${QUOTA} ملفاً في الشهر — استُخدم <b>${q.used}</b>، وبقي <b>${q.left}</b>.
-        </div>
+        <h4>${esc(headTitle(title))}</h4>
+        <div class="sjf-note" id="sjf-q">${qLine(null)}</div>
         <div id="sjf-msg"></div>
         <div id="sjf-work" style="display:none">
           <div style="font-weight:800;font-size:14.5px" id="sjf-phase">جارِ العمل…</div>
@@ -580,8 +645,9 @@
         async function refreshQuota() {
           const q2 = await quota().catch(() => null);
           const el = h.querySelector("#sjf-q");
-          if (q2 && el) el.innerHTML = `<b>ما الذي يُقبل؟</b> صورة (تُصغَّر تلقائياً) · ملف PDF حتى 6 ميجابايت · مقطع صوتي.<br>لك ${QUOTA} ملفاً في الشهر — استُخدم <b>${q2.used}</b>، وبقي <b>${q2.left}</b>.`;
+          if (q2 && el && el.isConnected) el.innerHTML = qLine(q2);
         }
+        refreshQuota();
 
         async function run(files) {
           if (busy) return;
@@ -598,8 +664,11 @@
               wireItems(added, refreshQuota);
               toast("✅ حُفظ المرفق");
             } catch (e) {
-              if (e && e.code === "cancel") { err("أُلغي الرفع، ولم يُحفظ شيء."); break; }
+              const code = e && e.code;
+              if (code === "cancel") { err("أُلغي الرفع، ولم يُحفظ شيء."); break; }
               err((e && e.ar) || "تعذّر رفع الملف. تحقق من الاتصال ثم أعد المحاولة.");
+              // الشبكة ميتة: بقية الملفات المختارة ستقف الانتظار نفسه بلا طائل
+              if (code === "offline" || code === "timeout") break;
             }
           }
           bar.style.width = "0%"; show(false); busy = false;
@@ -690,9 +759,12 @@
       </div>
       <button class="sjf-btn bad" id="sjf-del">🗑️ حذف الملف</button>`,
       (h) => {
-        h.querySelector("#sjf-close").onclick = () => { closeSheet(); setTimeout(() => { URL.revokeObjectURL(url); if (raw) URL.revokeObjectURL(out); }, 1000); };
+        h.querySelector("#sjf-close").onclick = () => closeSheet();
         h.querySelector("#sjf-del").onclick = async () => { if (await remove(id)) closeSheet(); };
       });
+    // تحرير روابط blob مهما أُغلقت النافذة: كان التحرير معلّقاً بزرّ ✕ وحده، فإن أغلقها
+    //   المعلم بالضغط خارجها أو فتح ملفاً آخر بقي الملف كله في ذاكرة اللوح حتى يُعاد تحميل الصفحة.
+    onClose = () => setTimeout(() => { URL.revokeObjectURL(url); if (raw) URL.revokeObjectURL(out); }, 1000);
     return rec;
   }
 
@@ -706,7 +778,7 @@
     const title = opts.title || (scope === "school" ? "🗂️ مكتبة المدرسة" : "📎 المرفقات");
     const hint = opts.hint || (scope === "school" ? "مستندات تظهر لكل المعلمين: الجدول الرسمي، النماذج، التعاميم." : "صور وملفات مرتبطة بهذه البطاقة.");
     el.innerHTML = `<div class="sjf-card">
-      <h5>${esc(title)}</h5>
+      ${headAbove(el, title) ? "" : `<h5>${esc(title)}</h5>`}
       <div class="sjf-muted" style="margin-bottom:9px">${esc(hint)}</div>
       <div class="sjf-row"><button class="sjf-btn gold" data-add="1">📎 إرفاق</button>${isTouch() ? '<button class="sjf-btn navy" data-cam="1">📷 التقاط صورة</button>' : ""}</div>
       <div class="sjf-muted" id="sjf-quota" style="margin:2px 0 9px"></div>
@@ -730,6 +802,6 @@
   window.SIJIL_FILES = {
     attach, list, open, remove, waLink, libraryCard,
     upload, quota, viewURL, itemHTML, wireItems, blobOf, purge, fmt, kindOf, normType, viewSafe,
-    MAX_SRC, MAX_IMG, TARGET, PART, QUOTA, IMG_W
+    MAX_SRC, MAX_IMG, TARGET, PART, QUOTA, IMG_W, TMO
   };
 })();

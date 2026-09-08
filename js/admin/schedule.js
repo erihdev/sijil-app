@@ -445,7 +445,8 @@
       A().toast(`💾 حُفظ الجدول (${rows.length} حصة، ${nMod} خلية)`, 3000);
     } catch (e) {
       warn("save", e && e.message); saving = false; refreshBadges();
-      A().toast("❌ تعذّر حفظ الجدول: " + ((e && e.message) || e), 4000);
+      let m = ""; try { m = A().writeErr(e, "حفظ الجدول"); } catch (x) { m = "تعذّر حفظ الجدول — تحقّق من الاتصال ثم أعد المحاولة."; }
+      A().toast("❌ " + m, 5200);
     }
   }
 
@@ -565,6 +566,21 @@
     printAll, printClass, printTeacher, teacherText, save,
     get work() { return work; }, get extra() { return extra; }, get mode() { return mode; }, get sel() { return sel; },
     setView: (m, s2) => { mode = (m === "teacher") ? "teacher" : "class"; if (s2 != null) sel = s2; if (box) render(box); },
-    reload: () => load(true)
+    /* reload({from,to,cids}) بعد إعادة تسمية معلم. كان reload() = load(true) يعيد بناء نسخة العمل من
+       الصفر فتضيع كل خلية عدّلها المدير ولم يحفظها بعد — بلا تنبيه ولا تراجع، والشارة تعود «0 خلية
+       معدَّلة» كأن شيئاً لم يكن. الآن نُطبّق الاسم الجديد على الأصل ونسخة العمل والصفوف الخارجية في
+       مكانها فتبقى التعديلات المعلّقة حيّة، ولا نعيد التحميل الكامل إلا حين لا يوجد تعديل معلّق. */
+    reload: (ren) => {
+      const from = ren && ren.from, to = ren && ren.to;
+      if (work && orig && from && to && from !== to && changeCount()) {
+        const only = (ren.cids && ren.cids.length) ? new Set(ren.cids) : null;
+        const fix = (arr) => (arr || []).forEach(r => { if (r && r.t === from && (!only || only.has(r.c))) r.t = to; });
+        fix(orig); fix(work); fix(extra);
+        if (mode === "teacher" && sel === from) sel = to;
+        try { if (box && document.body.contains(box) && A().currentTab() === "schedule") render(box); } catch (e) { }
+        return;
+      }
+      load(true);
+    }
   };
 })();

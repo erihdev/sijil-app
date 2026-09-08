@@ -13,7 +13,7 @@ self.addEventListener("activate", (e) => {
    كل استعمال هنا محاط بحارس يعيد null عند الفشل، حتى يبقى عامل الخدمة شفافاً: الطلب يذهب
    إلى الشبكة كما لو لم يكن مسجّلاً، بدل أن يسقط الطلب ويظهر «تعذّر تحميل الدرس». */
 const cOpen = () => { try { return caches.open(V).catch(() => null); } catch (e) { return Promise.resolve(null); } };
-const cMatch = (req) => { try { return caches.match(req).catch(() => null); } catch (e) { return Promise.resolve(null); } };
+const cMatch = (req, opt) => { try { return caches.match(req, opt).catch(() => null); } catch (e) { return Promise.resolve(null); } };
 const cPut = (req, res) => { cOpen().then(c => c && c.put(req, res)).catch(() => { }); };
 
 // الدروس والمناهج: كاش أولاً ثم تحديث صامت في الخلفية
@@ -24,7 +24,17 @@ async function dataFirst(req) {
   if (r && r.ok) cPut(req, r.clone());
   return r;
 }
-// الواجهة: شبكة أولاً وإلا الكاش (تعمل دون اتصال بعد أول زيارة)
+/* الواجهة: شبكة أولاً وإلا الكاش (تعمل دون اتصال بعد أول زيارة).
+
+   مفتاح الكاش هو الرابط كاملاً بما فيه الاستعلام، والتطبيق يُفتح بروابط مختلفة للصفحة
+   نفسها: «./» (رابط بدء التطبيق المثبَّت في manifest، وما تفتحه نقرةُ الإشعار) و
+   «index.html» و«index.html?demo» و«?pv=1»… فكان الاحتياطي `caches.match("./index.html")`
+   لا يطابق شيئاً إلا إن صادف المعلم أن دخل بذلك الرابط بعينه: مَن ثبّت «سجلي» على شاشته
+   يفتحه على «./» فلا يجد شيئاً حين ينقطع الاتصال، ويرى «تعذّر الوصول إلى الموقع» رغم
+   وعد العمل دون اتصال. الحل: تجاهل الاستعلام في المطابقة، وتجريب صيغتي الجذر.
+
+   والاحتياطي إلى صفحة التطبيق لا يصلح إلا لطلب تنقّل: إعادةُ HTML لطلب صورة أو سكربت أو
+   JSON غير مخزَّن تحوّل «انقطع الاتصال» الواضح إلى خطأ تحليل غامض، فنقصره على navigate. */
 async function netFirst(req) {
   let err;
   try {
@@ -32,10 +42,12 @@ async function netFirst(req) {
     if (r && r.ok) cPut(req, r.clone());
     return r;
   } catch (e) { err = e; }
-  const hit = await cMatch(req);
+  const hit = (await cMatch(req)) || (await cMatch(req, { ignoreSearch: true }));
   if (hit) return hit;
-  const idx = await cMatch("./index.html");
-  if (idx) return idx;
+  if (req.mode === "navigate") {
+    const idx = (await cMatch("./", { ignoreSearch: true })) || (await cMatch("./index.html", { ignoreSearch: true }));
+    if (idx) return idx;
+  }
   throw err;                                        // لا شبكة ولا كاش: خطأ شبكة حقيقي لا استجابة فارغة
 }
 self.addEventListener("fetch", (e) => {

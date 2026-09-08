@@ -22,6 +22,11 @@
   const pad2 = (n) => (n < 10 ? "0" : "") + n;
   // تاريخ اليوم بتقويم الجهاز المحلي — toISOString() يعطي تاريخ الأمس بين منتصف الليل والثالثة فجراً بتوقيت السعودية (UTC+3)
   const todayISO = (dt) => { const d = dt || new Date(); return d.getFullYear() + "-" + pad2(d.getMonth() + 1) + "-" + pad2(d.getDate()); };
+  // أرقام عربية‑هندية (٠١٢) وفارسية (۰۱۲) وفاصلة عشرية عربية ⇒ صيغة يفهمها Number
+  const arNum = (t) => String(t == null ? "" : t)
+    .replace(/[\u0660-\u0669]/g, (d) => String(d.charCodeAt(0) - 0x0660))
+    .replace(/[\u06F0-\u06F9]/g, (d) => String(d.charCodeAt(0) - 0x06F0))
+    .replace(/[٫،]/g, ".").trim();
   const esc = (s) => String(s == null ? "" : s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
   async function sha256(msg) {
     const b = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(msg));
@@ -40,6 +45,21 @@
   let DB = { recs: {}, grades: {}, comms: {}, session: null, srole: null };
   try { const raw = localStorage.getItem(KEY); if (raw) DB = Object.assign(DB, JSON.parse(raw)); } catch (e) { }
   const dirty = new Set();
+  /* وسومٌ حُذف منها يوم رصد أو سجل: الرفع بـ set(...,{merge:true}) يدمج الخرائط المتداخلة فلا
+     يحذف مفتاحاً أبداً، فتبقى الأيام الفارغة في السحابة إلى الأبد وتُقرأ «آخر رصد» في لوحة
+     المدير. هذه الوسوم تُرفع باستبدال كامل (القواعد تسمح بالتقليص لمن له مطالبة sess). */
+  const shrink = new Set();
+  const dropped = {};                  // "recs:cid" → Set(تواريخ حُذفت على هذا الجهاز)
+  function markDrop(cid, date) {
+    const tag = "recs:" + cid;
+    shrink.add(tag);
+    if (date) { (dropped[tag] = dropped[tag] || new Set()).add(date); }
+  }
+  // رفضٌ من القواعد لا انقطاعُ شبكة (نسخة محلية من js/auth.js:isPerm — غير مُصدَّرة هناك)
+  const isPerm = (e) => {
+    const c = String((e && (e.code || e.message)) || "").toLowerCase();
+    return c.indexOf("permission-denied") >= 0 || c.indexOf("permission_denied") >= 0;
+  };
   let saveT = null, pushT = null;
   function save(tag) {
     if (tag) dirty.add(tag);           // "recs:cid" | "grades:cid" | "comms:cid"
@@ -55,9 +75,25 @@
     for (const tag of [...dirty]) {
       dirty.delete(tag);
       const [kind, cid] = tag.split(":");
+      const full = kind === "recs" && shrink.has(tag);      // استبدال كامل: حذفٌ لا يصله الدمج
       try {
         const payload = { tn: TE.name, ts: Date.now() };
-        if (kind === "recs") payload.d = clone(DB.recs[cid] || {});
+        if (kind === "recs" && !full) payload.d = clone(DB.recs[cid] || {});
+        if (full) {
+          /* ننطلق من نسخة السحابة حتى لا تضيع أيام جهاز آخر لم تصل هذا الجهاز بعد:
+             يومٌ موجود محلياً ⇒ النسخة المحلية · يومٌ حُذف هنا عمداً ⇒ يُسقط ·
+             ما عداه ⇒ نسخة السحابة بعد نزع سجلاتها الفارغة. */
+          let cd = {};
+          try { const cur = await fdb.doc("recs/" + TE.id + "_" + cid).get(); if (cur.exists) cd = (cur.data() || {}).d || {}; } catch (e) { }
+          const loc = DB.recs[cid] || {}, drop = dropped[tag] || new Set(), out = {};
+          Object.keys(cd).forEach(dt => {
+            if (loc[dt] || drop.has(dt)) return;
+            const day = {}; Object.keys(cd[dt] || {}).forEach(si => { if (!emptyRec(cd[dt][si])) day[si] = cd[dt][si]; });
+            if (Object.keys(day).length) out[dt] = day;
+          });
+          Object.keys(loc).forEach(dt => out[dt] = loc[dt]);
+          payload.d = clone(out);
+        }
         if (kind === "grades") payload.g = clone(DB.grades[cid] || {});
         if (kind === "comms") {                    // القائمة تُستبدل لا تُدمج بـ merge — فادمج مع النسخة السحابية أولاً حتى لا تضيع عناصر رُحِّلت من فصل آخر (نقل طالب) أو أُضيفت من جهاز آخر
           let list = clone(DB.comms[cid] || []);
@@ -68,9 +104,26 @@
           } catch (e) { }
           payload.c = list.slice(-500);
         }
-        await fdb.doc(kind + "/" + TE.id + "_" + cid).set(payload, { merge: true });
+        const ref = fdb.doc(kind + "/" + TE.id + "_" + cid);
+        if (full) {
+          /* التقليص يحتاج مطالبة sess (mayShrink في القواعد). جهاز بلا مطالبة يُرفض —
+             ولا يجوز أن تتوقف مزامنة الرصد كلها من أجل تنظيف: نرجع إلى الدمج فيصل كل جديد،
+             ويُؤجَّل التنظيف حتى يُعتمد الجهاز برقم المعلم (وشريط التنبيه يقولها). */
+          try { await ref.set(payload); shrink.delete(tag); delete dropped[tag]; }
+          catch (e2) {
+            if (!isPerm(e2)) throw e2;
+            shrink.delete(tag); delete dropped[tag];
+            try { claimBar(); } catch (x) { }
+            await ref.set({ tn: payload.tn, ts: payload.ts, d: clone(DB.recs[cid] || {}) }, { merge: true });
+          }
+        } else await ref.set(payload, { merge: true });
         syncBadge(true);
-      } catch (e) { dirty.add(tag); syncBadge(false); }
+      } catch (e) {
+        dirty.add(tag);
+        // رفض صلاحية ≠ انقطاع إنترنت: «سيُرفع تلقائياً عند عودة الإنترنت» وعدٌ كاذب هنا
+        if (isPerm(e)) { syncBadge("perm"); try { claimBar(); } catch (x) { } }
+        else syncBadge(false);
+      }
     }
   }
   const clone = (o) => JSON.parse(JSON.stringify(o));
@@ -85,9 +138,10 @@
   function syncBadge(ok) {
     const el2 = $("#demo-strip");
     if (!el2 || !CLOUD) return;
-    el2.textContent = ok ? "☁️ متصل بقاعدة المدرسة — بياناتك تُحفظ سحابياً وتظهر على كل أجهزتك"
-      : "⚠️ لا اتصال الآن — سيُرفع رصدك تلقائياً عند عودة الإنترنت";
-    el2.style.background = ok ? "#2e9e5b" : "#e8a23d"; el2.style.color = "#fff";
+    el2.textContent = ok === "perm" ? "⛔ رُفض الحفظ لأن هذا الجهاز غير معتمد برقمك — سجّل خروجاً ثم دخولاً برقمك (ليست مشكلة إنترنت)"
+      : ok ? "☁️ متصل بقاعدة المدرسة — بياناتك تُحفظ سحابياً وتظهر على كل أجهزتك"
+        : "⚠️ لا اتصال الآن — سيُرفع رصدك تلقائياً عند عودة الإنترنت";
+    el2.style.background = ok === "perm" ? "#d64545" : ok ? "#2e9e5b" : "#e8a23d"; el2.style.color = "#fff";
   }
   function rec(cid, date, si, make) {
     if (!make) { const day = (DB.recs[cid] || {})[date]; return (day && day[si]) || null; }   // قراءة محضة: لا تُنشئ يوماً ولا سجلاً
@@ -108,16 +162,16 @@
       Object.keys(days).forEach(dt => {
         const day = days[dt] || {};
         Object.keys(day).forEach(si => { if (emptyRec(day[si])) { delete day[si]; hit = true; } });
-        if (!Object.keys(day).length) { delete days[dt]; hit = true; }
+        if (!Object.keys(day).length) { delete days[dt]; markDrop(cid, dt); hit = true; }
       });
-      if (hit) { n++; save("recs:" + cid); }
+      if (hit) { markDrop(cid); n++; save("recs:" + cid); }
     });
     return n;
   }
   function pruneRec(cid, date, si) {
     const day = ((DB.recs[cid] || {})[date]); if (!day) return;
-    if (emptyRec(day[si])) delete day[si];
-    if (!Object.keys(day).length) delete DB.recs[cid][date];
+    if (emptyRec(day[si])) { delete day[si]; markDrop(cid); }
+    if (!Object.keys(day).length) { delete DB.recs[cid][date]; markDrop(cid, date); }
   }
 
   /* ═══ التاريخ الهجري ═══ */
@@ -257,6 +311,19 @@
      «عن بعد» حضور كامل · «متأخر» نصف حضور · «مستأذن/غائب بعذر» خارج المقام (غياب مأذون لا يُحاسَب). */
   const stIdx = (name) => STATES.findIndex(x => (x.name || "").includes(name));
   const stCnt = (t, name) => { const k = stIdx(name); return k >= 0 ? (t.st[k] || 0) : 0; };
+  /* غياب فعلي = «غائب» + «هارب» (والمأذون ليس منه) — التعريف نفسه في admin/core.js:attBucketOf===1.
+     كانت المطبوعات والتقارير تقرأ st[1] وحدها فتطبع «0 غياب» لطالب هرب من حصتين. */
+  const absCnt = (t) => (t.st || []).reduce((n, v, k) => {
+    const nm = (STATES[k] || {}).name || "";
+    return n + ((v && !/عذر|مستأذن/.test(nm) && /غائب|هارب/.test(nm)) ? v : 0);
+  }, 0);
+  /* آخر حالة مرصودة للطالب غياب/استئذان/هروب ⇒ لا يُصدّر لوحة الشرف اليوم.
+     كان المرشّح في تبويب «التقارير» وحده، فيتصدّر الغائبُ لوحةَ شرف تبويب «اليوم». */
+  function lastAwayOf(cid, i) {
+    const cd = DB.recs[cid] || {}, dates = Object.keys(cd).sort().reverse();
+    for (const d of dates) { const e = cd[d][i]; if (e && e.a != null && STATES[e.a]) return /غائب|مستأذن|بعذر|هارب/.test(STATES[e.a].name || ""); }
+    return false;
+  }
   const attPct = (t) => {
     const tot = t.st.reduce((x, y) => x + y, 0); if (!tot) return null;
     const denom = tot - (stCnt(t, "مستأذن") + stCnt(t, "بعذر")); if (denom <= 0) return null;
@@ -305,16 +372,26 @@
     const t = calcStudent(cid, si, recsOverride); const v = {}, why = {};
     const A = (k) => ASSESS.find(a => a.k === k);
     const cnt = (name) => stCnt(t, name);
-    // كل الأيام المرصودة بعذر (مستأذن/غائب بعذر) ⇒ لا مقام للحضور: يُترك البند بلا درجة تلقائية بدل إعطاء صفر ظالم
-    const excD = cnt("مستأذن") + cnt("بعذر");
-    if (t.days && A("part") && t.days - excD > 0) {
+    /* مقام الحضور = مقام attPct حرفاً بحرف (بطاقة الطالب ورسالة ولي الأمر ولوحة المدير):
+       أيامُ الحالات وحدها، ناقصَ المأذون. اليوم الذي رُصدت فيه مشاركة أو سلوك بلا اختيار حالة
+       — وهو المسار الطبيعي للحصة الحية — لا حالةَ له فلا يدخل المقام؛ كان يُحسب حضوراً صفرياً
+       فيقتطع 60% من البند بينما تقول البطاقة «لا حضور مرصود». */
+    const stD = t.st.reduce((x, y) => x + y, 0);          // أيام رُصدت فيها حالة حضور
+    const excD = cnt("مستأذن") + cnt("بعذر");             // غياب مأذون: خارج المقام
+    const noSt = t.days - stD;                            // أيام رصد بلا حالة حضور
+    const denom = stD - excD;
+    if (t.days && A("part") && denom > 0) {
       const pres = cnt("حاضر"), late = cnt("متأخر"), remote = cnt("عن بعد");
-      const denom = t.days - excD, attended = pres + remote + 0.5 * late;
-      const attRate = Math.min(1, attended / denom), partRate = Math.min(1, t.part / Math.max(1, pres + remote + late));
+      const attended = pres + remote + 0.5 * late, presD = pres + remote + late;
+      // المشاركة تُنسب إلى أيام الحضور: بلا يوم حضور واحد لا تصير 100% — كان Math.max(1,…) يمنح الغائبَ الأربعين كاملة
+      const attRate = Math.min(1, attended / denom), partRate = presD ? Math.min(1, t.part / presD) : 0;
       const mx = A("part").max; v.part = Math.round((mx * 0.6 * attRate + mx * 0.4 * partRate) * 10) / 10;
-      why.part = "حضور " + Math.round(attRate * 100) + "% (60%) + مشاركة " + Math.round(partRate * 100) + "% (40%) من " + denom + " يوم رصد" + (excD ? " (استُثني " + excD + " بعذر)" : "");
+      const skip = [excD ? "استُثني " + excD + " بعذر" : "", noSt ? noSt + " بلا حالة حضور" : ""].filter(Boolean);
+      why.part = "حضور " + Math.round(attRate * 100) + "% (60%) + مشاركة " + Math.round(partRate * 100) + "% (40%) من " + denom + " يوم حالة مرصودة" + (skip.length ? " (" + skip.join(" و") + ")" : "");
     }
-    if (t.days && A("behave")) {
+    /* «لا مخالفات مرصودة» هدية لا تُمنح لمن لا يوم حضور له أصلاً: الطالب الغائب بعذر في كل أيامه
+       كان يخرج 15/15 ⇒ «ممتاز 100%» في الدرجات والمستويات، وتهنئةً لولي أمره. */
+    if (t.days && A("behave") && (denom > 0 || t.behP || t.behN)) {
       let sum = 0; const cd = recsOverride || DB.recs[cid] || {};
       for (const date of Object.keys(cd)) { const e = cd[date][si]; if (!e) continue; (e.beh || []).forEach(bi => { const b = BEH[bi]; if (b) sum += (+b.pts || 0); }); }
       const mx = A("behave").max; v.behave = Math.max(0, Math.min(mx, Math.round((mx + sum) * 10) / 10));
@@ -531,6 +608,31 @@
       enter(t);
     };
   }
+  /* مطالبة الجلسة (sess/{uid}) تُكتب في js/auth.js:verify وحدها. كل جهاز كانت جلسته محفوظة
+     قبل نشر الميزة يستأنف بلا مطالبة، فتُرفض كل كتابة مشروطة بها: إعدادات المدرسة وأسماء
+     الإدارة، إضافة معلم، إنقاص فصوله، حذف حصة من الجدول العام، وتقليص أيام الرصد. */
+  const claimOK = () => {
+    if (!CLOUD) return true;
+    const AU = window.SIJIL_AUTH;
+    if (!AU || typeof AU.hasClaim !== "function" || !TE) return true;
+    try { return !!AU.hasClaim(TE.id); } catch (e) { return true; }
+  };
+  function claimBar(again) {
+    const host = $("#view-app"); if (!host || !TE) return;
+    /* js/auth.js يُنفَّذ بعد js/app.js في الصفحة، وقد يصل enter() قبله على اتصال سريع:
+       فحصٌ مبكّر يقول «لا مطالبة مفقودة» زوراً — نعيد الفحص مرة بعد لحظة. */
+    const AU = window.SIJIL_AUTH;
+    if (CLOUD && !(AU && typeof AU.hasClaim === "function") && !again) { setTimeout(() => claimBar(true), 1500); return; }
+    let el = $("#claim-bar");
+    if (claimOK()) { if (el) el.remove(); return; }
+    if (!el) {
+      el = document.createElement("div"); el.id = "claim-bar"; el.className = "claim-bar";
+      const hd = host.querySelector(".appbar");
+      host.insertBefore(el, hd ? hd.nextSibling : host.firstChild);
+    }
+    el.innerHTML = `<span>🔐 هذا الجهاز لم يُعتمد برقمك بعد تحديث التطبيق: الحفظ في إعدادات المدرسة والمعلمين والجدول سيُرفض (وليس سببه الإنترنت). أدخل رقمك مرة واحدة ويبقى الجهاز معتمداً.</span><button class="btn-gold" id="claim-go">🔓 اعتماد الجهاز الآن</button>`;
+    const b = $("#claim-go"); if (b) b.onclick = () => { DB.session = null; DB.srole = null; save(); setTimeout(() => location.reload(), 250); };
+  }
   async function enter(t) {
     TE = t;
     $("#view-login").classList.add("hidden");
@@ -560,6 +662,7 @@
     let adm = false;
     if (t.admin && window.SIJIL_ADMIN && typeof window.SIJIL_ADMIN.init === "function") { try { adm = !!window.SIJIL_ADMIN.init(t); } catch (e) { adm = false; try { console.error("[admin] init", e); } catch (x) { } } }
     switchTab(adm ? "home" : "today");
+    try { claimBar(); } catch (e) { }
   }
   $("#ab-logout").onclick = () => { DB.session = null; DB.srole = null; save(); setTimeout(() => location.reload(), 300); };
 
@@ -632,7 +735,7 @@
     ex.sort((a, b) => a - b).forEach(p => per.push(cell(p, "")));
     let all = []; myClasses().forEach(c => classCalc(c.id).forEach(r => { if (r.active) all.push({ c, r }); }));
     const low = all.slice().sort((a, b) => a.r.t.pts - b.r.t.pts).slice(0, 5);
-    const high = all.slice().sort((a, b) => b.r.t.pts - a.r.t.pts).filter(x => x.r.t.pts > 0).slice(0, 5);
+    const high = all.slice().sort((a, b) => b.r.t.pts - a.r.t.pts).filter(x => x.r.t.pts > 0 && !lastAwayOf(x.c.id, x.r.i)).slice(0, 5);
     const MED = ["🥇", "🥈", "🥉", "🎖️", "🎖️"];
     box.innerHTML = `
       <div class="card" style="background:linear-gradient(150deg,var(--navy),var(--navy2));color:#fff;border:none">
@@ -693,13 +796,15 @@
   function paintBell() {
     const el = $("#today-bell"); if (!el) { stopBell(); return; }
     const B = BELL(), now = new Date(), day = DAYS[now.getDay()], m = now.getHours() * 60 + now.getMinutes();
-    const work = SDAYS().indexOf(day) >= 0;                                       // يوم دراسة؟ الجمعة والسبت لا دوام
+    // يوم دراسة؟ الجمعة والسبت لا دوام — ويوم لا يقع داخل أي أسبوع من meta.weeks إجازة رسمية
+    const term = inTermNow(now), work = term && SDAYS().indexOf(day) >= 0;
     const list = work ? B.periodsOf(day) : [], p = work ? B.periodNow(now) : 0, br = (work && !p) ? B.breakNow(now) : null;
     const cur = p ? list.find(x => !x.brk && x.p === p) : null;
     let cls, html;
     if (!work) {
       cls = "off";
-      html = `<span class="ic">🌙</span><span class="tx"><b>لا دوام اليوم</b> — ${esc(day)}</span>`;
+      html = term ? `<span class="ic">🌙</span><span class="tx"><b>لا دوام اليوم</b> — ${esc(day)}</span>`
+        : `<span class="ic">🌴</span><span class="tx"><b>إجازة — لا دوام اليوم</b> — ${esc(day)}</span>`;
     } else if (cur) {
       const row = D.schedule.find(r => r.t === TE.name && r.d === day && +r.p === p), c = row ? classById(row.c) : null;
       cls = "on";
@@ -751,10 +856,21 @@
     });
     return best;
   }
+  /* SIJIL_NOTIFY.nextClass لا تفحص أيام الدوام (SDAYS) بينما nextClassLocal تفحصها، فكان صفُّ جدولٍ
+     يوم الجمعة يُظهر «الحصة القادمة» وشريط الجرس فوقه يقول «لا دوام اليوم — الجمعة». الفحص هنا لكليهما. */
   function nextClassOf(now) {
+    const d = now || new Date();
+    if (SDAYS().indexOf(DAYS[d.getDay()]) < 0) return null;
     const N = window.SIJIL_NOTIFY;
     if (N && typeof N.nextClass === "function") { try { return N.nextClass(now); } catch (e) { } }
     return nextClassLocal(now);
+  }
+  /* يوم لا يقع داخل أي أسبوع من meta.weeks = إجازة: js/notify.js يصمت (reason:"holiday")
+     وjs/ics.js يكتب له EXDATE — وكان app.js وحده يرسم الشريط ويُرسل الإشعار في صباح العطلة. */
+  function inTermNow(now) {
+    const N = window.SIJIL_NOTIFY;
+    if (!N || typeof N.inTerm !== "function") return true;
+    try { return N.inTerm(now || new Date()) !== false; } catch (e) { return true; }
   }
   // نغمة قصيرة داخل التطبيق (بلا ملف صوت) — تعمل بعد أول لمسة من المعلم، وصمتها لا يُعطّل شيئاً
   function beep() {
@@ -771,7 +887,7 @@
   function paintNext() {
     const el = $("#today-next"); if (!el) return;
     const lead = notifyLead();
-    let nx = null; try { nx = nextClassOf(); } catch (e) { nx = null; }
+    let nx = null; try { nx = inTermNow() ? nextClassOf() : null; } catch (e) { nx = null; }
     if (!nx || nx.mins > lead) { el.className = "nextbar"; el.innerHTML = ""; nextKey = ""; return; }
     const B = BELL();
     el.className = "nextbar on";
@@ -785,7 +901,7 @@
      نُعلّم العلامة نفسها التي يستعملها ذلك الملف قبل الإرسال، فلا يصل التنبيه مرتين أبداً. */
   let leadBusy = false;
   function leadNotify(nx, lead) {
-    if (lead <= 5 || nx.mins <= 5 || leadBusy) return;
+    if (lead <= 5 || nx.mins <= 5 || leadBusy || !inTermNow()) return;
     const N = window.SIJIL_NOTIFY; if (!N || typeof N.state !== "function") return;
     let st = null; try { st = N.state(); } catch (e) { return; }
     if (!st || !st.ready) return;
@@ -814,7 +930,10 @@
   } catch (e) { }
 
   /* ═══ التحضير ═══ */
-  let regClass = null, regAuto = todayISO(), regDate = regAuto;
+  let regClass = null, regAuto = todayISO(), regDate = regAuto, regMsgT = null;
+  /* أقصى تاريخ رصد = الغد، بالقاعدة نفسها التي تحرس بها لوحة المدير إحصاءاتها
+     (js/admin/core.js:maxRecDate) — والغدُ لا اليومُ تحمّلاً لفارق ساعات الأجهزة. */
+  const maxRegDate = () => { const d = new Date(); d.setDate(d.getDate() + 1); return todayISO(d); };
   /* التطبيق PWA يبقى مفتوحاً أياماً: التاريخ يتبع اليوم الجديد ما لم يكن المعلم قد اختار تاريخاً بنفسه */
   function refreshRegDate() {
     const t = todayISO();
@@ -826,12 +945,26 @@
     if (!cls.length) { box.innerHTML = '<div class="empty-note">لا فصول مسندة لك' + (TE.admin ? " — لوحة المدير في «المزيد»" : "") + "</div>"; return; }
     if (!regClass || !cls.find(c => c.id === regClass)) regClass = cls[0].id;
     box.innerHTML = `<div class="class-chips">${cls.map(c => `<button class="chip ${c.id === regClass ? "on" : ""}" data-c="${c.id}">${esc(c.name)}</button>`).join("")}</div>
-      <div class="reg-tools"><input type="date" id="reg-date" value="${regDate}"><button class="btn-soft" id="reg-all">✓ الكل حاضر</button><button class="btn-gold" id="reg-live">🎬 وضع العرض</button></div>
+      <div class="reg-tools"><input type="date" id="reg-date" value="${regDate}" max="${maxRegDate()}"><button class="btn-soft" id="reg-all">✓ الكل حاضر</button><button class="btn-gold" id="reg-live">🎬 وضع العرض</button></div>
+      <div class="empty-note" id="reg-msg" hidden style="padding:2px 4px 6px;text-align:right;min-height:0;color:var(--bad)"></div>
       <div class="card" id="reg-list" style="padding:6px 10px"></div>`;
     box.querySelectorAll(".chip").forEach(ch => ch.onclick = () => { regClass = ch.dataset.c; renderReg(); });
-    $("#reg-date").onchange = (e) => { regDate = e.target.value; drawRows(); };
+    /* حقل التاريخ كان بلا سقف ولا حارس: يومٌ في المستقبل (خطأ كتابة: 2027 بدل 2026) يُرصد فيه
+       الحضور فيراه المعلم «يوم رصد وحضور 100%» بينما لوحة المدير تتجاهله فتقول «لم يبدأ» —
+       بلا إشعار لأحد. وتفريغ الحقل كان يكتب الرصد تحت مفتاح تاريخ فارغ لا يظهر في أي شاشة. */
+    $("#reg-date").onchange = (e) => {
+      const v = e.target.value, mx = maxRegDate(), msg = $("#reg-msg");
+      const warn = (t) => { if (!msg) return; msg.textContent = t; msg.hidden = false; clearTimeout(regMsgT); regMsgT = setTimeout(() => { msg.hidden = true; }, 6000); };
+      // عزلٌ ثنائي الاتجاه حول التاريخ: بلا LRI…PDI يُقلب 2026-09-08 إلى 08-09-2026 داخل جملة عربية
+      const day = "⁦" + regDate + "⁩";
+      if (!v) { e.target.value = regDate; warn("⚠️ لا بدّ من تاريخ للرصد — أُعيد التاريخ إلى " + day); return; }
+      if (v > mx) { e.target.value = regDate; warn("⚠️ لا يمكن الرصد بتاريخ لاحق لليوم — أُعيد التاريخ إلى " + day); return; }
+      if (msg) msg.hidden = true;
+      regDate = v; drawRows();
+    };
     $("#reg-all").onclick = () => { const c = classById(regClass); activeStudents(c).forEach(({ i }) => { const e = rec(regClass, regDate, i, true); if (e.a == null) e.a = 0; }); save("recs:" + regClass); drawRows(); };
-    $("#reg-live").onclick = () => liveSession(regClass);
+    // الزر ملاصق لحقل التاريخ: كان يتجاهله ويكتب على اليوم دائماً، فيرى المعلم ورقته السابقة خاليةً بعد الإنهاء
+    $("#reg-live").onclick = () => liveSession(regClass, null, regDate);
     drawRows();
   }
   function drawRows() {
@@ -949,7 +1082,8 @@
       const i = +inp.dataset.i, k = inp.dataset.k, a = ASSESS.find(x => x.k === k);
       inp.oninput = () => {
         DB.grades[grClass] = DB.grades[grClass] || {}; DB.grades[grClass][i] = DB.grades[grClass][i] || {};
-        const v = inp.value.trim().replace(/[٫،]/g, ".");
+        // ٠١٢… و۰۱۲… أرقام يكتبها جوال المعلم افتراضياً: كانت +value تعطي NaN فتُمسح الدرجة
+        const v = arNum(inp.value);
         const num = v === "" ? null : Number(v);
         if (v === "" || num == null || !isFinite(num)) { delete DB.grades[grClass][i][k]; inp.classList.toggle("bad", v !== ""); }
         else { DB.grades[grClass][i][k] = Math.max(0, Math.min(num, a.max)); inp.classList.remove("bad"); }
@@ -990,23 +1124,26 @@
     const scored = activeStudents(c).map(({ s, i }) => ({ s, i, tot: gradeTotal(grClass, i), p: gradePct(grClass, i), has: hasGrades(grClass, i) })).filter(x => x.has && x.p != null);
     const box = $("#gr-analysis");
     if (!scored.length) { box.innerHTML = '<h3><span class="dot"></span>تحليل النتائج</h3><div class="empty-note">أدخل الدرجات وسيظهر التحليل تلقائياً</div>'; return; }
-    const totals = scored.map(x => x.tot), avg = totals.reduce((a, b) => a + b, 0) / totals.length;
-    const hi = scored.slice().sort((a, b) => b.tot - a.tot), lo = hi.slice().reverse();
+    /* المقارنة بالنسبة (gradePct) لا بالمجموع الخام: طالب رُصد له بند واحد 15/15 = 100% «ممتاز»
+       كان يتصدّر «يحتاجون دعماً» فوق زملائه بـ 24/30 (80%). */
+    const pcts = scored.map(x => x.p), avg = pcts.reduce((a, b) => a + b, 0) / pcts.length;
+    const hi = scored.slice().sort((a, b) => b.p - a.p || b.tot - a.tot), lo = hi.slice().reverse();
+    const cell = (x) => `${esc(x.s.n)} — <b>${Math.round(x.p)}%</b> <small style="color:var(--muted)">(${x.tot})</small>`;
     const dist = [0, 0, 0, 0, 0]; scored.forEach(x => dist[levelOf(x.p).i]++);
     const passCount = scored.filter(x => x.p >= 50).length;
     const LB = ["ممتاز", "جيد جداً", "جيد", "مقبول", "دون المطلوب"], LC = ["#2e9e5b", "#58a6d8", "#e8a23d", "#b3541e", "#d64545"];
     box.innerHTML = `<h3><span class="dot"></span>تحليل نتائج ${esc(c.name)}</h3>
       <div class="ana-grid">
         <div class="ana"><div class="v">${scored.length}</div><div class="l">طلاب مرصودون</div></div>
-        <div class="ana"><div class="v">${avg.toFixed(1)}</div><div class="l">المتوسط (من ${maxTot})</div></div>
-        <div class="ana"><div class="v">${Math.max(...totals)}</div><div class="l">أعلى درجة</div></div>
-        <div class="ana"><div class="v">${Math.min(...totals)}</div><div class="l">أدنى درجة</div></div>
+        <div class="ana"><div class="v">${Math.round(avg)}%</div><div class="l">المتوسط — من البنود المرصودة</div></div>
+        <div class="ana"><div class="v">${Math.round(Math.max(...pcts))}%</div><div class="l">أعلى نسبة</div></div>
+        <div class="ana"><div class="v">${Math.round(Math.min(...pcts))}%</div><div class="l">أدنى نسبة</div></div>
       </div>
       <div style="font-weight:800;color:var(--navy);margin:6px 0">نسبة الإتقان: ${Math.round(passCount / scored.length * 100)}% (${passCount} من ${scored.length}) <small style="font-weight:500;color:var(--muted)">— من البنود المرصودة حتى الآن</small></div>
       ${dist.map((n, k) => `<div class="bar-row"><span class="lb">${LB[k]}</span><div class="bar-track"><div class="bar-fill" style="width:${Math.round(n / scored.length * 100)}%;background:${LC[k]}">${n || ""}</div></div></div>`).join("")}
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px">
-        <div><div style="font-weight:800;color:var(--ok);margin-bottom:4px">🏅 الأعلى</div>${hi.slice(0, 5).map(x => `<div style="font-size:13px;padding:3px 0">${esc(x.s.n)} — <b>${x.tot}</b></div>`).join("")}</div>
-        <div><div style="font-weight:800;color:var(--bad);margin-bottom:4px">📉 يحتاجون دعماً</div>${lo.slice(0, 5).map(x => `<div style="font-size:13px;padding:3px 0">${esc(x.s.n)} — <b>${x.tot}</b></div>`).join("")}</div>
+        <div><div style="font-weight:800;color:var(--ok);margin-bottom:4px">🏅 الأعلى</div>${hi.slice(0, 5).map(x => `<div style="font-size:13px;padding:3px 0">${cell(x)}</div>`).join("")}</div>
+        <div><div style="font-weight:800;color:var(--bad);margin-bottom:4px">📉 يحتاجون دعماً</div>${lo.slice(0, 5).map(x => `<div style="font-size:13px;padding:3px 0">${cell(x)}</div>`).join("")}</div>
       </div>`;
   }
 
@@ -1228,7 +1365,7 @@
       <div class="tt" style="color:#b8860b;font-size:28px">شهادة تميّز وإنجاز</div>
       <div class="ctr">تتقدّم ${esc(META.school.name)} بخالص التقدير للطالب المتميّز</div>
       <div class="who">${esc(s.n)}</div>
-      <div class="ctr">من ${esc(c.name)}، تقديراً لتميّزه وحرصه وتفاعله المستمر،<br>حيث جمع <b>${pts}</b> نقطة. فله منّا كل الفخر، ونسأل الله له دوام التوفّق والعلا.</div>
+      <div class="ctr">من ${esc(c.name)}، تقديراً لتميّزه وحرصه وتفاعله المستمر،<br>حيث جمع <b>${pts}</b> نقطة. فله منّا كل الفخر، ونسأل الله له دوام التوفيق والعلا.</div>
       <div class="stars">${stars}</div>
       ${sigLine([{ l: "معلم المادة", v: TE ? TE.name : "" }, "principal"])}
       <div class="ctr" style="color:#888;font-size:12px;margin-top:14px">${esc(hijriLabel())}</div>`, { land: true });
@@ -1251,14 +1388,15 @@
   }
   function printLetter(cid, i) {
     const c = classById(cid), s = c.students[i], t = calcStudent(cid, i);
-    const weak = t.pts < 0 || t.st[1] > 1 || t.hwN > 1;
+    const abs = absCnt(t), att = attPct(t);                  // الغياب الفعلي = غائب + هارب (كبطاقة الطالب ورسالة الواتساب)
+    const weak = t.pts < 0 || abs > 1 || t.hwN > 1;
     printDoc("إشعار ولي أمر " + s.n, `
       <div class="h"><div class="bar">${esc(META.school.name)}</div><div class="m">إشعار ولي الأمر — ${esc(hijriLabel())}</div></div>
       <div class="tt">${weak ? "إشعار متابعة" : "إشعار تميّز"}</div>
       <p>المكرّم ولي أمر الطالب / <b>${esc(s.n)}</b> — الصف ${esc(c.name)} &nbsp;&nbsp; حفظه الله</p>
       <p>السلام عليكم ورحمة الله وبركاته،</p>
       <p>${weak
-        ? `نحيطكم علماً بأن ابنكم بحاجة إلى مزيد من المتابعة في مادة ${esc(TE.subject)}؛ حيث بلغت نقاطه ${t.pts}، وسجّل ${t.st[1]} غياب و${t.hwN} واجب غير منجز. نأمل تعاونكم في متابعته وحثّه على الانتظام وأداء الواجبات.`
+        ? `نحيطكم علماً بأن ابنكم بحاجة إلى مزيد من المتابعة في مادة ${esc(TE.subject)}؛ حيث بلغت نقاطه ${t.pts}، وسجّل ${abs} غياب و${t.hwN} واجب غير منجز${att != null ? ` (نسبة الحضور ${att}%)` : ""}. نأمل تعاونكم في متابعته وحثّه على الانتظام وأداء الواجبات.`
         : `يسعدنا إشعاركم بتميّز ابنكم في مادة ${esc(TE.subject)}؛ حيث بلغت نقاطه ${t.pts} مع انتظام في الحضور وأداء الواجبات. نشكر لكم حسن متابعتكم، ونسأل الله له دوام التوفيق.`}</p>
       <p>شاكرين لكم تعاونكم الدائم مع المدرسة.</p>
       ${sigLine([{ l: "معلم المادة", v: TE.name }, "principal", { l: "توقيع ولي الأمر", dots: 16 }])}`);
@@ -1293,7 +1431,7 @@
         </table></div></div>`;
     // لوحة شرف الفصل (قابلة للطباعة والتعليق)
     // آخر حالة مرصودة للطالب: الغائب/المستأذن/الغائب بعذر/الهارب لا يظهر في لوحة الشرف
-    const lastAway = (i) => { const cd = DB.recs[repClass] || {}; const dates = Object.keys(cd).sort().reverse(); for (const d of dates) { const e = cd[d][i]; if (e && e.a != null && STATES[e.a]) return /غائب|مستأذن|بعذر|هارب/.test(STATES[e.a].name || ""); } return false; };
+    const lastAway = (i) => lastAwayOf(repClass, i);
     const top = rows.slice().sort((a, b) => b.t.pts - a.t.pts).filter(r => r.t.pts > 0 && !lastAway(r.i)).slice(0, 10);
     const MED = ["🥇", "🥈", "🥉"];
     const honor = document.createElement("div");
@@ -1513,16 +1651,22 @@
       const m = $("#nt-cal-msg");
       try {
         const r = I.download(TE.id, { alarm: notifyLead() });
-        if (fp) lsSet(fpKeyOf(), fp);
-        /* الحصص التي رقمها خارج عدد حصص ذلك اليوم تسقط من الملف؛ كانت تسقط صامتة والرسالة
-           تقول «يحوي N موعداً» فيظن المعلم جدوله كاملاً. النصّ جاهز من js/ics.js. */
+        /* البصمة تُختم لحظةَ التنزيل لا لحظةَ رسم البطاقة: تغيّرُ الأجراس أو الجدول بعد فتح
+           «المزيد» كان يختم البصمة القديمة، فتبقى لافتة «تغيّر جدولك» معلّقة أبداً ولو نزّل
+           المعلم الملف الجديد للتوّ. ولا تُختم البصمة ولا تُرفع اللافتة إن لم يُنزَّل ملفٌ
+           أصلاً (فصل منتهٍ أو جدول فارغ) — كان الختم يقع في الحالتين فيضيع التنبيه. */
+        let now = fp;
+        if (I && typeof I.fingerprint === "function") { try { now = I.fingerprint(TE.id); } catch (e2) { } }
+        if (r && r.downloaded && now) { fp = now; lsSet(fpKeyOf(), now); }
+        /* نصّ الرسالة من js/ics.js وحده (message): يجمع صيغة العدد العربية الصحيحة، و«تغطّي
+           N حصة أسبوعياً» حين يكون موعدٌ واحد لأكثر من حصة (BYDAY مزدوج)، وحالتَي الفصل
+           المنتهي والمواعيد الملغاة. وnote للحصص التي لا وقت لها في جدول الأجراس. */
         const note = (r && r.skippedNote) ? " " + r.skippedNote : "";
         if (m) {
-          m.textContent = (r && r.count ? `✔ نُزِّل الملف «${r.name}» ويحوي ${r.count} موعداً — افتحه من التنزيلات ليُضاف إلى تقويمك.`
-            : "لا حصص في جدولك لإضافتها إلى التقويم.") + note;
+          m.textContent = ((r && r.message) || "لا حصص في جدولك لإضافتها إلى التقويم.") + note;
           m.style.color = note ? "var(--bad)" : "";
         }
-        const w = card.querySelector(".nt-warn"); if (w) w.remove();
+        if (r && r.downloaded) { const w = card.querySelector(".nt-warn"); if (w) w.remove(); }
       } catch (e) { if (m) m.textContent = "تعذّر إنشاء ملف التقويم — أعد تحميل الصفحة ثم حاول مرة أخرى."; }
     };
   }
@@ -1730,8 +1874,10 @@
       body.querySelectorAll("[data-up]").forEach(b => b.onclick = () => filesSheet("⬆️ ورقة من جهازي — " + b.dataset.up, "lesson", { code: b.dataset.code, wk: +b.dataset.wk },
         "ورقة عمل جاهزة من جهازك (صورة أو PDF) تُحفظ مع هذا الدرس وتظهر في «📎 مرفقات الدرس» داخل الحصة."));
       body.querySelectorAll("[data-send]").forEach(b => b.onclick = async () => {
+        // sendSheet تفتح نافذتها بنفسها (openSheet يستبدل المحتوى)، وتخرج بتنبيه في الوضع
+        // التجريبي أو حين لا أسئلة — فكان closeSheet المسبق يُفقد المعلم قائمته بلا مقابل
         const qs = await lessonQuestions(b.dataset.code, +b.dataset.wk);
-        closeSheet(); sendSheet(b.dataset.code, +b.dataset.wk, b.dataset.send, qs);
+        sendSheet(b.dataset.code, +b.dataset.wk, b.dataset.send, qs);
       });
     });
   }
@@ -1783,10 +1929,12 @@
     openSheet(`<h4>اختر الفصل</h4><div class="stategrid">${cls.map(c => `<button style="background:var(--navy)" data-c="${c.id}">${esc(c.name)}</button>`).join("")}</div>`,
       (o) => o.querySelectorAll("[data-c]").forEach(b => b.onclick = () => { closeSheet(); cb(b.dataset.c); }));
   }
-  function liveSession(cid, initialView) {
+  function liveSession(cid, initialView, date) {
     stopBell();
-    liveCid = cid; liveDate = todayISO(); livePrevTop = null; liveTurns = { done: new Set(), cur: null };
-    const c = classById(cid);
+    // التاريخ يأتي من ورقة التحضير حين تُفتح الحصة منها (استدراك يوم فائت)، وإلا فاليوم
+    liveCid = cid; liveDate = /^\d{4}-\d{2}-\d{2}$/.test(String(date || "")) ? String(date) : todayISO();
+    livePrevTop = null; liveTurns = { done: new Set(), cur: null };
+    const c = classById(cid), pastDay = liveDate !== todayISO();
     $("#view-app").classList.add("hidden");
     const V = $("#view-live"); V.classList.remove("hidden");
     // V.innerHTML يُعاد بناؤه لكن الأصناف تبقى: بلا هذا السطر تبدأ كل حصة تالية بلا أدوات ولا لوحة، وزراهما يقولان «إخفاء»
@@ -1795,7 +1943,7 @@
     V.innerHTML = `
       <div class="live-top">
         <button class="live-btn" id="live-exit">✕ إنهاء</button>
-        <div class="live-title">🎬 ${esc(c.name)} <small id="live-sub"></small></div>
+        <div class="live-title">🎬 ${esc(c.name)}${pastDay ? `<span class="live-day">📅 رصد يوم ${esc(liveDate)}</span>` : ""} <small id="live-sub"></small></div>
         <div style="display:flex;gap:6px">
           <button class="live-btn live-tchip" id="live-tchip" hidden title="مؤقّت النشاط — اضغط للعودة إليه">⏱ 00:00</button>
           <button class="live-btn" id="live-tools-t" title="إخفاء/إظهار الأدوات">🎛️ <span class="lbl">إخفاء الأدوات</span><span class="sh">إخفاء</span></button>
@@ -1820,7 +1968,16 @@
         </div>
         <div class="live-board" id="live-board"></div>
       </div>`;
-    $("#live-exit").onclick = () => { timerReset(); stopStory(); stopGame(); stopWheel(); try { if (document.fullscreenElement) document.exitFullscreen(); } catch (e) { } V.classList.add("hidden"); $("#view-app").classList.remove("hidden"); renderReg(); renderToday(); renderGrades(); };
+    $("#live-exit").onclick = () => {
+      timerReset(); stopStory(); stopGame(); stopWheel(); closeLiveBox();
+      /* إخفاء #view-live وحده كان يترك إطار يوتيوب حيّاً في الشجرة: صوتٌ يعمل بلا مشغّل ظاهر
+         ولا وسيلة لإيقافه إلا إعادة تحميل الصفحة. وbump للتسلسل يوقف أي كتابة متأخرة من محطة كانت تنتظر الشبكة. */
+      liveViewSeq++;
+      const lm = $("#live-main"); if (lm) lm.innerHTML = "";
+      try { if (document.fullscreenElement) document.exitFullscreen(); } catch (e) { }
+      V.classList.add("hidden"); $("#view-app").classList.remove("hidden");
+      renderReg(); renderToday(); renderGrades();
+    };
     $("#live-fs").onclick = () => {
       const d = document, el = V;
       const isFS = d.fullscreenElement || d.webkitFullscreenElement || d.mozFullScreenElement || d.msFullscreenElement;
@@ -2097,7 +2254,7 @@
   }
   // 🎡 عجلة اختيار الطلاب
   let wheelIv = null;
-  function stopWheel() { if (wheelIv) { clearInterval(wheelIv); wheelIv = null; } }   // دورة جارية لا تُكمل فوق محطة أخرى
+  function stopWheel() { if (wheelIv) { clearTimeout(wheelIv); wheelIv = null; } }   // دورة جارية لا تُكمل فوق محطة أخرى
   function stageWheel(box, c) {
     box.innerHTML = `<div class="live-stage"><div class="stage-bar"><span style="color:#fff;font-weight:800">🎡 عجلة اختيار الطلاب</span>
       <label style="color:#c9d5e3;font-size:13px;margin-inline-start:auto"><input type="checkbox" id="wh-present" checked> الحاضرون فقط</label></div>
@@ -2122,12 +2279,15 @@
       box.querySelector("#wh-act").innerHTML = "";
       const here = activeStudents(c).map(x => x.i).filter(i => !liveAway(i));   // مقام العدّاد = الحاضرون، كما في «من يجيب؟»
       let ticks = 0, max = 22 + Math.floor(Math.random() * 10);
-      wheelIv = setInterval(() => {
+      /* سلسلة setTimeout لا setInterval: مهلة setInterval تُقيَّم مرة واحدة وticks حينها صفر،
+         فكانت العجلة تدور بسرعة واحدة (70ms) ثم تقف فجأة بلا تمهيد. */
+      const spin = () => {
         const i = pool[Math.floor(Math.random() * pool.length)];
         nameEl.textContent = c.students[i].n;
         nameEl.style.transform = "scale(1.05)";
         ticks++;
-        if (ticks >= max) {
+        if (ticks < max) { wheelIv = setTimeout(spin, 70 + ticks * 4); return; }
+        {
           stopWheel();
           const win = pool[Math.floor(Math.random() * pool.length)]; liveTurns.done.add(win); liveTurns.cur = win;
           nameEl.textContent = "🎉 " + c.students[win].n;
@@ -2138,7 +2298,8 @@
           box.querySelector("#wh-act").innerHTML = `<button class="btn-gold" id="wh-eval" style="font-size:16px">⭐ قيّم ${esc(c.students[win].n.split(" ")[0])}</button><div class="btip" style="margin-top:8px">شارك ${doneN} من ${base.length} — لن يتكرر اسم حتى يشارك الجميع</div>`;
           box.querySelector("#wh-eval").onclick = () => liveActions(win);
         }
-      }, 70 + ticks * 4);
+      };
+      wheelIv = setTimeout(spin, 70);
     };
   }
   // بنك أسئلة الدرس (من صلب محتوى الدرس)
@@ -2480,12 +2641,19 @@
     const roster = () => { const pool = activeStudents(c).map(x => x.i), pres = pool.filter(i => !liveAway(i)); return (pres.length ? pres : pool).map(i => c.students[i].n); };
     const pickBtn = `<div class="gm-pickwrap"><button class="live-btn gm-pick" id="gm-pick">🎡 من يجيب؟</button><span class="gm-who" id="gm-who"></span><span class="gm-prog" id="gm-prog"></span><div class="gm-award" id="gm-award"></div></div>`;
     function wirePick() {
-      const b = box.querySelector("#gm-pick"), w = box.querySelector("#gm-who"), pr = box.querySelector("#gm-prog"), aw = box.querySelector("#gm-award"); if (!b || !w) return;
+      /* كل جولة تُعيد كتابة #live-main: نافذة «يختار زميلاً» المفتوحة كانت تبقى فوق الجولة الجديدة
+         وتشير إلى #gm-who/#gm-award القديمة المنفصلة — فيُضاف الطالب إلى دورة المشاركة بلا اسمٍ
+         ولا أزرار تقييم: رصدٌ ضائع وعدّاد مغشوش. تُغلق هنا، وعناصر الشاشة تُقرأ لحظة الاستعمال. */
+      closeLiveBox();
+      const b = box.querySelector("#gm-pick"), w = box.querySelector("#gm-who"); if (!b || !w) return;
       const T = liveTurns;
+      const el = (id) => box.querySelector(id);
       const present = () => { const pool = activeStudents(c).map(x => x.i), pres = pool.filter(i => !liveAway(i)); return pres.length ? pres : pool; };
-      const prog = () => { const p = present(); pr.textContent = `شارك ${p.filter(i => T.done.has(i)).length}/${p.length}`; };
+      const prog = () => { const pr = el("#gm-prog"); if (!pr) return; const p = present(); pr.textContent = `شارك ${p.filter(i => T.done.has(i)).length}/${p.length}`; };
       const land = (i) => {
-        T.cur = i; T.done.add(i); w.textContent = c.students[i].n; w.classList.add("pop"); prog();
+        const w2 = el("#gm-who"), aw = el("#gm-award");
+        if (!w2 || !aw) return;                       // المحطة تغيّرت: لا يُضاف إلى الدورة بلا أثر مرئي
+        T.cur = i; T.done.add(i); w2.textContent = c.students[i].n; w2.classList.add("pop"); prog();
         aw.innerHTML = `<button class="gm-aw g" data-k="part">✅ أجاب +${W.part}</button><button class="gm-aw g" data-k="star">🌟 تميّز</button><button class="gm-aw r" data-k="none">😕 لم يُجب</button><button class="gm-aw y" data-k="next">👉 يختار زميلاً</button>`;
         aw.querySelectorAll(".gm-aw").forEach(x => x.onclick = () => {
           const k = x.dataset.k;
@@ -2496,7 +2664,8 @@
       };
       const chooseNext = () => {
         const p = present().filter(i => !T.done.has(i));
-        if (!p.length) { T.done.clear(); prog(); aw.innerHTML = `<span class="gm-fb ok">🎉 شارك الجميع! تبدأ دورة جديدة</span>`; return; }
+        if (!p.length) { T.done.clear(); prog(); const aw = el("#gm-award"); if (aw) aw.innerHTML = `<span class="gm-fb ok">🎉 شارك الجميع! تبدأ دورة جديدة</span>`; return; }
+        if (T.cur == null || !c.students[T.cur]) return;
         openLiveBox(`<h4>👉 ${esc(c.students[T.cur].n)} يختار زميلاً لم يشارك بعد</h4><div class="grid gm-choose">${p.map(i => `<button class="act b" data-i="${i}">${esc(c.students[i].n)}</button>`).join("")}</div><button class="act close" data-k="x" style="width:100%;margin-top:8px">إغلاق</button>`,
           (o) => { o.querySelectorAll("[data-i]").forEach(bt => bt.onclick = () => { closeLiveBox(); land(+bt.dataset.i); }); o.querySelector("[data-k=x]").onclick = closeLiveBox; });
       };
@@ -2507,8 +2676,9 @@
         // انحياز لطيف للأقل نقاطاً حتى يشاركوا ويحسّنوا وضعهم
         const calc = classCalc(liveCid); const sorted = p.slice().sort((a, b2) => calc[a].t.pts - calc[b2].t.pts); const low = sorted.slice(0, Math.max(1, Math.ceil(sorted.length / 2)));
         const pool = Math.random() < 0.6 ? low : p;
-        let n = 0; w.classList.remove("pop"); aw.innerHTML = ""; if (gameIv2) clearInterval(gameIv2);
-        gameIv2 = setInterval(() => { w.textContent = c.students[p[Math.floor(Math.random() * p.length)]].n; if (++n > 16) { clearInterval(gameIv2); gameIv2 = null; land(pool[Math.floor(Math.random() * pool.length)]); } }, 80);
+        let n = 0; const w2 = el("#gm-who"), aw = el("#gm-award");
+        if (w2) w2.classList.remove("pop"); if (aw) aw.innerHTML = ""; if (gameIv2) clearInterval(gameIv2);
+        gameIv2 = setInterval(() => { const wx = el("#gm-who"); if (!wx) { clearInterval(gameIv2); gameIv2 = null; return; } wx.textContent = c.students[p[Math.floor(Math.random() * p.length)]].n; if (++n > 16) { clearInterval(gameIv2); gameIv2 = null; land(pool[Math.floor(Math.random() * pool.length)]); } }, 80);
       };
     }
     function menu() {
@@ -2957,24 +3127,28 @@
     const att = attPct({ st: STATES.map((x, k) => rows.reduce((a, r) => a + (r.t.st[k] || 0), 0)) });
     const part = rows.reduce((a, r) => a + r.t.part, 0), hw = rows.reduce((a, r) => a + r.t.hwY, 0);
     const top = rows.filter(r => r.t.pts > 0).sort((a, b) => b.t.pts - a.t.pts).slice(0, 5);
-    const need = rows.filter(r => r.t.st[1] > 0 || r.t.hwN > 0 || r.t.behN > 0).slice(0, 8);
+    const need = rows.filter(r => absCnt(r.t) > 0 || r.t.hwN > 0 || r.t.behN > 0).slice(0, 8);
     return `📊 *تقرير ${TE.subject} — ${c.name}*\n🏫 ${META.school.name}\n🗓️ الفترة: ${hLabelShort(from)} → ${hLabelShort(to)} (${days} حصة مرصودة)\n\n` +
       `✅ نسبة الحضور: ${att != null ? att + "%" : "لم يُرصد بعد"}\n🙋 المشاركات: ${part} | 📚 الواجبات المنجزة: ${hw}\n\n` +
       (top.length ? `🏆 *الأوائل في النقاط:*\n${top.map((r, k) => `${["🥇", "🥈", "🥉", "4.", "5."][k]} ${r.s.n} (${r.t.pts})`).join("\n")}\n\n` : "") +
-      (need.length ? `🔔 *يحتاجون متابعة الأسرة:*\n${need.map(r => `• ${r.s.n}: ${[r.t.st[1] ? "غياب " + r.t.st[1] : "", r.t.hwN ? "واجب ناقص " + r.t.hwN : "", r.t.behN ? "ملاحظة سلوك" : ""].filter(Boolean).join("، ")}`).join("\n")}\n\n` : "") +
+      (need.length ? `🔔 *يحتاجون متابعة الأسرة:*\n${need.map(r => `• ${r.s.n}: ${[absCnt(r.t) ? "غياب " + absCnt(r.t) : "", r.t.hwN ? "واجب ناقص " + r.t.hwN : "", r.t.behN ? "ملاحظة سلوك" : ""].filter(Boolean).join("، ")}`).join("\n")}\n\n` : "") +
       `💡 نشكر تعاونكم، ومتابعتكم اليومية تصنع الفرق.\n👨‍🏫 معلم المادة: ${TE.name}`;
   }
   function studentText(cid, i, from, to) {
     const c = classById(cid), s = c.students[i], recs = recsInRange(cid, from, to), t = calcStudent(cid, i, recs), maxTot = maxTotal();
-    const all = activeStudents(c).map(x => calcStudent(cid, x.i, recs).pts).sort((a, b) => b - a); const rank = all.indexOf(t.pts) + 1;
+    // الترتيب بقاعدة classCalc نفسها (متسلسل بفهرس الطالب) — كان indexOf يعطي المتساوين رقماً واحداً
+    // فيستلم ولي الأمر رقمين مختلفين لابنه من البطاقة ومن رسالة الفترة في اليوم نفسه
+    const ord = activeStudents(c).map(x => ({ i: x.i, pts: calcStudent(cid, x.i, recs).pts })).sort((a, b) => b.pts - a.pts);
+    const rank = ord.findIndex(x => x.i === i) + 1;
     const hasG = hasGrades(cid, i), gt = gradeTotal(cid, i), gm = gradedMax(cid, i), gp = gradePct(cid, i); const a = attPct(t);
-    const tip = t.st[1] > 0 ? "نرجو متابعة الحضور." : t.hwN > 0 ? "نرجو متابعة إنجاز الواجبات." : t.pts >= 10 ? "أداء مميز، بارك الله فيه." : "نأمل مزيداً من المشاركة.";
+    const tip = absCnt(t) > 0 ? "نرجو متابعة الحضور." : t.hwN > 0 ? "نرجو متابعة إنجاز الواجبات." : t.pts >= 10 ? "أداء مميز، بارك الله فيه." : "نأمل مزيداً من المشاركة.";
     return `السلام عليكم ورحمة الله\nولي أمر الطالب: *${s.n}* — ${c.name}\n📊 تقرير ${TE.subject} للفترة ${hLabelShort(from)} → ${hLabelShort(to)}\n` +
       `⭐ النقاط: ${t.pts} | الترتيب: ${rank} من ${activeCount(c)}\n✅ الحضور: ${a != null ? a + "%" : "—"} (${STATES.map((st, k) => t.st[k] ? `${st.name} ${t.st[k]}` : "").filter(Boolean).join("، ") || "لا رصد"})\n🙋 المشاركة: ${t.part} | 📚 الواجبات: ${t.hwY}${t.hwN ? ` (ناقص ${t.hwN})` : ""}${hasG && gp != null ? `\n📝 الدرجة: ${gt}/${gm}${gm < maxTot ? ` مرصودة (من أصل ${maxTot})` : ""} — ${levelOf(gp).t}` : ""}\n💡 ${tip}\n${META.school.name} — ${TE.name}`;
   }
   function parentReportsCard(box) {
     const cls = myClasses(); if (!cls.length) return;
-    const today = new Date().toISOString().slice(0, 10), ago = new Date(Date.now() - 6 * 864e5).toISOString().slice(0, 10);
+    // toISOString يعطي تاريخ الأمس بين منتصف الليل و2:59 فجراً بتوقيت الرياض، فيسقط رصد اليوم من كل الرسائل
+    const today = todayISO(), ago = todayISO(new Date(Date.now() - 6 * 864e5));
     const wa = document.createElement("div"); wa.className = "card no-print";
     wa.innerHTML = `<h3><span class="dot"></span>📤 تقارير أولياء الأمور — ${esc(classById(repClass).name)}</h3>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px"><div class="field" style="margin:0"><label>من تاريخ</label><input type="date" id="wa-from" value="${ago}"></div><div class="field" style="margin:0"><label>إلى تاريخ</label><input type="date" id="wa-to" value="${today}"></div></div>
@@ -3332,7 +3506,7 @@
         body.innerHTML = `<div class="cert"><div class="seal">🏆</div><div class="t">شهادة إنجاز</div>
           <div class="body">تشهد ${esc(META.school.name)} بأن الطالب</div>
           <div class="who">${esc(s.n)}</div>
-          <div class="body">من ${esc(c.name)} قد أظهر تفاعلاً وحرصاً في دروسه،<br>وجمع <b>${agg.pts}</b> نقطة. نسأل الله له دوام التوفّق والتميّز.</div>
+          <div class="body">من ${esc(c.name)} قد أظهر تفاعلاً وحرصاً في دروسه،<br>وجمع <b>${agg.pts}</b> نقطة. نسأل الله له دوام التوفيق والتميّز.</div>
           <div class="stars" style="color:var(--gold)">${stars}</div>
           <div class="foot"><span>${esc(hijriLabel())}</span><span>إدارة المدرسة</span></div>
           <button class="btn-gold no-print" style="margin-top:14px" id="st-cert-print">🖨️ طباعة الشهادة (تصميم فاخر)</button></div>`;
@@ -3372,7 +3546,9 @@
     studentProgress, studentCard, adminLevels, schoolSummary, classDocs, loadSubs,
     switchTab, rerenderTab, renderToday, renderReg, renderGrades, renderRep, renderMore,
     toolCurriculum, toolSessions, toolPlans, toolCalc, toolSheets, toolAssign, liveSession, enter,
-    loadLogo, filesSheet, nextClassOf, notifyLead, paintNotifyCard
+    loadLogo, filesSheet, nextClassOf, notifyLead, paintNotifyCard,
+    // مطالبة الجلسة: تُتيح للوحة المدير أن تشرح الرفض قبل وقوعه بدل نسبته إلى الإنترنت
+    claimOK, claimBar, attBucketAbs: absCnt, lastAwayOf, arNum
   };
 
   /* ═══ إقلاع ═══ */

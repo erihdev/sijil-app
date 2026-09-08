@@ -190,7 +190,11 @@ service cloud.firestore {
                   && tDoc(request.resource.data.by).get('pinHash', '') != request.resource.data.byPin
                   && pinHas(request.resource.data.byPin)
                   && pinDoc(request.resource.data.byPin).tid == request.resource.data.by));
-      allow delete: if signedIn();
+      // الحذف كان مفتوحاً لأي جهاز مصادَق، وحذفُ القناة بين خطوتي تغيير الرقم يُفشل التغيير
+      //   ويعيد «لم يكتمل التغيير — رقمك القديم لا يزال يعمل» بلا نهاية، فيكفي عابثاً أن يكرره
+      //   ليعطّل كل تغيير رقم وكل إعادة تعيين في المدرسة. فليكن كحذف pins تماماً: لصاحب
+      //   المطالبة أو المدير. وjs/auth.js ينتظر كتابة المطالبة قبل التنظيف، فالمسار السليم يملكها.
+      allow delete: if signedIn() && (isClaim(tid) || isAdminClaim());
     }
 
     // ── sess/{uid}: مطالبة جهاز واحد بهوية معلم — لا تُقرأ من أي عميل، ولا تُكتب إلا ببصمة رقم حيّة ──
@@ -298,8 +302,14 @@ service cloud.firestore {
           && request.resource.data.c is list
           && request.resource.data.c.size() <= 500
           && request.resource.data.keys().hasOnly(['c', 'tn', 'ts'])
-          && (request.resource.data.c.size() >= resource.data.get('c', []).size()
-              || resource.data.get('c', []).size() >= 500
+          // الطولُ وحده لا يحمي: قائمةٌ أخرى بالطول نفسه كانت تمرّ فتمحو كل ما سُجّل من تواصل.
+          //   والشرط الصحيح أن يبقى كل عنصر قديم موجوداً — وهو ما يفعله js/app.js حرفياً:
+          //   يقرأ نسخة السحابة ويتّحد معها (mergeComms) قبل كل رفع. والاستثناء الوحيد بلوغ
+          //   السقف (slice(-500)) حيث تسقط الأقدم بحق.
+          && (request.resource.data.c.hasAll(resource.data.get('c', []))
+              || (request.resource.data.c.size() >= 500
+                  && resource.data.get('c', []).size() >= 450
+                  && request.resource.data.c.hasAll(resource.data.c[50:resource.data.c.size()]))
               || mayShrink(ownerOf(id)));
       allow delete: if false;
     }
@@ -318,44 +328,68 @@ service cloud.firestore {
     // ── تعديل توزيع المنهج أونلاين: {rows: خريطة, tn, ts} ──
     match /curredits/{code} {
       allow read: if signedIn();
-      allow create, update: if signedIn() && isCurrCode(code) && stamped()
+      allow create: if signedIn() && isCurrCode(code) && stamped()
           && request.resource.data.rows is map
           && request.resource.data.keys().hasOnly(['rows', 'tn', 'ts']);
+      // js/app.js:379 يكتب بالدمج دائماً ({rows:{[idx]:patch}}, merge) فالمفاتيح تنمو ولا تنقص،
+      //   وتفريغ rows من زائر كان يمحو توزيع منهج مادة كاملة.
+      allow update: if signedIn() && isCurrCode(code) && stamped()
+          && request.resource.data.rows is map
+          && request.resource.data.keys().hasOnly(['rows', 'tn', 'ts'])
+          && (request.resource.data.rows.keys().hasAll(resource.data.get('rows', {}).keys())
+              || anyClaim());
       allow delete: if false;
     }
 
     // ── الدروس المؤلَّفة أونلاين لكل المواد ──
     match /lessons/{key} {
       allow read: if signedIn();
-      allow create, update: if signedIn() && isLessonKey(key) && stamped()
+      allow create: if signedIn() && isLessonKey(key) && stamped()
           && request.resource.data.title is string
           && request.resource.data.title.size() > 0
           && request.resource.data.title.size() <= 120
           && request.resource.data.story is list
           && request.resource.data.questions is list
           && request.resource.data.by is string;
+      // الاستبدال المُفرّغ (محطات صفر وأسئلة صفر) كان يمحو درساً ألّفه معلم وتشاركه المدرسة.
+      //   التأليف والإضافة يبقيان مفتوحين، والتقليص يحتاج مطالبة.
+      allow update: if signedIn() && isLessonKey(key) && stamped()
+          && request.resource.data.title is string
+          && request.resource.data.title.size() > 0
+          && request.resource.data.title.size() <= 120
+          && request.resource.data.story is list
+          && request.resource.data.questions is list
+          && request.resource.data.by is string
+          && (anyClaim()
+              || (request.resource.data.story.size() >= resource.data.get('story', []).size()
+                  && request.resource.data.questions.size() >= resource.data.get('questions', []).size()));
       allow delete: if false;
     }
 
     // ── الأوراق التفاعلية المرسلة للطلاب: ينشئها المعلم ويقرأها الطالب بالرابط ──
-    match /assign/{id} {
-      allow read: if signedIn();
-      allow create, update: if signedIn() && id.matches('^[a-z0-9]{4,12}$') && stamped()
-          && request.resource.data.t is string && request.resource.data.t.size() <= 160
+    function assignShape() {
+      return request.resource.data.t is string && request.resource.data.t.size() <= 160
           && request.resource.data.qs is list && request.resource.data.qs.size() <= 40
           && request.resource.data.cid is string && request.resource.data.tid is string
           && request.resource.data.mode in ['ws', 'quiz', 'race']
           && (!('retry' in request.resource.data) || request.resource.data.retry is bool)
           && (!('tries' in request.resource.data) || (request.resource.data.tries is int && request.resource.data.tries >= 0 && request.resource.data.tries <= 12));
+    }
+    match /assign/{id} {
+      allow read: if signedIn();
+      allow create: if signedIn() && id.matches('^[a-z0-9]{4,12}$') && stamped() && assignShape();
+      // js/app.js لا يعدّل ورقةً بعد إنشائها أبداً (يُنشئ معرّفاً جديداً في كل مرة)،
+      //   والكاتب الوحيد للتحديث هو استعادة النسخة الاحتياطية من لوحة المدير. وكان أي زائر
+      //   يستبدل أسئلة ورقة وصل رابطها إلى فصل كامل — أو يفرّغها — فيرى الطلاب ورقة أخرى.
+      allow update: if signedIn() && id.matches('^[a-z0-9]{4,12}$') && stamped()
+          && assignShape() && anyClaim();
       allow delete: if false;
     }
 
-    // ── تسليم الطالب: يُكتب مرة من جهاز الطالب، ولا يُحذف ──
-    match /subs/{id} {
-      allow read: if signedIn();
-      allow create, update: if signedIn()
-          && id.matches('^[a-z0-9]{4,12}_[0-9]{1,3}$')
-          && request.resource.data.ts is number
+    // ── تسليم الطالب: يُكتب مرة من جهاز الطالب، ثم لا تُعاد كتابته إلا محاولةً تالية ──
+    //    (جهاز الطالب لا مطالبة له ولا يمكن أن تكون له — فالحماية هنا بشكل البيانات لا بالهوية.)
+    function subShape() {
+      return request.resource.data.ts is number
           && request.resource.data.a is string
           && request.resource.data.si is int
           && request.resource.data.n is string && request.resource.data.n.size() <= 80
@@ -363,13 +397,38 @@ service cloud.firestore {
           && request.resource.data.sc is int && request.resource.data.mx is int
           && request.resource.data.sc >= 0 && request.resource.data.sc <= request.resource.data.mx
           && request.resource.data.keys().hasOnly(['a','si','n','cid','tid','ans','sc','mx','best','lsc','att','secs','late','ts','lts']);
-      allow delete: if false;
+    }
+    match /subs/{id} {
+      allow read: if signedIn();
+      allow create: if signedIn() && id.matches('^[a-z0-9]{4,12}_[0-9]{1,3}$') && subShape();
+      // المحاولة التالية في w/index.html تُبقي المحاولة الأولى كما هي حرفياً (a/si/n/ans/sc/ts)
+      //   وتزيد att وbest وحدهما. وكان التحديث مفتوحاً بلا قيد: أي جهاز يستبدل تسليم أي طالب
+      //   بدرجة كاملة وإجابات من عنده — وrec.sc هو ما ينقله «💯 اعتماد المحاولة الأولى» إلى
+      //   دفتر الدرجات، وans هو ما يُبنى عليه «نسبة الخطأ في كل سؤال».
+      allow update: if signedIn() && id.matches('^[a-z0-9]{4,12}_[0-9]{1,3}$') && subShape()
+          && (isAdminClaim()
+              || (request.resource.data.a == resource.data.a
+                  && request.resource.data.si == resource.data.si
+                  && request.resource.data.n == resource.data.get('n', '')
+                  && request.resource.data.ans == resource.data.get('ans', [])
+                  && request.resource.data.sc == resource.data.sc
+                  && request.resource.data.ts == resource.data.ts
+                  && request.resource.data.get('att', 1) > resource.data.get('att', 1)
+                  && request.resource.data.get('best', 0) >= resource.data.get('best', 0)));
+      // تسليمٌ باسم زميل كان يقفل الطالب الحقيقي إلى الأبد (وضع «اختبار» بمحاولة واحدة)
+      //   ولا يملك أحد تصفيره. فليملكه صاحب الورقة: معلمها بمطالبته، أو المدير.
+      allow delete: if signedIn() && id.matches('^[a-z0-9]{4,12}_[0-9]{1,3}$')
+          && (isAdminClaim()
+              || (exists(/databases/$(database)/documents/assign/$(id.split('_')[0]))
+                  && isClaim(get(/databases/$(database)/documents/assign/$(id.split('_')[0])).data.get('tid', ''))));
     }
 
     // ── حركات نقل الطلاب: إنشاء فقط، تُطبَّق على الفصول عند كل تحميل ──
     match /moves/{id} {
       allow read: if signedIn();
-      allow create: if signedIn() && id.matches('^[a-z0-9]{4,12}$') && stamped()
+      // النقل نهائي: update وdelete ممنوعان، فلا تراجع عنه إلا بحركة مضادة. وكان أي زائر
+      //   ينقل أي طالب إلى أي فصل — أو يُخرجه من المدرسة — فيختفي من شاشات كل المعلمين.
+      allow create: if signedIn() && id.matches('^[a-z0-9]{4,12}$') && stamped() && anyClaim()
           && request.resource.data.from is string && request.resource.data.to is string
           && request.resource.data.si is int && request.resource.data.si >= 0 && request.resource.data.si < 200
           && request.resource.data.newSi is int && request.resource.data.newSi >= 0 && request.resource.data.newSi < 400
@@ -381,16 +440,28 @@ service cloud.firestore {
     // ── تعديلات المدير على بيانات الطلاب (جوال ولي الأمر/تصحيح الاسم): sedits/{cid} = {s:{si:{p,n}}, tn, ts} — دمج، لا حذف ──
     match /sedits/{cid} {
       allow read: if signedIn();
-      allow create, update: if signedIn() && cid.matches('^[A-Za-z0-9]{1,12}$') && stamped()
+      // الحقل p هو جوال ولي الأمر الذي تُبنى عليه روابط واتساب في «تقارير أولياء الأمور»
+      //   وبطاقة الطالب: تحويله يعني إرسال بيانات طالب إلى رقم غريب. ولا كاتب لهذه المجموعة
+      //   في التطبيق كله إلا لوحة المدير (js/admin/core.js:252 واستعادة النسخة الاحتياطية)،
+      //   وكلاهما يكتب بالدمج فلا تنقص المفاتيح أبداً.
+      allow create: if signedIn() && cid.matches('^[A-Za-z0-9]{1,12}$') && stamped()
+          && isAdminClaim()
           && request.resource.data.s is map
           && request.resource.data.keys().hasOnly(['s', 'tn', 'ts']);
+      allow update: if signedIn() && cid.matches('^[A-Za-z0-9]{1,12}$') && stamped()
+          && isAdminClaim()
+          && request.resource.data.s is map
+          && request.resource.data.keys().hasOnly(['s', 'tn', 'ts'])
+          && request.resource.data.s.keys().hasAll(resource.data.get('s', {}).keys());
       allow delete: if false;
     }
 
     // ── سجل الإدارة adminlog/{id}: {act, tid?, note, tn, ts} — إنشاء فقط ──
     match /adminlog/{id} {
       allow read: if signedIn();
-      allow create: if signedIn() && id.matches('^[a-z0-9]{4,20}$') && stamped()
+      // سجل الإدارة يُفترض أن يكون أثراً موثوقاً يُحتجّ به (من غيّر رقم من؟ من نقل من؟)،
+      //   وكان أي زائر يزرع فيه ما يشاء بأي اسم.
+      allow create: if signedIn() && id.matches('^[a-z0-9]{4,20}$') && stamped() && anyClaim()
           && request.resource.data.act is string && request.resource.data.act.size() <= 20
           && request.resource.data.note is string && request.resource.data.note.size() <= 300
           && (!('tid' in request.resource.data) || (request.resource.data.tid is string && request.resource.data.tid.size() <= 12))
@@ -402,9 +473,15 @@ service cloud.firestore {
     // ── تفضيلات المعلم (معايير حاسبة المهمة الأدائية وغيرها) ──
     match /prefs/{tid} {
       allow read: if signedIn();
-      allow create, update: if signedIn() && tid.matches('^[A-Za-z0-9]{1,12}$') && stamped()
+      allow create: if signedIn() && tid.matches('^[A-Za-z0-9]{1,12}$') && stamped()
           && request.resource.data.calc is map
           && request.resource.data.keys().hasOnly(['calc', 'tn', 'ts']);
+      // معايير حاسبة المهمة الأدائية تُبنى عليها درجات الطلاب: استبدالها من زائر يغير تقدير
+      //   المعلم من حيث لا يشعر. الاستبدال لصاحبها (أو المدير)، والإنشاء الأول يبقى مفتوحاً.
+      allow update: if signedIn() && tid.matches('^[A-Za-z0-9]{1,12}$') && stamped()
+          && request.resource.data.calc is map
+          && request.resource.data.keys().hasOnly(['calc', 'tn', 'ts'])
+          && (isClaim(tid) || isAdminClaim());
       allow delete: if false;
     }
 
@@ -492,9 +569,19 @@ service cloud.firestore {
     // ── فهرس المرفقات filesidx/{tid} (وfilesidx/school المشترك): {list, tn, ts} — القوائم بلا تنزيل محتوى ──
     match /filesidx/{key} {
       allow read: if signedIn();
-      allow create, update: if signedIn() && key.matches('^[A-Za-z0-9]{1,12}$') && stamped()
+      allow create: if signedIn() && key.matches('^[A-Za-z0-9]{1,12}$') && stamped()
           && request.resource.data.list is list && request.resource.data.list.size() <= 400
           && request.resource.data.keys().hasOnly(['list', 'tn', 'ts']);
+      // تفريغ filesidx/{tid} أو filesidx/school يُخفي كل المرفقات من كل القوائم دفعةً واحدة
+      //   (والمحتوى باقٍ في files لكن لا سبيل إليه). النقص — وأقصاه المحو — يحتاج مطالبة،
+      //   والإضافة تبقى كما كانت.
+      allow update: if signedIn() && key.matches('^[A-Za-z0-9]{1,12}$') && stamped()
+          && request.resource.data.list is list && request.resource.data.list.size() <= 400
+          && request.resource.data.keys().hasOnly(['list', 'tn', 'ts'])
+          //   ويُستثنى نقصُ عنصرٍ واحد: هو حذف مرفق واحد من صاحبه (js/files.js:512)، وهو أيضاً تراجع
+          //   js/files.js:397 عن قيد أُضيف ثم فشل رفع محتواه — ومنعه كان يترك في الفهرس ملفاً لا يُفتح.
+          && (request.resource.data.list.size() >= resource.data.get('list', []).size() - 1
+              || anyClaim());
       allow delete: if false;
     }
 

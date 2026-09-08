@@ -186,14 +186,38 @@
     return false;
   }
 
+  /* ═══ يوم دوام فعلاً؟ ═══
+     الجمعة والسبت لا دوام (SIJIL_ADMIN.schoolDays) ومع ذلك يحفظ محرّرُ الجدول صفوفهما كما هي،
+     وكانت nextClass تتجاهل ذلك — فيرنّ جوال المعلم صبيحة الجمعة «الحصة الرابعة بعد 9 دقائق»
+     بينما شريط «الحصة القادمة» في تبويب «اليوم» صامت (app.js يفحص SDAYS). أسابيعُ الفصل تستر
+     الأثر عادةً لأن الجمعة تقع بين أسبوعين، لكن مدرسةً بلا meta.weeks تنكشف تماماً — وهناك
+     بالذات يعود inTerm بـ«نعم» عمداً كي لا نُسكت التنبيهات بسبب نقص بيانات. */
+  function schoolDays() {
+    var a = A();
+    if (a && typeof a.schoolDays === "function") {
+      var r = LS(function () { return a.schoolDays(); }, null);
+      if (r && r.length) return r;
+    }
+    return DAYS.slice(0, 5);                               // نفس احتياطي app.js: الأحد–الخميس
+  }
+  function schoolDay(now) { return schoolDays().indexOf(DAYS[asDate(now).getDay()]) > -1; }
+
   /* ═══ الحصة القادمة اليوم ═══
-     تعيد {p, cid, cname, from, mins} لأقرب حصة لم تبدأ بعد، أو null (لا حصص / انتهى الدوام / لا بيانات) */
+     تعيد {p, cid, cname, from, mins} لأقرب حصة لم تبدأ بعد، أو null (لا حصص / انتهى الدوام /
+     يوم لا دوام فيه / إجازة رسمية / لا بيانات).
+
+     الإجازة هنا لا في tick() وحدها: هذه الدالة هي مصدر «الحصة القادمة» لكل الشاشات، فكانت
+     تعيد حصةً في صبيحة إجازة منتصف الفصل فيرسم app.js شريط «⏰ بعد 9 دقائق: الحصة الرابعة»
+     ويُرسل leadNotify إشعار نظام حقيقياً، بينما tick() هنا صامت (holiday) وملفُّ التقويم
+     يستثني اليوم نفسه بـ EXDATE. مصدرُ الحقيقة واحد فلا تتناقض الشاشات. */
   function nextClass(now) {
     var s = S(), te = teacher();
     if (!s || !te || !te.name) return null;
     var D = LS(function () { return s.D; }, null);
     if (!D || !Array.isArray(D.schedule)) return null;
     var d = asDate(now), day = DAYS[d.getDay()], m = d.getHours() * 60 + d.getMinutes();
+    if (schoolDays().indexOf(day) < 0) return null;        // الجمعة/السبت: لا حصة مهما بقي في الجدول
+    if (!inTerm(d)) return null;                           // يوم خارج أسابيع الفصل: إجازة رسمية
     var list = periodsOf(day), best = null;
     for (var i = 0; i < D.schedule.length; i++) {
       var r = D.schedule[i];
@@ -239,6 +263,7 @@
     var d = asDate(now), st = state();
     if (!st.ready) return Promise.resolve({ fired: false, reason: st.supported ? (st.enabled ? "permission" : "off") : "unsupported" });
     if (!inTerm(d)) return Promise.resolve({ fired: false, reason: "holiday" });
+    if (!schoolDay(d)) return Promise.resolve({ fired: false, reason: "weekend" });
     var nx = nextClass(d);
     if (!nx) return Promise.resolve({ fired: false, reason: "no-class" });
     if (nx.mins > leadMin()) return Promise.resolve({ fired: false, reason: "early", next: nx });
@@ -396,8 +421,16 @@
   function paint() {
     if (!host || !host.isConnected) { host = null; return; }
     var st = state(), can = st.supported && st.secure;
-    var nx = LS(function () { return nextClass(); }, null);
-    var line = nx ? ("القادمة اليوم: الحصة " + ord(nx.p) + (nx.cname ? " — " + nx.cname : "") + " بعد " + minsAr(nx.mins)) : "لا حصص متبقية لك اليوم";
+    /* كانت البطاقة تقول «القادمة اليوم: الحصة الرابعة … بعد 9 دقائق» في صباح إجازة منتصف الفصل
+       أو يوم الجمعة، بينما tick() يصمت (holiday/weekend) وشريط «اليوم» فارغ — وعدٌ لا يفي به
+       التطبيق. نقول الحقيقة نفسها التي يقولها شريط الجرس. */
+    var now = new Date();
+    var off = !schoolDay(now) ? ("لا دوام اليوم — " + DAYS[now.getDay()])
+      : !inTerm(now) ? ("إجازة — لا دوام اليوم — " + DAYS[now.getDay()]) : "";
+    var nx = LS(function () { return nextClass(now); }, null);   // تفحص هي أيام الدوام والإجازة
+    var line = off ? off
+      : nx ? ("القادمة اليوم: الحصة " + ord(nx.p) + (nx.cname ? " — " + nx.cname : "") + " بعد " + minsAr(nx.mins))
+        : "لا حصص متبقية لك اليوم";
     host.innerHTML =
       '<div class="card"><h3><span class="dot"></span>🔔 تنبيه قبل الحصة</h3>' +
       '<button class="btn-gold" id="nt-btn" style="width:100%' + (can ? "" : ";opacity:.55") + '"' + (can ? "" : " disabled") + '>' +
@@ -439,6 +472,7 @@
   window.SIJIL_NOTIFY = {
     supported: supported, state: state, enable: enable, disable: disable,
     tick: tick, nextClass: nextClass, subscribePush: subscribePush, mount: mount,
-    VAPID: VAPID, leadMin: leadMin, refresh: paint, flagKey: flagKey, inTerm: inTerm
+    VAPID: VAPID, leadMin: leadMin, refresh: paint, flagKey: flagKey, inTerm: inTerm,
+    schoolDay: schoolDay
   };
 })();
