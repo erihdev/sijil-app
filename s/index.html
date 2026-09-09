@@ -246,6 +246,73 @@ h2{font-size:19px;font-weight:800;color:var(--navy);margin:0 0 10px}
 .cert .ft{display:flex;justify-content:space-between;font-size:12px;color:var(--muted);
   font-weight:700;margin-top:16px;border-top:1px dashed var(--goldl);padding-top:9px}
 .cert .kv{display:flex;justify-content:center;gap:9px;flex-wrap:wrap;margin-top:10px}
+/* ═══ شاشة وليّ الأمر: تقريرٌ كامل على أرضية فاتحة (لا شاشة ألعاب داكنة) ═══ */
+.ovg.par{background:var(--cream);color:var(--ink)}
+.ovg.par .tp{background:var(--navy);color:#fff}
+.ovg.par .in{max-width:620px;padding:12px 12px 40px}
+.pcard{background:#fff;border:1px solid var(--line);border-radius:16px;padding:13px;margin-bottom:11px;
+  box-shadow:0 1px 6px rgba(14,32,51,.05)}
+.pcard.nopad{padding:0;overflow:hidden}
+.pcard.nb{border:0;background:transparent;box-shadow:none;padding:0}
+.pcard.mid2{text-align:center;color:var(--muted);font-weight:700;font-size:14px;padding:18px 13px}
+.pcard.mid2.ok2{color:#1c6b3a;background:#EAF7EF;border-color:#b5e0c4}
+.phead{text-align:center;background:linear-gradient(160deg,#fff,#FDF8EC);border-color:var(--goldl)}
+.phead .nm{font-size:21px;font-weight:900;color:var(--navy);line-height:1.4}
+.phead .sb{font-size:12.5px;color:var(--muted);font-weight:700;margin-top:2px}
+.phead .kpis{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:11px}
+.phead .kpi{background:#fff;border:1px solid var(--line);border-radius:13px;padding:9px 4px}
+.phead .kpi .v{font-size:20px;font-weight:900;color:var(--navy);font-variant-numeric:tabular-nums}
+.phead .kpi .l{font-size:11px;color:var(--muted);font-weight:700;margin-top:1px}
+.lvb{display:inline-block;margin-top:10px;padding:5px 15px;border-radius:99px;color:#fff;font-weight:900;font-size:13.5px}
+.lvb.sm{margin:0;padding:3px 9px;font-size:11.5px}
+.lvb.lv0{background:#2e9e5b}.lvb.lv1{background:#2F86C9}.lvb.lv2{background:#B8862B}
+.lvb.lv3{background:#E07B3E}.lvb.lv4{background:#C06C2E}
+.psec{display:flex;align-items:center;gap:7px;font-weight:900;color:var(--navy);font-size:15px;margin:16px 3px 8px}
+.psec i{font-style:normal;font-size:11px;color:var(--grass);font-weight:800;background:#EAF7EF;
+  border-radius:99px;padding:2px 8px;margin-inline-start:auto}
+/* حصص اليوم */
+.ptl{display:flex;flex-direction:column;gap:7px;margin-bottom:11px}
+.pl{display:flex;gap:9px;align-items:flex-start;background:#fff;border:1px solid var(--line);
+  border-inline-start:5px solid #cfd6de;border-radius:14px;padding:10px}
+.pl.y{border-inline-start-color:var(--grass)}.pl.w{border-inline-start-color:#E0A33E}
+.pl.x{border-inline-start-color:var(--bad)}.pl.n{border-inline-start-color:#cfd6de}
+.pl.live{box-shadow:0 0 0 2px rgba(215,169,63,.5);background:#FFFDF6}
+.pl .pp{flex:none;width:38px;text-align:center;font-weight:900;font-size:17px;color:var(--navy);line-height:1.1}
+.pl .pp i{display:block;font-style:normal;font-size:10px;color:var(--muted);font-weight:700;direction:ltr}
+.pl .pm{flex:1;min-width:0}
+.pl .pm b{display:block;font-size:14.5px;font-weight:900;color:var(--navy)}
+.pl .pm small{display:block;font-size:11.5px;color:var(--muted);font-weight:700}
+.pl .pv{display:flex;flex-wrap:wrap;gap:5px;justify-content:flex-end;max-width:52%}
+.tg{font-size:11px;font-weight:800;border-radius:99px;padding:3px 8px;background:#eef1f4;color:#4a5560}
+.tg.y{background:#EAF7EF;color:#1c6b3a}.tg.w{background:#FDF6E3;color:#7a5200}
+.tg.x{background:#FDECEC;color:#9c2b2b}.tg.n{background:#eef1f4;color:#6b7580}
+.sumline{display:flex;flex-wrap:wrap;gap:9px;font-size:13px;font-weight:800;color:var(--navy);justify-content:center}
+.sumline .bad{color:var(--bad)}
+/* تنبيهات */
+.alerts{display:flex;flex-direction:column;gap:8px}
+.alerts .al{display:flex;align-items:center;gap:8px;font-size:13.5px;font-weight:800;border-radius:12px;padding:9px 11px}
+.alerts .al span{font-size:17px}
+.alerts .al.bad{background:#FDECEC;color:#9c2b2b}
+.alerts .al.warn{background:#FDF6E3;color:#7a5200}
+.alerts .al.info{background:#EDF4FB;color:#245b8c}
+/* جدول المواد */
+.ptbl{overflow-x:auto}
+.ptbl table{width:100%;border-collapse:collapse;font-size:12.5px;min-width:430px}
+.ptbl th{background:var(--navy);color:#fff;font-weight:800;padding:8px 6px;font-size:11.5px;white-space:nowrap}
+.ptbl td{padding:8px 6px;border-bottom:1px solid var(--line);text-align:center;font-weight:700;
+  font-variant-numeric:tabular-nums}
+.ptbl td.nm{text-align:right;font-weight:900;color:var(--navy)}
+.ptbl td.nm small{display:block;font-size:10.5px;color:var(--muted);font-weight:700}
+.ptbl td .bad{color:var(--bad)}
+.ptbl tr:last-child td{border-bottom:0}
+/* أعمدة الأسابيع */
+.pbars{display:flex;align-items:flex-end;gap:10px;height:130px;padding:4px 2px 0}
+.pbars .pb{flex:1;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;height:100%}
+.pbars .pb i{width:100%;max-width:46px;border-radius:8px 8px 0 0;min-height:5px}
+.pbars .pb b{font-size:12.5px;font-weight:900;color:var(--navy);margin-top:4px;font-variant-numeric:tabular-nums}
+.pbars .pb small{font-size:10px;color:var(--muted);font-weight:700;text-align:center;line-height:1.3}
+.pnote{font-size:11.5px;color:var(--muted);font-weight:700;text-align:center;margin-top:8px}
+
 /* شارة التبويب: عدد ما لم يُفتح بعد */
 #tabs button{position:relative}
 #tabs .tn{position:absolute;top:3px;left:calc(50% - 26px);min-width:17px;height:17px;line-height:17px;
@@ -429,7 +496,7 @@ h2{font-size:19px;font-weight:800;color:var(--navy);margin:0 0 10px}
 
   /* ═══ الحالة ═══ */
   let db = null;                                   // firebase.firestore() سحابياً، ومحاكاة تجريبياً
-  let D = { classes: [], teachers: [], meta: {}, moves: [] };
+  let D = { classes: [], teachers: [], meta: {}, moves: [], schedule: [], bell: null };
   let META = {}, STATES = [], BEH = [], W = {};
   let S = null;                                    // الجلسة {cid, si, name, first, cname, gc, gname, sec}
   let H = null;                                    // بصمة هذه الجلسة (للرمز الاختياري) — لا تُحفظ في localStorage
@@ -603,8 +670,13 @@ h2{font-size:19px;font-weight:800;color:var(--navy);margin:0 0 10px}
         /* cfg/school وcfg/assess مع القراءات الأولى: الأولى تضع اسم الوكيل والمدير في الشهادة،
            والثانية مكتبة التقييمات التي ضبطها المدير — بلا دمجها تحسب البوابة نقاط الطالب بأوزان
            غير أوزان دفتر معلمه وتُسمّي حالاته بأسماء أُلغيت. غيابهما لا يُسقط الإقلاع (catch → null). */
-        const [cs, ts, ms, mv, sc, ac] = await withAC(() => Promise.all([fcol("classes"), fcol("teachers"), fdoc("meta/app"), fcol("moves"),
-          fdoc("cfg/school").catch(() => null), fdoc("cfg/assess").catch(() => null)]));
+        /* الجدول المدرسي وأوقات الحصص: بهما تُبنى «حصص اليوم» في شاشة وليّ الأمر — لكل حصة
+           مادتها ومعلمها ووقتها وحالة ابنه فيها. القراءة مسموحة لأي مصادَق، وغيابهما لا يُسقط شيئاً. */
+        const [cs, ts, ms, mv, sc, ac, sh, bl] = await withAC(() => Promise.all([fcol("classes"), fcol("teachers"), fdoc("meta/app"), fcol("moves"),
+          fdoc("cfg/school").catch(() => null), fdoc("cfg/assess").catch(() => null),
+          fdoc("schedule/all").catch(() => null), fdoc("cfg/bell").catch(() => null)]));
+        D.schedule = (sh && sh.exists) ? (((sh.data() || {}).rows) || []) : [];
+        D.bell = (bl && bl.exists) ? (bl.data() || null) : null;
         D.cfgSchool = (sc && sc.exists) ? (sc.data() || {}) : {};
         D.cfgAssess = (ac && ac.exists) ? (ac.data() || null) : null;
         D.classes = []; cs.forEach(d => D.classes.push(Object.assign({ id: d.id }, d.data())));
@@ -619,7 +691,7 @@ h2{font-size:19px;font-weight:800;color:var(--navy);margin:0 0 10px}
         D.classes = JSON.parse(JSON.stringify(DEMO.classes || []));
         D.teachers = JSON.parse(JSON.stringify(DEMO.teachers || []));
         D.meta = JSON.parse(JSON.stringify(DEMO.meta || {}));
-        D.moves = []; D.cfgSchool = {}; D.cfgAssess = null;
+        D.moves = []; D.cfgSchool = {}; D.cfgAssess = null; D.schedule = []; D.bell = null;
         if (!D.classes.length) throw new Error("data");
         const st = $("#demo-strip"); st.hidden = false;
         st.textContent = "نسخة تجريبية — بيانات وهمية على هذا الجهاز وحده";
@@ -1204,6 +1276,24 @@ h2{font-size:19px;font-weight:800;color:var(--navy);margin:0 0 10px}
     myTeachers, loadRecs, loadGrades, calcOne, calcAll, attPct, streak, rank: rankOf,
     staff,
     tab(id, def) { REG[id] = def; if (CURTAB === id && S) showTab(id); },
+    /* استماعٌ حيّ لرصد معلمي فصله: المعلم يسجّل مشاركةً أو غياباً في الحصة فيظهر في شاشة
+       وليّ الأمر بلا إعادة تحميل — وهو المطلوب «تقييم لحظي أثناء اليوم». ويُنسى رصد الزملاء
+       بـforgetPeers كما في loadRecs حرفاً بحرف، فلا يصل الجهازَ رصدُ طالبٍ آخر. */
+    watchRecs(cb) {
+      if (!CLOUD || !db || !S) return null;
+      const list = myTeachers(), subs = [];
+      list.forEach(t => {
+        try {
+          subs.push(db.doc("recs/" + t.id + "_" + S.cid).onSnapshot((d) => {
+            RECS = RECS || {};
+            RECS[t.id] = (d && d.exists) ? (((d.data() || {}).d) || {}) : {};
+            try { forgetPeers(); } catch (e) { }
+            try { if (cb) cb(t.id); } catch (e) { }
+          }, () => { }));
+        } catch (e) { }
+      });
+      return () => subs.forEach(u => { try { u(); } catch (e) { } });
+    },
     // شارة تبويب: العدد فوق الأيقونة (٠ يُزيلها)
     tabCount(id, n) { const v = Math.max(0, +n || 0); if (TABN[id] === v) return; TABN[id] = v; if (S) paintTabs(); },
     /* استماعٌ حيّ لمستند واحد: به تظهر الرسالة الجديدة والورقة الجديدة بلا إعادة تحميل — وهو

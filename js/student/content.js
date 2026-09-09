@@ -1176,23 +1176,235 @@
         box.querySelector("#pw-go").onclick = function () { close(); parentShow(); };
       });
   }
-  function parentShow() {
-    var txt = parentText(), wa = parentWa();
-    ST.sheet('<h2>ملخّص لوالديّ 👨‍👩‍👦</h2>' +
-      '<div style="background:#F8F5EF;border:1px solid var(--line);border-radius:16px;padding:13px;' +
-      'white-space:pre-wrap;font-size:14.5px;line-height:1.95;max-height:52vh;overflow:auto;text-align:right">' + esc(txt) + '</div>' +
-      '<a class="go gold" style="text-decoration:none;text-align:center;box-sizing:border-box" target="_blank" rel="noopener" ' +
-      'href="https://wa.me/' + wa + '?text=' + encodeURIComponent(txt) + '">💬 ' + (wa ? "أرسله لوالديّ في واتساب" : "أرسله في واتساب") + '</a>' +
-      '<button class="go soft" id="pw-cp" style="margin-top:9px">📋 انسخ النص</button>' +
-      '<button class="go soft" id="pw-x" style="margin-top:9px">إغلاق</button>',
-      function (box, close) {
-        box.querySelector("#pw-x").onclick = close;
-        box.querySelector("#pw-cp").onclick = function () {
-          try { navigator.clipboard.writeText(txt); ST.toast("نُسخ ✅"); } catch (e) { ST.toast("انسخه يدوياً 🙂"); }
-        };
-      });
+  /* ═══════════ 👨‍👩‍👦 شاشة وليّ الأمر: المستوى الكامل وتقييم اليوم لحظةً بلحظة ═══════════
+     البطاقات مختصرةٌ لطفل، ووليّ الأمر يحتاج الصورة كاملة: كل حصة اليوم بحالتها، وكل مادة
+     بدرجتها وحضورها وواجباتها وسلوكها، وأسابيعه الأخيرة، وما يحتاج تدخّله. والرصد يُستمع إليه
+     حياً (ST.watchRecs) فما يسجّله المعلم في الحصة يظهر في جوال الأب قبل أن ينتهي الدرس. */
+  var PSTOP = null, POV = null;
+  var PDAYS = ["الأحد", "الاثنين", "الثلاثاء", "الأربعاء", "الخميس", "الجمعة", "السبت"];
+  var PJS = ["الأحد", "الاثنين", "الثلاثاء", "الأربعاء", "الخميس", "الجمعة", "السبت"];
+  function pHm(m) { var h = Math.floor(m / 60), x = Math.round(m) % 60; return h + ":" + (x < 10 ? "0" : "") + x; }
+  // أوقات الحصص من cfg/bell (وإلا الافتراضي: 7:00 · 45د · 7 حصص · فسحة 30 بعد الثالثة)
+  function pBell(day) {
+    var c = (ST.D || {}).bell || null, o = { start: 420, len: 45, n: 7, breaks: [{ after: 3, min: 30, n: "الفسحة" }], lens: {} };
+    if (c && typeof c === "object") {
+      if (+c.start >= 0) o.start = +c.start;
+      if (+c.len > 0) o.len = +c.len;
+      if (+c.n > 0) o.n = +c.n;
+      if (Array.isArray(c.breaks)) o.breaks = c.breaks.map(function (b) { return { after: +b.after || 0, min: +b.min || 0, n: String(b.n || "الفسحة") }; });
+      if (c.lens && typeof c.lens === "object") o.lens = c.lens;
+      var dv = (c.days && typeof c.days === "object") ? c.days[day] : null;
+      if (dv && typeof dv === "object") {
+        if (+dv.start >= 0) o.start = +dv.start;
+        if (+dv.len > 0) o.len = +dv.len;
+        if (+dv.n > 0) o.n = +dv.n;
+        if (Array.isArray(dv.breaks)) o.breaks = dv.breaks.map(function (b) { return { after: +b.after || 0, min: +b.min || 0, n: String(b.n || "الفسحة") }; });
+      }
+    }
+    return o;
   }
-
+  function pPeriods(day) {
+    var c = pBell(day), out = [], t = c.start;
+    for (var p = 1; p <= c.n; p++) {
+      var len = +(c.lens || {})[String(p)] || c.len;
+      out.push({ p: p, from: t, to: t + len }); t += len;
+      for (var k = 0; k < c.breaks.length; k++) if (c.breaks[k].after === p && p < c.n) { t += c.breaks[k].min; }
+    }
+    return out;
+  }
+  // حصص الابن اليوم: من الجدول المدرسي لفصله، مرتَّبةً بالحصة، مع مادة كل معلم ووقتها
+  function pToday(dt) {
+    var d = dt || new Date(), day = PJS[d.getDay()], cid = (ST.S || {}).cid;
+    var rows = ((ST.D || {}).schedule || []).filter(function (r) { return r && r.c === cid && r.d === day; });
+    var per = pPeriods(day), by = {};
+    per.forEach(function (x) { by[x.p] = x; });
+    var TS = (ST.D || {}).teachers || [], grp = {}, order = [];
+    /* الرصد في «سجلي» يومي لكل معلم لا لكل حصة (مستند recs/{tid}_{cid} مفتاحه التاريخ)،
+       فمعلمٌ له حصتان اليوم كان يظهر صفّين متطابقين كأنهما تقييمان — والصواب صفٌّ واحد
+       يحمل رقمي حصتيه. وإن صار الرصد يوماً لكل حصة انفصلت هذه الصفوف بلا تغييرٍ هنا. */
+    rows.forEach(function (r) {
+      var t = null;
+      for (var k = 0; k < TS.length; k++) if (String(TS[k].name || "") === String(r.t || "")) { t = TS[k]; break; }
+      var key = (t ? t.id : "") || ("n:" + String(r.t || ""));
+      var b = by[+r.p] || null;
+      if (!grp[key]) { grp[key] = { tid: t ? t.id : "", tn: String(r.t || ""), subj: t ? (t.subject || "") : "", ps: [], from: 0, to: 0 }; order.push(key); }
+      var g = grp[key];
+      g.ps.push(+r.p || 0);
+      if (b) { if (!g.from || b.from < g.from) g.from = b.from; if (b.to > g.to) g.to = b.to; }
+    });
+    var out = order.map(function (k) { var g = grp[k]; g.ps.sort(function (a, b2) { return a - b2; }); g.p = g.ps[0]; return g; });
+    out.sort(function (a, b2) { return a.p - b2.p; });
+    return { day: day, list: out, isSchool: out.length > 0 };
+  }
+  function pDateKey(d) { d = d || new Date(); return d.getFullYear() + "-" + ("0" + (d.getMonth() + 1)).slice(-2) + "-" + ("0" + d.getDate()).slice(-2); }
+  // تقييم حصةٍ واحدة اليوم كما رصده معلمها
+  function pCell(tid, dk) {
+    var e = ((recsOf(tid) || {})[dk] || {})[(ST.S || {}).si] || null;
+    if (!e) return null;
+    var STATES = ST.STATES || [], BEH = ST.BEH || [];
+    var st = (e.a != null && STATES[e.a]) ? String(STATES[e.a].name || "") : "";
+    var beh = (e.beh || []).map(function (bi) { return BEH[bi] ? { n: BEH[bi].name, p: +BEH[bi].pts || 0 } : null; }).filter(Boolean);
+    return { st: st, part: +e.part || 0, hw: (e.hw === 1 ? 1 : (e.hw === 0 ? 0 : null)), beh: beh, note: String(e.note || "") };
+  }
+  var P_OFF = /غائب|مستأذن|بعذر|هارب/;
+  function pStateCls(st) { if (!st) return "n"; if (P_OFF.test(st)) return "x"; if (/متأخر/.test(st)) return "w"; return "y"; }
+  // مجموع اليوم: حاضر في كم حصة، ومشاركاته، وواجباته، وسلوكه
+  function pDaySum(dk, tids) {
+    /* على معلمي اليوم وحدهم: مقامٌ من كل معلمي الفصل يقول «حاضر في 1 من 6» ليوم فيه حصتان. */
+    var out = { here: 0, off: 0, none: 0, part: 0, hwY: 0, hwN: 0, pos: 0, neg: 0 };
+    var T = (tids && tids.length) ? tids.map(function (id) { return { id: id }; }) : ST.myTeachers();
+    T.forEach(function (t) {
+      if (!t.id) { out.none++; return; }
+      var c = pCell(t.id, dk);
+      if (!c) { out.none++; return; }
+      if (!c.st) out.none++; else if (P_OFF.test(c.st)) out.off++; else out.here++;
+      out.part += c.part;
+      if (c.hw === 1) out.hwY++; if (c.hw === 0) out.hwN++;
+      c.beh.forEach(function (b) { if (b.p >= 0) out.pos++; else out.neg++; });
+    });
+    return out;
+  }
+  /* شاشة كاملة لا نافذة صغيرة: هي التقرير الذي يفتحه الأب مرة كل يوم. */
+  function parentShow() {
+    var ov = document.createElement("div");
+    ov.className = "ovg par";
+    ov.innerHTML = '<div class="tp"><button id="p-x">✖ إغلاق</button><span>👨‍👩‍👦 متابعة ' + esc((ST.S || {}).first || "ابني") + '</span></div>'
+      + '<div class="in" id="p-in"><div class="load"><div class="spin"></div>لحظة…</div></div>';
+    document.body.appendChild(ov); POV = ov;
+    try { document.body.style.overflow = "hidden"; } catch (e) { }
+    var box = ov.querySelector("#p-in");
+    ov.querySelector("#p-x").onclick = pClose;
+    // الرصد والدرجات والمهام معاً، ثم رسمٌ واحد — ثم استماعٌ حيّ يعيد الرسم عند كل تغيير
+    Promise.all([ST.loadRecs().then(function (r) { RECS = r; }, function () { }), loadGrades().catch(function () { }), loadTasksSafe()])
+      .then(function () {
+        pDraw(box);
+        if (!PSTOP && typeof ST.watchRecs === "function") {
+          PSTOP = ST.watchRecs(function () { if (POV && document.body.contains(POV)) pDraw(box); });
+        }
+      }, function () { box.innerHTML = '<div class="win"><div class="e">📡</div><h2>ما وصلت البيانات</h2><p>تأكد من الإنترنت.</p></div>'; });
+  }
+  function pClose() {
+    try { if (PSTOP) { PSTOP(); PSTOP = null; } } catch (e) { }
+    try { if (POV) document.body.removeChild(POV); } catch (e) { }
+    POV = null;
+    try { document.body.style.overflow = ""; } catch (e) { }
+  }
+  function pDraw(box) {
+    var S = ST.S, dk = pDateKey(), T = pToday();
+    var sum = pDaySum(dk, T.list.map(function (x) { return x.tid; }).filter(Boolean));
+    var t = ST.calcAll(S.si), att = ST.attPct(t), stk = ST.streak(S.si);
+    var now = new Date(), mnow = now.getHours() * 60 + now.getMinutes();
+    var h = "";
+    // ── الرأس ──
+    var gl = [], tot = 0, mx = 0;
+    ST.myTeachers().forEach(function (tt) { var g = gradeInfo(tt.id); if (g) { gl.push({ t: tt, g: g }); tot += g.tot; mx += g.max; } });
+    var overall = mx ? (tot / mx * 100) : null, olv = overall != null ? levelOf(overall) : null;
+    h += '<div class="pcard phead"><div class="nm">' + esc(S.name) + '</div>'
+      + '<div class="sb">' + esc(S.cname) + ' · ' + esc(((ST.META || {}).school || {}).name || "") + '</div>'
+      + '<div class="kpis">'
+      + '<div class="kpi"><div class="v">' + (overall != null ? Math.round(overall) + "%" : "—") + '</div><div class="l">المستوى العام</div></div>'
+      + '<div class="kpi"><div class="v">' + (att != null ? att + "%" : "—") + '</div><div class="l">الحضور</div></div>'
+      + '<div class="kpi"><div class="v">' + t.pts + '</div><div class="l">النقاط</div></div>'
+      + '</div>'
+      + (olv ? '<div class="lvb lv' + olv.i + '">' + esc(olv.t) + '</div>' : "")
+      + '</div>';
+    // ── اليوم لحظةً بلحظة ──
+    h += '<div class="psec">📅 اليوم — ' + esc(T.day) + ' ' + esc(hijri()) + '<i>يتحدّث تلقائياً</i></div>';
+    if (!T.isSchool) {
+      h += '<div class="pcard mid2">' + (/الجمعة|السبت/.test(T.day) ? "🌴 عطلة نهاية الأسبوع — لا حصص اليوم" : "لا حصص مسجَّلة لفصله اليوم في الجدول المدرسي") + '</div>';
+    } else {
+      h += '<div class="ptl">';
+      T.list.forEach(function (r) {
+        var c = r.tid ? pCell(r.tid, dk) : null;
+          var live = r.from && mnow >= r.from && mnow < r.to;
+        var done = r.to && mnow >= r.to;
+        var cls = pStateCls(c ? c.st : "");
+        h += '<div class="pl ' + cls + (live ? " live" : "") + '">'
+          + '<div class="pp">' + esc(r.ps && r.ps.length > 1 ? r.ps.join("·") : String(r.p)) + '<i>' + (r.from ? esc(pHm(r.from)) : "") + '</i></div>'
+          + '<div class="pm"><b>' + esc(r.subj || "مادة") + '</b><small>' + esc(r.tn) + '</small></div>'
+          + '<div class="pv">'
+          + (c && c.st ? '<span class="tg ' + cls + '">' + esc(c.st) + '</span>' : (done ? '<span class="tg n">لم تُرصد</span>' : '<span class="tg n">' + (live ? "الحصة الآن" : "لم تبدأ") + '</span>'))
+          + (c && c.part ? '<span class="tg y">🙋 ' + c.part + '</span>' : "")
+          + (c && c.hw === 1 ? '<span class="tg y">📚 حلّ الواجب</span>' : "")
+          + (c && c.hw === 0 ? '<span class="tg w">📚 لم يحلّ</span>' : "")
+          + (c ? c.beh.map(function (b) { return '<span class="tg ' + (b.p >= 0 ? "y" : "x") + '">' + (b.p >= 0 ? "⭐ " : "⚠ ") + esc(b.n) + '</span>'; }).join("") : "")
+          + '</div></div>';
+      });
+      h += '</div>';
+      h += '<div class="pcard sumline">'
+        + '<span>✅ حاضر في <b>' + sum.here + '</b> من ' + T.list.length + ' ' + (T.list.length === 1 ? 'مادة' : 'مواد') + '</span>'
+        + (sum.off ? '<span class="bad">🚫 غياب ' + sum.off + '</span>' : "")
+        + (sum.part ? '<span>🙋 مشاركات ' + sum.part + '</span>' : "")
+        + (sum.hwY ? '<span>📚 واجبات ' + sum.hwY + '</span>' : "")
+        + (sum.hwN ? '<span class="bad">📚 لم يحلّ ' + sum.hwN + '</span>' : "")
+        + (sum.neg ? '<span class="bad">⚠ ملاحظات ' + sum.neg + '</span>' : "")
+        + (sum.pos ? '<span>⭐ تميّز ' + sum.pos + '</span>' : "")
+        + '</div>';
+    }
+    // ── تنبيهات تحتاج تدخّلاً ──
+    var alerts = [];
+    if (sum.off) alerts.push({ e: "🚫", t: "غياب اليوم في " + sum.off + " حصة", k: "bad" });
+    if (sum.hwN) alerts.push({ e: "📚", t: "لم يحلّ الواجب اليوم في " + sum.hwN + " مادة", k: "warn" });
+    if (sum.neg) alerts.push({ e: "⚠️", t: sum.neg + " ملاحظة سلوكية اليوم", k: "warn" });
+    if (att != null && att < 85) alerts.push({ e: "📉", t: "نسبة حضوره " + att + "% — دون المعتاد", k: "warn" });
+    var late = (C.tasks || []).filter(function (x) { var st = taskState(x); return !C.subs[x.a] && st.left !== null && st.left < 0; });
+    if (late.length) alerts.push({ e: "⏰", t: late.length + " ورقة فات موعدها ولم تُحلّ", k: "warn" });
+    var open2 = (C.tasks || []).filter(function (x) { return !C.subs[x.a]; }).length;
+    if (open2 && !late.length) alerts.push({ e: "✏️", t: open2 + " ورقة أو واجب في انتظاره", k: "info" });
+    gl.forEach(function (x) { if (x.g.pct < 50) alerts.push({ e: "📕", t: "مستواه في " + (x.t.subject || "مادة") + " " + Math.round(x.g.pct) + "% — يحتاج متابعة", k: "bad" }); });
+    if (alerts.length) {
+      h += '<div class="psec">🔔 ما يحتاج متابعتكم</div><div class="pcard alerts">'
+        + alerts.map(function (a) { return '<div class="al ' + a.k + '"><span>' + a.e + '</span>' + esc(a.t) + '</div>'; }).join("")
+        + '</div>';
+    } else {
+      h += '<div class="psec">🔔 ما يحتاج متابعتكم</div><div class="pcard mid2 ok2">✅ لا شيء يحتاج تدخّلكم اليوم — بارك الله فيه</div>';
+    }
+    // ── كل مادة ──
+    h += '<div class="psec">📚 مستواه في كل مادة</div>';
+    if (!gl.length) {
+      h += '<div class="pcard mid2">لم تُرصد درجات بعد في أي مادة</div>';
+    } else {
+      h += '<div class="pcard nopad"><div class="ptbl"><table><tr><th>المادة</th><th>الدرجة</th><th>النسبة</th><th>التقدير</th><th>الحضور</th><th>مشاركة</th><th>واجبات</th></tr>';
+      gl.forEach(function (x) {
+        var tt = calcT(x.t.id), a2 = ST.attPct(tt);
+        h += '<tr><td class="nm">' + esc(x.t.subject || "مادة") + '<small>' + esc(x.t.name) + '</small></td>'
+          + '<td><b>' + x.g.tot + '</b>/' + x.g.max + '</td>'
+          + '<td>' + Math.round(x.g.pct) + '%</td>'
+          + '<td><span class="lvb sm lv' + x.g.lv.i + '">' + esc(x.g.lv.t) + '</span></td>'
+          + '<td>' + (a2 != null ? a2 + "%" : "—") + '</td>'
+          + '<td>' + tt.part + '</td>'
+          + '<td>' + tt.hwY + (tt.hwN ? '<b class="bad"> / ' + tt.hwN + '</b>' : "") + '</td></tr>';
+      });
+      h += '</table></div></div>';
+    }
+    // ── الأسابيع الأخيرة (weekSeries نفسها التي يرسم بها تبويب بطاقتي) ──
+    var wk = weekSeries().slice(-4);
+    if (wk.length) {
+      var top = Math.max.apply(null, wk.map(function (x) { return Math.abs(x.pts); }).concat([1]));
+      h += '<div class="psec">📈 آخر أسابيعه</div><div class="pcard"><div class="pbars">'
+        + wk.map(function (x) {
+          var pc = Math.max(5, Math.round(Math.abs(x.pts) / top * 100));
+          return '<div class="pb"><i style="height:' + pc + '%;background:' + (x.pts < 0 ? "var(--bad)" : "var(--ok)") + '"></i>'
+            + '<b>' + x.pts + '</b><small>' + esc(x.wk ? ("أسبوع " + x.wk) : x.key) + '</small></div>';
+        }).join("") + '</div><div class="pnote">النقاط تجمع الحضور والمشاركة والواجبات والسلوك بأوزان مدرستكم.</div></div>';
+    }
+    // ── أزرار ──
+    h += '<div class="pcard nb"><button class="go gold" id="p-wa">💬 أرسل الملخّص في الواتساب</button>'
+      + '<button class="go soft" id="p-msg" style="margin-top:9px">📬 رسائل المعلمين</button>'
+      + '<button class="go soft" id="p-cp" style="margin-top:9px">📋 انسخ الملخّص</button></div>';
+    box.innerHTML = h;
+    var txt = parentText();
+    var wa = byId(box, "#p-wa");
+    if (wa) wa.onclick = function () {
+      var n = parentWa();
+      var url = "https://wa.me/" + (n || "") + "?text=" + encodeURIComponent(txt);
+      try { window.open(url, "_blank", "noopener"); } catch (e) { location.href = url; }
+    };
+    var cp = byId(box, "#p-cp");
+    if (cp) cp.onclick = function () { try { navigator.clipboard.writeText(txt); ST.toast("نُسخ ✅"); } catch (e) { ST.toast("انسخه يدوياً 🙂"); } };
+    var mb = byId(box, "#p-msg");
+    if (mb) mb.onclick = function () { pClose(); try { ST.go("msg"); } catch (e) { } };
+  }
   /* ══════════════════════════ الوضع التجريبي: بيانات وهمية على هذا الجهاز وحده ══════════════════════════
      تُزرع بالمسارات نفسها التي تُقرأ بها من السحابة، فيُختبر المنطق كاملاً بلا شبكة ولا App Check
      (وهو ما فعلته النواة في demoSeed لبصمات الهويات). ولا تعمل ذرّةً منها على النسخة السحابية،
