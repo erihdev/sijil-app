@@ -1295,6 +1295,31 @@
     }
     return map;
   }
+  /* sids/{cid} — فهارس من سُجّلت هويته (لا رقم ولا اسم). البصمات spins لا تُسرد بالقواعد،
+     فبلا هذا المستند لا يعرف المعلم من تصله ورقته: يرسلها ويظنّها وصلت الفصل كله. تُدمج
+     مع الموجود (اتحاد) لأن المدير يلصق الهويات على دفعات، ولا تُنقص أبداً. */
+  async function sidsWrite(byClass) {
+    var S = window.SIJIL, ids = Object.keys(byClass), done = 0;
+    for (var k = 0; k < ids.length; k++) {
+      var cid = ids[k], add = byClass[cid] || [];
+      if (!add.length) continue;
+      try {
+        var cur = [];
+        if (S.CLOUD && S.fdb) {
+          var d = await S.fdb.doc('sids/' + cid).get();
+          if (d.exists) cur = ((d.data() || {}).list) || [];
+        } else { var DBx = S.DB || window.DB || {}; cur = ((DBx.sids || {})[cid] || {}).list || []; }
+        var set = {}, list = [];
+        cur.concat(add).forEach(function (v) { var n = +v; if (n === Math.floor(n) && n >= 0 && n < 400 && !set[n]) { set[n] = 1; list.push(n); } });
+        list.sort(function (a, b) { return a - b; });
+        var rec = { list: list, n: list.length, tn: (S.TE || {}).name || '', ts: Date.now() };
+        if (S.CLOUD && S.fdb) await S.fdb.doc('sids/' + cid).set(rec);
+        else { var DBy = S.DB || window.DB || {}; DBy.sids = DBy.sids || {}; DBy.sids[cid] = rec; try { S.save('sids'); } catch (e2) { } }
+        done++;
+      } catch (e) { }
+    }
+    return done;
+  }
   function sidCard(box) {
     var S = window.SIJIL, A = window.SIJIL_ADMIN;
     var wrap = document.createElement("div");
@@ -1338,19 +1363,22 @@
     wrap.querySelector("#sid-save").onclick = async function () {
       if (!ready || !ready.length) return;
       var btn = wrap.querySelector("#sid-save"); btn.disabled = true;
-      var okc = 0, err = 0, lastErr = "";
+      var okc = 0, err = 0, lastErr = "", byCls = {};
       for (var i = 0; i < ready.length; i++) {
         var r = ready[i];
         try {
           var h = await S.sha256(r.nid + "|" + r.cid + "|" + SID_SALT);
           if (S.CLOUD && S.fdb) await S.fdb.doc("spins/" + h).set({ cid: r.cid, si: r.si, ts: Date.now() });
           else { var DBx = S.DB || window.DB || {}; DBx.spins = DBx.spins || {}; DBx.spins[h] = { cid: r.cid, si: r.si, ts: Date.now() }; try { S.save("spins"); } catch (e2) { } }
-          okc++;
+          okc++; (byCls[r.cid] = byCls[r.cid] || []).push(r.si);
         } catch (e) { err++; if (err === 1) lastErr = String((e && (e.code || e.message)) || e).slice(0, 90); }
         if (i % 20 === 0) say("جارِ التسجيل… " + (i + 1) + " من " + ready.length);
       }
       say(okc ? ("<b>سُجّل " + okc + "</b>" + (err ? " · تعثّر " + err : "") + " — يستطيع هؤلاء الدخول الآن من «بوابة الطالب» برقم هويتهم.")
         : ("<span style=\"color:var(--bad)\">لم يُسجَّل أحد — تعثّرت " + err + " محاولة" + (lastErr ? ": " + (A.esc ? A.esc(lastErr) : lastErr) : "") + "</span>"));
+      // فهرس من يستطيع الدخول — يقرأه المعلم في نافذة الإرسال (ولا يمنع فشلُه نجاح التسجيل)
+      var nc = 0; try { nc = await sidsWrite(byCls); } catch (e) { nc = 0; }
+      if (okc && nc) say(((wrap.querySelector("#sid-out") || {}).innerHTML || "") + '<div style="margin-top:6px">📇 حُدِّث فهرس ' + nc + ' فصلاً — يظهر لمعلميهم عدد الحسابات في نافذة إرسال الأوراق.</div>');
       try { await A.adminlog("sids", "تسجيل هويات " + okc + " طالباً"); } catch (e) { }
       btn.disabled = false;
     };

@@ -456,7 +456,11 @@ service cloud.firestore {
           && request.resource.data.cid is string && request.resource.data.tid is string
           && request.resource.data.mode in ['ws', 'quiz', 'race']
           && (!('retry' in request.resource.data) || request.resource.data.retry is bool)
-          && (!('tries' in request.resource.data) || (request.resource.data.tries is int && request.resource.data.tries >= 0 && request.resource.data.tries <= 12));
+          && (!('tries' in request.resource.data) || (request.resource.data.tries is int && request.resource.data.tries >= 0 && request.resource.data.tries <= 12))
+          // to: فهارس الطلاب المقصودين وحدهم (واجب علاجي أو إثرائي). غيابه أو خلوّه = الفصل كله.
+          //   العناصر أرقام لا تُفحص هنا (لغة القواعد لا تدور على قائمة) بل في w/index.html وبوابة
+          //   الطالب: كلتاهما تُسقط ما ليس عدداً صحيحاً. والمقاس مفحوصٌ فلا يُنفخ المستند.
+          && (!('to' in request.resource.data) || (request.resource.data.to is list && request.resource.data.to.size() <= 200));
     }
     match /assign/{id} {
       // get وحده لا list: ورقةُ الطالب تُفتح بمعرّفها من رابطها، أما تعداد أوراق المدرسة كلها
@@ -472,6 +476,19 @@ service cloud.firestore {
       allow delete: if false;
     }
 
+    /* ── من سُجّلت هويته sids/{cid}: {list:[فهارس الطلاب], n, tn, ts} ──
+       بوابة الطالب تُفتح ببصمة الهوية (spins) ومجموعتها **لا تُسرد** بالقواعد قصداً، فلا سبيل
+       لمعلمٍ أن يعرف مَن يستطيع الدخول فعلاً — فيرسل ورقةً ويظنّها وصلت الفصل كله وهي لم تصل
+       أحداً. فتكتب لوحة المدير هنا **الفهارس وحدها** (لا رقم ولا اسم) لحظة تسجيل الهويات،
+       فتقول نافذة الإرسال للمعلم الحقيقة: «وصلت 21 حساباً · 3 لم تُسجَّل هوياتهم». */
+    match /sids/{cid} {
+      allow read: if signedIn();
+      allow create, update: if signedIn() && cid.matches('^[A-Za-z0-9]{1,12}$') && stamped() && isAdminClaim()
+          && request.resource.data.keys().hasOnly(['list', 'n', 'tn', 'ts'])
+          && request.resource.data.list is list && request.resource.data.list.size() <= 400
+          && request.resource.data.n is int && request.resource.data.n >= 0 && request.resource.data.n <= 400;
+      allow delete: if false;
+    }
     // ── فهرس مهام الفصل assignidx/{cid}: {list:[{a,t,due,tid,mode,n,wk,code,tries,ts}], tn, ts} ──
     //    بوابة الطالب لا تستطيع سرد assign (وسردُها يسلّم الطفل مفاتيح إجابات كل الاختبارات:
     //    qs[].correct وqs[].ans داخل المستند نفسه)، فلا سبيل إلى «مهامي» إلا فهرسٌ **بلا أسئلة**

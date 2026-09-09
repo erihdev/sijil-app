@@ -303,7 +303,9 @@
       a: String(x.a || x.id || ""), t: String(x.t || "ورقة"), due: String(x.due || ""),
       tid: String(x.tid || ""), tn: String(x.tn || ""), subj: String(x.subj || ""),
       mode: String(x.mode || "ws"), n: +x.n || 0, wk: +x.wk || 0, code: String(x.code || ""),
-      tries: (x.tries == null ? null : +x.tries), ts: +x.ts || 0
+      tries: (x.tries == null ? null : +x.tries), ts: +x.ts || 0,
+      // to: من أُرسلت إليهم وحدهم — الورقة لا تظهر لغيرهم في «مهامي»
+      to: Array.isArray(x.to) ? x.to.map(function (v) { return +v; }).filter(function (v) { return v === Math.floor(v) && v >= 0; }) : []
     };
   }
   function loadTasks() {
@@ -319,7 +321,9 @@
         var o = normTask(x); if (!o.a || map[o.a]) return;
         map[o.a] = o;
       });
-      var list = Object.keys(map).map(function (k) { return map[k]; });
+      var list = Object.keys(map).map(function (k) { return map[k]; })
+        // الورقة الموجَّهة لبعض الطلاب: يراها المقصودون وحدهم (والفهرس يُقرأ للفصل كله)
+        .filter(function (x) { return !x.to.length || x.to.indexOf(si) >= 0; });
       // مادة الورقة ومعلمها من قائمة معلميه هو، لا من نصٍّ مرسل
       list.forEach(function (x) { var t = mine[x.tid]; if (t) { x.tn = t.name; x.subj = t.subject; } });
       C.tasks = list;

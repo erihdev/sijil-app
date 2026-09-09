@@ -683,6 +683,28 @@ button.period:active{transform:scale(.97)}
 .as-link{display:flex; gap:8px; align-items:center; background:#FDF8EC; border:1.5px dashed var(--gold);
   border-radius:12px; padding:9px 12px; margin-top:10px}
 .as-link code{flex:1; font-size:12.5px; font-weight:600; color:var(--navy); direction:ltr; unicode-bidi:isolate; word-break:break-all}
+/* سطر الوصول في نافذة الإرسال: كم حساباً تصله الورقة، ومن لم تُسجَّل هويته */
+.as-sum{border-radius:12px; padding:10px 12px; margin:10px 0 2px; font-size:13.5px; font-weight:700; line-height:1.75}
+.as-sum.ok{background:#EAF7EF; border:1.5px solid #b5e0c4; color:#1c6b3a}
+.as-sum.warn{background:#FDF6E3; border:1.5px solid var(--goldl); color:#7a5200}
+.as-sum.bad{background:#FDECEC; border:1.5px solid #f1b9b9; color:#9c2b2b}
+.as-sum .s{display:block; font-size:12px; font-weight:600; margin-top:5px; color:inherit; opacity:.85}
+.as-sum .s.warn{color:#7a5200; opacity:1}
+/* اختيار طلاب محدَّدين */
+.as-who-grid{display:grid; grid-template-columns:repeat(auto-fill,minmax(140px,1fr)); gap:7px; max-height:34vh; overflow:auto; padding:2px}
+.as-who-c{display:flex; align-items:center; gap:7px; background:#fff; border:1.5px solid var(--line);
+  border-radius:11px; padding:9px 10px; font-size:13px; font-weight:600; color:var(--ink); cursor:pointer}
+.as-who-c span{flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+.as-who-c small{font-size:12px}
+.as-who-c input{width:16px; height:16px; accent-color:var(--gold); pointer-events:none}
+.as-who-c.on{border-color:var(--gold); background:#FDF8EC; font-weight:800}
+/* صفوف الفصول بعد إرسالٍ لعدة فصول */
+.as-rows{display:flex; flex-direction:column; gap:7px; margin-top:10px}
+.as-row{display:flex; gap:7px; align-items:center; background:#FDF8EC; border:1.5px dashed var(--gold);
+  border-radius:12px; padding:8px 10px; flex-wrap:wrap}
+.as-row b{font-size:13px; color:var(--navy); min-width:74px}
+.as-row code{flex:1; min-width:150px; font-size:11.5px; font-weight:600; color:var(--navy); direction:ltr; unicode-bidi:isolate; word-break:break-all}
+.as-row .btn-soft{padding:7px 10px; font-size:12.5px; text-decoration:none}
 .ar-bar{display:inline-block; width:100%; min-width:60px; height:9px; background:#e8e2d5; border-radius:99px; overflow:hidden; vertical-align:middle}
 .ar-bar i{display:block; height:100%; border-radius:99px}
 .as-chk{display:block; background:#fff; border:1.5px solid var(--line); border-radius:12px;

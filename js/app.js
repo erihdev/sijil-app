@@ -4603,14 +4603,48 @@
       } catch (e) { if (attempt) return; await new Promise(r => setTimeout(r, 600)); }
     }
   }
+  const SOME_SEL = '#as-who-t [data-w="some"]';
+  /* ═══ من يستطيع الدخول فعلاً: sids/{cid} ═══
+     بصمات الهويات (spins) لا تُسرد بالقواعد قصداً، فلا يعرف المعلم من فتح حسابه من طلابه. تكتب
+     لوحة المدير في sids فهارسَ من سُجّلت هويته (لا رقماً ولا اسماً)، فتقول نافذة الإرسال الحقيقة.
+     غياب المستند = مدرسة لم تسجّل الهويات بعد: لا عدد يُذكر ولا كذب يُقال. */
+  const sidsCache = {};
+  async function sidsOf(cid) {
+    if (!CLOUD || !fdb || !cid) return null;
+    if (cid in sidsCache) return sidsCache[cid];
+    let v = null;
+    try {
+      const d = await fdb.doc("sids/" + cid).get();
+      if (d.exists) {
+        const raw = (d.data() || {}).list;
+        v = Array.isArray(raw) ? raw.map(x => +x).filter(x => Number.isInteger(x) && x >= 0 && x < 400) : [];
+      }
+    } catch (e) { v = null; }
+    sidsCache[cid] = v; return v;
+  }
+  /* ═══ نافذة الإرسال ═══
+     الورقة تصل حساب الطالب في «مهامي» لحظة إنشائها (فهرس assignidx)، فالرسالة الأولى تقول ذلك
+     بعدد الحسابات لا «أنشئ الرابط»، والواتساب خيارٌ ثانٍ لمن لم يفتح بوابته. وثلاثة أشياء تُختار:
+       • الفصول: اختيار متعدد — المعلم عنده ثمانية فصول وكان يعيد العملية ثماني مرات.
+       • المقصودون: الفصل كله أو طلاب محدَّدون (علاجي/إثرائي) ⇒ doc.to، وتُخفى الورقة عن غيرهم.
+       • ورقة لكل فصل (لا مستند مشترك) حتى تبقى النتائج والمحاولات والدرجات منفصلة كما هي. */
   async function sendSheet(code, wk, title, qs, cid) {
     if (!CLOUD || !fdb) { alert("الإرسال للطلاب يحتاج النسخة السحابية (ليس وضع التجربة)"); return; }
     if (!qs || !qs.length) { alert("لا أسئلة في هذه الورقة"); return; }
     const cls = myClasses(); if (!cls.length) { alert("لا فصول مسندة"); return; }
-    let mode = "ws", cur = cid && cls.find(c => c.id === cid) ? cid : cls[0].id;
-    openSheet(`<h4>📤 إرسال «${esc(title)}» للطلاب</h4>
-      <div style="font-size:13px;color:var(--muted);margin-bottom:10px">${qs.length} أسئلة تُصحَّح آلياً. الطالب يفتح الرابط من جواله بلا تحميل ولا حساب.</div>
-      <div class="field"><label>الفصل</label><div class="class-chips" id="as-cls">${cls.map(c => `<button class="chip ${c.id === cur ? "on" : ""}" data-c="${c.id}">${esc(c.name)}</button>`).join("")}</div></div>
+    let mode = "ws";
+    const first = (cid && cls.some(c => c.id === cid)) ? cid : cls[0].id;
+    const sel = new Set([first]);          // الفصول المختارة
+    const toSet = new Set();               // فهارس المقصودين داخل الفصل الواحد (فارغة = الفصل كله)
+    const act = (c) => activeStudents(c).map(x => x.i);
+    const someOn = (o) => { const b = o.querySelector(SOME_SEL); return !!(b && b.classList.contains("on")); };
+    openSheet(`<h4>📤 إرسال «${esc(title)}» إلى حسابات الطلاب</h4>
+      <div style="font-size:13px;color:var(--muted);margin-bottom:10px">${qs.length} أسئلة تُصحَّح آلياً وتظهر في «✏️ مهامي» داخل حساب الطالب مباشرة.</div>
+      <div class="field"><label>الفصول <small style="color:var(--muted);font-weight:400">— اضغط أكثر من فصل لإرسالها لها كلها</small></label>
+        <div class="class-chips" id="as-cls">${cls.map(c => `<button class="chip ${sel.has(c.id) ? "on" : ""}" data-c="${c.id}">${esc(c.name)}</button>`).join("")}</div></div>
+      <div class="field" id="as-who-w"><label>المقصودون</label>
+        <div class="as-modes" id="as-who-t"><button class="as-mode on" data-w="all"><span>👥</span>كل الفصل</button><button class="as-mode" data-w="some"><span>🎯</span>طلاب محدَّدون</button></div>
+        <div id="as-who" style="display:none"></div></div>
       <div class="field"><label>الوضع</label><div class="as-modes" id="as-modes">${MODES.map(m => `<button class="as-mode ${m.k === "ws" ? "on" : ""}" data-m="${m.k}"><span>${m.ic}</span>${m.n}</button>`).join("")}</div>
         <div class="empty-note" id="as-desc" style="padding:6px 2px 0;text-align:right">${MODES[0].d}</div></div>
       <div class="field" id="as-try-w"><label>عدد المحاولات المسموحة للطالب</label>
@@ -4625,73 +4659,171 @@
         <div class="empty-note" style="padding:6px 2px 0;text-align:right">الدرجة المسجّلة عند المعلم تبقى دائماً من المحاولة الأولى، والطالب يرى عدد المحاولات المتبقية، وأنت ترى عدد محاولاته وأفضل نتيجة.</div></div>
       <div class="field" id="as-secs-w" style="display:none"><label>مدة الاختبار (دقائق)</label><input class="search-box" id="as-secs" style="margin:0" inputmode="numeric" value="10"></div>
       <div class="field"><label>موعد التسليم</label><input type="datetime-local" class="search-box" id="as-due" style="margin:0" value="${dueLocal(28)}"></div>
+      <div id="as-sum"></div>
       <button class="btn-soft" id="as-prev" style="width:100%;margin:2px 0 0">👁️ معاينة الأسئلة كما يراها الطالب</button>
       <div id="as-out"></div>
-      <div class="sheet-actions"><button class="btn-plain" onclick="window._sheetClose()">إلغاء</button><button class="btn-primary" id="as-make">🔗 أنشئ الرابط</button></div>`, (o) => {
-      o.querySelectorAll("#as-cls .chip").forEach(b => b.onclick = () => { cur = b.dataset.c; o.querySelectorAll("#as-cls .chip").forEach(x => x.classList.toggle("on", x === b)); });
-      o.querySelectorAll(".as-mode").forEach(b => b.onclick = () => {
-        mode = b.dataset.m; o.querySelectorAll(".as-mode").forEach(x => x.classList.toggle("on", x === b));
-        o.querySelector("#as-desc").textContent = (MODES.find(m => m.k === mode) || {}).d || "";
-        o.querySelector("#as-secs-w").style.display = mode === "ws" ? "none" : "block";
-        o.querySelector("#as-tries").value = mode === "ws" ? "3" : "1";
+      <div class="sheet-actions"><button class="btn-plain" onclick="window._sheetClose()">إلغاء</button><button class="btn-primary" id="as-make">📨 أرسِل إلى حسابات الطلاب</button></div>`, (o) => {
+      const $$ = (q) => o.querySelector(q);
+      /* سطر الوصول: الحقيقة كما هي — كم حساباً تصله الورقة، وكم طالباً لم تُسجَّل هويته فلن تصله.
+         قبل الإرسال بصيغة المستقبل وبعده بصيغة الماضي، من حسابٍ واحد لا نصّين يفترقان. */
+      function reach() {
+        let accounts = 0, miss = 0, students = 0, known = true;
+        [...sel].forEach(id => {
+          const c = classById(id); if (!c) return;
+          const all = act(c);
+          const pick = (sel.size === 1 && toSet.size) ? all.filter(i => toSet.has(i)) : all;
+          students += pick.length;
+          const reg = sidsCache[id];
+          if (Array.isArray(reg)) { const st = new Set(reg), k = pick.filter(i => st.has(i)).length; accounts += k; miss += pick.length - k; }
+          else known = false;
+        });
+        return { accounts, miss, students, known, cls: sel.size };
+      }
+      function sumHtml(past) {
+        if (!sel.size) return `<div class="as-sum bad">اختر فصلاً واحداً على الأقل</div>`;
+        const r = reach(), v = past ? ["وصلت", "لم تصلهم"] : ["تصل", "لن تصلهم"];
+        const who = r.cls > 1 ? `${cntAr(r.cls, "فصل واحد", "فصلين", "فصول", "فصلاً")} · ${r.students} طالباً` : `${r.students} طالباً${toSet.size ? " (مختارون)" : ""}`;
+        if (!r.known) return `<div class="as-sum ok">📨 ${v[0]} إلى <b>${who}</b> — تظهر في «✏️ مهامي» لكل طالب سجّلت الإدارة هويته<div class="s">ومن لم يفتح حسابه بعد، أرسل له الرابط في الواتساب.</div></div>`;
+        return `<div class="as-sum ok">✅ ${v[0]} إلى <b>${r.accounts} ${r.accounts === 1 ? "حساب" : "حساباً"}</b> من ${who} — تظهر لهم في «✏️ مهامي» فوراً`
+          + (r.miss ? `<div class="s warn">⚠ ${r.miss} ${r.miss === 1 ? "طالباً لم تُسجَّل هويته" : "طالباً لم تُسجَّل هوياتهم"} فـ${v[1]} — تُسجَّل من لوحة المدير ← ⚙️ الإدارة ← 🆔 أرقام هويات الطلاب</div>` : "")
+          + `<div class="s">ومن لم يفتح حسابه بعد، أرسل له الرابط في الواتساب.</div></div>`;
+      }
+      const paintSum = () => { const e = $$("#as-sum"); if (e) e.innerHTML = sumHtml(false); };
+      // قائمة المقصودين: مربعات اختيار + أزرار جاهزة تُبنى من رصد المعلم نفسه
+      function paintWho() {
+        const box = $$("#as-who"), one = sel.size === 1;
+        $$("#as-who-w").style.display = one ? "block" : "none";
+        if (!one) { toSet.clear(); box.style.display = "none"; box.innerHTML = ""; return; }
+        if (!someOn(o)) { box.style.display = "none"; box.innerHTML = ""; return; }
+        box.style.display = "block";
+        const c = classById([...sel][0]); if (!c) return;
+        const reg = sidsCache[c.id], st = Array.isArray(reg) ? new Set(reg) : null;
+        box.innerHTML = `<div class="adm-tools" style="margin:2px 0 8px">
+            <button class="btn-soft" id="aw-all">الكل</button><button class="btn-soft" id="aw-none">لا أحد</button>
+            <button class="btn-soft" id="aw-nosub">⚡ من لم يحلّ أوراقي</button><button class="btn-soft" id="aw-weak">📉 دون 50%</button></div>
+          <div class="as-who-grid">${activeStudents(c).map(x => `<label class="as-who-c${toSet.has(x.i) ? " on" : ""}" data-i="${x.i}"><input type="checkbox" ${toSet.has(x.i) ? "checked" : ""}><span>${esc(c.students[x.i].n)}</span>${st && !st.has(x.i) ? `<small title="لم تُسجَّل هويته">🚫</small>` : ""}</label>`).join("")}</div>
+          <div class="empty-note" style="padding:6px 2px 0;text-align:right"><b id="aw-n">${toSet.size}</b> مختارون — لا تظهر الورقة لغيرهم في حساباتهم، ومن يفتح رابطها وليس منهم لا يجد اسمه.</div>`;
+        const sync = () => {
+          box.querySelectorAll(".as-who-c").forEach(l => { const i = +l.dataset.i, on = toSet.has(i); l.classList.toggle("on", on); const cb = l.querySelector("input"); if (cb) cb.checked = on; });
+          const n = box.querySelector("#aw-n"); if (n) n.textContent = toSet.size;
+          paintSum();
+        };
+        box.querySelectorAll(".as-who-c").forEach(l => l.onclick = (ev) => { ev.preventDefault(); const i = +l.dataset.i; if (toSet.has(i)) toSet.delete(i); else toSet.add(i); sync(); });
+        box.querySelector("#aw-all").onclick = () => { act(c).forEach(i => toSet.add(i)); sync(); };
+        box.querySelector("#aw-none").onclick = () => { toSet.clear(); sync(); };
+        box.querySelector("#aw-nosub").onclick = async (ev) => {
+          const b = ev.currentTarget; b.disabled = true; b.textContent = "…";
+          let rows = []; try { rows = (await loadSubs(c.id)) || []; } catch (e) { rows = []; }
+          const did = new Set(rows.map(x => +x.si));
+          toSet.clear(); act(c).forEach(i => { if (!did.has(i)) toSet.add(i); });
+          sync(); b.disabled = false; b.textContent = "⚡ من لم يحلّ أوراقي";
+        };
+        box.querySelector("#aw-weak").onclick = () => {
+          toSet.clear();
+          act(c).forEach(i => { let p = null; try { p = gradePct(c.id, i); } catch (e) { p = null; } if (p != null && isFinite(p) && p < 50) toSet.add(i); });
+          sync();
+          if (!toSet.size) alert("لا طالب دون 50% في رصدك حتى الآن — اختر يدوياً");
+        };
+      }
+      // بصمات الفصول تُقرأ مرة واحدة عند الفتح ثم يُحدَّث السطر — لا انتظار أمام المعلم
+      paintSum();
+      (async () => { for (const c of cls) { await sidsOf(c.id); } paintSum(); paintWho(); })();
+      o.querySelectorAll("#as-cls .chip").forEach(b => b.onclick = () => {
+        const id = b.dataset.c;
+        if (sel.has(id)) { if (sel.size === 1) return; sel.delete(id); } else sel.add(id);
+        if (sel.size !== 1) toSet.clear();
+        o.querySelectorAll("#as-cls .chip").forEach(x => x.classList.toggle("on", sel.has(x.dataset.c)));
+        paintWho(); paintSum();
       });
-      o.querySelector("#as-prev").onclick = () => {
-        const out = o.querySelector("#as-out"), btn = o.querySelector("#as-prev");
+      o.querySelectorAll("#as-who-t [data-w]").forEach(b => b.onclick = () => {
+        o.querySelectorAll("#as-who-t [data-w]").forEach(x => x.classList.toggle("on", x === b));
+        if (b.dataset.w === "all") toSet.clear();
+        else { const c = classById([...sel][0]); if (c) act(c).forEach(i => toSet.add(i)); }
+        paintWho(); paintSum();
+      });
+      o.querySelectorAll(".as-mode[data-m]").forEach(b => b.onclick = () => {
+        mode = b.dataset.m; o.querySelectorAll(".as-mode[data-m]").forEach(x => x.classList.toggle("on", x === b));
+        $$("#as-desc").textContent = (MODES.find(m => m.k === mode) || {}).d || "";
+        $$("#as-secs-w").style.display = mode === "ws" ? "none" : "block";
+        $$("#as-tries").value = mode === "ws" ? "3" : "1";
+      });
+      $$("#as-prev").onclick = () => {
+        const out = $$("#as-out"), btn = $$("#as-prev");
         if (out.dataset.pv === "1") { out.innerHTML = ""; out.dataset.pv = ""; btn.textContent = "👁️ معاينة الأسئلة كما يراها الطالب"; return; }
         out.dataset.pv = "1"; btn.textContent = "🙈 إخفاء المعاينة";
-        const L = ["أ", "ب", "ج", "د", "هـ", "و"];
+        const LT = ["أ", "ب", "ج", "د", "هـ", "و"];
         out.innerHTML = `<div style="border:1.5px solid var(--line);border-radius:12px;padding:12px;background:#fff;max-height:46vh;overflow:auto">
-          <div style="font-weight:800;color:var(--navy);margin-bottom:8px">👁️ معاينة ما سيراه الطالب — ${qs.length} أسئلة${mode !== "ws" ? " (يُعاد ترتيبها عشوائياً لكل طالب)" : ""}</div>
+          <div style="font-weight:800;color:var(--navy);margin-bottom:8px">👁️ معاينة ما سيراه الطالب — ${qs.length} أسئلة${mode !== "ws" ? " (يُعاد ترتيبها عشوائياً لكل فصل)" : ""}</div>
           ${qs.map((q, i) => `<div style="margin:0 0 10px;padding:0 0 8px;border-bottom:1px dashed var(--line)">
             <div style="font-weight:700;font-size:14px;color:var(--navy)">${i + 1}. ${esc(q.q || "")}</div>
             ${(q.t === "fill")
               ? `<div style="font-size:13px;color:var(--ok);margin-top:4px">✔ الإجابة: ${esc(q.ans || "")}</div>`
-              : `<div style="margin-top:4px">${(q.opts || []).filter(Boolean).map((op, j) => `<div style="font-size:13px;color:${j === (+q.correct || 0) ? "var(--ok)" : "var(--muted)"};font-weight:${j === (+q.correct || 0) ? "700" : "400"}">${j === (+q.correct || 0) ? "✔" : "◦"} ${L[j] || (j + 1)}. ${esc(op)}</div>`).join("")}</div>`}
+              : `<div style="margin-top:4px">${(q.opts || []).filter(Boolean).map((op, j) => `<div style="font-size:13px;color:${j === (+q.correct || 0) ? "var(--ok)" : "var(--muted)"};font-weight:${j === (+q.correct || 0) ? "700" : "400"}">${j === (+q.correct || 0) ? "✔" : "◦"} ${LT[j] || (j + 1)}. ${esc(op)}</div>`).join("")}</div>`}
           </div>`).join("")}
           <div class="empty-note" style="padding:2px">الإجابات الصحيحة تظهر لك أنت فقط — الطالب يراها بعد التسليم.</div></div>`;
       };
-      o.querySelector("#as-make").onclick = async () => {
-        const btn = o.querySelector("#as-make"); btn.disabled = true; btn.textContent = "جارِ الإنشاء…";
-        const c = classById(cur), id = shortId();
-        const clean = (mode === "ws" ? qs : shuffleQ(qs)).map(q => ({
-          t: q.t || "mcq", q: String(q.q || ""), opts: (q.opts || []).filter(Boolean),
-          correct: +q.correct || 0, ans: String(q.ans || "")
-        })).filter(q => q.q && (q.t === "fill" ? q.ans : q.opts.length >= 2));
-        const doc = {
-          t: title, subj: TE.subject, tid: TE.id, tn: TE.name, cid: cur, cname: c.name,
-          mode, due: o.querySelector("#as-due").value || "", code, wk,
-          secs: mode === "ws" ? 0 : Math.max(60, (+o.querySelector("#as-secs").value || 10) * 60),
-          qs: clean, n: clean.length, ts: Date.now(),
-          tries: Math.max(0, Math.min(12, +o.querySelector("#as-tries").value || 0)),
-          retry: (+o.querySelector("#as-tries").value || 0) !== 1
-        };
-        try { await fdb.doc("assign/" + id).set(doc); } catch (e) { btn.disabled = false; btn.textContent = "🔗 أنشئ الرابط"; alert("تعذّر الإنشاء — تحقق من الاتصال"); return; }
-        // الفهرس ليس شرطاً لنجاح الإرسال: فشلُه لا يمنع الرابط، وأقصى أثره أن الورقة لا تظهر في بوابة الطالب
-        try {
-          await idxAssign(cur, {
-            a: id, t: title, due: doc.due || "", tid: TE.id, mode: mode,
-            n: clean.length, wk: wk, code: code, tries: doc.tries, ts: doc.ts
-          });
-        } catch (e) { }
-        const url = ASSIGN_BASE + id;
-        const due = doc.due ? new Date(doc.due).toLocaleString("ar-SA", { weekday: "long", hour: "numeric", minute: "2-digit" }) : "";
-        const kind = mode === "ws" ? "ورقة عمل تفاعلية" : mode === "quiz" ? "اختبار قصير تفاعلي" : "سباق أسئلة";
+      // رسالة الواتساب — تبقى كما كانت لمن يريد الطريق القديم، ولكل فصل رسالته برابطه
+      const msgFor = (c, url, n, doc) => {
+        const kind = doc.mode === "ws" ? "ورقة عمل تفاعلية" : doc.mode === "quiz" ? "اختبار قصير تفاعلي" : "سباق أسئلة";
         const triesTxt = doc.tries === 1 ? "محاولة واحدة فقط" : doc.tries === 0 ? "محاولات غير محدودة (حتى 12)" : `${doc.tries} محاولات`;
         const dueFull = doc.due ? new Date(doc.due).toLocaleString("ar-SA", { weekday: "long", day: "numeric", month: "long", hour: "numeric", minute: "2-digit" }) : "";
-        const msg = `السلام عليكم ورحمة الله وبركاته\n📝 *${kind}* — مادة ${TE.subject}\n📚 الدرس: *${title}*\n🏫 الفصل: ${c.name} — المعلم: ${TE.name}\n\n🔢 ${clean.length} أسئلة تُصحَّح آلياً وتظهر النتيجة فوراً${mode !== "ws" ? `\n⏱️ مدة الحل: ${Math.round(doc.secs / 60)} دقيقة` : ""}\n🔁 المحاولات: ${triesTxt} — والدرجة المعتمدة من المحاولة الأولى${dueFull ? `\n⏰ آخر موعد للتسليم: ${dueFull}` : ""}\n\n👇 يفتح الطالب الرابط من جواله، يختار اسمه، ويحلّ مباشرة بلا تحميل ولا تسجيل:\n${url}\n\nشاكرين متابعتكم 🌹\n${TE.name}`;
-        o.querySelector("#as-out").innerHTML = `<div class="as-link"><code>${esc(url)}</code><button class="btn-soft" id="as-copy-url">🔗 الرابط فقط</button></div>
-          <textarea class="search-box" id="as-msg" style="margin:8px 0 6px;height:150px;font-size:13px;line-height:1.7" readonly>${esc(msg)}</textarea>
-          <button class="btn-soft" id="as-copy" style="width:100%">📋 نسخ الرسالة كاملة مع الرابط</button>
-          <a class="btn-soft" id="as-try" target="_blank" rel="noopener" href="${esc(url)}&pv=1" style="display:block;width:100%;box-sizing:border-box;text-align:center;margin:8px 0 0;text-decoration:none">🧪 جرّبه كطالب قبل الإرسال (معاينة لا تُسجَّل)</a>
-          <a class="wa-btn" id="as-wa" target="_blank" rel="noopener" href="https://wa.me/?text=${encodeURIComponent(msg)}">💬 مشاركة في قروب أولياء الأمور</a>
-          <div class="empty-note" style="padding:6px 2px 0">تابع النتائج من «المزيد ← 📤 الأوراق المرسلة»</div>`;
-        o.querySelector("#as-copy").onclick = () => { try { navigator.clipboard.writeText(msg); o.querySelector("#as-copy").textContent = "✔ نُسخت الرسالة — ألصقها في القروب"; } catch (e) { o.querySelector("#as-msg").select(); } };
-        o.querySelector("#as-copy-url").onclick = () => { try { navigator.clipboard.writeText(url); o.querySelector("#as-copy-url").textContent = "✔ نُسخ"; } catch (e) { } };
+        return `السلام عليكم ورحمة الله وبركاته\n📝 *${kind}* — مادة ${TE.subject}\n📚 الدرس: *${title}*\n🏫 الفصل: ${c.name} — المعلم: ${TE.name}\n\n🔢 ${n} أسئلة تُصحَّح آلياً وتظهر النتيجة فوراً${doc.mode !== "ws" ? `\n⏱️ مدة الحل: ${Math.round(doc.secs / 60)} دقيقة` : ""}\n🔁 المحاولات: ${triesTxt} — والدرجة المعتمدة من المحاولة الأولى${dueFull ? `\n⏰ آخر موعد للتسليم: ${dueFull}` : ""}\n\n👇 الورقة موجودة في حساب الطالب («✏️ مهامي» في بوابة الطالب)، وهذا رابطها المباشر لمن لم يفتح حسابه:\n${url}\n\nشاكرين متابعتكم 🌹\n${TE.name}`;
+      };
+      $$("#as-make").onclick = async () => {
+        const btn = $$("#as-make");
+        if (!sel.size) return;
+        if (sel.size === 1 && someOn(o) && !toSet.size) { alert("اختر طالباً واحداً على الأقل، أو أعد الاختيار إلى «كل الفصل»"); return; }
+        btn.disabled = true; btn.textContent = "جارِ الإرسال…";
+        const to = (sel.size === 1) ? [...toSet].sort((a, b) => a - b) : [];
+        const due = $$("#as-due").value || "";
+        const secs = mode === "ws" ? 0 : Math.max(60, (+$$("#as-secs").value || 10) * 60);
+        const tries = Math.max(0, Math.min(12, +$$("#as-tries").value || 0));
+        const made = [], failed = [];
+        for (const id of [...sel]) {
+          const c = classById(id); if (!c) continue;
+          const aid = shortId();
+          const clean = (mode === "ws" ? qs : shuffleQ(qs)).map(q => ({
+            t: q.t || "mcq", q: String(q.q || ""), opts: (q.opts || []).filter(Boolean),
+            correct: +q.correct || 0, ans: String(q.ans || "")
+          })).filter(q => q.q && (q.t === "fill" ? q.ans : q.opts.length >= 2));
+          const doc = {
+            t: title, subj: TE.subject, tid: TE.id, tn: TE.name, cid: id, cname: c.name,
+            mode, due, code, wk, secs, qs: clean, n: clean.length, ts: Date.now(),
+            tries, retry: tries !== 1
+          };
+          if (to.length) doc.to = to;
+          try { await fdb.doc("assign/" + aid).set(doc); } catch (e) { failed.push(c.name); continue; }
+          // الفهرس ليس شرطاً لنجاح الإرسال: فشلُه لا يمنع الرابط، وأقصى أثره ألا تظهر في حساب الطالب
+          try {
+            const item = { a: aid, t: title, due, tid: TE.id, mode, n: clean.length, wk, code, tries, ts: doc.ts };
+            if (to.length) item.to = to;
+            await idxAssign(id, item);
+          } catch (e) { }
+          made.push({ cid: id, cname: c.name, id: aid, url: ASSIGN_BASE + aid, n: clean.length, doc });
+        }
+        if (!made.length) { btn.disabled = false; btn.textContent = "📨 أرسِل إلى حسابات الطلاب"; alert("تعذّر الإرسال — تحقق من الاتصال"); return; }
+        const out = $$("#as-out"); out.dataset.pv = "";
+        const one = made.length === 1;
+        const msg1 = one ? msgFor(classById(made[0].cid), made[0].url, made[0].n, made[0].doc) : "";
+        out.innerHTML = sumHtml(true)
+          + (to.length ? `<div class="as-sum warn">🎯 لطلاب محدَّدين: ${to.length} — لا تظهر لغيرهم</div>` : "")
+          + (failed.length ? `<div class="as-sum bad">تعذّر الإرسال إلى: ${esc(failed.join(" · "))}</div>` : "")
+          + (one
+            ? `<div class="as-link"><code>${esc(made[0].url)}</code><button class="btn-soft" id="as-copy-url">🔗 الرابط فقط</button></div>
+               <textarea class="search-box" id="as-msg" style="margin:8px 0 6px;height:140px;font-size:13px;line-height:1.7" readonly>${esc(msg1)}</textarea>
+               <button class="btn-soft" id="as-copy" style="width:100%">📋 نسخ الرسالة كاملة مع الرابط</button>
+               <a class="btn-soft" target="_blank" rel="noopener" href="${esc(made[0].url)}&pv=1" style="display:block;width:100%;box-sizing:border-box;text-align:center;margin:8px 0 0;text-decoration:none">🧪 جرّبها كطالب (معاينة لا تُسجَّل)</a>
+               <a class="wa-btn" target="_blank" rel="noopener" href="https://wa.me/?text=${encodeURIComponent(msg1)}">💬 أرسلها في الواتساب أيضاً (اختياري)</a>`
+            : `<div class="as-rows">${made.map(m => `<div class="as-row"><b>${esc(m.cname)}</b><code>${esc(m.url)}</code><button class="btn-soft as-cp" data-u="${esc(m.url)}">📋 نسخ</button><a class="btn-soft" target="_blank" rel="noopener" href="https://wa.me/?text=${encodeURIComponent(msgFor(classById(m.cid), m.url, m.n, m.doc))}">💬 واتساب</a></div>`).join("")}</div>`)
+          + `<div class="empty-note" style="padding:8px 2px 0">تابع من فتح وحلّ من «المزيد ← 📤 الأوراق المرسلة»</div>`;
+        const cp = $$("#as-copy"); if (cp) cp.onclick = () => { try { navigator.clipboard.writeText(msg1); cp.textContent = "✔ نُسخت الرسالة"; } catch (e) { const m = $$("#as-msg"); if (m) m.select(); } };
+        const cu = $$("#as-copy-url"); if (cu) cu.onclick = () => { try { navigator.clipboard.writeText(made[0].url); cu.textContent = "✔ نُسخ"; } catch (e) { } };
+        out.querySelectorAll(".as-cp").forEach(b => b.onclick = () => { try { navigator.clipboard.writeText(b.dataset.u); b.textContent = "✔"; } catch (e) { } });
         btn.style.display = "none";
+        const pv = $$("#as-prev"); if (pv) pv.style.display = "none";
       };
     });
   }
-
   // ── لوحة الأوراق المرسلة ونتائجها ──
   async function toolAssign() {
     if (!CLOUD || !fdb) { alert("يحتاج النسخة السحابية"); return; }
@@ -4704,7 +4836,7 @@
       if (!list.length) { body.innerHTML = '<div class="empty-note">لم ترسل ورقة بعد. أرسل من «📝 ورقة تفاعلية» داخل الحصة أو من بنك أوراق العمل.</div>'; return; }
       const M = { ws: "📝 ورقة عمل", quiz: "⏱️ اختبار", race: "🏆 تحدٍّ" };
       body.innerHTML = list.slice(0, 25).map(a => `<div class="comm-item"><b>${esc(a.t)}</b>
-        <div class="meta">${M[a.mode] || ""} · ${esc(a.cname)} · ${a.n} أسئلة · ${esc(hijriLabel(new Date(a.ts)))}</div>
+        <div class="meta">${M[a.mode] || ""} · ${esc(a.cname)} · ${a.n} أسئلة · ${esc(hijriLabel(new Date(a.ts)))}${Array.isArray(a.to) && a.to.length ? ` · <b style="color:var(--gold)">🎯 ${a.to.length} طلاب محدَّدون</b>` : ""}</div>
         <div style="display:flex;gap:6px;margin-top:6px;flex-wrap:wrap">
           <button class="btn-soft" data-res="${a.id}">📊 النتائج</button>
           <button class="btn-soft" data-lnk="${a.id}">🔗 الرابط</button></div></div>`).join("");
@@ -4720,7 +4852,11 @@
       const c = classById(A.cid) || { students: [] };
       let subs = {};
       try { const s = await fdb.collection("subs").where("a", "==", A.id).get(); s.forEach(d => { const v = d.data(); subs[v.si] = v; }); } catch (e) { }
-      const rows = activeStudents(c).map(({ s, i }) => ({ i, n: s.n, s: subs[i] || null }));   // تسليمات المنقولين تبقى في subs ولا تُعرض
+      /* الورقة الموجَّهة (A.to): الجدول والمتوسط ونسبة «سلّموا من» تُحسب على المقصودين وحدهم —
+         وإلا قال «سلّم 4 من 21» عن ورقة أُرسلت إلى خمسة، فيظنّها المعلم كارثة تسليم. */
+      const toArr = Array.isArray(A.to) ? A.to.map(x => +x).filter(x => Number.isInteger(x) && x >= 0) : [];
+      const rows = activeStudents(c).filter(({ i }) => !toArr.length || toArr.indexOf(i) >= 0)
+        .map(({ s, i }) => ({ i, n: s.n, s: subs[i] || null }));   // تسليمات المنقولين تبقى في subs ولا تُعرض
       const donerows = rows.filter(r => r.s);
       const avg = donerows.length ? (donerows.reduce((a, r) => a + r.s.sc, 0) / donerows.length) : 0;
       // تحليل الأسئلة
@@ -4747,7 +4883,7 @@
           <td>${v ? (bs > v.sc ? `<b style="color:var(--ok)">${bs}</b>` : "—") : "—"}</td>
           <td>${v ? Math.max(1, Math.round(v.secs / 60)) + " د" : "—"}</td></tr>`; }).join("")}
         </table></div>
-        <div class="empty-note" style="text-align:right;padding:6px 2px 0">الدرجة من <b>المحاولة الأولى</b> دائماً، وعمود «الأفضل» يظهر إن تحسّن بالتدريب.</div>
+        <div class="empty-note" style="text-align:right;padding:6px 2px 0">الدرجة من <b>المحاولة الأولى</b> دائماً، وعمود «الأفضل» يظهر إن تحسّن بالتدريب.${toArr.length ? `<br>🎯 هذه ورقة موجَّهة إلى ${toArr.length} من طلاب ${esc(A.cname)} — لا تظهر لغيرهم ولا يُحسب عليهم تسليمها.` : ""}</div>
         ${donerows.length ? `<div style="font-weight:800;color:var(--navy);margin:14px 0 6px">نسبة الخطأ في كل سؤال</div>
         <div class="table-scroll"><table class="report-table">${order.map(x => `<tr><td style="width:46px">س${x.k + 1}</td>
           <td class="nm" style="font-weight:500">${esc(x.q)}</td>
@@ -4806,7 +4942,7 @@
     sha256, shortId, waLink,
     studentProgress, studentCard, adminLevels, schoolSummary, classDocs, loadSubs,
     switchTab, rerenderTab, renderToday, renderReg, renderGrades, renderRep, renderMore,
-    toolCurriculum, toolSessions, toolPlans, toolCalc, toolSheets, toolAssign, liveSession, enter,
+    toolCurriculum, toolSessions, toolPlans, toolCalc, toolSheets, toolAssign, sendSheet, liveSession, enter,
     loadLogo, filesSheet, nextClassOf, notifyLead, paintNotifyCard,
     // مطالبة الجلسة: تُتيح للوحة المدير أن تشرح الرفض قبل وقوعه بدل نسبته إلى الإنترنت
     claimOK, claimBar, attBucketAbs: absCnt, lastAwayOf, arNum

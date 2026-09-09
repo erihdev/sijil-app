@@ -225,7 +225,7 @@ button{font-family:inherit;font-size:16px}
         tid: String(A.tid || ""), tn: String(A.tn || ""), subj: String(A.subj || ""),
         mode: String(A.mode || "ws"), n: (A.qs || []).length, cid: String(A.cid || ""),
         wk: +A.wk || 0, code: String(A.code || ""), tries: (A.tries == null ? null : +A.tries),
-        ts: +A.ts || Date.now()
+        ts: +A.ts || Date.now(), to: toList()
       });
       localStorage.setItem(K, JSON.stringify(arr.slice(0, 60)));
     } catch (e) { }
@@ -233,10 +233,14 @@ button{font-family:inherit;font-size:16px}
 
   function isLate() { return !!(A.due && Date.now() > new Date(A.due).getTime()); }
 
+  /* الورقة الموجَّهة (A.to): فهارس من أُرسلت إليهم وحدهم — واجب علاجي أو إثرائي. تُعرض أسماؤهم
+     فقط، فلا يجد غيرهم اسمه ولا يُسلِّم ورقة ليست له. غياب to أو خلوّه = الفصل كله كما كان. */
+  const toList = () => (Array.isArray(A.to) ? A.to.map(x => +x).filter(x => Number.isInteger(x) && x >= 0) : []);
+  const toHas = (i) => { const t = toList(); return !t.length || t.indexOf(+i) >= 0; };
   function pickName() {
     const savedRaw = localStorage.getItem("sijil.stu." + A.cid);
-    const saved = (savedRaw !== null && C.students[+savedRaw] && !C.students[+savedRaw].moved) ? savedRaw : null;   // اسم محفوظ لطالب منقول يُهمل
-    const list = (C.students || []).map((s, i) => ({ i, n: s.n, m: !!s.moved })).filter(x => !x.m);
+    const saved = (savedRaw !== null && C.students[+savedRaw] && !C.students[+savedRaw].moved && toHas(+savedRaw)) ? savedRaw : null;   // اسم محفوظ لطالب منقول أو ليس من المقصودين يُهمل
+    const list = (C.students || []).map((s, i) => ({ i, n: s.n, m: !!s.moved })).filter(x => !x.m && toHas(x.i));
     app.innerHTML = `<div class="card">
       <div class="note2" style="margin:0 0 6px">${A.mode === "ws" ? "📝 ورقة عمل تفاعلية" : A.mode === "quiz" ? "⏱️ اختبار قصير تفاعلي" : "🏁 سباق أسئلة"} — مادة ${esc(A.subj)}</div>
       <h1>${esc(A.t)}</h1>
@@ -244,6 +248,7 @@ button{font-family:inherit;font-size:16px}
       ${A.due ? `<p class="sub" style="margin-top:2px">⏰ آخر موعد للتسليم: ${esc(new Date(A.due).toLocaleString("ar-SA", { weekday: "long", day: "numeric", month: "long", hour: "numeric", minute: "2-digit" }))}</p>` : ""}
       ${isLate() ? `<div class="late">⏰ انتهى موعد التسليم، وسيُسجَّل حلّك متأخراً.</div>` : ""}
       <div class="note2" id="tries-note" style="margin:8px 0 4px">${PV ? "🧪 <b>وضع المعاينة</b> — تجربة للمعلم قبل الإرسال: لا تُسجَّل نتيجة ولا تُحتسب محاولة، ولا يرى الطلاب هذه الجلسة." : triesLabel(0)}</div>
+      ${toList().length && !PV ? `<div class="note2" style="margin:8px 0 4px">🎯 ورقة خاصة: أرسلها معلمك إلى ${toList().length} من طلاب الفصل — إن لم تجد اسمك فهي ليست لك، وراجع معلمك.</div>` : ""}
       <p class="lbl">${PV ? "اختر اسماً للتجربة (اختياري)" : `اختر اسمك من فصل ${esc(A.cname)}`}</p>
       <div id="names">${list.map(s => `<button class="name${String(s.i) === saved ? " on" : ""}" data-i="${s.i}">${esc(s.n)}</button>`).join("")}</div>
       <button class="go" id="start" ${saved === null && !PV ? "disabled" : ""}>${PV ? "🧪 ابدأ المعاينة" : "ابدأ الحل"}</button></div>`;
