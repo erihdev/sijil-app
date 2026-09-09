@@ -823,5 +823,880 @@ service cloud.firestore {
     }
 
     match /{document=**} { allow read, write: if false; }
+    /* ═════════ ==SPACE-COPY-START== مُولَّدة بـscratchpad/gen_space_rules.py — لا تُحرَّر يدوياً ═════════
+       كل مدرسةٍ مساحةٌ مستقلة: sp/{space}/teachers · sp/{space}/classes · sp/{space}/recs …
+       والقواعد نفسها حرفاً بحرف، والمسارات المطلقة (المطالبة وأرقام الدخول ومستندات المعلمين)
+       تشير إلى مساحة المدرسة وحدها — فلا يقرأ معلمُ مدرسةٍ شيئاً من مدرسةٍ أخرى.
+       ═════════════════════════════════════════════════════════════════════════════════ */
+    match /sp/{space} {
+      /* مستند المساحة نفسه: اسم المدرسة وخطتها وتاريخ انتهاء التجربة. يقرؤه كل جهاز
+         (ليعرف التطبيق أن المساحة قائمة ومتى تنتهي)، ويُنشأ مرة واحدة عند التسجيل،
+         ولا يُعدَّل بعدها إلا من الخادم — فلا يمدّد أحدٌ تجربته بنفسه، ولا يُحذف. */
+      allow get: if signedIn();
+      allow list, update, delete: if false;
+      allow create: if signedIn()
+          && space.matches('^[a-z0-9]{6,12}$')
+          && request.resource.data.keys().hasOnly(['name', 'plan', 'exp', 'ts', 'adm', 'ph'])
+          && request.resource.data.name is string
+          && request.resource.data.name.size() > 0 && request.resource.data.name.size() <= 80
+          && request.resource.data.plan == 'trial'
+          && request.resource.data.exp is number
+          && request.resource.data.ts is number
+          && request.resource.data.adm is string && request.resource.data.adm.matches('^t[0-9]{2,3}$')
+          /* ph: بصمة رقم دخول المؤسِّس. تُختم هنا لأن المستند لا يُعدَّل أبداً، فتصير إذناً
+             سُلطَته لحظةٌ واحدة: يُنشأ بها حسابه ورقمه ثم لا تفتح شيئاً بعدهما. */
+          && request.resource.data.ph is string && request.resource.data.ph.matches('^[0-9a-f]{64}$');
+
+
+      function signedIn_sp() { return request.auth != null; }
+      // معرّف الرصد: معلم_فصل مثل t11_c4a
+      function isPairKey_sp(id) { return id.matches('^[A-Za-z0-9]{1,12}_[A-Za-z0-9]{1,12}$'); }
+      // مفتاح درس: مادة+صف+فصل+أسبوع مثل dg4t1w12
+      function isLessonKey_sp(id) { return id.matches('^[a-z]{2}[2-6]t[12]w[0-9]{1,2}$'); }
+      function isCurrCode_sp(id) { return id.matches('^[a-z]{2}[2-6]t[12]$'); }
+      function stamped_sp() {
+        return request.resource.data.ts is number
+            && request.resource.data.tn is string
+            && request.resource.data.tn.size() <= 80;
+      }
+
+      // ── دوال مشتركة لأرقام الدخول (pins / pinreq / teachers.reg / teachers.pt) ──
+      //    exists()/get() داخل القواعد لا تخضع لقواعد القراءة، فيصحّ استعمالها على مجموعة ممنوعة القراءة.
+      function isHash_sp(x) { return x is string && x.matches('^[0-9a-f]{64}$'); }
+      // مفتاح صندوق رسائل الطالب: عشوائيٌّ تولّده لوحة المدير، ولا يُعرف إلا بمعرفة رقم الهوية
+      function isMk_sp(x) { return x is string && x.matches('^[A-Za-z0-9_-]{16,32}$'); }
+      function tHas_sp(tid)  { return exists(/databases/$(database)/documents/sp/$(space)/teachers/$(tid)); }
+      function tDoc_sp(tid)  { return get(/databases/$(database)/documents/sp/$(space)/teachers/$(tid)).data; }
+      function pinHas_sp(h)  { return exists(/databases/$(database)/documents/sp/$(space)/pins/$(h)); }
+      function pinDoc_sp(h)  { return get(/databases/$(database)/documents/sp/$(space)/pins/$(h)).data; }
+      function reqHas_sp(tid){ return exists(/databases/$(database)/documents/sp/$(space)/pinreq/$(tid)); }
+      function reqDoc_sp(tid){ return get(/databases/$(database)/documents/sp/$(space)/pinreq/$(tid)).data; }
+
+      // ── مطالبة الجلسة sess/{uid}: «هذا الجهاز أثبت رقم دخول معلم بعينه» ──
+      //    يكتبها js/auth.js بعد كل دخول ناجح (ومعها بصمة الرقم إثباتاً)، ولا يقرؤها عميل أبداً.
+      //    وهي الهوية الوحيدة المتاحة بلا خادم. القاعدة: الكتابة التي تُنمّي البيانات تبقى مفتوحة
+      //    كما كانت (رصد المعلم اليومي وغيره لا يتأثر إطلاقاً)، أما الكتابة المُتلِفة — تفريغ رصد
+      //    أو درجات أو تواصل أو جدول، أو سلب فصول معلم فيختفي من قائمة الدخول، أو تعيين رقم أول
+      //    لحساب لم يُسجَّل، أو تغيير إعدادات المدرسة — فتُشترط بمطالبة. وبهذا لا يستطيع زائر فتح
+      //    الطرفية ومحو عمل المدرسة، ولا انتحال حساب معلم لم يُسجَّل رقمه بعد.
+      function claimTid_sp() {
+        return exists(/databases/$(database)/documents/sp/$(space)/sess/$(request.auth.uid))
+             ? get(/databases/$(database)/documents/sp/$(space)/sess/$(request.auth.uid)).data.get('tid', '') : '';
+      }
+      function isClaim_sp(tid) { return claimTid_sp() != '' && claimTid_sp() == tid; }
+      function isAdminClaim_sp() {
+        return claimTid_sp() != '' && tHas_sp(claimTid_sp()) && tDoc_sp(claimTid_sp()).get('admin', false) == true;
+      }
+      function anyClaim_sp() { return claimTid_sp() != ''; }
+      // صاحب مستند الرصد/الدرجات/التواصل: الجزء الأول من معرّفه «معلم_فصل»
+      function ownerOf_sp(id) { return id.split('_')[0]; }
+      function mayShrink_sp(tid) { return isClaim_sp(tid) || isAdminClaim_sp(); }
+      // «نموّ بحت»: لا مفتاح نُزع ولا قيمةُ مفتاحٍ قائم تبدّلت — وهو حرفياً أثر الدمج
+      //   (set merge في js/app.js). وفحص المفاتيح وحده لا يرى تبديل القيم: خريطةٌ بالمفاتيح
+      //   نفسها وقيمٍ فارغة {} كانت تمرّ فتفرّغ كل يوم مرصود وكل درجة بلا مطالبة.
+      function growsOnly_sp(nd, od) { return nd.diff(od).affectedKeys().hasOnly(nd.diff(od).addedKeys()); }
+
+      // ── بيانات أساسية تُزرع بالسكربت فقط: قراءة نعم، كتابة لا ──
+      /* مستند المدرسة الأساسي: يُكتب مرة واحدة لحظة التأسيس ثم يُقفل كما في الجذر تماماً.
+         (ما يضبطه المدير بعدها من أوزانٍ وحالاتٍ يذهب إلى cfg/assess وcfg/school.) */
+      match /meta/{doc} {
+        allow read: if signedIn_sp();
+        allow create: if signedIn_sp() && doc == 'app' && exists(/databases/$(database)/documents/sp/$(space))
+            && request.resource.data.keys().hasOnly(['school', 'states', 'behaviors', 'weights', 'assess', 'term', 'ts'])
+            && request.resource.data.school is map
+            && request.resource.data.school.name is string
+            && request.resource.data.school.name.size() > 0
+            && request.resource.data.school.name.size() <= 80;
+        allow update, delete: if false;
+      }
+      // ── المعلمون: يحرّرهم المدير من لوحته (الواجهة تخفي ذلك عن غيره؛ القواعد لا تعرف هوية المدير) ──
+      //    الحقول: name/subject/mob/classes/pinHash/lead/ts (+phone القديم) — لا تغيير لـ admin أبداً، ولا حذف
+      function teacherShape_sp() {
+        return request.resource.data.keys().hasOnly(['name', 'subject', 'mob', 'phone', 'classes', 'pinHash', 'admin', 'lead', 'reg', 'pt', 'ts'])
+            && request.resource.data.name is string && request.resource.data.name.size() > 0 && request.resource.data.name.size() <= 80
+            && request.resource.data.classes is list && request.resource.data.classes.size() <= 40
+            && request.resource.data.ts is number
+            && (!('subject' in request.resource.data) || (request.resource.data.subject is string && request.resource.data.subject.size() <= 80))
+            && (!('mob' in request.resource.data) || (request.resource.data.mob is string && request.resource.data.mob.size() <= 20))
+            && (!('phone' in request.resource.data) || (request.resource.data.phone is string && request.resource.data.phone.size() <= 20))
+            && (!('pinHash' in request.resource.data) || (request.resource.data.pinHash is string && request.resource.data.pinHash.size() <= 64))
+            && (!('lead' in request.resource.data) || (request.resource.data.lead is list && request.resource.data.lead.size() <= 40))
+            && (!('reg' in request.resource.data) || request.resource.data.reg is bool)
+            && (!('pt' in request.resource.data) || (request.resource.data.pt is number && request.resource.data.pt > 0));
+      }
+      match /teachers/{tid} {
+        allow read: if signedIn_sp();
+        // إنشاء معلم جديد من لوحة المدير: بلا صلاحية مدير، وبلا أي بصمة في المستند —
+        //   رقم الدخول الأولي يُسجَّل في pins وحدها (مستند المعلم مقروء للجميع فلا بصمة فيه أبداً).
+        //   وإنشاؤه يحتاج مطالبةَ مدير: بغيرها كان أي زائر يزرع معلمين وهميين في قائمة الدخول
+        //   ثم يسجّل لهم أرقاماً (لأن الحساب الجديد «غير مسجّل») فيدخل التطبيق بحساب من صنعه.
+        /* المؤسِّس: أول حسابٍ في المدرسة الجديدة، وهو مديرها وحده. لا مطالبةَ بعدُ لأحد،
+           فالإذن من مستند المساحة نفسه (adm) — وهو غير قابل للتعديل، والباب يُغلق بمجرد
+           وجود الحساب (create لا يمرّ على موجود). وما سواه معلمٌ عاديّ بمطالبة مدير كالجذر. */
+        allow create: if signedIn_sp() && tid.matches('^t[0-9]{2,3}$') && teacherShape_sp()
+            && request.resource.data.get('reg', false) == false
+            && !('pt' in request.resource.data)
+            && !('pinHash' in request.resource.data)
+            && ((exists(/databases/$(database)/documents/sp/$(space))
+                 && get(/databases/$(database)/documents/sp/$(space)).data.get('adm', '') == tid
+                 && request.resource.data.get('admin', false) == true)
+                || (isAdminClaim_sp()
+                    && request.resource.data.get('admin', false) == false));
+        // التحديث: صلاحية المدير لا تتغير أبداً — لا رفع ولا إسقاط للحقل (get بقيمة افتراضية على الطرفين
+        //   حتى لا تمر كتابة تُغفل admin فتُسقطه وتقفل لوحة المدير قفلاً لا يُفتح من العميل).
+        // بصمة الدخول pinHash: لا تُكتب من العميل لأحد إطلاقاً — لا للمعلم ولا للمدير. أرقام الدخول
+        //   كلها في pins وحدها، ورقم المدير يُعاد تعيينه من كونسول Firebase.
+        // يبقى (بحكم غياب هوية حقيقية للعميل) أن أي جهاز مصادَق يستطيع تعديل بيانات معلم —
+        //   وهو ما تنبّه إليه بطاقة «الحسابات مبنية على ثقة داخل المدرسة»؛ إغلاقه الكامل يحتاج
+        //   مصادقة حقيقية أو Cloud Function، وهو خارج نطاق هذا الإصدار.
+        allow update: if signedIn_sp() && tid.matches('^t[0-9]{2,3}$') && teacherShape_sp()
+            && request.resource.data.get('admin', false) == resource.data.get('admin', false)
+            // بصمة الدخول لا تُكتب في مستند المعلم أبداً (المستند مقروء لأي جهاز مصادَق):
+            //   إما تبقى كما هي، وإما تُزال نهائياً — ولا تُكتب بقيمة جديدة لأحد، مديراً كان أو معلماً.
+            // والإزالة لا تُقبل إلا إذا كانت البصمة ميتة تماماً: الحساب مسجّل في pins (reg) فالدخول
+            //   لا يمرّ بها، ولا يوجد مستند pins يحمل هذه البصمة نفسها. وهذا الشرط الثاني مقصود:
+            //   بصمةٌ نُشرت في مستند مقروء ثم بقي لها مستند pins حيّ تصلح «إثباتاً» في pinreq،
+            //   والشرط أدناه (pinreq) يرفضها ما دامت منشورة — فلو سُمح بمحوها لرفع المهاجمُ
+            //   الحمايةَ بنفسه ثم استعمل نسخته المحفوظة منها. العلاج الوحيد لبصمة نُشرت:
+            //   تعيين رقم دخول جديد للمعلم (فيموت مستند pins القديم) ثم تُمحى البصمة تلقائياً.
+            && (request.resource.data.get('pinHash', '') == resource.data.get('pinHash', '')
+                || (request.resource.data.get('pinHash', '') == ''
+                    && resource.data.get('reg', false) == true
+                    && !(isHash_sp(resource.data.get('pinHash', ''))
+                         && pinHas_sp(resource.data.get('pinHash', '')))))
+            // علم التسجيل reg لا يعود إلى false أبداً (وإلا أمكن إعادة حساب مسجّل إلى حالة «بلا إثبات»)
+            && (resource.data.get('reg', false) == false
+                || request.resource.data.get('reg', false) == true)
+            // ورفعه من false إلى true دعوى أن الرقم «صار في pins» — فلا يرفعه إلا من فعل ذلك فعلاً:
+            //   ترقية صامتة (بصمته المنشورة صار لها مستند pins حيّ)، أو قناة إثبات قائمة، أو مطالبة
+            //   مدير (تسجيل أول رقم). وبغير هذا كان زائر يرفع reg لمعلم لم يُسجَّل ثم يمحو بصمته
+            //   المنشورة، فيصير الحساب «مسجّلاً» بلا بصمة في pins ⇒ لا سبيل لصاحبه إلى الدخول.
+            && (resource.data.get('reg', false) == true
+                || request.resource.data.get('reg', false) != true
+                || (isHash_sp(resource.data.get('pinHash', '')) && pinHas_sp(resource.data.get('pinHash', '')))
+                || reqHas_sp(tid)
+                || isAdminClaim_sp())
+            // ختم الرقم pt لا يتغيّر إلا بقيمة قناة الإثبات نفسها ⇒ لا يعطّل زائرٌ حساباً بختم عشوائي
+            && (request.resource.data.get('pt', 0) == resource.data.get('pt', 0)
+                || (reqHas_sp(tid) && request.resource.data.get('pt', 0) == reqDoc_sp(tid).ts))
+            // حساب المدير: علم التسجيل مجمّد (js/auth.js لا يرسله له أصلاً، ومساره القديم يبقى سالكاً).
+            //   أما الختم pt فيتبع بند قناة الإثبات أعلاه — وإنشاء قناة لحساب المدير لا يكون إلا بمعرفة
+            //   رقمه هو، فلا يعطّله زائر. وبتجميد pt مطلقاً كان المدير وحده عاجزاً عن تغيير رقمه من
+            //   داخل التطبيق رغم أن الواجهة تَعِد به (مقيس وموثَّق في docs/AUTH_SPEC.md §11-ج).
+            && (resource.data.get('admin', false) == false
+                || request.resource.data.get('reg', false) == resource.data.get('reg', false))
+            // فصول المعلم وريادته: تنقص بمطالبة صاحبها أو مطالبة مدير فقط. قائمة الدخول في
+            //   js/app.js تُبنى ممن له فصل، فتفريغ الفصول من زائر كان يمحو المعلم من القائمة
+            //   فلا يجد اسمه ليدخل — قفلُ حسابٍ بلا حذف ولا تغيير رقم. والزيادة تبقى بلا شرط
+            //   (ختم الرقم وعلم التسجيل من js/auth.js لا يمسّان الفصول فلا يتأثران).
+            && (request.resource.data.classes.size() >= resource.data.get('classes', []).size()
+                || mayShrink_sp(tid))
+            && (request.resource.data.get('lead', []).size() >= resource.data.get('lead', []).size()
+                || mayShrink_sp(tid));
+        allow delete: if false;
+      }
+
+      // ── pins/{h}: معرّف المستند هو بصمة رقم الدخول نفسها، والمحتوى {tid, ts} ──
+      //    get نعم (الدخول يقرأ بصمة واحدة يعرف رقمها أصلاً)، list لا أبداً ⇒ لا تُتصفَّح البصمات ولا تُحصد.
+      //    الإنشاء: أول تسجيل لمعلم لم يُسجَّل بعد، أو بقناة إثبات pinreq تحمل البصمة نفسها.
+      //    التحديث ممنوع (لا تُنقل بصمة من معلم إلى آخر)، والحذف بقناة إثبات فقط.
+      match /pins/{h} {
+        allow get: if signedIn_sp();
+        allow list: if false;
+        allow create: if signedIn_sp()
+            && h.matches('^[0-9a-f]{64}$')
+            && request.resource.data.keys().hasOnly(['tid', 'ts'])
+            && request.resource.data.tid is string
+            && request.resource.data.tid.matches('^t[0-9]{2,3}$')
+            && request.resource.data.ts is number
+            && tHas_sp(request.resource.data.tid)
+            // رقم المؤسِّس: بصمته مختومةٌ في مستند المساحة لحظة التأسيس، فيُقبل مرة واحدة
+            && ((exists(/databases/$(database)/documents/sp/$(space)) && get(/databases/$(database)/documents/sp/$(space)).data.get('ph', '') == h
+                 && get(/databases/$(database)/documents/sp/$(space)).data.get('adm', '') == request.resource.data.tid)
+                || (reqHas_sp(request.resource.data.tid)
+                 && reqDoc_sp(request.resource.data.tid).h == h)
+                // أول تسجيل لحساب لم يُسجَّل: للمدير من لوحته، أو ترقية صامتة لمن دخل ببصمته
+                //   القديمة المنشورة في مستنده. بغير هذا القيد كان أي زائر يسجّل رقماً لمعلم
+                //   لم يصل دوره في الترحيل ثم يدخل باسمه — انتحالٌ كامل بلا معرفة أي رقم.
+                || (tDoc_sp(request.resource.data.tid).get('reg', false) != true
+                    && tDoc_sp(request.resource.data.tid).get('admin', false) == false
+                    && (tDoc_sp(request.resource.data.tid).get('pinHash', '') == h
+                        || isAdminClaim_sp())));
+        allow update: if false;
+        //    والحاذف لا بد أن يكون صاحب الحساب أو المدير: قناةٌ بقيت من تغيير رقم متعثّر كانت
+        //    تكفي أيَّ زائر لحذف بصمة الرقم القديم قبل أن يُختم مستند المعلم — فيُقفل الحساب،
+        //    لا رقمه القديم يعمل ولا الجديد.
+        allow delete: if signedIn_sp()
+            && reqHas_sp(resource.data.tid)
+            && (reqDoc_sp(resource.data.tid).h == h
+                || reqDoc_sp(resource.data.tid).get('old', '') == h)
+            && (isClaim_sp(resource.data.tid) || isAdminClaim_sp());
+      }
+
+      // ── pinreq/{tid}: قناة إثبات مؤقتة لا يقرأها أحد — وجودها هو الإذن بتغيير الرقم ──
+      //    (أ) المعلم يثبت معرفته رقمه الحالي: pins/{old} موجودة وصاحبها هو نفسه.
+      //    (ب) المدير يثبت معرفته رقمه هو: pins/{byPin} موجودة وصاحبها by، وby مديرٌ فعلاً.
+      //    وفي الحالتين: بصمةٌ منشورة في مستند المعلم المقروء (pinHash) لا تصلح إثباتاً أبداً —
+      //    لأن أي زائر يقرؤها فيدّعي بها ما ليس له. الإثبات لا يكون إلا بما لا يُقرأ.
+      match /pinreq/{tid} {
+        allow read: if false;
+        allow create, update: if signedIn_sp()
+            && tid.matches('^t[0-9]{2,3}$')
+            && request.resource.data.keys().hasOnly(['h', 'old', 'by', 'byPin', 'ts', 'tn'])
+            && isHash_sp(request.resource.data.h)
+            && request.resource.data.ts is number
+            && request.resource.data.tn is string && request.resource.data.tn.size() <= 80
+            && ((isHash_sp(request.resource.data.get('old', ''))
+                 && tHas_sp(tid)
+                 && tDoc_sp(tid).get('pinHash', '') != request.resource.data.old
+                 && pinHas_sp(request.resource.data.old)
+                 && pinDoc_sp(request.resource.data.old).tid == tid)
+                || (isHash_sp(request.resource.data.get('byPin', ''))
+                    && request.resource.data.get('by', '').matches('^t[0-9]{2,3}$')
+                    && tHas_sp(request.resource.data.by)
+                    && tDoc_sp(request.resource.data.by).get('admin', false) == true
+                    && tDoc_sp(request.resource.data.by).get('pinHash', '') != request.resource.data.byPin
+                    && pinHas_sp(request.resource.data.byPin)
+                    && pinDoc_sp(request.resource.data.byPin).tid == request.resource.data.by));
+        // الحذف كان مفتوحاً لأي جهاز مصادَق، وحذفُ القناة بين خطوتي تغيير الرقم يُفشل التغيير
+        //   ويعيد «لم يكتمل التغيير — رقمك القديم لا يزال يعمل» بلا نهاية، فيكفي عابثاً أن يكرره
+        //   ليعطّل كل تغيير رقم وكل إعادة تعيين في المدرسة. فليكن كحذف pins تماماً: لصاحب
+        //   المطالبة أو المدير. وjs/auth.js ينتظر كتابة المطالبة قبل التنظيف، فالمسار السليم يملكها.
+        allow delete: if signedIn_sp() && (isClaim_sp(tid) || isAdminClaim_sp());
+      }
+
+      // ── sess/{uid}: مطالبة جهاز واحد بهوية معلم — لا تُقرأ من أي عميل، ولا تُكتب إلا ببصمة رقم حيّة ──
+      //    المعرّف هو uid المصادقة المجهولة نفسه، فلا يكتب جهازٌ مطالبةَ جهاز آخر. والبصمة bp تُفحص
+      //    وقت الكتابة (pins/{bp}.tid == tid) ثم لا تُقرأ أبداً — وجود المستند وحده هو الإثبات لاحقاً.
+      match /sess/{uid} {
+        allow read: if false;
+        allow create, update: if signedIn_sp() && uid == request.auth.uid
+            && request.resource.data.keys().hasOnly(['tid', 'bp', 'ts'])
+            && request.resource.data.tid is string
+            && request.resource.data.tid.matches('^t[0-9]{2,3}$')
+            && request.resource.data.ts is number
+            && isHash_sp(request.resource.data.bp)
+            // بصمةٌ منشورة في مستند المعلم يقرؤها أي جهاز ⇒ لا تصلح إثباتاً (كما في pinreq تماماً)،
+            //   وإلا انتحل قارئُها هوية صاحبها وحاز صلاحية الكتابة المُتلِفة.
+            && tHas_sp(request.resource.data.tid)
+            && tDoc_sp(request.resource.data.tid).get('pinHash', '') != request.resource.data.bp
+            && pinHas_sp(request.resource.data.bp)
+            && pinDoc_sp(request.resource.data.bp).tid == request.resource.data.tid;
+        allow delete: if signedIn_sp() && uid == request.auth.uid;
+      }
+
+      // ── spins/{h}: بصمة رقم هوية الطالب — بوابة الطالب s/index.html ──
+      //    h = sha256(رقم الهوية|معرّف الفصل|الملح)، والمحتوى {cid, si, ts, c?}.
+      //    رقم الهوية نفسه لا يُرسل إلى الخادم ولا يُخزَّن في أي مستند: المعرّف بصمةٌ لا تُعكس،
+      //    والبوابة تحسبها في المتصفح ثم تقرأ مستنداً واحداً تعرف اسمه أصلاً.
+      //    get نعم، وlist لا أبداً ⇒ لا تُحصد بصمات الطلاب، ولا يُعرف من سُجّل ومن لم يُسجَّل،
+      //    ولا يُربط طالبٌ بفصله وفهرسه من بياناتٍ تُتصفَّح — كما في pins حرفاً بحرف.
+      //    c بصمة الرمز الاختياري sha256(الرمز|h): يضبطه الطالب مرة واحدة من جهازه، ولا يعرف h
+      //    إلا من يعرف رقم الهوية. ولا يُغيَّر بعدها ولا يُمحى إلا من لوحة المدير («نسيت رمزي»)،
+      //    إذ لو تُرك تغييره مفتوحاً لكل من يعرف h لاستطاع زميلٌ يعرف رقم هوية زميله أن يستبدل
+      //    رمزه ثم يدخل باسمه — فيسقط الرمزُ نفسه الذي وُضع ليسدّ هذه الثغرة.
+      //    ﴿حدّ معلوم﴾ المستند مقروء لمن يعرف h، فبصمة رمزٍ من أربع خانات فيه تُخمَّن خارج
+      //    الشبكة بعشرة آلاف محاولة. الرمز يحمي من الزميل الذي يعرف الرقم لا من مهاجم مُتقن،
+      //    ورفعُ الحماية يكون بنقل البصمة إلى معرّف مستند فرعي لا يُقرأ (انظر docs/STUDENT_SPEC.md).
+      match /spins/{h} {
+        allow get: if signedIn_sp();
+        allow list: if false;
+        // الإنشاء: استيراد أرقام الهويات من لوحة المدير وحدها — بيانات طلاب، كـ sedits تماماً.
+        allow create: if signedIn_sp()
+            && h.matches('^[0-9a-f]{64}$')
+            /* c مسموحٌ في الإنشاء لأن الطالب المنقول تُحسب له بصمةٌ جديدة (الفصل جزء منها)،
+               فيُنقل إليها رمزه السرّي القديم مع مفتاح صندوقه — وإلا فُتحت بوابته بلا رمز
+               لكل من يعرف رقم هويته. والإنشاء كله بمطالبة مدير أصلاً (السطر الأخير). */
+            && request.resource.data.keys().hasOnly(['cid', 'si', 'ts', 'mk', 'c'])
+            && (!('mk' in request.resource.data) || isMk_sp(request.resource.data.mk))
+            && (!('c' in request.resource.data) || isHash_sp(request.resource.data.c))
+            && request.resource.data.cid is string
+            && request.resource.data.cid.matches('^[A-Za-z0-9]{1,12}$')
+            && exists(/databases/$(database)/documents/sp/$(space)/classes/$(request.resource.data.cid))
+            && request.resource.data.si is int
+            && request.resource.data.si >= 0 && request.resource.data.si < 400
+            && request.resource.data.ts is number
+            && isAdminClaim_sp();
+        // التحديث: (أ) الطالب يضبط رمزه أول مرة — c وحده يُضاف، وcid/si/ts تبقى حرفاً بحرف،
+        //          ولا يمرّ إن كان في المستند رمزٌ من قبل.
+        //          (ب) لوحة المدير: إعادة ضبط الرمز بنزعه، أو تصحيح الفصل/الفهرس عند إعادة الاستيراد.
+        allow update: if signedIn_sp()
+            && request.resource.data.keys().hasOnly(['cid', 'si', 'ts', 'c', 'mk'])
+            && (!('mk' in request.resource.data) || isMk_sp(request.resource.data.mk))
+            && (!('c' in request.resource.data) || isHash_sp(request.resource.data.c))
+            && ((isHash_sp(request.resource.data.get('c', ''))
+                 && !('c' in resource.data)
+                 && request.resource.data.cid == resource.data.cid
+                 && request.resource.data.si == resource.data.si
+                 && request.resource.data.ts == resource.data.ts
+                 // مفتاح الرسائل لا يمسّه جهاز الطالب: تغييره يفتح صندوقاً آخر أو يُفقده صندوقه
+                 && request.resource.data.get('mk', '') == resource.data.get('mk', ''))
+                || (isAdminClaim_sp()
+                    && request.resource.data.cid is string
+                    && request.resource.data.cid.matches('^[A-Za-z0-9]{1,12}$')
+                    && exists(/databases/$(database)/documents/sp/$(space)/classes/$(request.resource.data.cid))
+                    && request.resource.data.si is int
+                    && request.resource.data.si >= 0 && request.resource.data.si < 400
+                    && request.resource.data.ts is number
+                    /* mk لا يُبدَّل ولا يُنزع بعد ثبوته — ولو من مطالبة مدير: تبديلُه يقطع الطالب
+                       عن صندوق رسائله واشتراك إشعاراته إلى الأبد. وإعادة استيراد الهويات تُعيد
+                       كتابة المستند، فقراءةٌ فاشلة قبلها كانت تُولّد مفتاحاً جديداً بلا قصد. */
+                    && (!('mk' in resource.data) || request.resource.data.get('mk', '') == resource.data.mk)));
+        // الحذف: نقل الطالب بين الفصول يُعيد حساب البصمة فتُحذف القديمة — من لوحة المدير وحدها.
+        //    ولو فُتح لكل من يعرف المستند لحرم زميلٌ زميلَه من الدخول حتى يُعاد استيراده.
+        allow delete: if signedIn_sp() && isAdminClaim_sp();
+      }
+
+      /* ═══ قناة الرسائل الخاصة: mkeys · smsg · sack ═══
+         بوابة الطالب تفتح بحساب **مجهول**، فالقواعد لا تعرف من الطالب — إنما يُثبت الدخول بمعرفة
+         رقم الهوية (بصمة spins). فالرسالة الشخصية (استدعاء · مستوى الابن) لا يجوز أن تُخزَّن في
+         مستند فصلٍ يقرؤه كل طلابه. الحل: مفتاح mk عشوائي لكل طالب داخل بصمته، وصندوقٌ باسمه:
+           smsg/{mk} — get مسموح (فمن لا يعرف mk لا يجد المستند) و**list ممنوع**، والكتابة بمطالبة معلم.
+           mkeys/{cid} — فهرس المفاتيح للمعلمين، قراءته بمطالبة معلم لا لأي جهاز مصادَق.
+           sack/{mk} — «قرأها»: يكتبها جهاز الطالب (يعرف mk) في مستندٍ منفصل، فلا يمسّ نصّ رسالة. */
+      match /mkeys/{cid} {
+        allow read: if anyClaim_sp();
+        allow create, update: if signedIn_sp() && cid.matches('^[A-Za-z0-9]{1,12}$') && stamped_sp() && isAdminClaim_sp()
+            && request.resource.data.keys().hasOnly(['k', 'n', 'tn', 'ts'])
+            && request.resource.data.k is map && request.resource.data.k.size() <= 400
+            && request.resource.data.n is int && request.resource.data.n >= 0 && request.resource.data.n <= 400;
+        allow delete: if false;
+      }
+      match /smsg/{mk} {
+        allow get: if signedIn_sp();
+        allow list: if false;                       // سردُ الصناديق = قراءة استدعاءات المدرسة كلها
+        allow create: if signedIn_sp() && isMk_sp(mk) && stamped_sp() && anyClaim_sp()
+            && request.resource.data.keys().hasOnly(['list', 'n', 'tn', 'ts'])
+            && request.resource.data.list is list && request.resource.data.list.size() <= 60;
+        // القائمة تنمو ولا تنقص (كما في comms وfilesidx): وإلا محا معلمٌ صندوق طالب بكتابة واحدة.
+        //   وعند بلوغ السقف تُسقط أقدم عشرة.
+        allow update: if signedIn_sp() && isMk_sp(mk) && stamped_sp() && anyClaim_sp()
+            && request.resource.data.keys().hasOnly(['list', 'n', 'tn', 'ts'])
+            && request.resource.data.list is list && request.resource.data.list.size() <= 60
+            && (request.resource.data.list.hasAll(resource.data.get('list', []))
+                || (request.resource.data.list.size() >= 50
+                    && resource.data.get('list', []).size() >= 50
+                    && request.resource.data.list.hasAll(resource.data.list[10:resource.data.list.size()])));
+        allow delete: if false;
+      }
+      match /sack/{mk} {
+        allow get: if signedIn_sp();
+        allow list: if anyClaim_sp();                  // المعلم يرى من قرأ رسائله (لا يُسرد لجهاز مجهول)
+        // يكتبه من يعرف mk — أي الطالب نفسه. مقيَّدٌ بخريطة seen وحدها فلا يبلغ نصَّ رسالة.
+        allow create, update: if signedIn_sp() && isMk_sp(mk)
+            && request.resource.data.keys().hasOnly(['seen', 'ts'])
+            && request.resource.data.seen is map && request.resource.data.seen.size() <= 60
+            && request.resource.data.ts is number;
+        allow delete: if false;
+      }
+      /* ── تصحيحات أسماء الطلاب snames/{cid} = {n:{"<si>":"الاسم"}, tn, ts} ──
+         المدير يصحّح الاسم في sedits، وقراءة sedits بمطالبة معلم (فيها جوالات وملاحظات صحية)،
+         فبوابة الطالب — وهي مجهولة — كانت تبقى على الاسم القديم في شهادته وبطاقته. فالأسماء
+         المصحَّحة وحدها تُنشر هنا: لا جوال ولا صحة ولا جنسية. ولا كشفَ جديد بذلك — أسماء الطلاب
+         مقروءة أصلاً في مستند الفصل الذي تقرؤه البوابة وصفحة الورقة. الكتابة بمطالبة مدير. */
+      match /snames/{cid} {
+        allow read: if signedIn_sp();
+        allow create, update: if signedIn_sp() && cid.matches('^[A-Za-z0-9]{1,12}$') && stamped_sp() && isAdminClaim_sp()
+            && request.resource.data.keys().hasOnly(['n', 'tn', 'ts'])
+            && request.resource.data.n is map && request.resource.data.n.size() <= 400;
+        allow delete: if false;
+      }
+
+      /* الفصول: يُنشئها المدير من لوحته ويعدّل أسماءها — بخلاف مدرستنا الأولى التي زُرعت
+         بسكربت فقُفلت. والحذف ممنوع دائماً: فصلٌ يُحذف يتيتم رصدُه ودرجاتُه وحركاتُه. */
+      match /classes/{cid} {
+        allow read: if signedIn_sp();
+        allow create, update: if signedIn_sp() && cid.matches('^[A-Za-z0-9]{1,12}$') && isAdminClaim_sp()
+            && request.resource.data.keys().hasOnly(['name', 'grade', 'gc', 'students', 'tn', 'ts'])
+            && request.resource.data.name is string
+            && request.resource.data.name.size() > 0 && request.resource.data.name.size() <= 40
+            && request.resource.data.gc is int && request.resource.data.gc >= 1 && request.resource.data.gc <= 12
+            && request.resource.data.students is list
+            && request.resource.data.students.size() <= 400;
+        allow delete: if false;
+      }
+      // ── الجدول المدرسي schedule/all: {rows:[{t,d,p,c}], tn, ts} — يحدّثه المدير من محرّر الجدول (استبدال كامل بلا merge)، لا إنشاء ولا حذف ──
+      match /schedule/{doc} {
+        allow read: if signedIn_sp();
+        allow update: if signedIn_sp() && doc == 'all' && stamped_sp()
+            && request.resource.data.rows is list && request.resource.data.rows.size() <= 600
+            && request.resource.data.keys().hasOnly(['rows', 'tn', 'ts'])
+            // نقص الصفوف (وأقصاه المحو الكامل) يحتاج مطالبة جلسة — والزيادة كما كانت
+            && (request.resource.data.rows.size() >= resource.data.get('rows', []).size()
+                || anyClaim_sp());
+        allow create, delete: if false;
+      }
+
+      // ── إعدادات المدرسة cfg/{doc}: يضبطها المدير من لوحته وتُقرأ عند إقلاع كل جهاز (meta/app غير قابل للكتابة) ──
+      //    cfg/bell   جدول الأجراس: {start, len, n, breaks[], lens?, days?, tn, ts}
+      //    cfg/school أسماء الإدارة: {principal?, vice?, agent?, counselor?, tn, ts}
+      //    cfg/assess مكتبة التقييمات ودرجاتها: {states:[{k,t,v,c}], behaviors:[{k,t,v}], weights:{…}, tn, ts}
+      function bellShape_sp() {
+        return request.resource.data.keys().hasOnly(['start', 'len', 'n', 'breaks', 'lens', 'days', 'tn', 'ts'])
+            && request.resource.data.start is int && request.resource.data.start >= 0 && request.resource.data.start <= 1439
+            && request.resource.data.len is int && request.resource.data.len >= 5 && request.resource.data.len <= 120
+            && request.resource.data.n is int && request.resource.data.n >= 1 && request.resource.data.n <= 12
+            && request.resource.data.breaks is list && request.resource.data.breaks.size() <= 4
+            && (!('lens' in request.resource.data) || request.resource.data.lens is map)
+            && (!('days' in request.resource.data) || request.resource.data.days is map);
+      }
+      function nameField_sp(f) {
+        return !(f in request.resource.data)
+            || (request.resource.data[f] is string && request.resource.data[f].size() <= 80);
+      }
+      function schoolShape_sp() {
+        return request.resource.data.keys().hasOnly(['principal', 'vice', 'agent', 'counselor', 'tn', 'ts'])
+            && nameField_sp('principal') && nameField_sp('vice') && nameField_sp('agent') && nameField_sp('counselor');
+      }
+      /* مكتبة التقييمات: قائمتان مرقّمتان بالفهرس تُقرآن في كل شاشة رصد ومطبوع.
+         حدود العنصر الواحد (k ≤ 12 محرفاً، t ≤ 40، v بين −20 و+20، والألوان المعروفة) لا تُفحص هنا:
+         لغة القواعد لا تدور على عناصر قائمة أصلاً — وهو حال breaks في bellShape_sp() نفسه. فتُفحص العناصر
+         قبل الكتابة في validateAssess() (js/admin/core.js)، وتُقصّ عند القراءة في assessNorm()/aNum()
+         (js/app.js) فلا يُفسد مستندٌ مكتوب يدوياً شاشةً ولا نقطة. والمقاس والمفاتيح والأوزان تُفحص هنا. */
+      function wRange_sp(f) {
+        return !(f in request.resource.data.weights)
+            || (request.resource.data.weights[f] is number
+                && request.resource.data.weights[f] >= -20 && request.resource.data.weights[f] <= 20);
+      }
+      function assessShape_sp() {
+        return request.resource.data.keys().hasOnly(['states', 'behaviors', 'weights', 'tn', 'ts'])
+            && request.resource.data.keys().hasAll(['states', 'behaviors', 'weights'])
+            && request.resource.data.states is list
+            && request.resource.data.states.size() >= 2 && request.resource.data.states.size() <= 40
+            && request.resource.data.behaviors is list
+            && request.resource.data.behaviors.size() >= 1 && request.resource.data.behaviors.size() <= 40
+            && request.resource.data.weights is map
+            && request.resource.data.weights.keys().hasOnly(['present', 'part', 'hw', 'absent', 'bad', 'sheets'])
+            && wRange_sp('present') && wRange_sp('part') && wRange_sp('hw')
+            && wRange_sp('absent') && wRange_sp('bad') && wRange_sp('sheets');
+      }
+      match /cfg/{doc} {
+        allow read: if signedIn_sp();
+        // تُقرأ في كل مطبوعات المدرسة وفي مواقيت كل حصة — فتحريفها من زائر يفسدها كلها.
+        //   لا استبدال لها إلا من جهاز أثبت رقم دخول معلم (مطالبة sess).
+        allow create, update: if signedIn_sp() && stamped_sp() && anyClaim_sp()
+            && ((doc == 'bell' && bellShape_sp()) || (doc == 'school' && schoolShape_sp())
+                || (doc == 'assess' && assessShape_sp()));
+        allow delete: if false;
+      }
+
+      // ── رصد المعلم لفصله: {d: خريطة الأيام, tn, ts} ──
+      //    الأيام المرصودة لا تُنزع: كتابة الموقع دمجٌ دائماً (فتنمو الخريطة)، والاستبدال المُفرِّغ
+      //    من زائر كان يمحو فصلاً دراسياً كاملاً بلا حاجة إلى صلاحية حذف. النزع يحتاج مطالبة
+      //    صاحب الرصد أو مطالبة مدير (استعادة نسخة احتياطية).
+      match /recs/{id} {
+        allow read: if signedIn_sp();
+        allow create: if signedIn_sp() && isPairKey_sp(id) && stamped_sp()
+            && request.resource.data.d is map
+            && request.resource.data.keys().hasOnly(['d', 'tn', 'ts']);
+        allow update: if signedIn_sp() && isPairKey_sp(id) && stamped_sp()
+            && request.resource.data.d is map
+            && request.resource.data.keys().hasOnly(['d', 'tn', 'ts'])
+            // النموّ مفتوح كما كان، وتبديلُ قيمةِ يومٍ قائم (وتفريغُه أوضحه) يحتاج إثبات رقم دخول،
+            //   ونزعُ يومٍ يبقى على صاحبه أو المدير وحدهما.
+            && (growsOnly_sp(request.resource.data.d, resource.data.get('d', {}))
+                || (request.resource.data.d.keys().hasAll(resource.data.get('d', {}).keys()) && anyClaim_sp())
+                || mayShrink_sp(ownerOf_sp(id)));
+        allow delete: if false;
+      }
+
+      // ── الدرجات: {g: خريطة الطلاب, tn, ts} ──
+      match /grades/{id} {
+        allow read: if signedIn_sp();
+        allow create: if signedIn_sp() && isPairKey_sp(id) && stamped_sp()
+            && request.resource.data.g is map
+            && request.resource.data.keys().hasOnly(['g', 'tn', 'ts']);
+        allow update: if signedIn_sp() && isPairKey_sp(id) && stamped_sp()
+            && request.resource.data.g is map
+            && request.resource.data.keys().hasOnly(['g', 'tn', 'ts'])
+            // كما في recs: تفريغ درجات طالب قائم لا يكشفه فحص المفاتيح — فيُشترط له إثبات رقم دخول.
+            && (growsOnly_sp(request.resource.data.g, resource.data.get('g', {}))
+                || (request.resource.data.g.keys().hasAll(resource.data.get('g', {}).keys()) && anyClaim_sp())
+                || mayShrink_sp(ownerOf_sp(id)));
+        allow delete: if false;
+      }
+
+      // ── سجل التواصل مع أولياء الأمور: {c: قائمة, tn, ts} ──
+      match /comms/{id} {
+        allow read: if signedIn_sp();
+        allow create: if signedIn_sp() && isPairKey_sp(id) && stamped_sp()
+            && request.resource.data.c is list
+            && request.resource.data.c.size() <= 500
+            && request.resource.data.keys().hasOnly(['c', 'tn', 'ts']);
+        // القائمة تُدمج في js/app.js قبل كل رفع فلا تنقص إلا عند بلوغ السقف (slice(-500))
+        allow update: if signedIn_sp() && isPairKey_sp(id) && stamped_sp()
+            && request.resource.data.c is list
+            && request.resource.data.c.size() <= 500
+            && request.resource.data.keys().hasOnly(['c', 'tn', 'ts'])
+            // الطولُ وحده لا يحمي: قائمةٌ أخرى بالطول نفسه كانت تمرّ فتمحو كل ما سُجّل من تواصل.
+            //   والشرط الصحيح أن يبقى كل عنصر قديم موجوداً — وهو ما يفعله js/app.js حرفياً:
+            //   يقرأ نسخة السحابة ويتّحد معها (mergeComms) قبل كل رفع. والاستثناء الوحيد بلوغ
+            //   السقف (slice(-500)) حيث تسقط الأقدم بحق.
+            && (request.resource.data.c.hasAll(resource.data.get('c', []))
+                || (request.resource.data.c.size() >= 500
+                    && resource.data.get('c', []).size() >= 450
+                    && request.resource.data.c.hasAll(resource.data.c[50:resource.data.c.size()]))
+                || mayShrink_sp(ownerOf_sp(id)));
+        allow delete: if false;
+      }
+
+      // ── رابط يوتيوب المحفوظ للدرس: {url, tn, ts} — يوتيوب فقط ──
+      match /lessonyt/{key} {
+        allow read: if signedIn_sp();
+        allow create, update: if signedIn_sp() && isLessonKey_sp(key) && stamped_sp()
+            && request.resource.data.url is string
+            && request.resource.data.url.size() <= 300
+            && request.resource.data.url.matches('^https://(www\\.|m\\.)?(youtube\\.com|youtu\\.be)/.*')
+            && request.resource.data.keys().hasOnly(['url', 'tn', 'ts']);
+        allow delete: if false;
+      }
+
+      // ── تعديل توزيع المنهج أونلاين: {rows: خريطة, tn, ts} ──
+      match /curredits/{code} {
+        allow read: if signedIn_sp();
+        allow create: if signedIn_sp() && isCurrCode_sp(code) && stamped_sp()
+            && request.resource.data.rows is map
+            && request.resource.data.keys().hasOnly(['rows', 'tn', 'ts']);
+        // js/app.js:379 يكتب بالدمج دائماً ({rows:{[idx]:patch}}, merge) فالمفاتيح تنمو ولا تنقص،
+        //   وتفريغ rows من زائر كان يمحو توزيع منهج مادة كاملة.
+        allow update: if signedIn_sp() && isCurrCode_sp(code) && stamped_sp()
+            && request.resource.data.rows is map
+            && request.resource.data.keys().hasOnly(['rows', 'tn', 'ts'])
+            && (request.resource.data.rows.keys().hasAll(resource.data.get('rows', {}).keys())
+                || anyClaim_sp());
+        allow delete: if false;
+      }
+
+      // ── الدروس المؤلَّفة أونلاين لكل المواد ──
+      match /lessons/{key} {
+        allow read: if signedIn_sp();
+        allow create: if signedIn_sp() && isLessonKey_sp(key) && stamped_sp()
+            && request.resource.data.title is string
+            && request.resource.data.title.size() > 0
+            && request.resource.data.title.size() <= 120
+            && request.resource.data.story is list
+            && request.resource.data.questions is list
+            && request.resource.data.by is string;
+        // الاستبدال المُفرّغ (محطات صفر وأسئلة صفر) كان يمحو درساً ألّفه معلم وتشاركه المدرسة.
+        //   التأليف والإضافة يبقيان مفتوحين، والتقليص يحتاج مطالبة.
+        allow update: if signedIn_sp() && isLessonKey_sp(key) && stamped_sp()
+            && request.resource.data.title is string
+            && request.resource.data.title.size() > 0
+            && request.resource.data.title.size() <= 120
+            && request.resource.data.story is list
+            && request.resource.data.questions is list
+            && request.resource.data.by is string
+            && (anyClaim_sp()
+                || (request.resource.data.story.size() >= resource.data.get('story', []).size()
+                    && request.resource.data.questions.size() >= resource.data.get('questions', []).size()));
+        allow delete: if false;
+      }
+
+      // ── الأوراق التفاعلية المرسلة للطلاب: ينشئها المعلم ويقرأها الطالب بالرابط ──
+      function assignShape_sp() {
+        return request.resource.data.t is string && request.resource.data.t.size() <= 160
+            && request.resource.data.qs is list && request.resource.data.qs.size() <= 40
+            && request.resource.data.cid is string && request.resource.data.tid is string
+            && request.resource.data.mode in ['ws', 'quiz', 'race']
+            && (!('retry' in request.resource.data) || request.resource.data.retry is bool)
+            && (!('tries' in request.resource.data) || (request.resource.data.tries is int && request.resource.data.tries >= 0 && request.resource.data.tries <= 12))
+            // to: فهارس الطلاب المقصودين وحدهم (واجب علاجي أو إثرائي). غيابه أو خلوّه = الفصل كله.
+            //   العناصر أرقام لا تُفحص هنا (لغة القواعد لا تدور على قائمة) بل في w/index.html وبوابة
+            //   الطالب: كلتاهما تُسقط ما ليس عدداً صحيحاً. والمقاس مفحوصٌ فلا يُنفخ المستند.
+            //   والسقف بحجم أكبر فصلٍ فعلي (٥٠) لا ٢٠٠: لغة القواعد لا تفحص العناصر، فالمقاس
+            //   وحده هو ما يلجم نفخ المستند إلى حدّ فايرستور من جهاز مجهول.
+            && (!('to' in request.resource.data) || (request.resource.data.to is list && request.resource.data.to.size() <= 50));
+      }
+      match /assign/{id} {
+        // get وحده لا list: ورقةُ الطالب تُفتح بمعرّفها من رابطها، أما تعداد أوراق المدرسة كلها
+        //   (وفيها qs[].correct وqs[].ans) فكان مفتوحاً لأي جهاز مصادَق. التعدادُ لمن أثبت رقم معلم.
+        allow get: if signedIn_sp();
+        allow list: if anyClaim_sp();
+        // الإنشاء لمن أثبت رقم معلم كالتحديث تماماً: أي جهاز مصادَق كان ينشئ أوراقاً باسم
+        //   أي معلم (tid حرّ في الشكل) فتظهر في «مهامي» عند الطلاب.
+        allow create: if signedIn_sp() && id.matches('^[a-z0-9]{4,12}$') && stamped_sp() && assignShape_sp() && anyClaim_sp();
+        // js/app.js لا يعدّل ورقةً بعد إنشائها أبداً (يُنشئ معرّفاً جديداً في كل مرة)،
+        //   والكاتب الوحيد للتحديث هو استعادة النسخة الاحتياطية من لوحة المدير. وكان أي زائر
+        //   يستبدل أسئلة ورقة وصل رابطها إلى فصل كامل — أو يفرّغها — فيرى الطلاب ورقة أخرى.
+        allow update: if signedIn_sp() && id.matches('^[a-z0-9]{4,12}$') && stamped_sp()
+            && assignShape_sp() && anyClaim_sp();
+        allow delete: if false;
+      }
+
+      /* ── من سُجّلت هويته sids/{cid}: {list:[فهارس الطلاب], n, tn, ts} ──
+         بوابة الطالب تُفتح ببصمة الهوية (spins) ومجموعتها **لا تُسرد** بالقواعد قصداً، فلا سبيل
+         لمعلمٍ أن يعرف مَن يستطيع الدخول فعلاً — فيرسل ورقةً ويظنّها وصلت الفصل كله وهي لم تصل
+         أحداً. فتكتب لوحة المدير هنا **الفهارس وحدها** (لا رقم ولا اسم) لحظة تسجيل الهويات،
+         فتقول نافذة الإرسال للمعلم الحقيقة: «وصلت 21 حساباً · 3 لم تُسجَّل هوياتهم». */
+      match /sids/{cid} {
+        /* anyClaim لا signedIn: قارئها الوحيد نافذةُ إرسال المعلم. وبوابة الطالب تُفتح بمصادقة
+           مجهولة وclasses/{cid} مقروءة بأسماء الطلاب بالفهرس نفسه — فالسرد كان يجيب باسم كل
+           طالب عن سؤال «هل له حساب؟». وmkeys وsedits — وهي بيانات المستوى نفسه — مضيَّقة هكذا. */
+        allow read: if anyClaim_sp();
+        allow create, update: if signedIn_sp() && cid.matches('^[A-Za-z0-9]{1,12}$') && stamped_sp() && isAdminClaim_sp()
+            && request.resource.data.keys().hasOnly(['list', 'n', 'tn', 'ts'])
+            && request.resource.data.list is list && request.resource.data.list.size() <= 400
+            && request.resource.data.n is int && request.resource.data.n >= 0 && request.resource.data.n <= 400;
+        allow delete: if false;
+      }
+      // ── فهرس مهام الفصل assignidx/{cid}: {list:[{a,t,due,tid,mode,n,wk,code,tries,ts}], tn, ts} ──
+      //    بوابة الطالب لا تستطيع سرد assign (وسردُها يسلّم الطفل مفاتيح إجابات كل الاختبارات:
+      //    qs[].correct وqs[].ans داخل المستند نفسه)، فلا سبيل إلى «مهامي» إلا فهرسٌ **بلا أسئلة**
+      //    يكتبه المعلم لحظة إرسال الورقة. عناصره أوصافٌ فقط: معرّف الورقة وعنوانها وموعدها ونمطها.
+      //    القراءة: get لأي مصادَق (الطالب يقرأ فهرس فصله بمعرّفه)، والسرد لمن أثبت رقم معلم —
+      //    فلا يُحصد فهرس المدرسة كلها من الطرفية. والكتابة لمن أثبت رقم معلم وحده.
+      //    والقائمة تنمو ولا تنقص (كما في filesidx حرفاً بحرف): تفريغها يُخفي مهام فصل كامل عن طلابه.
+      match /assignidx/{cid} {
+        allow get: if signedIn_sp();
+        allow list: if anyClaim_sp();
+        allow create: if signedIn_sp() && cid.matches('^[A-Za-z0-9]{1,12}$') && stamped_sp() && anyClaim_sp()
+            && request.resource.data.list is list
+            && request.resource.data.list.size() <= 200
+            && request.resource.data.keys().hasOnly(['list', 'tn', 'ts']);
+        allow update: if signedIn_sp() && cid.matches('^[A-Za-z0-9]{1,12}$') && stamped_sp() && anyClaim_sp()
+            && request.resource.data.list is list
+            && request.resource.data.list.size() <= 200
+            && request.resource.data.keys().hasOnly(['list', 'tn', 'ts'])
+            // القائمة تنمو ولا تنقص، إلا عند بلوغ السقف فتسقط أقدم عشرين (كما في comms حرفاً بحرف)،
+            //   وإلا فتفريغُها يُخفي مهام فصل كامل عن طلابه بكتابة واحدة.
+            && (request.resource.data.list.hasAll(resource.data.get('list', []))
+                || (request.resource.data.list.size() >= 180
+                    && resource.data.get('list', []).size() >= 180
+                    && request.resource.data.list.hasAll(resource.data.list[20:resource.data.list.size()]))
+                || isAdminClaim_sp());
+        allow delete: if false;
+      }
+
+      // ── تسليم الطالب: يُكتب مرة من جهاز الطالب، ثم لا تُعاد كتابته إلا محاولةً تالية ──
+      //    (جهاز الطالب لا مطالبة له ولا يمكن أن تكون له — فالحماية هنا بشكل البيانات لا بالهوية.)
+      function subShape_sp() {
+        return request.resource.data.ts is number
+            && request.resource.data.a is string
+            && request.resource.data.si is int
+            && request.resource.data.n is string && request.resource.data.n.size() <= 80
+            && request.resource.data.ans is list && request.resource.data.ans.size() <= 40
+            && request.resource.data.sc is int && request.resource.data.mx is int
+            && request.resource.data.sc >= 0 && request.resource.data.sc <= request.resource.data.mx
+            && request.resource.data.keys().hasOnly(['a','si','n','cid','tid','ans','sc','mx','best','lsc','att','secs','late','ts','lts']);
+      }
+      match /subs/{id} {
+        // get وحده لا list: صفحة الطالب تقرأ تسليمها بمعرّفه (assign_si)، وتعدادُ تسليمات المدرسة
+        //   — الأسماء والإجابات والدرجات — كان مفتوحاً لأي زائر، وهو أضعف من قيد الحذف أسفله.
+        allow get: if signedIn_sp();
+        allow list: if anyClaim_sp();
+        allow create: if signedIn_sp() && id.matches('^[a-z0-9]{4,12}_[0-9]{1,3}$') && subShape_sp();
+        // المحاولة التالية في w/index.html تُبقي المحاولة الأولى كما هي حرفياً (a/si/n/ans/sc/ts)
+        //   وتزيد att وbest وحدهما. وكان التحديث مفتوحاً بلا قيد: أي جهاز يستبدل تسليم أي طالب
+        //   بدرجة كاملة وإجابات من عنده — وrec.sc هو ما ينقله «💯 اعتماد المحاولة الأولى» إلى
+        //   دفتر الدرجات، وans هو ما يُبنى عليه «نسبة الخطأ في كل سؤال».
+        allow update: if signedIn_sp() && id.matches('^[a-z0-9]{4,12}_[0-9]{1,3}$') && subShape_sp()
+            && (isAdminClaim_sp()
+                || (request.resource.data.a == resource.data.a
+                    && request.resource.data.si == resource.data.si
+                    && request.resource.data.n == resource.data.get('n', '')
+                    && request.resource.data.ans == resource.data.get('ans', [])
+                    && request.resource.data.sc == resource.data.sc
+                    && request.resource.data.ts == resource.data.ts
+                    && request.resource.data.get('att', 1) > resource.data.get('att', 1)
+                    && request.resource.data.get('best', 0) >= resource.data.get('best', 0)));
+        // تسليمٌ باسم زميل كان يقفل الطالب الحقيقي إلى الأبد (وضع «اختبار» بمحاولة واحدة)
+        //   ولا يملك أحد تصفيره. فليملكه صاحب الورقة: معلمها بمطالبته، أو المدير.
+        allow delete: if signedIn_sp() && id.matches('^[a-z0-9]{4,12}_[0-9]{1,3}$')
+            && (isAdminClaim_sp()
+                || (exists(/databases/$(database)/documents/sp/$(space)/assign/$(id.split('_')[0]))
+                    && isClaim_sp(get(/databases/$(database)/documents/sp/$(space)/assign/$(id.split('_')[0])).data.get('tid', ''))));
+      }
+
+      // ── حركات نقل الطلاب: إنشاء فقط، تُطبَّق على الفصول عند كل تحميل ──
+      match /moves/{id} {
+        allow read: if signedIn_sp();
+        // النقل نهائي: update وdelete ممنوعان، فلا تراجع عنه إلا بحركة مضادة. وكان أي زائر
+        //   ينقل أي طالب إلى أي فصل — أو يُخرجه من المدرسة — فيختفي من شاشات كل المعلمين.
+        allow create: if signedIn_sp() && id.matches('^[a-z0-9]{4,12}$') && stamped_sp() && anyClaim_sp()
+            && request.resource.data.from is string && request.resource.data.to is string
+            && request.resource.data.si is int && request.resource.data.si >= 0 && request.resource.data.si < 200
+            && request.resource.data.newSi is int && request.resource.data.newSi >= 0 && request.resource.data.newSi < 400
+            && request.resource.data.name is string && request.resource.data.name.size() <= 120
+            && request.resource.data.keys().hasOnly(['from', 'si', 'to', 'newSi', 'name', 'tn', 'ts']);
+        allow update, delete: if false;
+      }
+
+      // ── تعديلات المدير على بيانات الطلاب (جوال ولي الأمر/تصحيح الاسم): sedits/{cid} = {s:{si:{p,n}}, tn, ts} — دمج، لا حذف ──
+      match /sedits/{cid} {
+        /* القراءة بمطالبة معلم لا لأي جهاز مصادَق: هنا جوالات أولياء الأمور (انتقلت إليها من
+           مستندات الفصول)، ومستندات الفصول يقرأها كل من يفتح بوابة الطالب أو ورقة عمل. */
+        allow read: if anyClaim_sp();
+        // الحقل p هو جوال ولي الأمر الذي تُبنى عليه روابط واتساب في «تقارير أولياء الأمور»
+        //   وبطاقة الطالب: تحويله يعني إرسال بيانات طالب إلى رقم غريب. ولا كاتب لهذه المجموعة
+        //   في التطبيق كله إلا لوحة المدير (js/admin/core.js:252 واستعادة النسخة الاحتياطية)،
+        //   وكلاهما يكتب بالدمج فلا تنقص المفاتيح أبداً.
+        allow create: if signedIn_sp() && cid.matches('^[A-Za-z0-9]{1,12}$') && stamped_sp()
+            && isAdminClaim_sp()
+            && request.resource.data.s is map
+            && request.resource.data.keys().hasOnly(['s', 'tn', 'ts']);
+        allow update: if signedIn_sp() && cid.matches('^[A-Za-z0-9]{1,12}$') && stamped_sp()
+            && isAdminClaim_sp()
+            && request.resource.data.s is map
+            && request.resource.data.keys().hasOnly(['s', 'tn', 'ts'])
+            && request.resource.data.s.keys().hasAll(resource.data.get('s', {}).keys());
+        allow delete: if false;
+      }
+
+      // ── سجل الإدارة adminlog/{id}: {act, tid?, note, tn, ts} — إنشاء فقط ──
+      match /adminlog/{id} {
+        allow read: if signedIn_sp();
+        // سجل الإدارة يُفترض أن يكون أثراً موثوقاً يُحتجّ به (من غيّر رقم من؟ من نقل من؟)،
+        //   وكان أي زائر يزرع فيه ما يشاء بأي اسم.
+        allow create: if signedIn_sp() && id.matches('^[a-z0-9]{4,20}$') && stamped_sp() && anyClaim_sp()
+            && request.resource.data.act is string && request.resource.data.act.size() <= 20
+            && request.resource.data.note is string && request.resource.data.note.size() <= 300
+            && (!('tid' in request.resource.data) || (request.resource.data.tid is string && request.resource.data.tid.size() <= 12))
+            && request.resource.data.keys().hasOnly(['act', 'tid', 'note', 'tn', 'ts']);
+        allow update, delete: if false;
+      }
+
+      // ── أي شيء آخر ممنوع ──
+      // ── تفضيلات المعلم (معايير حاسبة المهمة الأدائية وغيرها) ──
+      match /prefs/{tid} {
+        allow read: if signedIn_sp();
+        allow create: if signedIn_sp() && tid.matches('^[A-Za-z0-9]{1,12}$') && stamped_sp()
+            && request.resource.data.calc is map
+            && request.resource.data.keys().hasOnly(['calc', 'tn', 'ts']);
+        // معايير حاسبة المهمة الأدائية تُبنى عليها درجات الطلاب: استبدالها من زائر يغير تقدير
+        //   المعلم من حيث لا يشعر. الاستبدال لصاحبها (أو المدير)، والإنشاء الأول يبقى مفتوحاً.
+        allow update: if signedIn_sp() && tid.matches('^[A-Za-z0-9]{1,12}$') && stamped_sp()
+            && request.resource.data.calc is map
+            && request.resource.data.keys().hasOnly(['calc', 'tn', 'ts'])
+            && (isClaim_sp(tid) || isAdminClaim_sp());
+        allow delete: if false;
+      }
+
+
+      // ── اشتراك إشعارات الحصة push/{tid}: {ep, p256dh, auth, ua, tz, ts} ──
+      //    القراءة ممنوعة للجميع: عنوان الاشتراك ep يمكّن حائزه من دفع إشعارات إلى جهاز المعلم.
+      //    المهمة المجدولة تقرأها بحساب خدمة، وحساب الخدمة لا تسري عليه هذه القواعد.
+      //    ﴿حدّ معلوم في هذا الإصدار﴾ الكتابة والحذف مفتوحتان لأي جهاز مصادَق على أي معرّف معلم:
+      //      لا يملك العميل إثبات هوية يُربط به المعرّف. ولو اشترطنا إثباتاً برقم الدخول لانكسر
+      //      تفعيل التنبيهات على الجلسات المستأنفة (التي لم يُكتب فيها الرقم أصلاً).
+      //      الأثر الأقصى: تحويل إشعارات حصص معلم إلى جهاز آخر أو حرمانه منها — لا قراءة لبياناته.
+      /* ── اشتراك إشعارات الطالب spush/{mk} ──
+         بمفتاح صندوقه: من يعرفه هو الطالب نفسه (المفتاح داخل بصمة هويته). لا تُقرأ من متصفح
+         أحدٍ إطلاقاً — المُرسِل حسابُ خدمة يتجاوز القواعد، والمعلم لا يحتاج عنوان اشتراك طفل.
+         cid يلزم المُرسِل ليعرف فهرس أي فصل يخصّ هذا الاشتراك. */
+      match /spush/{mk} {
+        allow read: if false;
+        allow create, update: if signedIn_sp() && isMk_sp(mk)
+            && request.resource.data.keys().hasOnly(['ep', 'p256dh', 'auth', 'cid', 'si', 'ua', 'tz', 'ts'])
+            && request.resource.data.ep is string
+            && request.resource.data.ep.size() > 0
+            && request.resource.data.ep.size() <= 500
+            && request.resource.data.ep.matches('^https://.*')
+            && request.resource.data.p256dh is string && request.resource.data.p256dh.size() <= 200
+            && request.resource.data.auth is string && request.resource.data.auth.size() <= 100
+            && request.resource.data.cid is string && request.resource.data.cid.matches('^[A-Za-z0-9]{1,12}$')
+            && request.resource.data.si is int && request.resource.data.si >= 0 && request.resource.data.si < 400
+            && request.resource.data.ts is number
+            && (!('ua' in request.resource.data) || (request.resource.data.ua is string && request.resource.data.ua.size() <= 200))
+            && (!('tz' in request.resource.data) || (request.resource.data.tz is string && request.resource.data.tz.size() <= 60));
+        allow delete: if signedIn_sp() && isMk_sp(mk);
+      }
+
+      match /push/{tid} {
+        allow read: if false;
+        allow create, update: if signedIn_sp() && tid.matches('^t[0-9]{2,3}$')
+            && request.resource.data.keys().hasOnly(['ep', 'p256dh', 'auth', 'ua', 'tz', 'ts'])
+            && request.resource.data.ep is string
+            && request.resource.data.ep.size() > 0
+            && request.resource.data.ep.size() <= 500
+            && request.resource.data.ep.matches('^https://.*')
+            && request.resource.data.p256dh is string && request.resource.data.p256dh.size() <= 200
+            && request.resource.data.auth is string && request.resource.data.auth.size() <= 100
+            && request.resource.data.ts is number
+            && (!('ua' in request.resource.data) || (request.resource.data.ua is string && request.resource.data.ua.size() <= 200))
+            && (!('tz' in request.resource.data) || (request.resource.data.tz is string && request.resource.data.tz.size() <= 60));
+        allow delete: if signedIn_sp();
+      }
+
+      // ── سجل الإرسال pushlog/{tid_التاريخ_الحصة}: {tid, p, date, ts} — إنشاء ذرّي يمنع تكرار الإشعار ──
+      //    مغلق تماماً أمام العميل. كاتبه الوحيد هو المهمة المجدولة (tools/push_send.py) بحساب
+      //    خدمة، وحساب الخدمة لا تسري عليه هذه القواعد — فلا حاجة إطلاقاً لصلاحية عميل هنا.
+      //    كان الإنشاء مفتوحاً لأي جهاز مصادَق على أي معرّف معلم: يكفي أن يكتب المهاجم مسبقاً
+      //    pushlog/{معلم}_{تاريخ}_{حصة} لتظنّ المهمة أنها أرسلت («أُرسل سابقاً») فتصمت تنبيه ذلك
+      //    المعلم — والقراءة والحذف ممنوعان فلا يُكتشف التزييف ولا يُنظَّف. لا شيء في العميل
+      //    يكتب هذه المجموعة (تحقّق: لا ذكر لـ pushlog في js/ ولا sw.js ولا w/ ولا v/).
+      match /pushlog/{id} {
+        allow read: if false;
+        allow create, update, delete: if false;
+      }
+
+      // ── المرفقات: بطاقة الملف files/{id} ومحتواه مقسّماً على قطع files/{id}/parts/{i} ──
+      //    الحد الأعلى للملف 6 ميجابايت، والقطعة نص base64 لا يتجاوز 700000 حرف (دون حدّ المستند).
+      match /files/{id} {
+        allow read: if signedIn_sp();
+        allow create, update: if signedIn_sp() && id.matches('^[a-z0-9]{4,12}$') && stamped_sp()
+            && request.resource.data.n is string && request.resource.data.n.size() <= 120
+            && request.resource.data.t is string && request.resource.data.t.size() <= 40
+            && (request.resource.data.t == 'application/pdf'
+                || request.resource.data.t.matches('^(image|audio)/[a-zA-Z0-9.+-]{1,24}$'))
+            // SVG ليس صورة خاملة: مستند يحمل سكربتاً يُنفَّذ على أصل الموقع حين يُفتح برابط blob،
+            //   حيث تعيش جلسة المعلم وتخزينه. js/files.js يردّه عند الباب، وهذا هو الحاجز الثاني
+            //   (ملفات قديمة، أو عميل معدَّل، أو كتابة مباشرة من الطرفية).
+            && request.resource.data.t != 'image/svg+xml'
+            && request.resource.data.t != 'image/svg'
+            && !request.resource.data.n.lower().matches('.*[.]svgz?$')
+            && request.resource.data.sz is int && request.resource.data.sz > 0
+            && request.resource.data.sz <= 6291456
+            && request.resource.data.nc is int && request.resource.data.nc >= 1 && request.resource.data.nc <= 16
+            // عدد القطع يتبع حجم الملف المعلن (قطعة لكل نصف ميجابايت تقريباً) — فلا تُعلن بطاقةُ
+            //   ملفٍ صغير ستّ عشرة قطعة ليُحشى تحتها أحد عشر ميجابايت من النص
+            && request.resource.data.nc <= (request.resource.data.sz / 500000) + 1
+            && request.resource.data.scope in ['lesson', 'student', 'school', 'comm', 'profile']
+            && (!('ref' in request.resource.data) || request.resource.data.ref is map)
+            && (!('tid' in request.resource.data) || (request.resource.data.tid is string && request.resource.data.tid.size() <= 12))
+            && request.resource.data.keys().hasOnly(['n', 't', 'sz', 'scope', 'ref', 'tid', 'tn', 'ts', 'nc']);
+        // ﴿حدّ معلوم في هذا الإصدار﴾ الحذف مفتوح لأي جهاز مصادَق: حقل tid في البطاقة اسمٌ لا إثبات،
+        //   ولا هوية حقيقية للعميل تُربط به. إغلاقه يحتاج مصادقة حقيقية أو Cloud Function.
+        //   وهو من جنس ما تشرحه بطاقة «الحسابات مبنية على ثقة داخل المدرسة». وأدنى ما يُضيَّق به:
+        //   إثبات رقم دخول معلم — فلا يمحو زائرٌ مرفقات المدرسة كلها من طرفيّة المتصفح.
+        allow delete: if signedIn_sp() && anyClaim_sp();
+
+        // قطع المحتوى: لا تُكتب قطعة إلا تحت بطاقة ملف موجودة فعلاً، وبرقم قطعة داخل عدد قطعها
+        //   المعلن nc. بغير هذا الربط كان أي جهاز يضخّ نصاً تحت معرّفات لا حصر لها بلا بطاقة ولا حدّ.
+        match /parts/{i} {
+          allow read: if signedIn_sp();
+          allow create, update: if signedIn_sp() && i.matches('^[0-9]{1,2}$')
+              && id.matches('^[a-z0-9]{4,12}$')
+              && exists(/databases/$(database)/documents/sp/$(space)/files/$(id))
+              && int(i) < get(/databases/$(database)/documents/sp/$(space)/files/$(id)).data.nc
+              && request.resource.data.d is string
+              && request.resource.data.d.size() <= 700000
+              && request.resource.data.keys().hasOnly(['d']);
+          allow delete: if signedIn_sp() && anyClaim_sp();
+        }
+      }
+
+      // ── فهرس المرفقات filesidx/{tid} (وfilesidx/school المشترك): {list, tn, ts} — القوائم بلا تنزيل محتوى ──
+      match /filesidx/{key} {
+        allow read: if signedIn_sp();
+        allow create: if signedIn_sp() && key.matches('^[A-Za-z0-9]{1,12}$') && stamped_sp()
+            && request.resource.data.list is list && request.resource.data.list.size() <= 400
+            && request.resource.data.keys().hasOnly(['list', 'tn', 'ts']);
+        // تفريغ filesidx/{tid} أو filesidx/school يُخفي كل المرفقات من كل القوائم دفعةً واحدة
+        //   (والمحتوى باقٍ في files لكن لا سبيل إليه). النقص — وأقصاه المحو — يحتاج مطالبة،
+        //   والإضافة تبقى كما كانت.
+        allow update: if signedIn_sp() && key.matches('^[A-Za-z0-9]{1,12}$') && stamped_sp()
+            && request.resource.data.list is list && request.resource.data.list.size() <= 400
+            && request.resource.data.keys().hasOnly(['list', 'tn', 'ts'])
+            //   وحذفُ مرفق من صاحبه (js/files.js:512) وتراجعُ js/files.js:397 عن قيد فشل رفع محتواه
+            //   كلاهما من جلسة معلم أثبت رقمه، فلا يضيرهما اشتراط المطالبة. أما استثناء «نقص عنصر
+            //   واحد» بالحجم فكان يتكرر بلا حدّ: زائرٌ يمحو أربعمئة عنصر بأربعمئة كتابة، والحجمُ
+            //   وحده لا يمنع استبدال القائمة كلها بأخرى بالطول نفسه.
+            && (request.resource.data.list.hasAll(resource.data.get('list', []))
+                || anyClaim_sp());
+        allow delete: if false;
+      }
+
+    }
+    /* ==SPACE-COPY-END== */
   }
 }

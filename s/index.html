@@ -882,7 +882,7 @@ h2{font-size:19px;font-weight:800;color:var(--navy);margin:0 0 10px}
         try { if (firebase.appCheck && window.APPCHECK_SITE_KEY) firebase.appCheck().activate(new firebase.appCheck.ReCaptchaEnterpriseProvider(window.APPCHECK_SITE_KEY), true); } catch (e) { }
         await acReady();
         await withTimeout(firebase.auth().signInAnonymously());
-        db = firebase.firestore();
+        db = (window.sijilSpaceDb ? window.sijilSpaceDb(firebase.firestore()) : firebase.firestore());   // مساحة المدرسة
         /* cfg/school وcfg/assess مع القراءات الأولى: الأولى تضع اسم الوكيل والمدير في الشهادة،
            والثانية مكتبة التقييمات التي ضبطها المدير — بلا دمجها تحسب البوابة نقاط الطالب بأوزان
            غير أوزان دفتر معلمه وتُسمّي حالاته بأسماء أُلغيت. غيابهما لا يُسقط الإقلاع (catch → null). */

@@ -179,7 +179,7 @@ h1{font-size:19px;font-weight:800;color:var(--navy);margin:0 0 4px;line-height:1
         try { if (firebase.appCheck && window.APPCHECK_SITE_KEY) firebase.appCheck().activate(new firebase.appCheck.ReCaptchaEnterpriseProvider(window.APPCHECK_SITE_KEY), true); } catch (e) { }
       await acReady();
         await withTimeout(firebase.auth().signInAnonymously());
-        db = firebase.firestore();
+        db = (window.sijilSpaceDb ? window.sijilSpaceDb(firebase.firestore()) : firebase.firestore());   // مساحة المدرسة
       }
     } catch (e) { db = null; cloudDown = true; }
 

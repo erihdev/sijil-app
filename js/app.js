@@ -41,7 +41,10 @@
   }
 
   /* ═══ تخزين + مزامنة ═══ */
-  const KEY = CLOUD ? "sijil.cloud.v1" : "sijil.v1";
+  /* مفتاح التخزين المحلي يحمل المساحة: جهازٌ واحد قد يفتح مدرستين (مندوب بيعٍ يعرض
+     التطبيق، أو مدير يجرّب حسابه ومدرسته) فلا تختلط قاعدتاهما على الجهاز. */
+  const SPACE = String(window.SIJIL_SPACE || "");
+  const KEY = (CLOUD ? "sijil.cloud.v1" : "sijil.v1") + (SPACE ? "." + SPACE : "");
   let DB = { recs: {}, grades: {}, comms: {}, session: null, srole: null };
   try { const raw = localStorage.getItem(KEY); if (raw) DB = Object.assign(DB, JSON.parse(raw)); } catch (e) { }
   const dirty = new Set();
@@ -760,7 +763,8 @@
     // App Check: لا تُقبل طلبات Firestore إلا من موقعنا (reCAPTCHA Enterprise غير مرئي)
     try { if (firebase.appCheck && window.APPCHECK_SITE_KEY) firebase.appCheck().activate(new firebase.appCheck.ReCaptchaEnterpriseProvider(window.APPCHECK_SITE_KEY), true); } catch (e) { }
     await firebase.auth().signInAnonymously();
-    fdb = firebase.firestore();
+    // مساحة المدرسة: كل مسارٍ يُسبق بها (js/fb.js) — ومدرستنا الأولى في الجذر بلا بادئة
+    fdb = (window.sijilSpaceDb ? window.sijilSpaceDb(firebase.firestore()) : firebase.firestore());
     const [metaS, teachS, clsS, schS] = await Promise.all([
       fdb.doc("meta/app").get(), fdb.collection("teachers").get(),
       fdb.collection("classes").get(), fdb.doc("schedule/all").get()]);
