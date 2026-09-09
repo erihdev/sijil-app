@@ -257,6 +257,83 @@
     return true;
   }
 
+  /* ═══ تسجيل هوية طالب واحد: بوابته وصندوق رسائله ═══
+     رقم الهوية **لا يُرفع ولا يُخزَّن**: تُحسب بصمته في المتصفح ويُكتب مستندها.
+       spins/{sha256(الهوية|الفصل|الملح)} = {cid, si, ts, mk}  ← مدخل الدخول (get مسموح، list ممنوع)
+       sids/{cid}.list  += si     ← فهرس «من يستطيع الدخول» الذي يقرؤه المعلم في نافذة الإرسال
+       mkeys/{cid}.k[si] = mk     ← فهرس مفاتيح صناديق الرسائل للمعلمين
+     وهذه هي النسخة المرجعية لطالب واحد؛ ولوحة «🆔 أرقام هويات الطلاب» في تبويب الإدارة تفعل
+     الشيء نفسه بالجملة مع مطابقة الأسماء وشريط تقدّم (js/admin/manage.js) — أي تغيير في الشكل
+     هنا يُنقل هناك. والمفتاح mk القائم لا يُبدَّل أبداً وإلا فقد الطالب صندوق رسائله. */
+  const SID_SALT = "sijil1448";
+  const sidDigits = (t) => {
+    const ar = { "٠": "0", "١": "1", "٢": "2", "٣": "3", "٤": "4", "٥": "5", "٦": "6", "٧": "7", "٨": "8", "٩": "9" };
+    return String(t == null ? "" : t).replace(/[٠-٩]/g, (d) => ar[d]).replace(/\D/g, "");
+  };
+  const isMkStr = (v) => typeof v === "string" && /^[A-Za-z0-9_-]{16,32}$/.test(v);
+  // عددٌ صحيح موضعي: num مصرَّحٌ أسفل الملف، ولا نتعلّق بترتيب التصريحات
+  const sidI = (v) => { const x = Math.round(Number(v)); return isFinite(x) ? x : -1; };
+  function mkNew() {
+    const CH = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+    let out = "";
+    try {
+      const a = new Uint8Array(24); (window.crypto || window.msCrypto).getRandomValues(a);
+      for (let i = 0; i < a.length; i++) out += CH[a[i] % CH.length];
+    } catch (e) { out = ""; }
+    while (out.length < 24) out += CH[Math.floor(Math.random() * CH.length)];
+    return out.slice(0, 24);
+  }
+  // {ok:true, mk} أو {ok:false, err:"رسالة عربية"} — ولا يُطبع الرقم في أي سجل
+  async function registerStudentId(cid, si, nid) {
+    const s = S();
+    if (!s) return { ok: false, err: "التطبيق غير جاهز" };
+    const dg = sidDigits(nid);
+    if (dg.length < 9 || dg.length > 12) return { ok: false, err: "رقم الهوية غير صالح (من ٩ إلى ١٢ رقماً)" };
+    const i = sidI(si);
+    if (!(i >= 0 && i < 400)) return { ok: false, err: "موضع الطالب غير صالح" };
+    let h = null;
+    try { h = await s.sha256(dg + "|" + cid + "|" + SID_SALT); } catch (e) { h = null; }
+    if (!h) return { ok: false, err: "تعذّر حساب البصمة على هذا المتصفح" };
+    try {
+      if (s.CLOUD && s.fdb) {
+        // المفتاح ورمز الطالب القائمان يبقيان — إعادة التسجيل لا تُفقده صندوقه ولا رمزه
+        let pd = {}; try { const pv = await s.fdb.doc("spins/" + h).get(); if (pv.exists) pd = pv.data() || {}; } catch (e) { pd = {}; }
+        const mk = isMkStr(pd.mk) ? pd.mk : mkNew();
+        const rec = { cid: cid, si: i, ts: Date.now(), mk: mk };
+        if (typeof pd.c === "string" && pd.c) rec.c = pd.c;
+        await s.fdb.doc("spins/" + h).set(rec);
+        // فهرس من يستطيع الدخول (اتحاد لا استبدال)
+        let list = [];
+        try { const d = await s.fdb.doc("sids/" + cid).get(); if (d.exists) list = ((d.data() || {}).list) || []; } catch (e) { list = []; }
+        const set = {}; const out = [];
+        list.concat([i]).forEach((v) => { const n = sidI(v); if (n >= 0 && n < 400 && !set[n]) { set[n] = 1; out.push(n); } });
+        out.sort((a, b) => a - b);
+        await s.fdb.doc("sids/" + cid).set({ list: out, n: out.length, tn: (s.TE || {}).name || "", ts: Date.now() });
+        // فهرس مفاتيح الصناديق
+        let k = {};
+        try { const d2 = await s.fdb.doc("mkeys/" + cid).get(); if (d2.exists) k = ((d2.data() || {}).k) || {}; } catch (e) { k = {}; }
+        k[String(i)] = mk;
+        await s.fdb.doc("mkeys/" + cid).set({ k: k, n: Object.keys(k).length, tn: (s.TE || {}).name || "", ts: Date.now() });
+        return { ok: true, mk: mk };
+      }
+      const DB = s.DB || window.DB || {};
+      DB.spins = DB.spins || {};
+      const mk2 = isMkStr((DB.spins[h] || {}).mk) ? DB.spins[h].mk : mkNew();
+      DB.spins[h] = { cid: cid, si: i, ts: Date.now(), mk: mk2 };
+      DB.sids = DB.sids || {};
+      const cur = ((DB.sids[cid] || {}).list) || [];
+      const set2 = {}; const out2 = [];
+      cur.concat([i]).forEach((v) => { const n = sidI(v); if (n >= 0 && n < 400 && !set2[n]) { set2[n] = 1; out2.push(n); } });
+      out2.sort((a, b) => a - b);
+      DB.sids[cid] = { list: out2, n: out2.length, tn: (s.TE || {}).name || "", ts: Date.now() };
+      DB.mkeys = DB.mkeys || {};
+      const k2 = ((DB.mkeys[cid] || {}).k) || {}; k2[String(i)] = mk2;
+      DB.mkeys[cid] = { k: k2, n: Object.keys(k2).length, tn: (s.TE || {}).name || "", ts: Date.now() };
+      try { s.save("spins"); } catch (e) { }
+      return { ok: true, mk: mk2 };
+    } catch (e) { warn("registerStudentId", e && e.message); return { ok: false, err: "تعذّر تسجيل الهوية — تحقق من الاتصال ثم أعد المحاولة" }; }
+  }
+
   /* ═══ تعديل بيانات طالب من المدير: sedits/{cid} = { s: { si: { p?, n? } }, tn, ts } ═══ */
   async function saveSedit(cid, si, patch) {
     const s = S(), D = s.D, DB = s.DB, p = {};
@@ -817,6 +894,8 @@
     get PERIODS() { return periodsOnly(); },
     // أسماء إدارة المدرسة وسطر التواقيع
     schoolStaff, sigLine, saveStaff, validateStaff, STAFF_KEYS, STAFF_LBL,
+    // تسجيل هوية طالب واحد (بوابته وصندوق رسائله)
+    registerStudentId, sidDigits,
     // مكتبة التقييمات ودرجاتها (cfg/assess)
     assess, defaultAssess, validateAssess, saveAssess, assessLine, assessScore,
     ASSESS_KEYS, ASSESS_WK, ASSESS_WLBL, ASSESS_COLORS, ASSESS_CLBL, ASSESS_MAX, ASSESS_LOCK

@@ -283,7 +283,7 @@
       const later = [];
       pending.forEach(m => {
         const key = m.from + ":" + m.si, src = byId[m.from], dst = m.to === "out" ? null : (byId[m.to] || null);
-        const s = src ? src.students[m.si] : (synth ? { n: m.name || "", p: "" } : null);
+        const s = src ? src.students[m.si] : ((synth || isNewFrom(m.from)) ? { n: m.name || "", p: "" } : null);
         if (!s || isGap(s)) { later.push(m); return; }                                    // المصدر لم يوجد بعد — أجّل
         if (done.has(key) || s.moved) { if (dst) reserve(dst, slotOf(m, dst)); return; }  // مكررة: تستهلك موضعها فقط
         if (dst) {
@@ -306,6 +306,54 @@
   }
   // معرّف الحركة مشتق من الموضع المحجوز: إلى فصل ⇒ {to}s{newSi} (مثل c4bs021)، خروج ⇒ {from}x{si} — والإنشاء فقط مسموح بالقواعد فلا يُحجز الموضع نفسه مرتين ولو من جهازين
   const moveId = (m) => { const pad = (n) => String(n).padStart(3, "0"); const id = m.to === "out" ? m.from + "x" + pad(m.si) : m.to + "s" + pad(m.newSi); return /^[a-z0-9]{4,12}$/.test(id) ? id : shortId(); };
+  /* ═══ ➕ طالب مستجد ═══
+     مستندات الفصول **مقفلة للكتابة** في القواعد (`allow write: if false`) — وهذا مقصود: قائمة
+     الطلاب سجلٌّ رسمي لا يكتب عليه أربعة وعشرون معلماً. فالطالب الجديد لا يُضاف إلى classes، وإنما
+     بحركةٍ **بلا فصلٍ مصدر**: from = "new_{cid}"، فيركّبه applyMoves من اسم الحركة (وهي الحيلة
+     نفسها التي تركّب بها صفحة الورقة طالباً قادماً من فصل غير محمَّل). فيظهر المستجد عند كل معلم
+     وفي بوابة الطالب وفي المطبوعات بلا مسار بيانات جديد ولا قاعدة جديدة ولا كتابة في مستند الفصل.
+     ولماذا يحمل المفتاح اسم الفصل؟ لأن مفتاح التطبيق في applyMoves هو from:si، فمستجدّان في
+     فصلين مختلفين بالموضع نفسه كانا سيتصادمان على المفتاح "new:21" فيسقط أحدهما صامتاً.
+     والموضع يُحجز ذرّياً بمعرّف مشتق منه (moveId) والقواعد لا تسمح إلا بالإنشاء — فلا يأخذ
+     جهازان الموضع نفسه. ولا ترحيل بيانات هنا: المستجد لا سجل له. */
+  const NEW_FROM = (cid) => "new_" + cid;
+  const isNewFrom = (f) => /^new(_[A-Za-z0-9]{1,12})?$/.test(String(f || ""));
+  const NEW_LBL = "مستجد (طالب جديد)";
+  async function addStudent(cid, name) {
+    const c = classById(cid);
+    if (!c) return { ok: false, err: "لا فصل بهذا المعرّف" };
+    if (!TE || !TE.admin) return { ok: false, err: "إضافة الطلاب لمدير المدرسة وحده" };
+    const nm = String(name || "").trim().replace(/\s+/g, " ").slice(0, 120);
+    if (!nm) return { ok: false, err: "اكتب اسم الطالب" };
+    const newSi = (c.students || []).length;
+    if (newSi > 198) return { ok: false, err: "بلغ الفصل الحد الأقصى للمواضع (199)" };
+    const m = { from: NEW_FROM(cid), si: newSi, to: cid, name: nm, newSi: newSi, tn: TE ? TE.name : "", ts: Date.now() };
+    const id = moveId(m);
+    let rec = null;
+    try {
+      if (CLOUD && fdb) {
+        // حجز الموضع ذرّياً — كما في نقل الطالب حرفاً بحرف
+        const ref = fdb.doc("moves/" + id);
+        await fdb.runTransaction(async tx => { const ex = await tx.get(ref); if (ex.exists) throw new Error("SLOT_TAKEN"); tx.set(ref, m); });
+      } else {
+        let stored = []; try { const raw = JSON.parse(localStorage.getItem(KEY) || "null"); stored = (raw && Array.isArray(raw.moves)) ? raw.moves : []; } catch (e) { }
+        if (stored.concat(D.moves || []).some(x => x && x.id === id)) throw new Error("SLOT_TAKEN");
+      }
+      rec = Object.assign({ id }, m);
+      applyMoves(D.classes, [rec]); delete rec.appliedSi;
+      D.moves = D.moves || []; D.moves.push(rec);
+      if (!CLOUD) { DB.moves = D.moves; save(); } else saveCloudD();
+      const st = ((classById(cid) || {}).students || [])[newSi];
+      if (!st || st.gap || String(st.n || "") !== nm) return { ok: false, err: "لم يظهر الطالب في القائمة — أعد تحميل الصفحة ثم تحقّق قبل إعادة الإضافة" };
+      return { ok: true, si: newSi, no: activeCount(classById(cid)), id: id, cname: c.name };
+    } catch (e) {
+      if (e && e.message === "SLOT_TAKEN") {
+        try { await refreshMoves({ to: cid }); } catch (x) { }
+        return { ok: false, retry: true, err: "أُضيف طالب في الموضع نفسه من جهاز آخر — حُدِّثت القائمة، أعد المحاولة" };
+      }
+      return { ok: false, err: "تعذّر الحفظ — تحقق من الاتصال ثم أعد المحاولة" };
+    }
+  }
   /* إعادة قراءة الحركات بعد الإقلاع (جهاز آخر أو تبويب أقدم نقل طالباً): تُطبَّق الجديدة فقط ثم يُعاد الرسم.
      سحابياً: نافذة 24 ساعة قبل آخر ts معروف (تحسّباً لانحراف الساعات) + استعلامان مستهدفان (to/from) عند تنفيذ نقل — تجريبياً: من localStorage لتزامن التبويبات. */
   let refreshingMv = false;
@@ -4530,7 +4578,7 @@
       <div style="border-top:1px solid var(--line);margin-top:12px;padding-top:8px"><b style="color:var(--navy)">🕘 آخر الحركات</b><div id="mv-log"></div></div>
       <div class="sheet-actions"><button class="btn-primary" onclick="window._sheetClose()">إغلاق</button></div>`, (o) => {
       const body = o.querySelector("#mv-body"), msg = o.querySelector("#mv-msg"), log = o.querySelector("#mv-log");
-      const nameOf = (cid) => cid === "out" ? "خارج المدرسة" : ((classById(cid) || {}).name || cid);
+      const nameOf = (cid) => cid === "out" ? "خارج المدرسة" : isNewFrom(cid) ? NEW_LBL : ((classById(cid) || {}).name || cid);
       const persist = () => { if (!CLOUD) { DB.moves = D.moves; save(); } else saveCloudD(); };
       function drawLog() {
         const mv = (D.moves || []).slice().sort((a, b) => (b.ts || 0) - (a.ts || 0)).slice(0, 10);
@@ -5116,6 +5164,7 @@
     assessDefault, assessEff, assessApply, assessView, assessMerge, ASSESS_C, ASSESS_CK, ASSESS_WK, ASSESS_MAX,
     $, esc, clone, save, syncBadge, mergeComms, rec,
     classById, myClasses, activeStudents, activeCount, isActive, applyMoves, applySedits, refreshMoves, absorbMoves, moveId, migrateMove, classPointsMap, adminMoves,
+    addStudent, isNewFrom,
     calcStudent, classCalc, autoGrade, effGrades, gradeTotal, gradedMax, gradePct, hasGrades, levelOf, attPct, maxTotal, pctCell, daySeries, trendOf, studentSummary,
     hijriLabel, hijriParts, curWeek, subjCode, loadCurr, saveCurrEdit, lessonURL,
     openSheet, closeSheet, printSheet, printDoc, printCertificate, printReport, printLetter,

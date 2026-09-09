@@ -247,6 +247,91 @@
     }, 500);
   }
 
+  /* ═══ ➕ طالب مستجد ═══
+     مستندات الفصول مقفلة للكتابة في القواعد، فالإضافة تمرّ من نموذج الحركات نفسه
+     (SIJIL.addStudent: حركةٌ بلا فصلٍ مصدر تُركِّب الطالب من اسمها) — فيظهر عند كل معلم
+     وفي المطبوعات وفي بوابة الطالب بلا مسار بيانات جديد. وهنا ثلاث خطوات في نافذة واحدة:
+       الاسم والفصل  ← إلزامية (SIJIL.addStudent)
+       جوال ولي الأمر ← اختياري (sedits عبر saveSedit — نفس مسار التعديل)
+       رقم الهوية     ← اختياري (registerStudentId: بصمة الدخول + فهرس الحسابات + مفتاح الرسائل)
+     والرقم لا يُرفع ولا يُطبع: تُحسب بصمته في المتصفح. وكل نجاح جزئي يُقال صريحاً — فمن أُضيف
+     ولم تُسجَّل هويته يُقال له ذلك بدل أن يظنّ حسابه جاهزاً. */
+  function addSheet(cidPref, onDone) {
+    const s = S(), a = A(), list = cls();
+    if (!list.length) { toast("لا فصول مسجلة"); return; }
+    const cid0 = list.some(c => c.id === cidPref) ? cidPref : list[0].id;
+    if (!(s.TE || {}).admin) { toast("إضافة الطلاب لمدير المدرسة وحده"); return; }
+    let cur = cid0;
+    s.openSheet(`<h4>➕ إضافة طالب جديد</h4>
+      <div style="text-align:center;color:var(--muted);font-size:12.5px;margin-bottom:10px;line-height:1.8">يُضاف إلى قائمة الفصل عند كل معلميه وفي المطبوعات، وترتيبه آخر القائمة.</div>
+      <div class="field"><label>اسم الطالب</label><input id="ads-ad-n" class="search-box" maxlength="80" placeholder="الاسم الثلاثي كما في نور" autocomplete="off"></div>
+      <div class="field"><label>الفصل</label><div class="class-chips" id="ads-ad-c">${list.map(c => `<button class="chip ${c.id === cur ? "on" : ""}" data-c="${esc(c.id)}">${esc(c.name)} <small style="opacity:.75">${s.activeCount(c)}</small></button>`).join("")}</div></div>
+      <div class="field"><label>جوال ولي الأمر <small style="color:var(--muted);font-weight:400">— اختياري</small></label><input id="ads-ad-p" class="search-box" inputmode="tel" placeholder="05xxxxxxxx" autocomplete="off" style="direction:ltr;text-align:right"></div>
+      <div class="field"><label>رقم هويته <small style="color:var(--muted);font-weight:400">— اختياري، به يدخل بوابة الطالب</small></label><input id="ads-ad-id" class="search-box" inputmode="numeric" maxlength="14" placeholder="١٠ أرقام" autocomplete="off" style="direction:ltr;text-align:right"></div>
+      <div class="empty-note" style="padding:2px 4px 6px;text-align:right;font-size:12px;min-height:0">رقم الهوية يُحسب في جهازك وتُرفع بصمته فقط — لا يُخزَّن الرقم ولا يظهر في سجل الإدارة.</div>
+      <div id="ads-ad-msg" style="font-size:13px;font-weight:700;min-height:18px;text-align:right;line-height:1.8"></div>
+      <div class="sheet-actions"><button class="btn-plain" onclick="window._sheetClose()">إلغاء</button><button class="btn-primary" id="ads-ad-ok">➕ أضِف الطالب</button></div>`, (o) => {
+      const nEl = o.querySelector("#ads-ad-n"), pEl = o.querySelector("#ads-ad-p"), idEl = o.querySelector("#ads-ad-id");
+      const msg = o.querySelector("#ads-ad-msg"), ok = o.querySelector("#ads-ad-ok");
+      let busy = false;
+      const say = (t, c) => { msg.style.color = c || "var(--muted)"; msg.innerHTML = t; };
+      o.querySelectorAll("#ads-ad-c .chip").forEach(b => b.onclick = () => {
+        cur = b.dataset.c;
+        o.querySelectorAll("#ads-ad-c .chip").forEach(x => x.classList.toggle("on", x === b));
+      });
+      ok.onclick = async () => {
+        if (busy) return;
+        const nm = nEl.value.trim().replace(/\s+/g, " ");
+        if (!nm) { say("اكتب اسم الطالب", "var(--bad)"); nEl.focus(); return; }
+        if (nm.length > 80) { say("الاسم طويل جداً (80 حرفاً كحد أقصى)", "var(--bad)"); return; }
+        const c = byId(cur);
+        if (!c) { say("اختر الفصل", "var(--bad)"); return; }
+        // اسمٌ مكرر في الفصل نفسه: يُسأل عنه ولا يُمنع (التشابه بين الأشقاء واقع)
+        const norm = (t) => String(t || "").replace(/[أإآ]/g, "ا").replace(/ى/g, "ي").replace(/ة/g, "ه").replace(/\s+/g, " ").trim();
+        const twin = s.activeStudents(c).find(x => norm(x.s.n) === norm(nm));
+        if (twin && !confirm("في " + c.name + " طالبٌ بالاسم نفسه («" + twin.s.n + "» رقم " + (twin.i + 1) + ").\n\nهل تضيفه على أي حال؟")) return;
+        let p = "";
+        const pRaw = pEl.value.trim();
+        if (pRaw) { p = a.normMob(pRaw); if (!p) { say("صيغة الجوال غير صحيحة — 05xxxxxxxx أو 9665xxxxxxxx", "var(--bad)"); pEl.focus(); return; } }
+        const idRaw = idEl.value.trim();
+        const dg = idRaw ? (a.sidDigits ? a.sidDigits(idRaw) : idRaw.replace(/\D/g, "")) : "";
+        if (idRaw && (dg.length < 9 || dg.length > 12)) { say("رقم الهوية غير صالح (من ٩ إلى ١٢ رقماً)", "var(--bad)"); idEl.focus(); return; }
+        busy = true; ok.disabled = true; say("جارِ الإضافة…");
+        let r = null;
+        try { r = await s.addStudent(cur, nm); } catch (e) { r = { ok: false, err: "تعذّرت الإضافة — تحقق من الاتصال" }; }
+        if (!r || !r.ok) {
+          busy = false; ok.disabled = false;
+          say((r && r.err) || "تعذّرت الإضافة", "var(--bad)");
+          if (r && r.retry && onDone) onDone();
+          return;
+        }
+        const done = ["أُضيف <b>" + esc(nm) + "</b> إلى " + esc(c.name) + " برقم " + r.no];
+        const warns = [];
+        if (p) {
+          let okP = false;
+          try { okP = await a.saveSedit(cur, r.si, { p: p }); } catch (e) { okP = false; }
+          if (okP) done.push("وسُجّل جوال وليّه"); else warns.push("لم يُسجَّل الجوال — أضفه من ✏️ تعديل");
+        }
+        if (dg) {
+          let rid = null;
+          try { rid = await a.registerStudentId(cur, r.si, dg); } catch (e) { rid = { ok: false, err: "تعذّر تسجيل الهوية" }; }
+          if (rid && rid.ok) done.push("ويستطيع الدخول إلى بوابة الطالب برقم هويته");
+          else warns.push((rid && rid.err) || "لم تُسجَّل الهوية") ;
+        }
+        try { await a.adminlog("addst", c.name + " #" + (r.si + 1) + " " + nm + (p ? " · بجوال وليّه" : "") + (dg ? " · وهويته مسجَّلة" : "")); } catch (e) { }
+        say("✔ " + done.join(" · ") + (warns.length ? '<br><span style="color:var(--bad)">⚠ ' + warns.join(" · ") + "</span>" : ""), "var(--ok)");
+        try { a.invalidate(); } catch (e) { }
+        if (onDone) onDone();
+        // النافذة تبقى مفتوحة لإضافة التالي: المدير يضيف مستجدّين في جلسة واحدة
+        nEl.value = ""; pEl.value = ""; idEl.value = "";
+        ok.disabled = false; busy = false; ok.textContent = "➕ أضِف طالباً آخر";
+        try { nEl.focus(); } catch (e) { }
+      };
+      idEl.onkeydown = pEl.onkeydown = nEl.onkeydown = (e) => { if (e.key === "Enter") ok.click(); };
+      try { nEl.focus(); } catch (e) { }
+    });
+  }
+
   /* ═══ تعديل بيانات الطالب (الاسم + جوال ولي الأمر) → sedits/{cid} عبر SIJIL_ADMIN.saveSedit ═══ */
   function editSheet(cid, si, onDone) {
     const s = S(), a = A(), c = byId(cid), st = c && c.students[si];
@@ -345,10 +430,11 @@
       H.card("👥 طلاب المدرسة", `
         <div class="adm-tools ads-tools"><input class="search-box" id="ads-q" placeholder="🔎 ابحث باسم الطالب أو جواله في كل الفصول…" autocomplete="off" value="${esc(query)}">
           <select id="ads-sort" title="الترتيب"><option value="list">ترتيب القائمة</option><option value="pts">الأعلى نقاطاً</option><option value="att">الأعلى حضوراً</option><option value="name">أبجدياً</option></select>
+          <button class="btn-primary" id="ads-add" title="إضافة طالب مستجد إلى أحد الفصول">➕ طالب جديد</button>
           ${H.printBtn("ads-print")}<button class="btn-gold" id="ads-refresh" title="إعادة تحميل رصد كل المعلمين">🔄</button></div>
         <div id="ads-chips">${H.chips(list.map(c => ({ k: c.id, t: `${esc(c.name)} <small style="opacity:.75">${s.activeCount(c)}</small>` })), curCid, "c")}</div>
         <div id="ads-body"><div class="empty-note">جارِ جمع رصد كل المعلمين…</div></div>
-        <div class="ads-cnt">👤 البطاقة الشاملة · ✏️ تعديل الاسم/الجوال · 💬 واتساب ولي الأمر · 🔁 نقل · 🚪 خروج${movedOut ? ` — ${movedOut} مسجَّل خروجه من المدرسة` : ""}</div>`);
+        <div class="ads-cnt">➕ طالب جديد · 👤 البطاقة الشاملة · ✏️ تعديل الاسم/الجوال · 💬 واتساب ولي الأمر · 🔁 نقل · 🚪 خروج${movedOut ? ` — ${movedOut} مسجَّل خروجه من المدرسة` : ""}</div>`);
     box.querySelector("#ads-sort").value = sortBy;
 
     const body = box.querySelector("#ads-body"), qEl = box.querySelector("#ads-q"), chips = box.querySelector("#ads-chips");
@@ -398,6 +484,7 @@
       try { sd = await a.schoolDocs(true); } catch (e) { }
       draw(); toast("🔄 حُدِّث الرصد");
     };
+    { const ab = box.querySelector("#ads-add"); if (ab) ab.onclick = () => addSheet(curCid, () => render(box)); }
     box.querySelector("#ads-print").onclick = () => {
       if (!view || !view.rows.length) { toast("لا صفوف للطباعة"); return; }
       const att = view.rows.filter(r => r.agg.att != null), avg = att.length ? Math.round(att.reduce((x, r) => x + r.agg.att, 0) / att.length) : null;
@@ -413,6 +500,6 @@
     if (query.trim().length >= 2) { try { qEl.focus(); qEl.setSelectionRange(qEl.value.length, qEl.value.length); } catch (e) { } }
   }
 
-  window.SIJIL_ADMIN_STUDENTS = { render, adminMessage, editSheet, viaMoves, searchRows, get cid() { return curCid; }, set cid(v) { curCid = v; } };
+  window.SIJIL_ADMIN_STUDENTS = { render, adminMessage, editSheet, addSheet, viaMoves, searchRows, get cid() { return curCid; }, set cid(v) { curCid = v; } };
   if (window.SIJIL_ADMIN && typeof window.SIJIL_ADMIN.register === "function") window.SIJIL_ADMIN.register("students", render);
 })();
