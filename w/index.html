@@ -82,7 +82,7 @@ button{font-family:inherit;font-size:16px}
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-check-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
-<script src="../js/fb.js?v=51"></script>
+<script src="../js/fb.js?v=53"></script>
 <script>
 (function () {
   "use strict";
@@ -187,12 +187,33 @@ button{font-family:inherit;font-size:16px}
       if (!mvOK) return fail("تعذّر تحميل قائمة الفصل", "لم تصل حركات نقل الطلاب من السحابة، ولا تُعرض الأسماء بقائمة قديمة — تحقق من اتصال الإنترنت ثم أعد تحميل الصفحة.");
       $("#bar-t").textContent = MODE_T[A.mode] || "ورقة عمل";
       $("#bar-s").textContent = A.cname || "";
+      if (!PV) remember();
       answers = A.qs.map(() => null);
       pickName();
     } catch (e) {
       clearTimeout(slow);
       fail("تعذّر فتح الورقة", "تحقق من اتصال الإنترنت ثم أعد المحاولة.");
     }
+  }
+
+  /* ﴿لبوابة الطالب s/﴾ وصفُ هذه الورقة — بلا سؤال ولا إجابة — يُحفظ في مخزن المتصفح على
+     الأصل نفسه، فيراها الطفل في تبويب «مهامي» بحالتها ونتيجتها ولو لم يصل فهرس assignidx بعد.
+     محلي بحت: لا يُرفع شيء، ولا يُقرأ إلا من هذا الجهاز، وأقصاه ستون ورقة. */
+  function remember() {
+    try {
+      var K = "sijil.s.seen", raw = localStorage.getItem(K);
+      var arr = raw ? JSON.parse(raw) : [];
+      if (!Array.isArray(arr)) arr = [];
+      arr = arr.filter(function (x) { return x && x.a !== AID; });
+      arr.unshift({
+        a: AID, t: String(A.t || "ورقة").slice(0, 160), due: String(A.due || ""),
+        tid: String(A.tid || ""), tn: String(A.tn || ""), subj: String(A.subj || ""),
+        mode: String(A.mode || "ws"), n: (A.qs || []).length, cid: String(A.cid || ""),
+        wk: +A.wk || 0, code: String(A.code || ""), tries: (A.tries == null ? null : +A.tries),
+        ts: +A.ts || Date.now()
+      });
+      localStorage.setItem(K, JSON.stringify(arr.slice(0, 60)));
+    } catch (e) { }
   }
 
   function isLate() { return !!(A.due && Date.now() > new Date(A.due).getTime()); }

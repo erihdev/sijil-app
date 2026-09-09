@@ -45,6 +45,14 @@ async function netFirst(req) {
   const hit = (await cMatch(req)) || (await cMatch(req, { ignoreSearch: true }));
   if (hit) return hit;
   if (req.mode === "navigate") {
+    /* الصفحات المستقلة (بوابة الطالب s/ · ورقة العمل w/ · عارض المرفق v/) لها صفحاتها الخاصة:
+       إعادة index.html لها كانت تُهبط الطالب في واجهة المعلم عند أول فتح بلا إنترنت. */
+    const own = /\/(s|w|v)\//.test(new URL(req.url).pathname);
+    if (own) {
+      const mine = (await cMatch(req.url, { ignoreSearch: true }));
+      if (mine) return mine;
+      throw err;
+    }
     const idx = (await cMatch("./", { ignoreSearch: true })) || (await cMatch("./index.html", { ignoreSearch: true }));
     if (idx) return idx;
   }

@@ -402,6 +402,7 @@
         : fail("تعذّر حفظ المرفق. تحقق من الاتصال ثم أعد المحاولة.", "idx");
     }
     prog(1, nc, nc);
+    changed("upload", id, rec);
     return Object.assign({ id }, rec);
   }
 
@@ -527,6 +528,7 @@
     }
     try { await purge(id, rec); }
     catch (e) { toast("⚠️ تعذّر حذف الملف — تحقق من الاتصال ثم أعد المحاولة"); return false; }
+    changed("remove", id, rec);
     toast("🗑️ حُذف الملف");
     return true;
   }
@@ -799,8 +801,14 @@
     return { refresh: paint };
   }
 
+  /* كل واجهة تعرض مرفقات (شريط الدرس، محطة المرفقات، بطاقة الطالب، مكتبة المدرسة) تسمع هذا الحدث
+     فتُعيد الرسم فوراً — فلا تبقى بطاقةُ ملفٍ محذوف على الشاشة حتى إعادة التحميل. */
+  function changed(action, id, rec) {
+    try { window.dispatchEvent(new CustomEvent("sijil:files", { detail: { action: action, id: id, scope: rec && rec.scope, ref: rec && rec.ref, tid: rec && rec.tid } })); } catch (e) { }
+  }
+
   window.SIJIL_FILES = {
-    attach, list, open, remove, waLink, libraryCard,
+    attach, list, open, remove, waLink, libraryCard, changed,
     upload, quota, viewURL, itemHTML, wireItems, blobOf, purge, fmt, kindOf, normType, viewSafe,
     MAX_SRC, MAX_IMG, TARGET, PART, QUOTA, IMG_W, TMO
   };

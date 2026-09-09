@@ -138,10 +138,12 @@
   function syncBadge(ok) {
     const el2 = $("#demo-strip");
     if (!el2 || !CLOUD) return;
+    // الحالة السليمة لا تُعرض إطلاقاً (شريط أخضر دائم بلا فائدة يأكل من الشاشة)؛ الشريط للمشاكل وحدها
+    if (ok === true) { el2.style.display = "none"; el2.textContent = ""; return; }
+    el2.style.display = "";
     el2.textContent = ok === "perm" ? "⛔ رُفض الحفظ لأن هذا الجهاز غير معتمد برقمك — سجّل خروجاً ثم دخولاً برقمك (ليست مشكلة إنترنت)"
-      : ok ? "☁️ متصل بقاعدة المدرسة — بياناتك تُحفظ سحابياً وتظهر على كل أجهزتك"
-        : "⚠️ لا اتصال الآن — سيُرفع رصدك تلقائياً عند عودة الإنترنت";
-    el2.style.background = ok === "perm" ? "#d64545" : ok ? "#2e9e5b" : "#e8a23d"; el2.style.color = "#fff";
+      : "⚠️ لا اتصال الآن — سيُرفع رصدك تلقائياً عند عودة الإنترنت";
+    el2.style.background = ok === "perm" ? "#d64545" : "#e8a23d"; el2.style.color = "#fff";
   }
   function rec(cid, date, si, make) {
     if (!make) { const day = (DB.recs[cid] || {})[date]; return (day && day[si]) || null; }   // قراءة محضة: لا تُنشئ يوماً ولا سجلاً
@@ -172,6 +174,68 @@
     const day = ((DB.recs[cid] || {})[date]); if (!day) return;
     if (emptyRec(day[si])) { delete day[si]; markDrop(cid); }
     if (!Object.keys(day).length) { delete DB.recs[cid][date]; markDrop(cid, date); }
+  }
+
+  /* ═══ الرصد بلا خوف: تراجع فوري عن كل إجراء ═══
+     applyLive وact وstateSheet وbehSheet كانت تكتب بلا أي نظير يحذف (e.beh.push في ثلاثة مواضع)،
+     فضغطة إبهام على الاسم المجاور تبقى سلوكاً سالباً على طفل بريء ينتقل إلى درجته ثم إلى رسالة أهله.
+     المبدأ هنا واحد لكل الإجراءات: لقطةٌ من سجل الطالب (أو من اليوم كله في الإجراءات الجماعية)
+     تُؤخذ قبل الكتابة وتُعاد كما هي عند التراجع — فيُسحب آخر عنصر من beh، وتعود الحالة السابقة،
+     وينقص part، بلا حالة خاصة لكل إجراء ولا احتمال أن ينسى إجراءٌ جديد نظيرَه. */
+  const snapRec = (cid, dt, i) => { const e = ((DB.recs[cid] || {})[dt] || {})[i]; return e ? clone(e) : null; };
+  const snapDay = (cid, dt) => { const d = (DB.recs[cid] || {})[dt]; return d ? clone(d) : null; };
+  function restoreRec(cid, dt, i, snap) {
+    if (snap) { const e = rec(cid, dt, i, true); Object.keys(e).forEach(k => delete e[k]); Object.assign(e, clone(snap)); }
+    else { const day = (DB.recs[cid] || {})[dt]; if (day) delete day[i]; }
+    pruneRec(cid, dt, i); markDrop(cid); save("recs:" + cid);
+  }
+  function restoreDay(cid, dt, snap) {
+    DB.recs[cid] = DB.recs[cid] || {};
+    if (snap && Object.keys(snap).length) DB.recs[cid][dt] = clone(snap);
+    else { delete DB.recs[cid][dt]; markDrop(cid, dt); }
+    markDrop(cid); save("recs:" + cid);
+  }
+  /* الشريط يُلحق بـ fullscreenElement عند وجوده: ملء الشاشة لا يرسم إلا عنصر الملء وأبناءه،
+     فشريطٌ في body يصير غير مرئي داخل الحصة الحية وهي أكثر مكان يُحتاج فيه. */
+  let undoT = null;
+  function undoBar(label, fn) {
+    clearTimeout(undoT);
+    const old = document.getElementById("undobar"); if (old) old.remove();
+    const live = !!(document.fullscreenElement || ($("#view-live") && !$("#view-live").classList.contains("hidden")));
+    const onsheet = !live && !!OV.querySelector(".overlay");   // نافذة مفتوحة: الشريط أعلى الشاشة حتى لا يغطي أزرارها
+    const b = document.createElement("div");
+    b.id = "undobar"; b.className = "undobar" + (live ? " onlive" : "") + (onsheet ? " onsheet" : "");
+    b.innerHTML = '<span class="ut"></span><button type="button" class="ub">↩ تراجع</button>';
+    b.querySelector(".ut").textContent = label;
+    (document.fullscreenElement || document.body).appendChild(b);
+    b.querySelector(".ub").onclick = () => { clearTimeout(undoT); b.remove(); try { fn(); } catch (e) { } };
+    undoT = setTimeout(() => { const x = document.getElementById("undobar"); if (x) x.remove(); }, 6000);
+  }
+  const dropUndo = () => { clearTimeout(undoT); const x = document.getElementById("undobar"); if (x) x.remove(); };
+  const firstName = (n) => String(n || "").trim().split(/\s+/)[0] || "";
+  // إشارة سالبة عربية (−) لا شرطة، وصفرٌ بلا إشارة
+  const signN = (v) => { const x = Math.round((+v || 0) * 10) / 10; return (x > 0 ? "+" : x < 0 ? "−" : "") + Math.abs(x); };
+  // أيقونة حالة الحضور — مشتركة بين بطاقات الروستر ونافذة التقييم وشريط التراجع (كانت محبوسة داخل liveActions)
+  const ST_ICON = (n) => /حاضر/.test(n) ? "✅" : /متأخر/.test(n) ? "⏰" : /مستأذن/.test(n) ? "🚪" : /بعذر/.test(n) ? "📄" : /بعد/.test(n) ? "💻" : /هارب/.test(n) ? "🏃" : "❌";
+  /* ═══ مفتاح الرصد: ماذا تعني 🙋 و📚 و⭐ وكيف يُتراجع ═══
+     الشرح الوحيد قبل هذا كان في خاصية title ولا تظهر على الجوال أبداً، و📚 تدور بين ثلاث حالات
+     بلا إعلان: من ينقر مرتين ظنّاً أنه يتراجع يضع على الطالب «لم يحلّ الواجب». */
+  function keysHelpHTML() {
+    const stChips = STATES.map(x => `<span class="kchip">${ST_ICON(x.name || "")} ${esc(x.name)} <b>${signN(x.pts || 0)}</b></span>`).join("");
+    const bhChips = BEH.map(b => `<span class="kchip ${(+b.pts || 0) < 0 ? "neg" : ""}">${(+b.pts || 0) < 0 ? "⚠" : "⭐"} ${esc(b.name)} <b>${signN(b.pts || 0)}</b></span>`).join("");
+    return `<h4>❔ مفتاح الرصد والتراجع</h4><div class="keyhelp">
+      <p><b>🙋 المشاركة</b> — نقرة = <b>${signN(W.part)}</b> لكل مرة بلا سقف، والرقم على الزر عدّاد اليوم. و<b>ضغطة مطوّلة</b> على الزر تُصفّر العدّاد.</p>
+      <p><b>📚 الواجب</b> — ثلاث حالات تدور بالنقر: <b>📚 لم يُرصد</b> ← <b>✅ حلّ (${signN(W.hw)})</b> ← <b>❌ لم يحلّ (0)</b> ← ثم تعود. فنقرتان <u>لا</u> تتراجعان بل تضعان «لم يحلّ».</p>
+      <p><b>⭐ السلوك</b> — يفتح قائمة السلوكيات بقيمها، والتكرار مسموح ويظهر <span class="kx">×العدد</span>.</p>
+      <p><b>الحالة</b> — الزر الملوّن يفتح حالات الحضور، و«مسح الحالة» يعيد الطالب إلى «لم يُرصد» ولا يُحسب عليه يوم.</p>
+      <p class="und"><b>↩ التراجع</b> — بعد كل إجراء يظهر شريط أسفل الشاشة <b>ست ثوانٍ</b> فيه «↩ تراجع»، يُلغي ما سُجّل فعلاً ويعيد الحالة السابقة (في التحضير وفي الحصة الحية).</p>
+      <div class="lsec2">📌 حالات الحضور وقيمها</div><div class="kchips">${stChips}</div>
+      <div class="lsec2">⭐ السلوكيات وقيمها</div><div class="kchips">${bhChips}</div></div>`;
+  }
+  function keysHelp(inLive) {
+    // داخل ملء الشاشة لا تُرسم نوافذ #overlay-root إطلاقاً — فنسخة الحصة الحية تمرّ عبر openLiveBox
+    if (inLive) openLiveBox(keysHelpHTML() + `<div class="grid" style="margin-top:10px"><button type="button" class="act close" id="kh-x" style="grid-column:1/-1">تم</button></div>`, (o) => { o.querySelector("#kh-x").onclick = closeLiveBox; });
+    else openSheet(keysHelpHTML() + `<div class="sheet-actions"><button class="btn-primary" onclick="window._sheetClose()">تم</button></div>`);
   }
 
   /* ═══ التاريخ الهجري ═══ */
@@ -729,7 +793,16 @@
     const mine = D.schedule.filter(r => r.t === TE.name && r.d === today).sort((a, b) => a.p - b.p);
     // عدد حصص اليوم وأوقاتها من جدول أجراس المدرسة (لا رقم ثابت)
     const B = BELL();
-    const cell = (p, tm) => { const s = mine.find(x => +x.p === p), c = s ? classById(s.c) : null; return `<div class="period ${s ? "" : "empty"}" data-p="${p}"><span class="p">ح${p}</span><div class="c">${c ? esc(c.name) : "—"}</div><div class="tm">${esc(tm)}</div></div>`; };
+/* خلية الحصة زر لا لافتة: نقرة تفتح رصد ذلك الفصل بتاريخ اليوم. وعليها علامة الرصد
+       (✓ رُصد · ⚠ ناقص) من recs نفسها، فلا يخرج المعلم عند 12:45 غير متأكد ماذا رصد. */
+    const dtToday = todayISO();
+    const cell = (p, tm) => {
+      const s = mine.find(x => +x.p === p), c = s ? classById(s.c) : null;
+      if (!c) return `<div class="period empty" data-p="${p}"><span class="p">ح${p}</span><div class="c">—</div><div class="tm">${esc(tm)}</div></div>`;
+      const k = classDayMark(c.id, dtToday);
+      const mk = k.mark === "full" ? '<span class="mk ok">✓</span>' : k.mark === "part" ? '<span class="mk part">⚠</span>' : "";
+      return `<button type="button" class="period" data-p="${p}" data-c="${esc(c.id)}"><span class="p">ح${p}</span><div class="c">${esc(c.name)}${mk}</div><div class="tm">${esc(tm)}</div></button>`;
+    };
     const have = {}, per = [];
     B.periodsOnly(today).forEach(b => { have[b.p] = 1; per.push(cell(b.p, B.periodTime(b.p, today))); });
     // حصة مسندة في الجدول ورقمها خارج عدد حصص الإعداد (خفّضه المدير) تظهر بلا وقت بدل أن تختفي — نفس سلوك لوحة المدير
@@ -747,10 +820,7 @@
         <div style="font-size:19px;font-weight:800;color:var(--goldl);margin-top:2px">أهلاً أ. ${esc(TE.name.split(" ")[0])} 👋</div></div>
       <div id="today-bell" class="bellbar"></div>
       <div id="today-next" class="nextbar"></div>
-      <div class="kpis">
-        <div class="kpi"><div class="v">${myClasses().length}</div><div class="l">فصولي</div></div>
-        <div class="kpi"><div class="v">${all.length}</div><div class="l">طلابي</div></div>
-        <div class="kpi"><div class="v">${mine.length}</div><div class="l">حصص اليوم</div></div></div>
+      <div id="today-reg"></div>
       ${myClasses().length ? `<button class="btn-primary" id="today-live" style="margin-bottom:12px;font-size:17px">🎬 ابدأ حصة تفاعلية</button>` : ""}
       <div class="card"><h3><span class="dot"></span>حصص اليوم (${esc(today)})</h3><div class="periods">${per.join("")}</div></div>
       <div class="card" id="today-lesson"><h3><span class="dot"></span>درس هذا الأسبوع</h3><span class="weekpill">الأسبوع ${wk}</span><div class="empty-note" style="padding:8px">جارِ التحميل…</div></div>
@@ -758,7 +828,14 @@
         <div class="alert-list">${high.length ? high.map((x, k) => `<div class="al"><span><b style="font-size:16px">${MED[k]}</b> ${esc(x.r.s.n)} <small style="color:var(--muted)">— ${esc(x.c.name)}</small></span><span class="pts" style="color:var(--ok)">${x.r.t.pts}</span></div>`).join("") : '<div class="empty-note">ابدأ الرصد وستظهر أسماء المتميزين هنا 🌟</div>'}</div></div>
       <div class="card"><h3><span class="dot"></span>طلاب يحتاجون التفاتة (الأدنى نقاطاً)</h3>
         <div class="alert-list">${low.length ? low.map(x => `<div class="al"><span>${esc(x.r.s.n)} <small style="color:var(--muted)">— ${esc(x.c.name)}</small></span><span class="pts">${x.r.t.pts}</span></div>`).join("") : '<div class="empty-note">ابدأ التحضير أولاً وستظهر القائمة هنا</div>'}</div></div>`;
+    paintDayCard();                                 // «رُصد ٢ من ٥ · غياب اليوم ٣» — تُقرأ من recs في كل رسم
     startBell();                                    // شريط «الحصة الحالية» + إبراز الحصة في الشبكة
+    box.querySelectorAll(".periods [data-c]").forEach(b => b.onclick = () => openReg(b.dataset.c, dtToday));
+    // خانة الحصة الجارية تُمرَّر إلى المنظور (سبع خانات في شريط عرضه ٣٦٠px: ح٥ كانت خارج الشاشة)
+    try {
+      const strip = box.querySelector(".periods"), pn = box.querySelector(".periods .period.now");
+      if (strip && pn) strip.scrollLeft += pn.getBoundingClientRect().left - strip.getBoundingClientRect().left - (strip.clientWidth - pn.offsetWidth) / 2;
+    } catch (e) { }
     const tl = $("#today-live"); if (tl) tl.onclick = () => pickClassThen(liveSession);
     const sc = subjCode(TE.subject), grades = [...new Set(myClasses().map(c => c.gc))].sort();
     const LB = $("#today-lesson");
@@ -773,12 +850,48 @@
     LB.innerHTML = `<h3><span class="dot"></span>درس هذا الأسبوع</h3>` + html;
     LB.querySelectorAll("[data-fg]").forEach(b => b.onclick = () => filesSheet("📎 مرفقات الدرس — الصف " + GNAME[+b.dataset.fg], "lesson", { code: b.dataset.code, wk },
       "ملفات تخصّ درس هذا الأسبوع: صور، أوراق عمل، عروض بصيغة PDF — تظهر أيضاً داخل الحصة الحية."));
+    /* كان يفتح أول فصل في الصف (myClasses().find) فيرصد المعلمُ حصةً كاملة على «سادس (أ)»
+       وهو واقف في «سادس (ب)». الآن: فصل الحصة الجارية، ثم القادمة اليوم، وإلا اختيار صريح. */
     LB.querySelectorAll("[data-g]").forEach(b => b.onclick = () => {
-      const cl = myClasses().find(c => c.gc === +b.dataset.g);
-      if (cl) liveSession(cl.id, "lesson");
+      const g = +b.dataset.g, S = currentOrNextClass(), mineG = myClasses().filter(c => c.gc === g);
+      if (!mineG.length) return;
+      const hit = mineG.find(c => c.id === S.cid) || mineG.find(c => S.next && c.id === S.next.cid);
+      if (hit) { liveSession(hit.id, "lesson"); return; }
+      if (mineG.length === 1) { liveSession(mineG[0].id, "lesson"); return; }
+      pickClassThen((cid) => liveSession(cid, "lesson"), mineG, "🚀 افتح الدرس التفاعلي — اختر الفصل");
     });
   }
 
+
+  /* بطاقة اليوم الحيّة: بديل «٨ فصول · ١٥٧ طالباً · ٥ حصص» (ثلاثة أرقام لا تتغيّر طوال الفصل
+     الدراسي وثالثها مكرَّر حرفياً في الشبكة تحتها). تُنقر فتفتح قائمة حصص اليوم بحالة كل حصة. */
+  function paintDayCard() {
+    const box = $("#today-reg"); if (!box) return;
+    const S = currentOrNextClass(), G = dayRegSummary(S);
+    /* نصاب المعلم انتهى فعلاً: لا حصة قادمة اليوم — سواء انتهى الدوام أو بقيت حصص فراغ.
+       عندها تصير البطاقة نداءً («بقي بلا رصد: سادس (ب)») لا إحصاءً. */
+    const dayDone = !S.next && (S.st === "after" || S.st === "off" || S.st === "free");
+    const warn = dayDone && G.gaps.length;
+    if (!G.total) {
+      const n = myClasses().length, all = myClasses().reduce((a, c) => a + activeCount(c), 0);
+      box.innerHTML = `<div class="daycard flat"><span class="ic">📋</span><span class="tx"><b>لا حصص لك اليوم</b><small>${esc(cntAr(n, "فصل واحد", "فصلان", "فصول", "فصلاً"))} · ${all} طالباً — اضغط لفتح رصد أي فصل</small></span><span class="chev">‹</span></div>`;
+    } else {
+      // «لا غياب اليوم» ادّعاءٌ ما دامت حصةٌ بلا رصد — لا تُقال إلا بعد اكتمال رصد اليوم
+      const pill = G.absent ? `<span class="pill bad">غياب اليوم ${G.absent}</span>`
+        : (!G.none && !G.part) ? `<span class="pill">لا غياب اليوم</span>` : "";
+      const partsN = G.rows.filter(r => r.mark === "part").map(r => r.cname).filter((v, i, a) => a.indexOf(v) === i);
+      const sub = warn ? `بقي بلا رصد: ${G.gaps.join(" · ")}${partsN.length ? ` · ناقص: ${partsN.join(" · ")}` : ""}`
+        : G.none ? `${cntAr(G.none, "حصة واحدة لم تُرصد", "حصتان لم تُرصدا", "حصص لم تُرصد", "حصة لم تُرصد")}${G.part ? ` و${cntAr(G.part, "واحدة ناقصة", "اثنتان ناقصتان", "ناقصة", "ناقصة")}` : ""} — اضغط للتفصيل`
+          : G.part ? `${cntAr(G.part, "حصة واحدة ناقصة", "حصتان ناقصتان", "حصص ناقصة", "حصة ناقصة")} — اضغط للتفصيل`
+            : "اكتمل رصد اليوم 🎉";
+      box.innerHTML = `<div class="daycard${warn ? " warn" : G.none || G.part ? "" : " done"}"><span class="ic">${warn ? "⚠️" : "📋"}</span><span class="tx"><b>رُصد ${G.full} من ${G.total}</b><small>${esc(sub)}</small></span>${pill}<span class="chev">‹</span></div>`;
+    }
+    const card = box.firstChild;
+    box.setAttribute("role", "button"); box.setAttribute("tabindex", "0");
+    box.onclick = daySheet;
+    box.onkeydown = (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); daySheet(); } };
+    return card;
+  }
 
   /* ═══ شريط «الحصة الحالية» في تبويب اليوم ═══
      يعرض اسم الحصة ووقتها والدقائق المتبقية، أو اسم الفسحة ووقت انتهائها، أو «انتهى الدوام».
@@ -802,29 +915,40 @@
     const B = BELL(), now = new Date(), day = DAYS[now.getDay()], m = now.getHours() * 60 + now.getMinutes();
     // يوم دراسة؟ الجمعة والسبت لا دوام — ويوم لا يقع داخل أي أسبوع من meta.weeks إجازة رسمية
     const term = inTermNow(now), work = term && SDAYS().indexOf(day) >= 0;
-    const list = work ? B.periodsOf(day) : [], p = work ? B.periodNow(now) : 0, br = (work && !p) ? B.breakNow(now) : null;
-    const cur = p ? list.find(x => !x.brk && x.p === p) : null;
-    let cls, html;
+    const list = work ? B.periodsOf(day) : [], p = work ? B.periodNow(now) : 0;
+    /* المصدر الوحيد لِما يُكتب هنا: محرك «الآن». كان الشريط يقرأ رقم الحصة من الجرس وحده فيقول
+       «الحصة الحالية: الثالثة» والمعلم في فراغ وخانة ح٣ في الشبكة تحته تقول «—». */
+    const S = currentOrNextClass(now);
+    const nextTx = S.next ? ` · القادمة: <b>${esc(S.next.cname)}</b> ح${S.next.p} <span class="tm">${esc(B.hm(S.next.from))}</span>` : "";
+    let cls, html, tap = null;
     if (!work) {
       cls = "off";
       html = term ? `<span class="ic">🌙</span><span class="tx"><b>لا دوام اليوم</b> — ${esc(day)}</span>`
         : `<span class="ic">🌴</span><span class="tx"><b>إجازة — لا دوام اليوم</b> — ${esc(day)}</span>`;
-    } else if (cur) {
-      const row = D.schedule.find(r => r.t === TE.name && r.d === day && +r.p === p), c = row ? classById(row.c) : null;
-      cls = "on";
-      html = `<span class="ic">🔔</span><span class="tx">الحصة الحالية: <b>${esc(B.ord(p))}</b> <span class="tm">(${esc(B.periodTime(p, day))})</span>${c ? ` · <b>${esc(c.name)}</b>` : ""}</span><span class="left">تبقّى ${esc(minsAr(Math.max(1, cur.to - m)))}</span>`;
-    } else if (br) {
-      cls = "brk";
-      html = `<span class="ic">☕</span><span class="tx"><b>${esc(String(br.n))}</b> — تنتهي <span class="tm">${esc(br.ends)}</span></span><span class="left">تبقّى ${esc(minsAr(Math.max(1, br.to - m)))}</span>`;
-    } else if (list.length && m < list[0].from) {
-      cls = "soon";
-      html = `<span class="ic">⏳</span><span class="tx">لم يبدأ الدوام بعد — الحصة <b>${esc(B.ord(list[0].p))}</b> <span class="tm">(${esc(B.periodTime(list[0].p, day))})</span></span>`;
+    } else if (S.st === "now") {
+      cls = "on"; tap = S.cid;
+      html = `<span class="ic">🔔</span><span class="tx">الحصة الحالية: <b>${esc(B.ord(S.p))}</b> <span class="tm">(${esc(B.periodTime(S.p, day))})</span> · <b>${esc(S.cname)}</b></span><span class="left">تبقّى ${esc(minsAr(S.left))}</span><span class="go">📋 افتح الرصد</span>`;
+    } else if (S.st === "free" && S.slotName) {
+      cls = "brk"; tap = S.next ? S.next.cid : null;
+      html = `<span class="ic">☕</span><span class="tx"><b>${esc(S.slotName)}</b> — تنتهي <span class="tm">${esc(B.hm(S.slotEnd))}</span>${nextTx || " · لا حصص لك بعدها اليوم"}</span><span class="left">تبقّى ${esc(minsAr(Math.max(1, S.slotEnd - m)))}</span>${tap ? '<span class="go">📋 افتح رصدها</span>' : ""}`;
+    } else if (S.st === "free") {
+      // حصة فراغ: لون محايد وبلا جرس — ويقول إلى أين بعدها بدل أن يدّعي حصة جارية
+      cls = "free"; tap = S.next ? S.next.cid : null;
+      html = `<span class="ic">☕</span><span class="tx"><b>حصة فراغ</b> — تنتهي <span class="tm">${esc(B.hm(S.slotEnd))}</span>${nextTx || " · انتهى نصابك اليوم"}</span>${tap ? '<span class="go">📋 افتح رصدها</span>' : ""}`;
+    } else if (S.st === "before") {
+      cls = "soon"; tap = S.next ? S.next.cid : null;
+      html = `<span class="ic">⏳</span><span class="tx">لم يبدأ الدوام بعد — الحصة <b>${esc(B.ord(list[0].p))}</b> <span class="tm">(${esc(B.periodTime(list[0].p, day))})</span>${S.next ? ` · أولى حصصك: <b>${esc(S.next.cname)}</b> ح${S.next.p}` : " · لا حصص لك اليوم"}</span>`;
     } else {
       cls = "off";
       html = `<span class="ic">🌙</span><span class="tx"><b>انتهى الدوام</b>${list.length ? ` — نهايته <span class="tm">${esc(B.hm(list[list.length - 1].to))}</span>` : ""}</span>`;
     }
-    el.className = "bellbar " + cls;
+    el.className = "bellbar " + cls + (tap ? " tap" : "");
     el.innerHTML = html;
+    /* الشريط نفسه زر: نقرة تفتح رصد الفصل الجاري (أو القادم في الفراغ) — بدل تبويب + سحب أفقي
+       + بحث بصري + نقرة، خمس مرات في اليوم. */
+    el.onclick = tap ? (() => openReg(tap, todayISO())) : null;
+    if (tap) { el.setAttribute("role", "button"); el.setAttribute("tabindex", "0"); }
+    else { el.removeAttribute("role"); el.removeAttribute("tabindex"); }
     document.querySelectorAll("#tab-today .periods .period").forEach(n => n.classList.toggle("now", p > 0 && +n.dataset.p === p));
     paintNext();
   }
@@ -875,6 +999,99 @@
     const N = window.SIJIL_NOTIFY;
     if (!N || typeof N.inTerm !== "function") return true;
     try { return N.inTerm(now || new Date()) !== false; } catch (e) { return true; }
+  }
+
+  /* ═══ محرك «الآن»: الجدول يقود كل مدخل ═══
+     مصدر واحد لكل شاشة تسأل «أين المعلم الآن؟» — يُبنى فوق nextClassLocal()/nextClassOf() أعلاه
+     ومحرك أجراس المدرسة نفسه الذي تقرأ منه لوحة المدير، فلا يتناقض شريطٌ مع شبكة مع شريحة. يعيد:
+       st    "now"    حصةٌ للمعلم جارية الآن
+             "free"   الدوام قائم ولا حصة له: حصة فراغ أو فسحة  ← الشريط لا يدّعي حصة
+             "before" لم يبدأ الدوام · "after" انتهى · "off" لا دوام (جمعة/سبت/إجازة)
+       p,cid,cname,to,left   الحصة الجارية ووقت نهايتها والدقائق المتبقية (st==="now")
+       slotEnd, slotName     نهاية الفراغ/الفسحة واسم الفسحة إن كانت فسحة (st==="free")
+       next  {p,cid,cname,from,mins} أقرب حصة للمعلم بعد اللحظة اليوم، أو null
+       rows  حصص المعلم اليوم مرتّبة {p,cid,cname,from,to} — from/to = null لحصة خارج جدول الأجراس */
+  function currentOrNextClass(now) {
+    const d = now || new Date(), day = DAYS[d.getDay()], m = d.getHours() * 60 + d.getMinutes();
+    const B = BELL();
+    const out = { st: "off", day, m, p: 0, cid: null, cname: "", from: 0, to: 0, left: 0, slotEnd: 0, slotName: "", next: null, rows: [] };
+    if (!TE || !D) return out;
+    const work = inTermNow(d) && SDAYS().indexOf(day) >= 0;
+    const only = work ? B.periodsOnly(day) : [];
+    (D.schedule || []).forEach(r => {
+      if (!r || r.t !== TE.name || r.d !== day) return;
+      const b = only.find(x => +x.p === +r.p), cl = classById(r.c);
+      if (!cl) return;                                        // صفُّ جدولٍ لفصل محذوف لا يقود شاشة
+      out.rows.push({ p: +r.p, cid: r.c, cname: cl.name || "—", from: b ? b.from : null, to: b ? b.to : null });
+    });
+    out.rows.sort((a, b) => a.p - b.p);
+    if (!work) return out;
+    const list = B.periodsOf(day), pn = B.periodNow(d), br = pn ? null : B.breakNow(d);
+    /* القادمة تُحسب من صفوف المعلم لا من nextClassOf: تلك تصمت داخل الحصة الجارية (mins < 1)
+       بينما شريط الفراغ وبطاقة اليوم يحتاجان «إلى أين بعد هذه» في كل الحالات. */
+    const nx = out.rows.filter(r => r.from != null && r.from > m).sort((a, b) => a.from - b.from)[0] || null;
+    if (nx) out.next = { p: nx.p, cid: nx.cid, cname: nx.cname, from: nx.from, mins: nx.from - m };
+    const cur = pn ? out.rows.find(r => r.p === pn && r.from != null) : null;
+    if (cur) { out.st = "now"; out.p = cur.p; out.cid = cur.cid; out.cname = cur.cname; out.from = cur.from; out.to = cur.to; out.left = Math.max(1, cur.to - m); return out; }
+    if (list.length && m < list[0].from) { out.st = "before"; out.slotEnd = list[0].from; return out; }
+    if (pn) { const b = list.find(x => !x.brk && x.p === pn); out.st = "free"; out.p = pn; out.slotEnd = b ? b.to : 0; out.slotName = ""; return out; }
+    if (br) { out.st = "free"; out.slotEnd = br.to; out.slotName = String(br.n); return out; }
+    out.st = "after"; out.slotEnd = list.length ? list[list.length - 1].to : 0;
+    return out;
+  }
+  /* مفتاح «اللحظة المدرسية»: يتغيّر عند تغيّر الحصة الجارية وحدها. به تتبع شرائحُ التحضير الجدولَ
+     عند دخول حصة جديدة، ولا تنقض اختيار المعلم إن اختار فصلاً آخر داخل الحصة نفسها. */
+  const nowKey = (S) => { const s = S || currentOrNextClass(); return todayISO() + "|" + s.st + "|" + (s.st === "now" ? s.p : (s.next ? "n" + s.next.p : "-")); };
+  // الفصل الذي يقود الشاشة الآن: الجاري، فإن لم يكن فالقادم اليوم
+  const nowClassId = (S) => { const s = S || currentOrNextClass(); return s.cid || (s.next && s.next.cid) || null; };
+
+  /* ═══ «رُصد ٢ من ٥»: حالة رصد اليوم من recs نفسها ═══ */
+  // غياب فعلي (غائب · غائب بعذر · هارب) لا مجرّد نقاط سالبة — «متأخر» ليس غياباً
+  const isAbsentState = (a) => { const st = STATES[a]; return !!st && /غائب|هارب/.test(String(st.name || "")); };
+  // حالة رصد فصل في يوم: done/total بحالة الحضور (المصدر نفسه الذي يُبنى منه تقرير المدير) وعدد الغائبين
+  function classDayMark(cid, dt) {
+    const c = classById(cid);
+    if (!c) return { done: 0, total: 0, absent: 0, mark: "none" };
+    const act = activeStudents(c); let done = 0, ab = 0;
+    act.forEach(({ i }) => { const e = rec(cid, dt, i, false); if (e && e.a != null) { done++; if (isAbsentState(e.a)) ab++; } });
+    return { done, total: act.length, absent: ab, mark: (act.length && done >= act.length) ? "full" : done ? "part" : "none" };
+  }
+  // خلاصة اليوم: حصص اليوم بحالتها + «رُصد س من ص» + غياب اليوم (بلا تكرار فصلٍ يتكرر في حصتين)
+  function dayRegSummary(S) {
+    const s = S || currentOrNextClass(), dt = todayISO(), seen = {}, rows = [];
+    let full = 0, part = 0, none = 0, absent = 0;
+    s.rows.forEach(r => {
+      const k = seen[r.cid] || (seen[r.cid] = classDayMark(r.cid, dt));
+      if (!seen["+" + r.cid]) { seen["+" + r.cid] = 1; absent += k.absent; }
+      if (k.mark === "full") full++; else if (k.mark === "part") part++; else none++;
+      rows.push(Object.assign({}, r, k));
+    });
+    const gaps = rows.filter(r => r.mark === "none").map(r => r.cname).filter((v, i, a) => a.indexOf(v) === i);
+    return { dt, rows, full, part, none, absent, total: s.rows.length, gaps, st: s.st, day: s.day };
+  }
+  // قائمة حصص اليوم — كل سطر زر ينقل إلى رصد ذلك الفصل بتاريخ اليوم
+  function daySheet() {
+    const S = currentOrNextClass(), G = dayRegSummary(S), B = BELL();
+    const MK = { full: ["✅", "رُصد"], part: ["⚠️", "ناقص"], none: ["⭕️", "لم يُرصد"] };
+    const rows = G.rows.length ? G.rows
+      : myClasses().map(c => Object.assign({ p: 0, cid: c.id, cname: c.name, from: null }, classDayMark(c.id, G.dt)));
+    const li = rows.map(r => {
+      const mk = MK[r.mark] || MK.none, isNow = S.st === "now" && S.cid === r.cid && S.p === r.p;
+      return `<button type="button" class="regrow ${r.mark}${isNow ? " isnow" : ""}" data-c="${esc(r.cid)}">
+        <span class="mk">${mk[0]}</span>
+        <span class="ttl"><span class="ln">${r.p ? `<b>ح${r.p}</b> ` : ""}${esc(r.cname)}${isNow ? '<span class="nowtag">الآن</span>' : ""}</span><small>${esc(mk[1])}${r.total ? " " + r.done + "/" + r.total : ""}${r.from != null ? " · " + esc(B.hm(r.from)) : ""}${r.absent ? " · غياب " + r.absent : ""}</small></span>
+        <span class="go">رصد ›</span></button>`;
+    }).join("");
+    const head = G.total ? `رُصد <b>${G.full}</b> من <b>${G.total}</b>${G.absent ? ` · غياب اليوم <b>${G.absent}</b>` : ""}` : "لا حصص لك اليوم — هذه فصولك";
+    openSheet(`<h4>📋 رصد اليوم — ${esc(G.day)}</h4><div class="daysum">${head}</div><div class="regrows">${li || '<div class="empty-note">لا فصول</div>'}</div>`,
+      (o) => o.querySelectorAll("[data-c]").forEach(b => b.onclick = () => { closeSheet(); openReg(b.dataset.c, G.dt); }));
+  }
+  // المدخل الموحّد إلى ورقة الرصد: من شريط الجرس، ومن خلية حصة اليوم، ومن قائمة حصص اليوم
+  function openReg(cid, date) {
+    if (cid) regClass = cid;
+    if (/^\d{4}-\d{2}-\d{2}$/.test(String(date || ""))) regDate = String(date);
+    regNowKey = nowKey();                            // اختيارٌ صريح: لا ينقضه محرك «الآن» في هذه الحصة
+    switchTab("reg");
   }
   // نغمة قصيرة داخل التطبيق (بلا ملف صوت) — تعمل بعد أول لمسة من المعلم، وصمتها لا يُعطّل شيئاً
   function beep() {
@@ -935,6 +1152,8 @@
 
   /* ═══ التحضير ═══ */
   let regClass = null, regAuto = todayISO(), regDate = regAuto, regMsgT = null;
+  // آخر «لحظة مدرسية» تبعتها الشرائح — به يفرَّق بين تغيّر الحصة (يقود) واختيار المعلم (يُحترم)
+  let regNowKey = "";
   /* أقصى تاريخ رصد = الغد، بالقاعدة نفسها التي تحرس بها لوحة المدير إحصاءاتها
      (js/admin/core.js:maxRecDate) — والغدُ لا اليومُ تحمّلاً لفارق ساعات الأجهزة. */
   const maxRegDate = () => { const d = new Date(); d.setDate(d.getDate() + 1); return todayISO(d); };
@@ -947,12 +1166,42 @@
     refreshRegDate();
     const box = $("#tab-reg"), cls = myClasses();
     if (!cls.length) { box.innerHTML = '<div class="empty-note">لا فصول مسندة لك' + (TE.admin ? " — لوحة المدير في «المزيد»" : "") + "</div>"; return; }
-    if (!regClass || !cls.find(c => c.id === regClass)) regClass = cls[0].id;
-    box.innerHTML = `<div class="class-chips">${cls.map(c => `<button class="chip ${c.id === regClass ? "on" : ""}" data-c="${c.id}">${esc(c.name)}</button>`).join("")}</div>
+    /* محرك «الآن» يقود ورقة الرصد: كانت تفتح على cls[0] (رابع أ) مهما كانت الحصة الجارية،
+       فيرصد المعلم حصةً كاملة على الفصل الخطأ، أو يبحث عن شريحته في سحبٍ أفقي كل حصة.
+       والاختيار اليدوي يبقى محترماً داخل الحصة نفسها (regNowKey)، ويتبع الجدولَ عند تغيّرها. */
+    const S = currentOrNextClass(), K = nowKey(S), B = BELL(), dtNow = todayISO(), isToday = regDate === dtNow;
+    const inMine = (id) => !!(id && cls.find(c => c.id === id));
+    const lead = isToday ? nowClassId(S) : null;
+    if (!inMine(regClass) || (K !== regNowKey && inMine(lead))) regClass = inMine(lead) ? lead : (inMine(regClass) ? regClass : cls[0].id);
+    regNowKey = K;
+    // ترتيب الشرائح بترتيب حصص اليوم (ح١ ثم ح٢…) ثم بقية الفصول كما هي في إسناد المعلم
+    const ordC = {}; if (isToday) S.rows.forEach((r, k) => { if (ordC[r.cid] == null) ordC[r.cid] = k; });
+    const chips = cls.map((c, k) => ({ c, k })).sort((a, b) => {
+      const oa = ordC[a.c.id] == null ? 900 : ordC[a.c.id], ob = ordC[b.c.id] == null ? 900 : ordC[b.c.id];
+      return (oa - ob) || (a.k - b.k);
+    }).map(x => x.c);
+    const chipHtml = chips.map(c => {
+      const k = classDayMark(c.id, regDate), on = c.id === regClass;
+      const isNow = isToday && S.st === "now" && S.cid === c.id;
+      const isNext = isToday && !isNow && S.next && S.next.cid === c.id;
+      const mk = k.mark === "full" ? '<span class="ck ok" title="رُصد اليوم">✓</span>' : k.mark === "part" ? `<span class="ck part" title="رصد ناقص">⚠</span>` : "";
+      const tag = isNow ? `<small class="nowt">الآن — ح${S.p} ${esc(B.hm(S.from))}</small>`
+        : isNext ? `<small class="nxt">القادمة — ح${S.next.p} ${esc(B.hm(S.next.from))}</small>` : "";
+      return `<button class="chip ${on ? "on" : ""}${isNow ? " isnow" : ""}" data-c="${c.id}"><span class="cn">${esc(c.name)}${mk}</span>${tag}</button>`;
+    }).join("");
+    box.innerHTML = `<div class="class-chips">${chipHtml}</div>
       <div class="reg-tools"><input type="date" id="reg-date" value="${regDate}" max="${maxRegDate()}"><button class="btn-soft" id="reg-all">✓ الكل حاضر</button><button class="btn-gold" id="reg-live">🎬 وضع العرض</button></div>
       <div class="empty-note" id="reg-msg" hidden style="padding:2px 4px 6px;text-align:right;min-height:0;color:var(--bad)"></div>
+      <button type="button" class="reglegend" id="reg-legend"><span><b>🙋</b> مشاركة ${signN(W.part)}</span><span><b>📚</b> الواجب ✓/✗</span><span><b>⭐</b> سلوك</span><span class="q">❔ الشرح والتراجع</span></button>
+      <div id="reg-absbar" class="no-print"></div>
       <div class="card" id="reg-list" style="padding:6px 10px"></div>`;
-    box.querySelectorAll(".chip").forEach(ch => ch.onclick = () => { regClass = ch.dataset.c; renderReg(); });
+    box.querySelectorAll(".chip").forEach(ch => ch.onclick = () => { regClass = ch.dataset.c; regNowKey = nowKey(); renderReg(); });
+    /* الشريحة النشطة تُمرَّر إلى المنظور: بلا هذا يبقى فصل الحصة السادسة خارج الشاشة يميناً
+       في شريط ثمانِ شرائح، فيُظنّ أن التطبيق فتح على الفصل الأول كما كان. */
+    try {
+      const strip = box.querySelector(".class-chips"), onch = box.querySelector(".chip.on");
+      if (strip && onch) strip.scrollLeft += onch.getBoundingClientRect().left - strip.getBoundingClientRect().left - (strip.clientWidth - onch.offsetWidth) / 2;
+    } catch (e) { }
     /* حقل التاريخ كان بلا سقف ولا حارس: يومٌ في المستقبل (خطأ كتابة: 2027 بدل 2026) يُرصد فيه
        الحضور فيراه المعلم «يوم رصد وحضور 100%» بينما لوحة المدير تتجاهله فتقول «لم يبدأ» —
        بلا إشعار لأحد. وتفريغ الحقل كان يكتب الرصد تحت مفتاح تاريخ فارغ لا يظهر في أي شاشة. */
@@ -966,27 +1215,67 @@
       if (msg) msg.hidden = true;
       regDate = v; drawRows();
     };
-    $("#reg-all").onclick = () => { const c = classById(regClass); activeStudents(c).forEach(({ i }) => { const e = rec(regClass, regDate, i, true); if (e.a == null) e.a = 0; }); save("recs:" + regClass); drawRows(); };
+    $("#reg-legend").onclick = () => keysHelp(false);
+    /* إجراء جماعي على ٢١ طالباً بلا رجعة: اللقطة على مستوى اليوم كله فيعود كل شيء كما كان بنقرة واحدة */
+    $("#reg-all").onclick = () => {
+      const cid = regClass, dt = regDate, snap = snapDay(cid, dt), c = classById(cid);
+      let n = 0;
+      activeStudents(c).forEach(({ i }) => { const e = rec(cid, dt, i, true); if (e.a == null) { e.a = 0; n++; } });
+      save("recs:" + cid); drawRows();
+      if (n) undoBar(`✅ سُجّل ${n} حاضراً — ${c.name}`, () => { restoreDay(cid, dt, snap); if (regClass === cid && regDate === dt && document.getElementById("reg-list")) drawRows(); });
+    };
     // الزر ملاصق لحقل التاريخ: كان يتجاهله ويكتب على اليوم دائماً، فيرى المعلم ورقته السابقة خاليةً بعد الإنهاء
     $("#reg-live").onclick = () => liveSession(regClass, null, regDate);
     drawRows();
   }
+  /* «الغياب الفعلي» له تعريف واحد في التطبيق (absCnt أعلاه): غائب أو هارب، والمأذون ليس منه.
+     وكان مسار ولي الأمر (خلاصة الحصة ونافذة الإبلاغ) يقرأ /غائب|هارب/ عارية فيبتلع «غائب بعذر» —
+     أي رسالة واتساب إلى بيتٍ أرسل العذر صباحاً، وعدّ «غائبان» في خلاصة حصةٍ أحدهما مأذون. */
+  const isAbsent = (n) => !/عذر|مستأذن/.test(n) && /غائب|هارب/.test(n);
+  // «غائب/متأخر/هارب» يستدعي بيتاً — و«مستأذن/بعذر» لا. هذا الشرط وحده يقرر ظهور سطر الإبلاغ.
+  const needParent = (n) => /متأخر/.test(n) || isAbsent(n);
+  /* صف الطالب: سطران تحت 400px — الاسم كاملاً بخط 15 على عرض الشاشة مع نقطة حالة ملوّنة والنقاط في
+     الطرف، ثم شريط الأزرار الثلاثة بـ44px (التوزيع كله في css/app.css: .stu .s1/.s2). و«الترتيب 3 من
+     21» حُذف من القائمة — مكانه بطاقة الطالب، وكان يسرق سطراً من كل صف في أكثر شاشة تُلمس في اليوم. */
   function drawRows() {
-    const c = classById(regClass), list = $("#reg-list"), calc = classCalc(regClass), actv = activeStudents(c);
+    const c = classById(regClass), list = $("#reg-list"); if (!list) return;
+    const calc = classCalc(regClass), actv = activeStudents(c);
     list.innerHTML = actv.map(({ s, i }, k) => {
       const e = rec(regClass, regDate, i, false) || {}, st = e.a != null ? STATES[e.a] : null, t = calc[i].t;
-      return `<div class="stu" data-i="${i}"><span class="num">${k + 1}</span>
-        <span class="nm" data-act="card">${esc(s.n)}<small>الترتيب ${calc[i].rank} من ${actv.length}</small></span>
-        <button class="statepill" data-act="state" style="${st ? "background:" + STCOLORS[e.a] : ""}">${st ? esc(st.name) : "الحالة"}</button>
-        <button class="mini ${e.part ? "on" : ""}" data-act="part" title="نقرة: مشاركة إضافية · ضغطة مطوّلة: تصفير العدّاد">🙋${e.part ? `<span class="b">${e.part}</span>` : ""}</button>
+      const stn = st ? String(st.name || "") : "", pn = needParent(stn), sent = pn ? lastParentComm(regClass, i, regDate) : null;
+      return `<div class="stu" data-i="${i}"><div class="s1"><span class="num">${k + 1}</span>
+        <span class="nm" data-act="card">${esc(s.n)}</span>
+        <button class="statepill${st ? " set" : ""}" data-act="state" title="${st ? esc(stn) : "حالة الحضور"}" style="${st ? "background:" + STCOLORS[e.a] : ""}"><b class="si">${st ? ST_ICON(stn) : ""}</b><i class="sx">${st ? esc(stn) : "الحالة"}</i></button>
+        <span class="pts ${t.pts < 0 ? "neg" : ""}">${t.pts}</span></div>
+        <div class="s2"><button class="mini ${e.part ? "on" : ""}" data-act="part" title="نقرة: مشاركة إضافية · ضغطة مطوّلة: تصفير العدّاد">🙋${e.part ? `<span class="b">${e.part}</span>` : ""}</button>
         <button class="mini ${e.hw != null ? "on" : ""}" data-act="hw">${e.hw === 1 ? "✅" : e.hw === 0 ? "❌" : "📚"}</button>
-        <button class="mini ${(e.beh || []).length ? "on" : ""}" data-act="beh">⭐${(e.beh || []).length ? `<span class="b">${e.beh.length}</span>` : ""}</button>
-        <span class="pts ${t.pts < 0 ? "neg" : ""}">${t.pts}</span></div>`;
+        <button class="mini ${(e.beh || []).length ? "on" : ""}" data-act="beh">⭐${(e.beh || []).length ? `<span class="b">${e.beh.length}</span>` : ""}</button></div>${pn ? `
+        <button type="button" class="pnotify${sent ? " done" : ""}" data-act="pn">${sent ? `✔ أُبلغ ولي الأمر ${esc(agoLabel(sent.ts))}` : "💬 أبلغ ولي الأمر"}</button>` : ""}</div>`;
     }).join("");
     list.querySelectorAll(".stu").forEach(row => {
       const i = +row.dataset.i;
       row.querySelectorAll("[data-act]").forEach(b => { if (b.dataset.act === "part") bindPart(b, i); else b.onclick = () => act(b.dataset.act, i); });
     });
+    drawAbsBar();
+  }
+  /* زر تجميعي فوق القائمة: «📨 أبلغ أولياء الغائبين (٣)» — يُعاد رسمه مع كل تغيير حالة، وعدده هو
+     عدد صفوف نافذة الإبلاغ نفسها (absentNotify) فلا يختلف الرقم عمّا يراه المعلم بعد النقر. */
+  function absentIdx(cid, dt) {
+    const c = classById(cid), out = [];
+    if (!c) return out;
+    activeStudents(c).forEach(({ i }) => {
+      const e = ((DB.recs[cid] || {})[dt] || {})[i];
+      const stn = (e && e.a != null && STATES[e.a]) ? String(STATES[e.a].name || "") : "";
+      if (isAbsent(stn)) out.push(i);
+    });
+    return out;
+  }
+  function drawAbsBar() {
+    const bar = document.getElementById("reg-absbar"); if (!bar) return;
+    const n = absentIdx(regClass, regDate).length, cid = regClass, dt = regDate;
+    bar.innerHTML = n ? `<button type="button" class="absbtn" id="reg-abs">📨 أبلغ أولياء الغائبين (${n})</button>` : "";
+    const b = bar.querySelector("#reg-abs");
+    if (b) b.onclick = () => absentNotify(cid, dt, null);
   }
   /* 🙋 المشاركة: نقرة = +1 بلا سقف — نفس قاعدة الحصة الحية (applyLive) حتى لا تنهار مشاركات الحصة إلى بقية القسمة على 6.
      والتصحيح بضغطة مطوّلة (أو الزر الأيمن) تُصفّر العدّاد. */
@@ -995,8 +1284,12 @@
     const clear = () => { if (tm) { clearTimeout(tm); tm = null; } };
     const zero = () => {
       held = true; clear();
-      const e = rec(regClass, regDate, i, false);
-      if (e && e.part) { e.part = 0; pruneRec(regClass, regDate, i); save("recs:" + regClass); drawRows(); }
+      const cid = regClass, dt = regDate, e = rec(cid, dt, i, false);
+      if (e && e.part) {
+        const snap = snapRec(cid, dt, i), was = e.part, nm = firstName(classById(cid).students[i].n);
+        e.part = 0; pruneRec(cid, dt, i); save("recs:" + cid); drawRows();
+        undoReg(`🙋 صُفّر عدّاد ${nm} (كان ${was})`, cid, dt, i, snap);
+      }
     };
     b.addEventListener("pointerdown", () => { held = false; clear(); tm = setTimeout(zero, 600); });
     ["pointerup", "pointerleave", "pointercancel"].forEach(ev => b.addEventListener(ev, clear));
@@ -1008,19 +1301,27 @@
     if (what === "card") { studentCard(regClass, i); return; }
     if (what === "state") { stateSheet(i); return; }
     if (what === "beh") { behSheet(i); return; }
-    const e = rec(regClass, regDate, i, true);
-    if (what === "part") { e.part = (+e.part || 0) + 1; save("recs:" + regClass); drawRows(); }
-    else if (what === "hw") { e.hw = e.hw === null ? 1 : e.hw === 1 ? 0 : null; pruneRec(regClass, regDate, i); save("recs:" + regClass); drawRows(); }
+    if (what === "pn") { parentAlert(regClass, regDate, i); return; }
+    const cid = regClass, dt = regDate, snap = snapRec(cid, dt, i), nm = firstName(classById(cid).students[i].n);
+    const e = rec(cid, dt, i, true);
+    if (what === "part") { e.part = (+e.part || 0) + 1; save("recs:" + cid); drawRows(); undoReg(`🙋 مشاركة لـ ${nm} ${signN(W.part)}`, cid, dt, i, snap); }
+    else if (what === "hw") {
+      e.hw = e.hw === null ? 1 : e.hw === 1 ? 0 : null; pruneRec(cid, dt, i); save("recs:" + cid); drawRows();
+      undoReg(`📚 ${e.hw === 1 ? "واجب ✓ " + signN(W.hw) : e.hw === 0 ? "لم يحلّ الواجب" : "مُسح رصد الواجب"} — ${nm}`, cid, dt, i, snap);
+    }
   }
+  // تراجع عن إجراء على طالب واحد في ورقة التحضير (يُعيد الرسم فقط إن كانت الورقة نفسها ما تزال مفتوحة)
+  const undoReg = (lbl, cid, dt, i, snap) => undoBar(lbl, () => { restoreRec(cid, dt, i, snap); if (regClass === cid && regDate === dt && document.getElementById("reg-list")) drawRows(); });
   function stateSheet(i) {
     const c = classById(regClass), cur = rec(regClass, regDate, i, false) || {};
     openSheet(`<h4>${esc(c.students[i].n)} — حالة الحضور</h4><div class="stategrid">${STATES.map((s, k) => `<button style="background:${STCOLORS[k]}" class="${cur.a === k ? "sel" : ""}" data-k="${k}">${esc(s.name)} <small>(${s.pts >= 0 ? "+" : ""}${s.pts})</small></button>`).join("")}<button style="background:#c9cfd6" data-k="-1">مسح الحالة</button></div>`,
       (o) => o.querySelectorAll("[data-k]").forEach(b => b.onclick = () => {
-        const k = +b.dataset.k;
+        const k = +b.dataset.k, cid = regClass, dt = regDate, snap = snapRec(cid, dt, i), nm = firstName(classById(cid).students[i].n);
         // «مسح الحالة» يمحو السجل إن لم يبقَ فيه رصد — وإلا بقي يوماً وهمياً يخفض الحضور والدرجة التلقائية
-        if (k < 0) { const e = rec(regClass, regDate, i, false); if (e) { e.a = null; pruneRec(regClass, regDate, i); save("recs:" + regClass); } }
-        else { rec(regClass, regDate, i, true).a = k; save("recs:" + regClass); }
+        if (k < 0) { const e = rec(cid, dt, i, false); if (e) { e.a = null; pruneRec(cid, dt, i); save("recs:" + cid); } }
+        else { rec(cid, dt, i, true).a = k; save("recs:" + cid); }
         closeSheet(); drawRows();
+        undoReg(k < 0 ? `🧹 مُسحت حالة ${nm}` : `${ST_ICON(STATES[k].name || "")} ${STATES[k].name} — ${nm} ${signN(STATES[k].pts || 0)}`, cid, dt, i, snap);
       }));
   }
   /* السلوك يتكرّر: الحصة الحية تسجّل «مميز» في كل مرة (beh=[3,3,3] أي ثلاث نقاط).
@@ -1031,41 +1332,54 @@
     const orig = (cur.beh || []).slice(), cnt = {};
     orig.forEach(k => cnt[k] = (cnt[k] || 0) + 1);
     const sel = new Set(orig), rep = Object.keys(cnt).some(k => cnt[k] > 1);
-    openSheet(`<h4>${esc(c.students[i].n)} — السلوك والتقييم</h4><div class="behgrid">${BEH.map((b, k) => `<button data-k="${k}" class="${sel.has(k) ? "sel" : ""}">${esc(b.name)}${cnt[k] > 1 ? `<span class="x">×${cnt[k]}</span>` : ""} <span class="p ${b.pts >= 0 ? "pos" : "neg"}">${b.pts >= 0 ? "+" : ""}${b.pts}</span></button>`).join("")}</div>${rep ? `<div class="empty-note" style="padding:2px 4px 6px;text-align:right;font-size:12px">×العدد = مرات رُصدت في الحصة الحية، وتبقى كما هي بعد الحفظ.</div>` : ""}<textarea class="note" id="bh-note" rows="2" placeholder="ملاحظة (اختياري)…">${esc(cur.note || "")}</textarea><div class="sheet-actions"><button class="btn-plain" id="bh-x">إغلاق</button><button class="btn-primary" id="bh-ok">حفظ</button></div>`,
+    openSheet(`<h4>${esc(c.students[i].n)} — السلوك والتقييم</h4><div class="behgrid">${BEH.map((b, k) => `<button data-k="${k}" class="${sel.has(k) ? "sel" : ""}">${esc(b.name)}${cnt[k] > 1 ? `<span class="x">×${cnt[k]}</span>` : ""} <span class="p ${b.pts >= 0 ? "pos" : "neg"}">${b.pts >= 0 ? "+" : ""}${b.pts}</span></button>`).join("")}</div>${rep ? `<div class="empty-note" style="padding:2px 4px 6px;text-align:right;font-size:12px">×العدد = مرات رُصدت في الحصة الحية، وتبقى كما هي بعد الحفظ.</div>` : ""}<textarea class="note" id="bh-note" rows="2" placeholder="ملاحظة (اختياري)…">${esc(cur.note || "")}</textarea><div class="sheet-actions"><button class="btn-plain" id="bh-x">إغلاق</button><button class="btn-primary" id="bh-ok">تم</button></div>`,
       (o) => {
         o.querySelectorAll("[data-k]").forEach(b => b.onclick = () => { const k = +b.dataset.k; if (sel.has(k)) sel.delete(k); else sel.add(k); b.classList.toggle("sel"); });
         o.querySelector("#bh-x").onclick = closeSheet;
         o.querySelector("#bh-ok").onclick = () => {
           const note = o.querySelector("#bh-note").value.trim();
+          const cid = regClass, dt = regDate, snap = snapRec(cid, dt, i), nm = firstName(c.students[i].n);
           const kept = orig.filter(k => sel.has(k));                       // التكرارات محفوظة بترتيبها
-          sel.forEach(k => { if (orig.indexOf(k) < 0) kept.push(k); });    // ما أضافه المعلم الآن: مرة واحدة
-          if (rec(regClass, regDate, i, false) || kept.length || note) {
-            const e = rec(regClass, regDate, i, true);
+          const added = [];
+          sel.forEach(k => { if (orig.indexOf(k) < 0) { kept.push(k); added.push(k); } });    // ما أضافه المعلم الآن: مرة واحدة
+          if (rec(cid, dt, i, false) || kept.length || note) {
+            const e = rec(cid, dt, i, true);
             e.beh = kept; e.note = note;
-            pruneRec(regClass, regDate, i);
-            save("recs:" + regClass);
+            pruneRec(cid, dt, i);
+            save("recs:" + cid);
           }
           closeSheet(); drawRows();
+          const chg = added.length || kept.length !== orig.length || note !== String(cur.note || "");
+          if (chg) {
+            const one = added.length === 1 ? BEH[added[0]] : null;
+            undoReg(one ? `${(+one.pts || 0) < 0 ? "⚠" : "⭐"} ${one.name} لـ ${nm} ${signN(one.pts || 0)}` : `⭐ تعديل سلوك ${nm}`, cid, dt, i, snap);
+          }
         };
       });
   }
 
   /* ═══ الدرجات ═══ */
-  let grClass = null;
+  let grClass = null, grOne = false, grCol = null;
   function renderGrades() {
     const box = $("#tab-grades"), cls = myClasses();
     if (!cls.length) { box.innerHTML = '<div class="empty-note">لا فصول مسندة</div>'; return; }
     if (!grClass || !cls.find(c => c.id === grClass)) grClass = cls[0].id;
+    if (!grCol || !ASSESS.some(a => a.k === grCol)) grCol = (ASSESS[0] || {}).k;
+    /* «وضع العمود الواحد»: أحد عشر عموداً بعرض ~٨٧٣px داخل حاوية ~٣٤٢px — يختار المعلم بند التقييم
+       فتصير الشاشة اسماً وحقلاً واحداً لكل صف بلا تمرير أفقي، وينتقل التركيز إلى الطالب التالي. */
+    const one = !!(grOne && grCol), aOne = one ? ASSESS.find(a => a.k === grCol) : null;
     const c = classById(grClass); const maxTot = ASSESS.reduce((s, a) => s + a.max, 0);
+    const act = activeStudents(c);
     box.innerHTML = `<div class="class-chips">${cls.map(x => `<button class="chip ${x.id === grClass ? "on" : ""}" data-c="${x.id}">${esc(x.name)}</button>`).join("")}</div>
       <div class="card" style="padding:8px"><h3 style="margin:4px 6px 8px"><span class="dot"></span>رصد درجات ${esc(c.name)} — ${esc(TE.subject)}
         <button class="btn-gold no-print" style="margin-inline-start:auto" id="gr-print">🖨️ طباعة</button></h3>
         <div class="rep-head"><div class="rt">كشف درجات — ${esc(c.name)}</div><div class="rs">${esc(META.school.name)} — ${esc(TE.name)} — ${esc(TE.subject)}</div></div>
-        <div class="table-scroll"><table class="grade-table" id="gr-table">
-          <tr><th>م</th><th style="min-width:120px">الطالب</th>${ASSESS.map(a => `<th>${esc(a.n)}<br>(${a.max})</th>`).join("")}<th>المجموع<br><small>(من المرصود)</small></th><th>التقدير</th></tr>
-          ${activeStudents(c).map(({ s, i }, k) => grRow(i, s, maxTot, k + 1)).join("")}
+        <div class="gr-mode no-print"><button type="button" class="btn-soft${one ? " on" : ""}" id="gr-mode">${one ? "📋 كل البنود" : "📱 وضع عمود واحد"}</button>${one ? `<select id="gr-col" title="بند التقييم">${ASSESS.map(a => `<option value="${esc(a.k)}"${a.k === grCol ? " selected" : ""}>${esc(a.n)} (${a.max})</option>`).join("")}</select>` : `<span style="color:var(--muted);font-size:12.5px">عمودا «م» و«الطالب» مثبّتان عند التمرير</span>`}</div>
+        <div class="table-scroll"><table class="grade-table${one ? " gr1" : ""}" id="gr-table">
+          ${one ? `<tr><th>م</th><th style="min-width:120px">الطالب</th><th>${esc(aOne.n)}<br>(${aOne.max})</th></tr>` : `<tr><th>م</th><th style="min-width:120px">الطالب</th>${ASSESS.map(a => `<th>${esc(a.n)}<br>(${a.max})</th>`).join("")}<th>المجموع<br><small>(من المرصود)</small></th><th>التقدير</th></tr>`}
+          ${act.map(({ s, i }, k) => one ? gr1Row(i, s, k + 1, aOne) : grRow(i, s, maxTot, k + 1)).join("")}
         </table></div></div>
-      <div class="empty-note" style="padding:6px 10px;text-align:right">الخلايا الرمادية تُحسب تلقائياً ولحظياً من التحضير اليومي (الحضور والمشاركة، السلوك) ومن الواجبات والأوراق التفاعلية المصحَّحة، وتتغير مع كل رصد. اكتب درجة لتعديلها يدوياً، وامسحها لتعود تلقائية. مرّر على الخلية لترى طريقة الحساب.</div>
+      <div class="empty-note" style="padding:6px 10px;text-align:right">${one ? "اكتب الدرجة وينتقل التركيز تلقائياً إلى الطالب التالي (أو بزر ⏎ والسهمين ↑↓). الخانة الرمادية درجة محسوبة تلقائياً، واكتب فوقها لتصير يدوية، وامسحها لتعود تلقائية." : "الخلايا الرمادية تُحسب تلقائياً ولحظياً من التحضير اليومي (الحضور والمشاركة، السلوك) ومن الواجبات والأوراق التفاعلية المصحَّحة، وتتغير مع كل رصد. اكتب درجة لتعديلها يدوياً، وامسحها لتعود تلقائية. مرّر على الخلية لترى طريقة الحساب."}</div>
       <div class="card" id="gr-analysis"></div>`;
     if (CLOUD && !(SUBS[grClass] && Date.now() - SUBS[grClass].ts < 60000)) { const want = grClass; loadSubs(want).then(() => { if (grClass === want && !$("#tab-grades").classList.contains("hidden")) renderGrades(); }); }
     box.querySelectorAll(".chip").forEach(ch => ch.onclick = () => { grClass = ch.dataset.c; renderGrades(); });
@@ -1078,12 +1392,29 @@
       inp.classList.toggle("auto", !has && au.v[k] != null);
       inp.title = has ? "درجة يدوية" : (au.why[k] || "");
       const gp = gradePct(grClass, i), lv = gp == null ? null : levelOf(gp);
-      inp.closest("tr").querySelector(".tot").textContent = gp == null ? "—" : gradeTotal(grClass, i) + " / " + gradedMax(grClass, i);
-      const lc = inp.closest("tr").querySelector(".lvlcell"); lc.innerHTML = lv ? `<span class="lvl lvl${lv.i}">${lv.t}</span>` : '<span style="color:#bbb">—</span>';
+      // في «وضع العمود الواحد» لا خليتا مجموع وتقدير في الصف — لا يجوز أن ينفجر الرصد لأجل خلية عرض
+      const tr = inp.closest("tr"), tc = tr && tr.querySelector(".tot"), lc = tr && tr.querySelector(".lvlcell");
+      if (tc) tc.textContent = gp == null ? "—" : gradeTotal(grClass, i) + " / " + gradedMax(grClass, i);
+      if (lc) lc.innerHTML = lv ? `<span class="lvl lvl${lv.i}">${lv.t}</span>` : '<span style="color:#bbb">—</span>';
       save("grades:" + grClass); drawAnalysis(maxTot);
     };
-    box.querySelectorAll(".gr-in").forEach(inp => {
+    /* التنقّل بالعمود لا بالصف: ⏎ و↓ ينقلان إلى الطالب التالي في البند نفسه (لا إلى البند التالي
+       للطالب نفسه) — وهذا هو ترتيب الرصد الحقيقي: بند واحد على كل الفصل. */
+    const ins = [...box.querySelectorAll(".gr-in")];
+    const hop = (el, d) => {
+      const col = ins.filter(x => x.dataset.k === el.dataset.k), t = col[col.indexOf(el) + d];
+      if (!t) return false;
+      try { t.focus(); t.select(); } catch (e) { }
+      try { t.scrollIntoView({ block: "center" }); } catch (e) { }
+      return true;
+    };
+    ins.forEach(inp => {
       const i = +inp.dataset.i, k = inp.dataset.k, a = ASSESS.find(x => x.k === k);
+      inp.onfocus = () => { const tr = inp.closest("tr"); box.querySelectorAll("tr.focused").forEach(x => x.classList.remove("focused")); if (tr) tr.classList.add("focused"); };
+      inp.onkeydown = (e) => {
+        if (e.key === "Enter" || e.key === "ArrowDown") { e.preventDefault(); hop(inp, 1); }
+        else if (e.key === "ArrowUp") { e.preventDefault(); hop(inp, -1); }
+      };
       inp.oninput = () => {
         DB.grades[grClass] = DB.grades[grClass] || {}; DB.grades[grClass][i] = DB.grades[grClass][i] || {};
         // ٠١٢… و۰۱۲… أرقام يكتبها جوال المعلم افتراضياً: كانت +value تعطي NaN فتُمسح الدرجة
@@ -1092,6 +1423,8 @@
         if (v === "" || num == null || !isFinite(num)) { delete DB.grades[grClass][i][k]; inp.classList.toggle("bad", v !== ""); }
         else { DB.grades[grClass][i][k] = Math.max(0, Math.min(num, a.max)); inp.classList.remove("bad"); }
         grSync(inp, i, k);
+        // وضع العمود الواحد: رقمٌ لا يقبل خانة أخرى (٣ في بند سقفه ١٥) ⇒ الطالب التالي بلا نقرة
+        if (one && v !== "" && num != null && isFinite(num) && num * 10 > a.max) hop(inp, 1);
       };
       inp.onblur = () => {
         const cur = ((DB.grades[grClass] || {})[i] || {})[k], want = cur != null ? String(cur) : "";
@@ -1101,8 +1434,20 @@
         grSync(inp, i, k);
       };
     });
+    const gm = box.querySelector("#gr-mode"); if (gm) gm.onclick = () => { grOne = !grOne; renderGrades(); };
+    const gc = box.querySelector("#gr-col"); if (gc) gc.onchange = () => { grCol = gc.value; renderGrades(); };
+    /* ظلّ خفيف على العمود المثبّت عند التمرير الأفقي (scrollLeft سالب في RTL) — بلا الظلّ لا يُدرك
+       المعلم أن هناك أعمدة خلف الاسم. */
+    const sc = box.querySelector(".table-scroll");
+    if (sc) { const upd = () => sc.classList.toggle("sx", Math.abs(sc.scrollLeft) > 2); sc.addEventListener("scroll", upd, { passive: true }); upd(); }
     $("#gr-print").onclick = () => printGrades(grClass);
     drawAnalysis(maxTot);
+  }
+  // صف «وضع العمود الواحد»: م + الاسم + حقل واحد — ثلاثة أعمدة تسع الشاشة بلا تمرير أفقي
+  function gr1Row(i, s, n, a) {
+    const g = (DB.grades[grClass] || {})[i] || {}, au = autoGrade(grClass, i);
+    const auto = g[a.k] == null && au.v[a.k] != null;
+    return `<tr><td>${n}</td><td class="nm">${esc(s.n)}</td><td class="gcell"><input class="gr-in${auto ? " auto" : ""}" data-i="${i}" data-k="${esc(a.k)}" inputmode="numeric" value="${g[a.k] != null ? g[a.k] : ""}" placeholder="${auto ? au.v[a.k] : ""}" title="${esc(g[a.k] != null ? "درجة يدوية" : (au.why[a.k] || ""))}"></td></tr>`;
   }
   function printGrades(cid) {
     const c = classById(cid), maxTot = ASSESS.reduce((a, b) => a + b.max, 0);
@@ -1242,6 +1587,7 @@
         <div id="sc-comms" style="margin-top:6px">${comms.length ? comms.map(x => `<div class="comm-item"><span class="tag">${esc(x.why)}</span> ${esc(x.note || "")}<div class="meta">${esc(x.via)} — ${esc(x.date)}</div></div>`).join("") : '<div class="empty-note" style="padding:10px">لا مراسلات مسجلة</div>'}</div></div>
       <a class="wa-btn ${phone ? "" : "off"}" id="sc-wa" target="_blank" rel="noopener" href="https://wa.me/${phone}?text=${waTxt}">💬 واتساب ولي الأمر${phone ? "" : " (لا رقم مسجل)"}</a>
       <div class="empty-note" style="padding:4px 2px 0;text-align:right;font-size:12px">تُرسل رسالة كاملة (الحضور، المشاركة، الواجبات، السلوك، النقاط، الدرجات، التوصية) وتُسجَّل في سجل التواصل تلقائياً.</div>
+      ${phone ? "" : askPhoneHtml(cid, i, "sc")}
       <div class="sheet-actions" style="flex-wrap:wrap">
         <button class="btn-plain" style="flex:1 1 46%" id="sc-report">📄 تقرير للطباعة</button>
         <button class="btn-plain" style="flex:1 1 46%" id="sc-letter">✉️ إشعار ولي الأمر</button>
@@ -1250,6 +1596,9 @@
         <button class="btn-primary" style="flex:1 1 100%" onclick="window._sheetClose()">إغلاق</button></div>`,
       (o) => {
         o.querySelector("#sc-addcomm").onclick = () => commSheet(cid, i);
+        /* الباب كان مغلقاً بلا لافتة: المعلم هو من يعرف رقم ولي الأمر ولا يستطيع حفظه (التعديل محصور
+           في لوحة المدير)، فيخرج من «سجلي» ويرسل من جواله الشخصي فلا يبقى أثر. */
+        bindAskPhone(o, cid, i, "sc", () => setTimeout(() => { if (cardOpen(i)) studentCard(cid, i); }, 1200));
         const fb = o.querySelector("#sc-files");
         if (fb) fb.onclick = () => filesSheet("📎 أدلة وأعمال — " + s.n, "student", { c: cid, i },
           "صور أعمال الطالب وأوراقه — تُرسل روابطها مع رسالة ولي الأمر.",
@@ -1296,7 +1645,12 @@
         };
       });
   }
-  const PRINT_CSS = `@import url('https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800&display=swap');
+  /* خطّ الطباعة يُحمَّل بوسم link في آخر المستند لا بـ@import داخل <style> في رأسه:
+     ورقة نمطٍ في الرأس تحجب تنفيذ كل سكربت بعدها حتى تُحسم، وشبكةُ مدرسةٍ تبتلع طلب
+     fonts.googleapis تُبقي المستند في «loading» فلا يُنفَّذ سكربت الملاءمة ولا تُنادى
+     print() أبداً — نافذة بيضاء بلا حوار طباعة ولا رسالة. */
+  const PRINT_FONT = "https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800&display=swap";
+  const PRINT_CSS = `
     @page{size:A4;margin:10mm}
     *{box-sizing:border-box}html,body{margin:0;padding:0;background:#fff}body{font-family:'Tajawal',Arial,sans-serif;color:#1B2A3A;padding:4px;overflow:hidden}
     .frame{border:3px solid #D7A93F;border-radius:14px;padding:22px 26px;position:relative;page-break-inside:avoid}
@@ -1370,9 +1724,21 @@
     const cls = (opts && opts.cls) ? " " + opts.cls : "";
     const appLink = (opts && opts.appCss) ? (() => { const l = document.querySelector('link[href*="css/app.css"]'); return l ? `<link rel="stylesheet" href="${l.href}">` : ""; })() : "";
     // ملاءمة المحتوى لصفحة A4 واحدة: القياس بعد تحميل الخطوط، ثم تصغير متناسب إن لزم، والإطار يملأ الصفحة
-    const fit = `(function(){var avail=Math.floor(${land ? 190 : 277}*3.7795)-10;function go(){var f=document.querySelector('.frame');if(!f)return print();var h=f.getBoundingClientRect().height;var s=Math.min(1,avail/h);if(s<0.995){f.style.width=(100/s)+'%';f.style.transformOrigin='top right';f.style.transform='scale('+s+')';}f.style.minHeight=Math.floor(avail/s)+'px';document.body.style.height=avail+'px';document.documentElement.style.height=avail+'px';document.documentElement.style.overflow='hidden';document.body.setAttribute('data-fit',s.toFixed(3));setTimeout(function(){print();},250);}var done=false;function once(){if(done)return;done=true;go();}if(document.fonts&&document.fonts.ready){document.fonts.ready.then(function(){setTimeout(once,120);});}setTimeout(once,1400);})();`;
-    w.document.write(`<!DOCTYPE html><html dir="rtl" lang="ar"><head><meta charset="utf-8"><title>${esc(title)}</title>${appLink}<style>${PRINT_CSS}html,body{width:${land ? 277 : 190}mm}${land ? "@page{size:A4 landscape;margin:10mm}" : ""}</style></head><body><div class="frame${cls}">${bodyHtml}</div><script>onload=function(){${fit}}<\/script></body></html>`);
+    /* التهيئة كانت معلَّقة على حدث load وحده. أي مورد لا يُحسم — خطوط Google على شبكة مدرسة
+       تبتلع الطلب — يُبقي المستند في «loading» فلا تُنادى print() أبداً: نافذة بيضاء بلا حوار طباعة
+       ولا رسالة. الآن الدالة مُسمّاة ومحروسة بعلَم، وتُنادى من load ومن مؤقّت احتياطي معاً. */
+    const fit = `function __fit(){if(window.__fitRan)return;window.__fitRan=1;var avail=Math.floor(${land ? 190 : 277}*3.7795)-10;function go(){var f=document.querySelector('.frame');if(!f)return print();var h=f.getBoundingClientRect().height;var s=Math.min(1,avail/h);if(s<0.995){f.style.width=(100/s)+'%';f.style.transformOrigin='top right';f.style.transform='scale('+s+')';}f.style.minHeight=Math.floor(avail/s)+'px';document.body.style.height=avail+'px';document.documentElement.style.height=avail+'px';document.documentElement.style.overflow='hidden';document.body.setAttribute('data-fit',s.toFixed(3));setTimeout(function(){print();},250);}var done=false;function once(){if(done)return;done=true;go();}if(document.fonts&&document.fonts.ready){document.fonts.ready.then(function(){setTimeout(once,120);});}setTimeout(once,1400);}`;
+    w.document.write(`<!DOCTYPE html><html dir="rtl" lang="ar"><head><meta charset="utf-8"><title>${esc(title)}</title>${appLink}<style>${PRINT_CSS}html,body{width:${land ? 277 : 190}mm}${land ? "@page{size:A4 landscape;margin:10mm}" : ""}</style></head><body><div class="frame${cls}">${bodyHtml}</div><script>${fit}if(document.readyState==='complete')__fit();else{addEventListener('load',__fit);setTimeout(__fit,2600);}<\/script><link rel="stylesheet" href="${PRINT_FONT}"></body></html>`);
     w.document.close();
+    /* حارس من النافذة الأم: إن بقي المستند محجوباً فلم يُنفَّذ سكربته أصلاً، اطبع كما هو
+       بعد ثلاث ثوانٍ ونصف. __fitRan يُضبط أولاً فلا يُطبع مرتين إن استيقظ السكربت متأخراً. */
+    setTimeout(() => {
+      try {
+        if (w.closed || w.__fitRan) return;
+        if (typeof w.__fit === "function") { w.__fit(); return; }
+        w.__fitRan = 1; w.focus(); w.print();
+      } catch (e) { }
+    }, 3500);
   }
   /* صيغ العدد العربية في المطبوعات (كما في js/ics.js): «9 نقاط» لا «9 نقطة»، و«غيابين» لا «2 غياب» */
   function cntAr(n, one, two, few, many) {
@@ -1524,6 +1890,9 @@
     const F = FILES(); if (!F || !box) return;
     const wrap = document.createElement("div"); wrap.className = "rl-files";
     box.appendChild(wrap);
+    // حذفُ ملف من أي شاشة أخرى يجب أن يُسقط بطاقته من هنا فوراً
+    const onChg = () => { if (wrap.isConnected) paint(); else window.removeEventListener("sijil:files", onChg); };
+    window.addEventListener("sijil:files", onChg);
     const paint = async () => {
       let arr = [];
       try { arr = await F.list("lesson", { code, wk }); } catch (e) { arr = []; }
@@ -1951,19 +2320,27 @@
     if (k < 0) k = BEH.findIndex(b => positive ? (+b.pts > 0) : (+b.pts < 0));
     return k;
   };
-  let liveCid = null, livePrevTop = null, liveDate = null;
+  let liveCid = null, livePrevTop = null, liveDate = null, liveLesson = "";
   let liveTurns = { done: new Set(), cur: null };   // من شارك في هذه الحصة (لضمان مشاركة الجميع)
-  function pickClassThen(cb) {
-    const cls = myClasses();
+  /* نافذة اختيار الفصل: الفصل الجاري (أو القادم) في الأعلى بحجم مضاعف ووقته تحته، وبقية
+     الفصول شبكةً كما كانت — فلا يبحث المعلم بصرياً في ثمانِ شرائح متشابهة وسط الحصة. */
+  function pickClassThen(cb, list, title) {
+    const cls = (list && list.length) ? list : myClasses();
     if (!cls.length) { alert("لا فصول مسندة"); return; }
     if (cls.length === 1) { cb(cls[0].id); return; }
-    openSheet(`<h4>اختر الفصل</h4><div class="stategrid">${cls.map(c => `<button style="background:var(--navy)" data-c="${c.id}">${esc(c.name)}</button>`).join("")}</div>`,
+    const S = currentOrNextClass(), B = BELL();
+    const now = cls.find(c => c.id === S.cid) || null;
+    const nx = !now && S.next ? (cls.find(c => c.id === S.next.cid) || null) : null;
+    const lead = now || nx;
+    const rest = lead ? cls.filter(c => c.id !== lead.id) : cls;
+    const head = lead ? `<button class="picknow" data-c="${esc(lead.id)}"><b>${esc(lead.name)}</b><small>${now ? `🔔 الآن — الحصة ${esc(B.ord(S.p))} (${esc(B.periodTime(S.p, S.day))})` : `⏰ القادمة — ح${S.next.p} ${esc(B.hm(S.next.from))}`}</small></button>` : "";
+    openSheet(`<h4>${esc(title || "اختر الفصل")}</h4>${head}${rest.length ? `<div class="stategrid">${rest.map(c => `<button style="background:var(--navy)" data-c="${c.id}">${esc(c.name)}</button>`).join("")}</div>` : ""}`,
       (o) => o.querySelectorAll("[data-c]").forEach(b => b.onclick = () => { closeSheet(); cb(b.dataset.c); }));
   }
   function liveSession(cid, initialView, date) {
     stopBell();
     // التاريخ يأتي من ورقة التحضير حين تُفتح الحصة منها (استدراك يوم فائت)، وإلا فاليوم
-    liveCid = cid; liveDate = /^\d{4}-\d{2}-\d{2}$/.test(String(date || "")) ? String(date) : todayISO();
+    liveCid = cid; liveDate = /^\d{4}-\d{2}-\d{2}$/.test(String(date || "")) ? String(date) : todayISO(); liveLesson = "";
     livePrevTop = null; liveTurns = { done: new Set(), cur: null };
     const c = classById(cid), pastDay = liveDate !== todayISO();
     $("#view-app").classList.add("hidden");
@@ -1994,21 +2371,15 @@
             <button data-v="story">🎬 قصة الدرس</button>
             <button data-v="games">🎮 ألعاب</button>
             <button data-v="yt">📺 يوتيوب</button>
+            <button data-v="files">📎 مرفقات</button>
           </div>
           <div class="live-main" id="live-main"></div>
+          <!-- إطار يوتيوب يعيش هنا ولا يُهدم عند تبديل المحطة، فيُكمل من موضعه عند العودة -->
+          <div class="live-main" id="yt-keep" style="display:none"></div>
         </div>
         <div class="live-board" id="live-board"></div>
       </div>`;
-    $("#live-exit").onclick = () => {
-      timerReset(); stopStory(); stopGame(); stopWheel(); closeLiveBox();
-      /* إخفاء #view-live وحده كان يترك إطار يوتيوب حيّاً في الشجرة: صوتٌ يعمل بلا مشغّل ظاهر
-         ولا وسيلة لإيقافه إلا إعادة تحميل الصفحة. وbump للتسلسل يوقف أي كتابة متأخرة من محطة كانت تنتظر الشبكة. */
-      liveViewSeq++;
-      const lm = $("#live-main"); if (lm) lm.innerHTML = "";
-      try { if (document.fullscreenElement) document.exitFullscreen(); } catch (e) { }
-      V.classList.add("hidden"); $("#view-app").classList.remove("hidden");
-      renderReg(); renderToday(); renderGrades();
-    };
+    $("#live-exit").onclick = () => endLiveSession(V);
     $("#live-fs").onclick = () => {
       const d = document, el = V;
       const isFS = d.fullscreenElement || d.webkitFullscreenElement || d.mozFullScreenElement || d.msFullscreenElement;
@@ -2028,13 +2399,19 @@
       liveView(b.dataset.v);
     });
     // وقت الحصة الجارية في عنوان الحصة الحية (من جدول أجراس المدرسة)
-    const LB0 = BELL(), lp = LB0.periodNow(), lbr = lp ? null : LB0.breakNow();
+    /* الوقت في العنوان يتبع حصةَ هذا الفصل في جدول اليوم، لا الحصةَ الجارية في جرس المدرسة:
+       زر «افتح الحصة القادمة» في خلاصة الحصة يفتح فصل ح3 وأنت ما زلت داخل ح2،
+       فكان العنوان يقول «الحصة الثانية» على فصلٍ حصته الثالثة. */
+    const LB0 = BELL(), S0 = pastDay ? null : currentOrNextClass();
+    const own = S0 ? ((S0.st === "now" && S0.cid === cid) ? S0.p : (((S0.rows || []).filter(r => r.cid === cid && r.from != null)[0] || {}).p || 0)) : 0;
+    const lp = own || LB0.periodNow(), lbr = lp ? null : LB0.breakNow();
     const when = lp ? `· الحصة ${LB0.ord(lp)} (${LB0.periodTime(lp)}) ` : (lbr ? `· ${lbr.n} (تنتهي ${lbr.ends}) ` : "");
     const sub0 = $("#live-sub"); if (sub0) sub0.textContent = when.trim();
     (async () => {
       const sc = subjCode(TE.subject), wk = curWeek();
       let les = "";
       if (sc) { const rows = (await loadCurr(sc + c.gc + TERM)).filter(r => r.w === wk); const m = rows.find(r => r.lesson && !String(r.lesson).includes("تابع")) || rows[0]; les = m ? m.lesson : ""; }
+      liveLesson = les || "";   // يُقرأ في خلاصة الحصة عند الإنهاء («الدرس: كذا»)
       const sub = $("#live-sub"); if (sub) sub.textContent = when + "· الأسبوع " + wk + (les ? " · " + les : "");
     })();
     const startView = initialView || "roster";
@@ -2047,10 +2424,23 @@
      على شبكة المدرسة البطيئة قد يكون المعلم قد انتقل إلى «الطلاب» قبل وصول الملف، فتخطف المحطة المتأخرة
      الشاشةَ بينما يُبرز شريط الأدوات محطةً أخرى. liveFresh(seq) يوقف كل كتابة متأخرة. */
   const liveFresh = (seq) => seq === liveViewSeq && !!$("#live-main");
+  /* ── يوتيوب: إطار واحد يعيش في #yt-keep طوال الحصة ──
+     تبديل المحطة يُخفيه ويوقفه مؤقتاً (postMessage) بدل هدمه، فيُكمل من الثانية نفسها عند العودة.
+     إعادة بنائه لا تقع إلا عند تغيير الرابط أو إنهاء الحصة. */
+  let ytUrlNow = "";
+  function ytCmd(func) {
+    try {
+      const fr = $("#yt-keep iframe");
+      if (fr && fr.contentWindow) fr.contentWindow.postMessage(JSON.stringify({ event: "command", func: func, args: [] }), "*");
+    } catch (e) { }
+  }
+  function ytHide() { const k = $("#yt-keep"); if (!k) return; if (k.style.display !== "none") ytCmd("pauseVideo"); k.style.display = "none"; const lm = $("#live-main"); if (lm) lm.style.display = ""; }
+  function ytDrop() { ytUrlNow = ""; const k = $("#yt-keep"); if (k) { k.innerHTML = ""; k.style.display = "none"; } const lm = $("#live-main"); if (lm) lm.style.display = ""; }
   async function liveView(v) {
     liveMainView = v;
     const seq = ++liveViewSeq;
     stopStory(); stopGame(); stopWheel();   // المؤقّت لا يُوقَف هنا: نشاط الطلاب يستمر بينما يعرض المعلم قائمةً أو سؤالاً
+    if (v !== "yt") ytHide();
     const box = $("#live-main"); if (!box) return;
     const c = classById(liveCid), sc = subjCode(TE.subject), wk = curWeek(), code = sc + c.gc + TERM;
     if (v === "roster") { drawLiveRoster(); return; }
@@ -2069,6 +2459,7 @@
       return;
     }
     if (v === "yt") { stageYouTube(box, code, wk, c, seq); return; }
+    if (v === "files") { stageFiles(box, code, wk, c, seq); return; }
     if (v === "story") { stageStory(box, code, wk, seq); return; }
     if (v === "wheel") { stageWheel(box, c); return; }
     if (v === "quiz") { stageQuiz(box, code, wk, seq); return; }
@@ -2113,9 +2504,10 @@
   const ytId = (u) => { const m = String(u || "").match(/(?:v=|youtu\.be\/|embed\/|shorts\/)([\w-]{11})/) || (String(u).length === 11 ? [0, u] : null); return m ? m[1] : ""; };
   function ytEmbedSrc(url) {
     const vid = ytId(url); const lm = String(url).match(/[?&]list=([\w-]+)/); const list = lm ? lm[1] : "";
-    if (vid && list) return "https://www.youtube.com/embed/" + vid + "?rel=0&modestbranding=1&list=" + list;
-    if (vid) return "https://www.youtube.com/embed/" + vid + "?rel=0&modestbranding=1";
-    if (list) return "https://www.youtube.com/embed/videoseries?list=" + list;
+    const api = "&enablejsapi=1&playsinline=1";   // للتحكم بالإيقاف المؤقت عبر postMessage عند مغادرة المحطة
+    if (vid && list) return "https://www.youtube.com/embed/" + vid + "?rel=0&modestbranding=1&list=" + list + api;
+    if (vid) return "https://www.youtube.com/embed/" + vid + "?rel=0&modestbranding=1" + api;
+    if (list) return "https://www.youtube.com/embed/videoseries?list=" + list + api;
     return "";
   }
   async function stageYouTube(box, code, wk, c, seq) {
@@ -2133,7 +2525,15 @@
     const frame = (src) => `<iframe id="yt-frame" src="${src}" allow="autoplay; fullscreen" allowfullscreen style="flex:1;width:100%;border:0"></iframe>`;
     const placeholder = `<div id="yt-frame" style="flex:1;display:flex;align-items:center;justify-content:center;color:#c9d5e3;text-align:center;padding:20px">اضغط «🔎 بحث» لإيجاد شرح «${esc(les)}» في يوتيوب، ثم الصق رابط الفيديو هنا — وسيُحفظ للدرس ويظهر تلقائياً في كل مرة.</div>`;
     const src0 = saved ? ytEmbedSrc(saved) : "";
-    box.innerHTML = `<div class="live-stage">
+    const keep = $("#yt-keep");
+    // عودة إلى المحطة والإطار قائم بالرابط نفسه: أظهره وأكمل من موضعه بلا إعادة بناء
+    if (keep && ytUrlNow && ytUrlNow === (saved || "") && keep.querySelector("iframe")) {
+      box.style.display = "none"; keep.style.display = ""; ytCmd("playVideo"); return;
+    }
+    const host = keep || box;
+    if (keep) { box.style.display = "none"; keep.style.display = ""; }
+    ytUrlNow = saved || "";
+    host.innerHTML = `<div class="live-stage">
       <div class="stage-bar">
         <span style="color:#fff;font-weight:800">📺 ${esc(les || "فيديو الدرس")}</span>
         <input id="yt-url" placeholder="الصق رابط فيديو أو قائمة…" style="margin-inline-start:auto" value="${esc(saved || "")}">
@@ -2143,17 +2543,165 @@
       ${src0 ? frame(src0) : placeholder}
     </div>`;
     const show = () => {
-      const url = box.querySelector("#yt-url").value.trim();
+      const url = host.querySelector("#yt-url").value.trim();
       const src = ytEmbedSrc(url);
-      const fr = box.querySelector("#yt-frame");
+      const fr = host.querySelector("#yt-frame");
       if (!src) { if (fr) fr.textContent = "رابط غير صحيح — انسخ رابط الفيديو من يوتيوب"; return; }
       if (fr) fr.outerHTML = frame(src);
+      ytUrlNow = url;
       // احفظ الرابط للدرس (يظهر تلقائياً لك ولزملائك لاحقاً)
       try { localStorage.setItem("yt:" + key, url); } catch (e) { }
       try { if (CLOUD && fdb) fdb.doc("lessonyt/" + key).set({ url: url, tn: TE.name, ts: Date.now() }, { merge: true }); } catch (e) { }
     };
-    box.querySelector("#yt-go").onclick = show;
-    box.querySelector("#yt-url").addEventListener("keydown", (e) => { if (e.key === "Enter") show(); });
+    host.querySelector("#yt-go").onclick = show;
+    host.querySelector("#yt-url").addEventListener("keydown", (e) => { if (e.key === "Enter") show(); });
+  }
+  /* ═══ 📎 محطة المرفقات: المرفق ملء المسرح، وفوقه سبورة شفافة ═══
+     المعلم يعرض ورقة أو صورة من جهازه ويكتب عليها أمام الفصل: قلم بأربعة ألوان وثلاثة سماكات،
+     وتظليل، وممحاة، ومربع نص يُكتب في أي موضع، وتراجع ومسح، وحفظ الصورة المشروحة في مرفقات الدرس.
+     الإحداثيات محفوظة كنِسَب (0..1) فلا يفسد الرسم عند تدوير الجوال أو ملء الشاشة. */
+  let anState = null;
+  async function stageFiles(box, code, wk, c, seq) {
+    const F = (typeof FILES === "function") ? FILES() : (window.SIJIL_FILES || null);
+    if (!F) { box.innerHTML = `<div class="empty-note" style="color:#c9d5e3">المرفقات غير متاحة في هذه النسخة</div>`; return; }
+    let scope = (anState && anState.scope) || "lesson";
+    async function paint() {
+      box.innerHTML = `<div class="live-stage">
+        <div class="stage-bar"><span style="color:#fff;font-weight:800">📎 مرفقات الدرس</span>
+          <span class="gm-hud" style="margin-inline-start:auto">اضغط المرفق ليُعرض ملء الشاشة وتكتب عليه</span></div>
+        <div class="gm-body"><div class="gm-pickrow">
+          <button class="live-btn fl-sc${scope === "lesson" ? " on" : ""}" data-s="lesson">📘 مرفقات الدرس</button>
+          <button class="live-btn fl-sc${scope === "school" ? " on" : ""}" data-s="school">🗂️ مكتبة المدرسة</button>
+          <button class="live-btn" id="fl-add">＋ إضافة مرفق</button></div>
+        <div id="fl-list" class="fl-grid"><div class="empty-note" style="color:#c9d5e3">جارِ التحميل…</div></div></div></div>`;
+      box.querySelectorAll(".fl-sc").forEach(b => b.onclick = () => { scope = b.dataset.s; paint(); });
+      const add = box.querySelector("#fl-add");
+      if (add) add.onclick = async () => { try { await F.attach({ scope: scope, ref: scope === "lesson" ? { code, wk } : {}, title: scope === "lesson" ? "مرفقات الدرس" : "مكتبة المدرسة" }); } catch (e) { } paint(); };
+      let arr = [];
+      try { arr = await F.list(scope, scope === "lesson" ? { code, wk } : {}); } catch (e) { arr = []; }
+      if (!liveFresh(seq)) return;
+      const list = box.querySelector("#fl-list"); if (!list) return;
+      list.innerHTML = arr.length ? arr.map(f => `<button class="fl-card" data-id="${esc(f.id)}" data-t="${esc(f.t || "")}" data-n="${esc(f.n || "")}">
+          <span class="fl-ic">${/^image\//.test(f.t || "") ? "🖼️" : (f.t === "application/pdf" ? "📄" : "🎵")}</span>
+          <b>${esc(f.n || "ملف")}</b><small>${/^image\//.test(f.t || "") ? "اضغط للعرض والكتابة عليه" : "اضغط للعرض"}</small>
+          <i class="fl-del" data-del="${esc(f.id)}" title="حذف">🗑</i></button>`).join("")
+        : `<div class="empty-note" style="color:#c9d5e3">لا مرفقات بعد — أضف صورة الورقة أو السبورة من جهازك، ثم اعرضها هنا واكتب عليها أمام الفصل.</div>`;
+      list.querySelectorAll(".fl-card").forEach(b => b.onclick = () => openAnnot(b.dataset.id, b.dataset.t, b.dataset.n));
+      list.querySelectorAll(".fl-del").forEach(b => b.onclick = async (ev) => {
+        ev.stopPropagation();
+        try { if (await F.remove(b.dataset.del)) paint(); } catch (e) { }
+      });
+    }
+    // أي حذف أو إضافة من أي شاشة يُحدِّث هذه القائمة فوراً
+    const onFilesChg = () => { if (box.querySelector("#fl-list")) paint(); else window.removeEventListener("sijil:files", onFilesChg); };
+    window.addEventListener("sijil:files", onFilesChg);
+    // ── عارض المرفق مع السبورة ──
+    async function openAnnot(id, type, name) {
+      const isImg = /^image\//.test(type || "");
+      box.innerHTML = `<div class="live-stage an-stage">
+        <div class="stage-bar an-bar">
+          <button class="live-btn" id="an-back">← المرفقات</button>
+          <span style="color:#fff;font-weight:800;max-width:34vw;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(name || "مرفق")}</span>
+          ${isImg ? `<span class="an-tools">
+            <button class="an-t on" data-k="pen" title="قلم">✏️</button>
+            <button class="an-t" data-k="mark" title="تظليل">🖍️</button>
+            <button class="an-t" data-k="text" title="مربع نص">🔤</button>
+            <button class="an-t" data-k="erase" title="ممحاة">🧽</button>
+            <span class="an-sep"></span>
+            ${["#ff4d4d", "#ffd447", "#2ee06a", "#4db2ff", "#ffffff"].map((cl, i) => `<button class="an-c${i === 0 ? " on" : ""}" data-c="${cl}" style="background:${cl}"></button>`).join("")}
+            <span class="an-sep"></span>
+            ${[3, 6, 12].map((w2, i) => `<button class="an-w${i === 1 ? " on" : ""}" data-w="${w2}"><i style="width:${w2 + 2}px;height:${w2 + 2}px"></i></button>`).join("")}
+            <span class="an-sep"></span>
+            <button class="live-btn" id="an-undo">↩︎ تراجع</button>
+            <button class="live-btn" id="an-clear">🗑 مسح</button>
+            <button class="live-btn" id="an-save">💾 احفظ</button>
+          </span>` : ""}
+        </div>
+        <div class="an-wrap" id="an-wrap">${isImg ? `<canvas id="an-c"></canvas>` : `<div class="empty-note" style="color:#c9d5e3">جارِ فتح الملف…</div>`}</div></div>`;
+      box.querySelector("#an-back").onclick = () => paint();
+      if (!isImg) { try { await F.open(id); } catch (e) { } const w = box.querySelector("#an-wrap"); if (w) w.innerHTML = `<div class="empty-note" style="color:#c9d5e3">فُتح الملف في نافذة جديدة. الكتابة والتظليل متاحان على الصور — صوّر الورقة وأرفقها صورةً لتكتب عليها هنا.</div>`; return; }
+      let blob = null;
+      try { const r = await F.blobOf(id); blob = r && r.blob; } catch (e) { }
+      if (!liveFresh(seq)) return;
+      if (!blob) { const w = box.querySelector("#an-wrap"); if (w) w.innerHTML = `<div class="empty-note" style="color:#c9d5e3">تعذّر فتح الصورة</div>`; return; }
+      const url = URL.createObjectURL(blob), img = new Image();
+      const cv = box.querySelector("#an-c"), wrap = box.querySelector("#an-wrap");
+      let items = [], cur = null, tool = "pen", color = "#ff4d4d", width = 6;
+      const ctx = cv.getContext("2d");
+      function fit() {
+        const r = wrap.getBoundingClientRect();
+        const iw = img.naturalWidth || 1, ih = img.naturalHeight || 1;
+        const sc = Math.min(r.width / iw, r.height / ih);
+        cv.width = Math.max(2, Math.round(iw * sc)); cv.height = Math.max(2, Math.round(ih * sc));
+        redraw();
+      }
+      function redraw() {
+        ctx.clearRect(0, 0, cv.width, cv.height);
+        ctx.drawImage(img, 0, 0, cv.width, cv.height);
+        items.concat(cur ? [cur] : []).forEach(it => {
+          if (it.k === "t") {
+            ctx.save(); ctx.font = `700 ${Math.round(it.s * cv.height)}px Tajawal, sans-serif`; ctx.textAlign = "right"; ctx.direction = "rtl";
+            ctx.lineWidth = 4; ctx.strokeStyle = "rgba(0,0,0,.55)"; ctx.strokeText(it.v, it.x * cv.width, it.y * cv.height);
+            ctx.fillStyle = it.c; ctx.fillText(it.v, it.x * cv.width, it.y * cv.height); ctx.restore(); return;
+          }
+          ctx.save();
+          ctx.lineCap = "round"; ctx.lineJoin = "round";
+          ctx.strokeStyle = it.c; ctx.lineWidth = it.w * cv.height / 500;
+          if (it.k === "m") { ctx.globalAlpha = .35; ctx.lineWidth = it.w * cv.height / 160; }
+          if (it.k === "e") { ctx.globalCompositeOperation = "destination-over"; }
+          ctx.beginPath();
+          (it.p || []).forEach((pt, i) => { const x = pt[0] * cv.width, y = pt[1] * cv.height; i ? ctx.lineTo(x, y) : ctx.moveTo(x, y); });
+          ctx.stroke(); ctx.restore();
+        });
+      }
+      img.onload = () => { fit(); };
+      img.onerror = () => { wrap.innerHTML = `<div class="empty-note" style="color:#c9d5e3">تعذّر عرض الصورة</div>`; };
+      img.src = url;
+      const ro = (typeof ResizeObserver === "function") ? new ResizeObserver(() => fit()) : null; if (ro) ro.observe(wrap);
+      const pos = (e) => { const r = cv.getBoundingClientRect(); return [(e.clientX - r.left) / r.width, (e.clientY - r.top) / r.height]; };
+      cv.addEventListener("pointerdown", (e) => {
+        cv.setPointerCapture && cv.setPointerCapture(e.pointerId);
+        const p = pos(e);
+        if (tool === "text") {
+          wrap.querySelectorAll(".an-tbox").forEach(x => x.remove());
+          /* مربع النص لا يُغلق بفقدان التركيز: على الجوال تفتح لوحة المفاتيح وتُغلقها فيضيع ما كُتب.
+             يُثبَّت بزر ✓ أو Enter، ويُلغى بـ ✕ أو Escape. */
+          const boxT = document.createElement("div"); boxT.className = "an-tbox";
+          boxT.innerHTML = `<input class="an-tin" placeholder="اكتب هنا…"><button class="an-tok" type="button">✓</button><button class="an-tno" type="button">✕</button>`;
+          const r = cv.getBoundingClientRect(), wr = wrap.getBoundingClientRect();
+          boxT.style.right = Math.max(4, wr.right - r.left - p[0] * r.width) + "px";
+          boxT.style.top = Math.max(4, r.top - wr.top + p[1] * r.height - 20) + "px";
+          wrap.appendChild(boxT);
+          const inp = boxT.querySelector(".an-tin");
+          setTimeout(() => { try { inp.focus(); } catch (e) { } }, 30);
+          const done = () => { const v = inp.value.trim(); boxT.remove(); if (v) { items.push({ k: "t", v: v, x: p[0], y: p[1], c: color, s: 0.055 }); redraw(); } };
+          inp.addEventListener("keydown", (ev) => { if (ev.key === "Enter") { ev.preventDefault(); done(); } if (ev.key === "Escape") boxT.remove(); });
+          boxT.querySelector(".an-tok").onclick = done;
+          boxT.querySelector(".an-tno").onclick = () => boxT.remove();
+          return;
+        }
+        cur = { k: tool === "mark" ? "m" : (tool === "erase" ? "e" : "p"), c: tool === "erase" ? "#000" : color, w: width, p: [p] };
+      });
+      cv.addEventListener("pointermove", (e) => { if (!cur) return; cur.p.push(pos(e)); redraw(); });
+      const end = () => { if (cur && cur.p.length > 1) items.push(cur); cur = null; redraw(); };
+      cv.addEventListener("pointerup", end); cv.addEventListener("pointercancel", end); cv.addEventListener("pointerleave", end);
+      box.querySelectorAll(".an-t").forEach(b => b.onclick = () => { tool = b.dataset.k; box.querySelectorAll(".an-t").forEach(x => x.classList.toggle("on", x === b)); });
+      box.querySelectorAll(".an-c").forEach(b => b.onclick = () => { color = b.dataset.c; box.querySelectorAll(".an-c").forEach(x => x.classList.toggle("on", x === b)); });
+      box.querySelectorAll(".an-w").forEach(b => b.onclick = () => { width = +b.dataset.w; box.querySelectorAll(".an-w").forEach(x => x.classList.toggle("on", x === b)); });
+      const ub = box.querySelector("#an-undo"); if (ub) ub.onclick = () => { items.pop(); redraw(); };
+      const cb = box.querySelector("#an-clear"); if (cb) cb.onclick = () => { items = []; redraw(); };
+      const sb = box.querySelector("#an-save");
+      if (sb) sb.onclick = () => {
+        sb.disabled = true; sb.textContent = "جارِ الحفظ…";
+        cv.toBlob(async (bl) => {
+          if (!bl) { sb.disabled = false; sb.textContent = "💾 احفظ"; return; }
+          const f = new File([bl], "شرح — " + (name || "مرفق") + ".webp", { type: "image/webp" });
+          try { await F.upload(f, { scope: "lesson", ref: { code, wk } }); sb.textContent = "✔ حُفظ في مرفقات الدرس"; }
+          catch (e) { sb.textContent = "تعذّر الحفظ"; sb.disabled = false; }
+        }, "image/webp", 0.9);
+      };
+    }
+    paint();
   }
   // 🎬 قصة الدرس (عرض مرئي متحرّك + سرد صوتي سعودي — صوت عصبي مُسجّل مسبقاً، ويعود لصوت المتصفح عند غيابه)
   let storyTimer = null, storyActive = false, storyAudio = null;
@@ -2192,21 +2740,24 @@
     } catch (e) { return null; }
   }
   const fmtT = (s) => { s = Math.max(0, Math.floor(s || 0)); return Math.floor(s / 60) + ":" + String(s % 60).padStart(2, "0"); };
+  /* فهرس المقاطع الصوتية: وعد واحد يُنشأ مرة ويُعاد استعماله (لا شيء يُجلب قبل أول قصة). */
+  let audioIdxP = null;
+  function audioHas(key) {
+    if (!audioIdxP) audioIdxP = fetch("data/lessons/audio/index.json")
+      .then(r => r.ok ? r.json() : []).catch(() => []);
+    return audioIdxP.then(l => Array.isArray(l) && l.indexOf(key) > -1).catch(() => false);
+  }
   async function stageStory(box, code, wk, seq) {
     const d = await lessonData(code, wk);
     if (!liveFresh(seq)) return;
     if (!d) { box.innerHTML = `<div class="empty-note" style="color:#c9d5e3">قصة هذا الدرس قيد الإعداد</div>`; return; }
     const scenes = buildStory(d);
     // مقطع صوتي واحد متواصل لهذا الدرس؟
-    const url = "data/lessons/audio/" + code + "w" + wk + ".mp3";
-    let hasAudio = false;
-    /* يُستهلك جسم الرد ولو كان فارغاً: تركُه مُعلَّقاً يجعل المتصفح يشطب الطلب ERR_ABORTED
-       بعد أن ردّ 200 فعلاً، فيظهر في سجل الشبكة «طلب فاشل» في كل مرة تُفتح فيها محطة القصة. */
-    try {
-      const h = await fetch(url, { method: "HEAD" });
-      hasAudio = h.ok;
-      try { await h.arrayBuffer(); } catch (e) { }
-    } catch (e) { }
+    const key = code + "w" + wk, url = "data/lessons/audio/" + key + ".mp3";
+    /* الصوت المسجَّل موجود لبعض الدروس فقط (٥١ من ٧٨٢). كان كل فتح لمحطة القصة في مادة بلا صوت
+       يجسّ الملف فيردّ 404 — طلب فاشل وخطأ console في كل مرة، ولكل معلم مادةٍ بلا صوت كل حصة.
+       الآن فهرس واحد يُجلب مرة في العمر ويُقرأ من الذاكرة، فلا طلب فاشل إطلاقاً. */
+    const hasAudio = await audioHas(key);
     if (!liveFresh(seq)) return;                 // غادر المعلم أثناء انتظار الصوت: لا تُعِد تفعيل القصة فوق محطته الجديدة
     storyActive = true;
     if (!storyAudio) { storyAudio = new Audio(); }
@@ -2287,28 +2838,41 @@
   let wheelIv = null;
   function stopWheel() { if (wheelIv) { clearTimeout(wheelIv); wheelIv = null; } }   // دورة جارية لا تُكمل فوق محطة أخرى
   function stageWheel(box, c) {
+    /* «الحاضرون فقط» كانت تعدّ غير المرصود حاضراً، فتنادي العجلة اسم غائب أمام عشرين طالباً.
+       الآن: المرصود حاضراً وحده، وإن لم يُرصد أحد فالشريط يقولها ويعرض تسجيل الحضور بنقرة. */
+    const K = classDayMark(liveCid, liveDate);
+    const okPool = () => activeStudents(c).map(x => x.i).filter(i => liveMarked(i) && !liveAway(i));
+    const anyPool = () => activeStudents(c).map(x => x.i).filter(i => !liveAway(i));
+    const hint = !K.done
+      ? `<div class="whhint none"><span>⚠️ الحضور لم يُسجَّل — العجلة تشمل الجميع (${K.total}) وقد تنادي غائباً</span><button type="button" class="ab" id="wh-allp">✓ الكل حاضر</button></div>`
+      : K.done < K.total
+        ? `<div class="whhint part"><span>⚠️ رُصد ${K.done}/${K.total} — العجلة تنادي المرصودين حاضرين فقط (${okPool().length})</span><button type="button" class="ab" id="wh-allp">✓ أكمل الباقي</button></div>`
+        : `<div class="whhint ok"><span>✅ الحضور مسجَّل — ${okPool().length} حاضراً${K.absent ? ` · مستبعَد ${K.absent} غائباً` : ""}</span></div>`;
     box.innerHTML = `<div class="live-stage"><div class="stage-bar"><span style="color:#fff;font-weight:800">🎡 عجلة اختيار الطلاب</span>
       <label style="color:#c9d5e3;font-size:13px;margin-inline-start:auto"><input type="checkbox" id="wh-present" checked> الحاضرون فقط</label></div>
+      ${hint}
       <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:20px">
         <div id="wh-name" style="font-size:min(9vw,64px);font-weight:800;color:var(--goldl);text-align:center;min-height:1.2em;padding:0 12px">اضغط «أدر العجلة»</div>
         <button class="btn-primary" id="wh-spin" style="font-size:20px;max-width:280px">🎡 أدر العجلة</button>
         <div id="wh-act"></div>
       </div></div>`;
     const nameEl = box.querySelector("#wh-name");
+    const wap = box.querySelector("#wh-allp"); if (wap) wap.onclick = liveMarkAllPresent;
     box.querySelector("#wh-spin").onclick = () => {
       stopWheel();
       let pool = activeStudents(c).map(x => x.i);
-      // «الحاضر» = من ليس غائباً/مستأذناً/بعذر/هارباً — نفس تعريف لوحة الشرف (liveAway).
-      // كان الشرط a===0 حرفياً فيسقط المتأخر ومن يدرس عن بعد، وتنكمش البِركة أحياناً إلى اسم واحد يتكرر كل دورة.
+      /* «الحاضر» = من رُصدت حالته وليست غياباً/استئذاناً/عذراً/هرباً (liveAway هو تعريف لوحة الشرف نفسه).
+         غير المرصود يخرج صراحةً: هو الاحتمال الأكبر أن يكون غائباً لم يُسجَّل بعد.
+         وإن لم يُرصد أحد إطلاقاً بقيت البِركة كما كانت (والشريط أعلاه يقولها) حتى لا تتوقف العجلة. */
       if (box.querySelector("#wh-present").checked) {
-        const here = pool.filter(i => !liveAway(i));
-        if (here.length) pool = here;
+        const here = okPool();
+        pool = here.length ? here : (anyPool().length ? anyPool() : pool);
       }
       // دورة مشاركة: استبعد من شارك في هذه الحصة حتى يشارك الجميع، ثم ابدأ دورة جديدة
       const fresh = pool.filter(i => !liveTurns.done.has(i));
       if (fresh.length) pool = fresh; else liveTurns.done.clear();
       box.querySelector("#wh-act").innerHTML = "";
-      const here = activeStudents(c).map(x => x.i).filter(i => !liveAway(i));   // مقام العدّاد = الحاضرون، كما في «من يجيب؟»
+      const here = okPool().length ? okPool() : anyPool();   // مقام العدّاد = البِركة نفسها التي تدور عليها العجلة
       let ticks = 0, max = 22 + Math.floor(Math.random() * 10);
       /* سلسلة setTimeout لا setInterval: مهلة setInterval تُقيَّم مرة واحدة وticks حينها صفر،
          فكانت العجلة تدور بسرعة واحدة (70ms) ثم تقف فجأة بلا تمهيد. */
@@ -2555,14 +3119,58 @@
     box.querySelector("#tm-reset").onclick = timerReset;
     timerPaint();
   }
+  /* ═══ الحضور من داخل الحصة الحية ═══
+     المعلم الذي يبدأ من «🎬 ابدأ حصة تفاعلية» لا يفتح ورقة التحضير أبداً، فتمرّ الحصة كاملة بلا
+     حالة حضور واحدة: الدرجة التلقائية تُسقط اليوم من حسابها، والغياب لا يصل البيت، وتقرير الحضور
+     الذي يطبعه المدير ويوقّعه يُبنى من هذه الخانات نفسها. الشريط دائم في محطة «الطلاب». */
+  const liveRec = (i) => ((DB.recs[liveCid] || {})[liveDate] || {})[i] || {};
+  // «مرصود» = حالة حضور مسجَّلة فعلاً (لا مجرّد غياب سجل) — عليها يقوم استبعادُ العجلة
+  const liveMarked = (i) => { const e = liveRec(i); return e.a != null && !!STATES[e.a]; };
+  function liveAttBar() {
+    const K = classDayMark(liveCid, liveDate), left = Math.max(0, K.total - K.done);
+    const ab = K.absent ? ` · غياب ${K.absent}` : "";
+    if (!K.done) return `<div class="liveatt none"><span class="t">⚠️ الحضور لم يُسجَّل لهذه الحصة</span><button type="button" class="ab" id="lv-allp">✓ الكل حاضر (${K.total})</button><button type="button" class="qb" id="lv-help" title="مفتاح الرصد والتراجع">❔</button></div>`;
+    if (K.done < K.total) return `<div class="liveatt part"><span class="t">⚠️ رُصد ${K.done}/${K.total}${ab}</span><button type="button" class="ab" id="lv-allp">✓ أكمل الباقي (${left})</button><button type="button" class="qb" id="lv-help" title="مفتاح الرصد والتراجع">❔</button></div>`;
+    return `<div class="liveatt full"><span class="t">✅ رُصد ${K.done}/${K.total}${ab}</span><button type="button" class="qb" id="lv-help" title="مفتاح الرصد والتراجع">❔</button></div>`;
+  }
+  function liveMarkAllPresent() {
+    const cid = liveCid, dt = liveDate, c = classById(cid), snap = snapDay(cid, dt);
+    let n = 0;
+    activeStudents(c).forEach(({ i }) => { const e = rec(cid, dt, i, true); if (e.a == null) { e.a = 0; n++; } });
+    save("recs:" + cid);
+    if (liveMainView === "roster") drawLiveRoster(); else if (liveMainView === "wheel") liveView("wheel");
+    drawLiveBoard(true);
+    if (n) undoBar(`✅ سُجّل ${n} حاضراً — ${c.name}`, () => {
+      restoreDay(cid, dt, snap);
+      if (liveCid === cid && liveDate === dt) { if (liveMainView === "roster") drawLiveRoster(); else if (liveMainView === "wheel") liveView("wheel"); drawLiveBoard(true); }
+      if (regClass === cid && regDate === dt && document.getElementById("reg-list")) drawRows();
+    });
+  }
+  /* ضغطة مطوّلة على البطاقة = غائب مباشرة بلا نافذة (نمط bindPart نفسه في التحضير).
+     الحارس الزمني يمنع نقرةً طائشة على البطاقة التي تحتل الموضع نفسه بعد إعادة الرسم. */
+  let liveHoldAt = 0;
+  function bindRosterCard(el2) {
+    const i = +el2.dataset.i; let tm = null, held = false;
+    const clear = () => { if (tm) { clearTimeout(tm); tm = null; } };
+    const mark = () => { held = true; liveHoldAt = Date.now(); clear(); applyLive(i, "absent"); };
+    el2.addEventListener("pointerdown", () => { held = false; clear(); tm = setTimeout(mark, 600); });
+    ["pointerup", "pointerleave", "pointercancel"].forEach(ev => el2.addEventListener(ev, clear));
+    el2.addEventListener("contextmenu", (ev) => { ev.preventDefault(); mark(); });
+    el2.onclick = () => { if (held || Date.now() - liveHoldAt < 500) { held = false; return; } liveActions(i); };
+  }
   function drawLiveRoster() {
     if (liveMainView !== "roster") return;
     const c = classById(liveCid), calc = classCalc(liveCid), box = $("#live-main"); if (!box) return;
-    box.innerHTML = `<div class="live-roster">` + activeStudents(c).map(({ s, i }) => {
-      const p = calc[i].t.pts;
-      return `<div class="rcard" data-i="${i}"><div class="rrk">#${calc[i].rank}</div><div class="rn">${esc(s.n)}</div><div class="rp ${p < 0 ? "neg" : ""}">${p}</div></div>`;
-    }).join("") + `</div>`;
-    box.querySelectorAll(".rcard").forEach(el2 => el2.onclick = () => liveActions(+el2.dataset.i));
+    box.innerHTML = liveAttBar() + `<div class="live-roster">` + activeStudents(c).map(({ s, i }) => {
+      const p = calc[i].t.pts, e = liveRec(i), has = e.a != null && !!STATES[e.a];
+      const away = has && liveAway(i), pv = has ? (+STATES[e.a].pts || 0) : 0;
+      const cls = !has ? "st-none" : away ? "st-away" : pv < 0 ? "st-warn" : "st-ok";
+      const ic = has ? `<div class="ric" title="${esc(STATES[e.a].name)}">${ST_ICON(STATES[e.a].name || "")}</div>` : "";
+      return `<div class="rcard ${cls}" data-i="${i}"><div class="rrk">#${calc[i].rank}</div>${ic}<div class="rn">${esc(s.n)}</div><div class="rp ${p < 0 ? "neg" : ""}">${p}</div></div>`;
+    }).join("") + `</div><div class="btip">اضغط الاسم للتقييم · <b>ضغطة مطوّلة = غائب</b> مباشرة</div>`;
+    const ap = box.querySelector("#lv-allp"); if (ap) ap.onclick = liveMarkAllPresent;
+    const hb = box.querySelector("#lv-help"); if (hb) hb.onclick = () => keysHelp(true);
+    box.querySelectorAll(".rcard").forEach(bindRosterCard);
   }
   // حالات لا تظهر في لوحة الشرف: غائب، مستأذن، غائب بعذر، هارب
   function liveAway(i) {
@@ -2586,28 +3194,105 @@
     if (!silent && topId != null && topId !== livePrevTop && rows[0].t.pts > 0) confetti();
     livePrevTop = topId;
   }
+  /* ═══ «الأكثر استعمالاً»: أربعة أزرار يثبّتها المعلم بنفسه مرة واحدة ═══
+     لا تتعلّم ولا تعيد ترتيب نفسها: أزرارٌ تتحرك تحت الإبهام وسط الحصة تصنع بالضبط الخطأ الذي
+     تعالجه هذه النافذة. تُخزَّن بالاسم لا بالفهرس، فتعديل المدير لقائمة السلوكيات لا يقلب معناها. */
+  const FAVKEY = () => "sijil.fav." + ((TE && TE.id) || "x");
+  /* الافتراضي = الأربعة المدفونة خلف الطيّ (مميز · مخالف · غائب · متأخر) لا 🙋 و📚:
+     هذان في القسم المفتوح دائماً فوقهما، وتكرارهما في الصفّ يضيّع نصف الصفّ بلا فائدة. */
+  function favDefault() {
+    const bp = BEH[behIndex("مميز", true)] || null, bn = BEH[behIndex("مخالف", false)] || null;
+    const sa = STATES.find(x => /غائب/.test(x.name || "")) || STATES[1] || null;
+    const sl = STATES.find(x => /متأخر/.test(x.name || "")) || null;
+    const out = [];
+    if (bp) out.push("beh|" + bp.name);
+    if (bn && (!bp || bn.name !== bp.name)) out.push("beh|" + bn.name);
+    if (sa) out.push("state|" + sa.name);
+    if (sl && (!sa || sl.name !== sa.name)) out.push("state|" + sl.name);
+    return out.length ? out.slice(0, 4) : ["part", "hw"];
+  }
+  function favGet() {
+    let v = null; try { v = JSON.parse(lsGet(FAVKEY()) || "null"); } catch (e) { v = null; }
+    const out = (Array.isArray(v) ? v.filter(x => typeof x === "string") : []).slice(0, 4);
+    return out.length ? out : favDefault();
+  }
+  const favSet = (a) => lsSet(FAVKEY(), JSON.stringify((a || []).slice(0, 4)));
+  // كل خيار ممكن في النافذة، بالرمز نفسه الذي يُخزَّن به
+  function favAll() {
+    return [{ t: "part", lbl: "🙋 مشاركة", pts: W.part, cls: "g" },
+      { t: "hw", lbl: "📚 واجب ✓", pts: W.hw, cls: "b" },
+      { t: "hwno", lbl: "📚 لم يحلّ", pts: 0, cls: "r" }]
+      .concat(STATES.map(x => ({ t: "state|" + x.name, lbl: ST_ICON(x.name || "") + " " + x.name, pts: +x.pts || 0, cls: (+x.pts || 0) > 0 ? "b" : (+x.pts || 0) < 0 ? "r" : "n" })),
+        BEH.map(b => ({ t: "beh|" + b.name, lbl: ((+b.pts || 0) < 0 ? "⚠ " : "⭐ ") + b.name, pts: +b.pts || 0, cls: (+b.pts || 0) > 0 ? "g" : (+b.pts || 0) < 0 ? "r" : "n" })));
+  }
+  const favFind = (tok) => favAll().find(x => x.t === tok) || null;
+  // رمز ⇒ (k, idx) اللذين تفهمهما applyLive
+  function favArgs(tok) {
+    const p = String(tok || "").split("|");
+    if (p.length === 1) return { k: p[0], idx: null };
+    if (p[0] === "state") { const k = STATES.findIndex(x => x.name === p[1]); return k < 0 ? null : { k: "state", idx: k }; }
+    if (p[0] === "beh") { const k = BEH.findIndex(x => x.name === p[1]); return k < 0 ? null : { k: "beh", idx: k }; }
+    return null;
+  }
+  function favSheet(i) {
+    let sel = favGet().filter(t => favFind(t));
+    const draw = () => {
+      const items = favAll().map(x => `<button type="button" class="favp ${sel.indexOf(x.t) >= 0 ? "sel" : ""} ${x.cls}" data-t="${esc(x.t)}">${esc(x.lbl)} <small>${signN(x.pts)}</small></button>`).join("");
+      openLiveBox(`<button type="button" class="lx" id="fv-x" title="إغلاق">✕</button><h4>📌 الأكثر استعمالاً</h4>
+        <div class="cur">اختر حتى أربعة أزرار تظهر في أعلى نافذة التقييم — تبقى في مكانها ولا تتغيّر (<b id="fv-n">${sel.length}</b>/4)</div>
+        <div class="favpick">${items}</div>
+        <div class="grid" style="margin-top:10px"><button type="button" class="act close" id="fv-rst">استعادة الافتراضي</button><button type="button" class="act g" id="fv-ok">تم</button></div>`,
+        (o) => {
+          o.querySelector("#fv-x").onclick = () => liveActions(i);
+          o.querySelectorAll(".favp").forEach(b => b.onclick = () => {
+            const t = b.dataset.t, k = sel.indexOf(t);
+            if (k >= 0) sel.splice(k, 1); else { if (sel.length >= 4) sel.shift(); sel.push(t); }
+            draw();
+          });
+          o.querySelector("#fv-rst").onclick = () => { sel = favDefault(); draw(); };
+          o.querySelector("#fv-ok").onclick = () => { favSet(sel); liveActions(i); };
+        });
+    };
+    draw();
+  }
+  /* ═══ نافذة التقييم ═══
+     كانت 1015px فيها 26 زراً بلا ✕ ولا صفٍّ سريع: زر الإغلاق يحتاج تمريراً داخل نافذة يفتحها
+     المعلم عشرين مرة في الحصة. الآن: ✕ ثابت، وأربعة أزرار مثبَّتة في الأعلى، والقسمان الطويلان مطويّان. */
   function liveActions(i, ev) {
     const c = classById(liveCid), calc = classCalc(liveCid);
-    const e = ((DB.recs[liveCid] || {})[liveDate] || {})[i] || {};
-    const sign = (v) => (+v > 0 ? "+" : "") + (Math.round(+v * 10) / 10);
-    const ST_ICON = (n) => /حاضر/.test(n) ? "✅" : /متأخر/.test(n) ? "⏰" : /مستأذن/.test(n) ? "🚪" : /بعذر/.test(n) ? "📄" : /بعد/.test(n) ? "💻" : /هارب/.test(n) ? "🏃" : "❌";
-    const states = STATES.map((st, k) => `<button class="act ${(+st.pts || 0) > 0 ? "b" : (+st.pts || 0) < 0 ? "r" : "n"} ${e.a === k ? "on" : ""}" data-k="state" data-i="${k}">${ST_ICON(st.name || "")} ${esc(st.name)} <small>${sign(st.pts || 0)}</small></button>`).join("");
-    const behs = BEH.map((b, k) => `<button class="act ${(+b.pts || 0) > 0 ? "g" : (+b.pts || 0) < 0 ? "r" : "n"}" data-k="beh" data-i="${k}">${(+b.pts || 0) > 0 ? "⭐" : (+b.pts || 0) < 0 ? "⚠" : "•"} ${esc(b.name)} <small>${sign(b.pts || 0)}</small></button>`).join("");
-    openLiveBox(`<h4>${esc(c.students[i].n)}</h4><div class="cur">النقاط الحالية: ${calc[i].t.pts} · الترتيب ${calc[i].rank}${e.part ? ` · مشاركات اليوم ${e.part}` : ""}</div>
+    const e = liveRec(i);
+    const favs = favGet().map(t => ({ t, x: favFind(t), a: favArgs(t) })).filter(o => o.x && o.a);
+    const favHtml = favs.map(o => `<button class="act ${o.x.cls}" data-k="${esc(o.a.k)}"${o.a.idx != null ? ` data-i="${o.a.idx}"` : ""}>${esc(o.x.lbl)} <small>${signN(o.x.pts)}</small></button>`).join("");
+    const states = STATES.map((st, k) => `<button class="act ${(+st.pts || 0) > 0 ? "b" : (+st.pts || 0) < 0 ? "r" : "n"} ${e.a === k ? "on" : ""}" data-k="state" data-i="${k}">${ST_ICON(st.name || "")} ${esc(st.name)} <small>${signN(st.pts || 0)}</small></button>`).join("");
+    const behs = BEH.map((b, k) => `<button class="act ${(+b.pts || 0) > 0 ? "g" : (+b.pts || 0) < 0 ? "r" : "n"}" data-k="beh" data-i="${k}">${(+b.pts || 0) > 0 ? "⭐" : (+b.pts || 0) < 0 ? "⚠" : "•"} ${esc(b.name)} <small>${signN(b.pts || 0)}</small></button>`).join("");
+    const stCur = e.a != null && STATES[e.a] ? `${ST_ICON(STATES[e.a].name || "")} ${esc(STATES[e.a].name)}` : "لم تُرصد";
+    openLiveBox(`<button type="button" class="lx" data-k="x" title="إغلاق">✕</button><h4>${esc(c.students[i].n)}</h4>
+      <div class="cur">النقاط ${calc[i].t.pts} · الترتيب ${calc[i].rank} · الحالة: ${stCur}${e.part ? ` · مشاركات اليوم ${e.part}` : ""}</div>
+      ${favHtml ? `<div class="lsec favh">📌 الأكثر استعمالاً <button type="button" class="favedit" id="fav-edit">تعديل</button></div><div class="grid favrow">${favHtml}</div>` : ""}
       <div class="lsec">🙋 المشاركة والواجب</div>
       <div class="grid">
-        <button class="act g" data-k="part">🙋 مشاركة <small>+${W.part}</small></button>
-        <button class="act ${e.hw === 1 ? "on " : ""}b" data-k="hw">📚 واجب ✓ <small>+${W.hw}</small></button>
+        <button class="act g" data-k="part">🙋 مشاركة <small>${signN(W.part)}</small></button>
+        <button class="act ${e.hw === 1 ? "on " : ""}b" data-k="hw">📚 واجب ✓ <small>${signN(W.hw)}</small></button>
         <button class="act ${e.hw === 0 ? "on " : ""}r" data-k="hwno">📚 لم يحلّ الواجب <small>0</small></button>
       </div>
-      <div class="lsec">📌 الحالة</div>
-      <div class="grid g3">${states}</div>
-      <div class="lsec">⭐ السلوك</div>
-      <div class="grid g3">${behs}</div>
-      <div class="grid" style="margin-top:8px"><button class="act close" data-k="x" style="grid-column:1/-1">إغلاق</button></div>`,
-      (o) => o.querySelectorAll("[data-k]").forEach(b => b.onclick = () => { applyLive(i, b.dataset.k, b.dataset.i != null ? +b.dataset.i : null); closeLiveBox(); }));
+      <button type="button" class="lsec fold" data-sec="st">📌 الحالة <span class="cv">▾</span></button>
+      <div class="grid g3 hidden" data-body="st">${states}</div>
+      <button type="button" class="lsec fold" data-sec="bh">⭐ بقية السلوكيات <span class="cv">▾</span></button>
+      <div class="grid g3 hidden" data-body="bh">${behs}</div>
+      <div class="grid" style="margin-top:8px"><button class="act close" data-k="x" style="grid-column:1/-1">تم</button></div>`,
+      (o) => {
+        o.querySelectorAll("[data-k]").forEach(b => b.onclick = () => { applyLive(i, b.dataset.k, b.dataset.i != null ? +b.dataset.i : null); closeLiveBox(); });
+        o.querySelectorAll("[data-sec]").forEach(b => b.onclick = () => {
+          const body = o.querySelector(`[data-body="${b.dataset.sec}"]`); if (!body) return;
+          const open = body.classList.toggle("hidden") === false;
+          b.classList.toggle("open", open);
+          if (open) try { body.scrollIntoView({ block: "nearest" }); } catch (x) { }
+        });
+        const fe = o.querySelector("#fav-edit"); if (fe) fe.onclick = () => favSheet(i);
+      });
   }
   function openLiveBox(html, mount) {
+    closeLiveBox();                              // نافذةٌ تفتح فوق نافذة (تعديل «الأكثر استعمالاً» ثم العودة) كانت تترك عنصرين بالمعرّف نفسه
     const d = document.createElement("div"); d.className = "live-act"; d.id = "live-act";
     d.innerHTML = `<div class="box">${html}</div>`;
     d.addEventListener("click", (e) => { if (e.target === d) closeLiveBox(); });
@@ -2617,6 +3302,7 @@
   function closeLiveBox() { const d = $("#live-act"); if (d) d.remove(); }
   function applyLive(i, k, idx) {
     if (k === "x") return;                       // «إغلاق» قراءة: لا يُنشئ سجل يوم فارغاً للطالب
+    const cid0 = liveCid, dt0 = liveDate, snap = snapRec(cid0, dt0, i);
     const e = rec(liveCid, liveDate, i, true);
     const pos = behIndex("مميز", true), neg = behIndex("مخالف", false);
     let delta = 0;
@@ -2637,6 +3323,23 @@
     drawLiveBoard(false);
     const brow = document.querySelector(`.brow[data-i="${i}"]`);
     if (brow) { brow.classList.add("pulse"); setTimeout(() => brow.classList.remove("pulse"), 700); if (delta) floatPoints(brow, delta); }
+    /* شريط التراجع: كل ما فوق يكتب، وهذا أول نظير يحذف في واجهة المعلم كلها */
+    const nm = firstName(classById(cid0).students[i].n);
+    let lbl = "";
+    if (k === "state" && STATES[idx]) lbl = `${ST_ICON(STATES[idx].name || "")} ${STATES[idx].name} — ${nm}`;
+    else if (k === "beh" && BEH[idx]) lbl = `${(+BEH[idx].pts || 0) < 0 ? "⚠" : "⭐"} ${BEH[idx].name} لـ ${nm}`;
+    else if (k === "part") lbl = `🙋 مشاركة لـ ${nm}`;
+    else if (k === "hw") lbl = `📚 واجب ✓ — ${nm}`;
+    else if (k === "hwno") lbl = `📚 لم يحلّ الواجب — ${nm}`;
+    else if (k === "absent") lbl = `❌ غائب — ${nm}`;
+    else if (k === "present") lbl = `✅ حاضر — ${nm}`;
+    else if (k === "star" && BEH[pos]) lbl = `⭐ ${BEH[pos].name} لـ ${nm}`;
+    else if (k === "bad" && BEH[neg]) lbl = `⚠ ${BEH[neg].name} لـ ${nm}`;
+    if (lbl) undoBar(lbl + (delta ? " " + signN(delta) : ""), () => {
+      restoreRec(cid0, dt0, i, snap);
+      if (liveCid === cid0 && liveDate === dt0) { if (liveMainView === "roster") drawLiveRoster(); drawLiveBoard(true); }
+      if (regClass === cid0 && regDate === dt0 && document.getElementById("reg-list")) drawRows();
+    });
   }
   function floatPoints(el2, delta) {
     const r = el2.getBoundingClientRect();
@@ -2649,6 +3352,279 @@
     setTimeout(() => f.remove(), 1100);
   }
 
+  /* ═══ خلاصة الحصة عند «✕ إنهاء» ═══
+     كل هذه الأرقام محسوبة أصلاً وكانت تُرمى عند الخروج: ٤٥ دقيقة تنتهي بلا أثر، وهي بالضبط
+     الأسطر التي يكتبها المعلم في دفتره بعد الحصة. وسؤال «نُفّذ الدرس؟» بذرة كشف تنفيذ توزيع
+     المنهج — التطبيق يعرف الجدول ودرس الأسبوع ويعرف أن الحصة فُتحت عليه.
+     الإجابات تُحفظ على الجهاز لكل فصل وأسبوع (sijil.exec.<معرّف المعلم>) بانتظار مجموعة سحابية. */
+  const EXECKEY = () => "sijil.exec." + ((TE && TE.id) || "x");
+  const execKey = (cid, wk) => cid + "|w" + wk;
+  function execAll() { try { return JSON.parse(lsGet(EXECKEY()) || "{}") || {}; } catch (e) { return {}; } }
+  function execGet(cid, wk) { const a = execAll(); return a[execKey(cid, wk)] || null; }
+  function execSet(cid, wk, patch) {
+    const a = execAll(), k = execKey(cid, wk);
+    a[k] = Object.assign({ cid: cid, w: wk }, a[k] || {}, patch, { ts: Date.now(), tn: TE ? TE.name : "" });
+    try { lsSet(EXECKEY(), JSON.stringify(a)); } catch (e) { }
+  }
+  function endLiveSession(V) {
+    const cid = liveCid, dt = liveDate;
+    timerReset(); stopStory(); stopGame(); stopWheel(); closeLiveBox(); dropUndo();
+    /* إخفاء #view-live وحده كان يترك إطار يوتيوب حيّاً في الشجرة: صوتٌ يعمل بلا مشغّل ظاهر
+       ولا وسيلة لإيقافه إلا إعادة تحميل الصفحة. وbump للتسلسل يوقف أي كتابة متأخرة من محطة كانت تنتظر الشبكة. */
+    liveViewSeq++;
+    ytDrop();
+    const lm = $("#live-main"); if (lm) lm.innerHTML = "";
+    const back = () => {
+      (V || $("#view-live")).classList.add("hidden"); $("#view-app").classList.remove("hidden");
+      renderReg(); renderToday(); renderGrades();
+      setTimeout(() => sessionSummary(cid, dt), 40);
+    };
+    /* الخروج من ملء الشاشة غير متزامن، ونوافذ #overlay-root لا تُرسم داخل ملء الشاشة إطلاقاً:
+       بلا الانتظار تُبنى بطاقة الخلاصة في شجرة غير مرئية ويخرج المعلم كأن شيئاً لم يكن. */
+    let p = null; try { if (document.fullscreenElement) p = document.exitFullscreen(); } catch (e) { }
+    if (p && p.then) p.then(back).catch(back); else back();
+  }
+  // نقاط هذه الحصة وحدها (لا المجموع التراكمي) — بها يُعرف «متصدّر الحصة»
+  const sessPts = (e) => (e.a != null && STATES[e.a] ? (+STATES[e.a].pts || 0) : 0)
+    + (+e.part || 0) * W.part + (e.hw === 1 ? W.hw : 0)
+    + (e.beh || []).reduce((a, bi) => a + (BEH[bi] ? (+BEH[bi].pts || 0) : 0), 0);
+  function sessionStats(cid, dt) {
+    const c = classById(cid); if (!c) return null;
+    const act = activeStudents(c), K = classDayMark(cid, dt);
+    let part = 0, bad = 0, good = 0, hwY = 0, topP = 0, top = null;
+    const absent = [], quiet = [];
+    act.forEach(({ s, i }) => {
+      const e = ((DB.recs[cid] || {})[dt] || {})[i] || {};
+      part += (+e.part || 0);
+      if (e.hw === 1) hwY++;
+      (e.beh || []).forEach(bi => { const b = BEH[bi]; if (!b) return; if ((+b.pts || 0) < 0) bad++; else if ((+b.pts || 0) > 0) good++; });
+      const stn = (e.a != null && STATES[e.a]) ? String(STATES[e.a].name || "") : "";
+      if (isAbsent(stn)) absent.push({ i: i, n: s.n, st: stn });
+      if (/غائب|مستأذن|بعذر|هارب/.test(stn)) return;              // من ليس في الفصل لا يُحاسب على «لم يشارك»
+      if (!(+e.part) && !((e.beh || []).length) && e.hw == null) quiet.push({ i: i, n: s.n });
+      const p = sessPts(e); if (p > topP) { topP = p; top = { i: i, n: s.n, p: Math.round(p * 10) / 10 }; }
+    });
+    return { c: c, K: K, part: part, bad: bad, good: good, hwY: hwY, absent: absent, quiet: quiet, top: top, total: act.length };
+  }
+  const nameList = (a, mx) => a.slice(0, mx).map(x => esc(x.n)).join("، ") + (a.length > mx ? ` وآخرون (${a.length - mx})` : "");
+  function sessionSummary(cid, dt) {
+    const S = sessionStats(cid, dt); if (!S) return;
+    const wk = curWeek(), ex = execGet(cid, wk) || {};
+    const NX = currentOrNextClass(), B = BELL();
+    const nx = (dt === todayISO() && NX.next) ? NX.next : null;
+    const les = liveLesson || ex.lesson || "";
+    /* «انتهت الحصة ولم يُسجَّل الحضور — تسجيله الآن؟» — والحالة الأخطر عملياً هي الرصد الناقص:
+       المعلم سجّل الغائبين وحدهم فيظهر الباقون «بلا حالة» في تقرير المدير الموقَّع. */
+    const left = Math.max(0, S.total - S.K.done);
+    const warn = !S.K.done
+      ? `<div class="sumwarn">⚠️ <b>لم يُسجَّل الحضور لهذه الحصة</b> — فتسقط من الدرجة التلقائية ومن تقرير الحضور الذي يوقّعه المدير، ولا يصل غيابٌ إلى بيت.<button type="button" id="ss-all">✓ سجّل الكل حاضراً (${S.total})</button></div>`
+      : left
+        ? `<div class="sumwarn part">⚠️ <b>رُصد ${S.K.done} من ${S.total} فقط</b> — الباقون بلا حالة حضور، فلا يدخلون تقرير الحضور ولا الدرجة التلقائية.<button type="button" id="ss-all">✓ أكمل الباقي حاضرين (${left})</button></div>`
+        : "";
+    const XV = [["yes", "✅ نعم"], ["part", "◐ جزئياً"], ["no", "✖ لا"]];
+    openSheet(`<h4>🎬 خلاصة الحصة — ${esc(S.c.name)}</h4>
+      ${warn}
+      <div class="sumgrid">
+        <div class="sc"><b>${S.part}</b><span>مشاركة</span></div>
+        <div class="sc ${S.bad ? "bad" : ""}"><b>${S.bad}</b><span>مخالفة</span></div>
+        <div class="sc ${S.good ? "ok" : ""}"><b>${S.good}</b><span>تقدير</span></div>
+        <div class="sc"><b>${S.K.done}/${S.K.total}</b><span>حضور مرصود</span></div>
+      </div>
+      <div class="sumline">❌ <b>${S.absent.length ? cntAr(S.absent.length, "غائب واحد", "غائبان", "غائبين", "غائباً") : "لا غياب"}</b>${S.absent.length ? " — " + nameList(S.absent, 6) : " 🌿"}</div>
+      <div class="sumline">🤫 <b>لم يشارك ${S.quiet.length}</b>${S.quiet.length ? " — " + nameList(S.quiet, 8) : " — شارك الجميع 🎉"}</div>
+      <div class="sumline">📘 الدرس: <b>${les ? esc(les) : "لم يُحدَّد"}</b> · الأسبوع ${wk}</div>
+      <div class="lsec2">نُفّذ الدرس؟</div>
+      <div class="execrow">${XV.map(v => `<button type="button" class="${ex.v === v[0] ? "sel" : ""}" data-x="${v[0]}">${v[1]}</button>`).join("")}</div>
+      <textarea class="note" id="ss-note" rows="2" placeholder="ملاحظة على الحصة (تُحفظ لهذا الفصل وهذا الأسبوع)…">${esc(ex.note || "")}</textarea>
+      <div class="sheet-actions" style="flex-wrap:wrap">
+        <button class="btn-plain" style="flex:1 1 46%" id="ss-abs"${S.absent.length ? "" : " disabled"}>📨 أبلغ أولياء الغائبين${S.absent.length ? " (" + S.absent.length + ")" : ""}</button>
+        <button class="btn-plain" style="flex:1 1 46%" id="ss-cert"${S.top ? "" : " disabled"}>🎓 شهادة لمتصدّر الحصة${S.top ? "" : " (لا رصد)"}</button>
+        ${nx ? `<button class="btn-gold" style="flex:1 1 100%" id="ss-next">▶️ افتح الحصة القادمة: ${esc(nx.cname)} — ح${nx.p} ${esc(B.hm(nx.from))}</button>` : `<div class="empty-note" style="flex:1 1 100%;padding:6px">${dt === todayISO() ? "انتهى نصابك اليوم ✔" : "رصد يوم سابق"}</div>`}
+        <button class="btn-primary" style="flex:1 1 100%" id="ss-done">تم</button></div>`,
+      (o) => {
+        const note = () => { const t = o.querySelector("#ss-note"); return t ? t.value.trim() : ""; };
+        const keep = (patch) => execSet(cid, wk, Object.assign({ lesson: les, note: note() }, patch || {}));
+        o.querySelectorAll("[data-x]").forEach(b => b.onclick = () => {
+          o.querySelectorAll("[data-x]").forEach(x => x.classList.toggle("sel", x === b));
+          keep({ v: b.dataset.x });
+        });
+        const tx = o.querySelector("#ss-note"); if (tx) tx.onchange = () => keep({});
+        const sa = o.querySelector("#ss-all");
+        if (sa) sa.onclick = () => {
+          const snap = snapDay(cid, dt); let n = 0;
+          activeStudents(S.c).forEach(({ i }) => { const e = rec(cid, dt, i, true); if (e.a == null) { e.a = 0; n++; } });
+          save("recs:" + cid);
+          if (regClass === cid && regDate === dt && document.getElementById("reg-list")) drawRows();
+          sessionSummary(cid, dt);
+          if (n) undoBar(`✅ سُجّل ${n} حاضراً — ${S.c.name}`, () => { restoreDay(cid, dt, snap); if (document.getElementById("reg-list")) drawRows(); sessionSummary(cid, dt); });
+        };
+        const ab = o.querySelector("#ss-abs"); if (ab && S.absent.length) ab.onclick = () => { keep({}); absentNotify(cid, dt, () => sessionSummary(cid, dt)); };
+        const ce = o.querySelector("#ss-cert"); if (ce && S.top) ce.onclick = () => printCertificate(cid, S.top.i, S.top.p);
+        const nb = o.querySelector("#ss-next"); if (nb && nx) nb.onclick = () => { keep({}); closeSheet(); liveSession(nx.cid); };
+        o.querySelector("#ss-done").onclick = () => { keep({}); closeSheet(); };
+      });
+  }
+  /* ═══ إبلاغ أولياء الغائبين ═══
+     رسالة فردية قصيرة لكل غائب وحده (لا قروب ولا أسماء منشورة)، ومعاينةٌ تعمل بلا رقم — فالوضع
+     التجريبي بلا أرقام إطلاقاً، ولا تُفتح محادثة واتساب مع رقم مُختلق. وكل إرسال يُسجَّل في سجل التواصل. */
+  function absentMessage(cid, i, stName, dt) {
+    const c = classById(cid), s = c.students[i];
+    let when = ""; try { when = hijriLabel(new Date(dt + "T09:00:00")); } catch (e) { when = hijriLabel(); }
+    return ["السلام عليكم ورحمة الله وبركاته",
+      `ولي أمر الطالب: *${s.n}* — ${c.name}`,
+      `نفيدكم بأن ابنكم سُجّل «${stName}» في حصة ${TE.subject} — ${when}.`,
+      "نأمل متابعته، والتواصل معنا إن كان له عذر 🌹", "",
+      `معلم المادة: ${TE.name}`, META.school.name].join("\n");
+  }
+  function logAbsentComm(cid, i, stName, dt) {
+    DB.comms[cid] = DB.comms[cid] || [];
+    DB.comms[cid].push({ si: i, why: "غياب متكرر", via: "واتساب", note: `إبلاغ غياب (${stName}) — ${dt}`, date: hijriLabel(), ts: Date.now() });
+    save("comms:" + cid);
+  }
+  /* ═══ سلسلة ولي الأمر: من لحظة الغياب إلى سجل موثّق ═══
+     كل تواصل يمرّ على DB.comms نفسها (سجل التواصل الذي تقرأه بطاقة الطالب ولوحة المدير)، فلا يبقى
+     إرسالٌ بلا أثر حين يسأل المرشد أو المشرف «هل تُوُوصل مع ولي أمر فلان؟». */
+  const logComm = (cid, i, why, via, note) => {
+    DB.comms[cid] = DB.comms[cid] || [];
+    DB.comms[cid].push({ si: i, why: why, via: via, note: note, date: hijriLabel(), ts: Date.now() });
+    save("comms:" + cid);
+  };
+  // «أمس»/«قبل يومين» — التوثيق يُقرأ بالعين لا بحساب في الرأس
+  function agoLabel(ts) {
+    if (!ts) return "";
+    const d = Math.floor((Date.now() - (+ts || 0)) / 864e5);
+    if (d <= 0) return "اليوم";
+    if (d === 1) return "أمس";
+    if (d === 2) return "قبل يومين";
+    if (d < 11) return `قبل ${d} أيام`;
+    return `قبل ${d} يوماً`;
+  }
+  // آخر تواصل عن هذا اليوم بعينه (المقترحات ليست تواصلاً فتُستثنى بـ !x.ph)
+  const lastParentComm = (cid, i, dt) => ((DB.comms[cid] || []).filter(x => x.si === i && !x.ph && String(x.note || "").indexOf(dt) >= 0).slice(-1)[0]) || null;
+  const lastCommWhy = (cid, i, why) => ((DB.comms[cid] || []).filter(x => x.si === i && !x.ph && x.why === why).slice(-1)[0]) || null;
+  /* مقترح رقم ولي الأمر من المعلم: يُحفظ عنصراً في سجل التواصل نفسه (يصل السحابة بقواعدها القائمة
+     بلا مجموعة جديدة) ولا يُكتب في سجل الطلاب — يعتمده المدير بنقرة في تبويب «الطلاب» ويُقيَّد في
+     سجل الإدارة. بيانات أولياء الأمور سجل رسمي لا يكتب عليه ٢٤ معلماً بلا اعتماد. */
+  const normPh = (p) => { let d = String(p || "").replace(/[^\d]/g, ""); if (/^9665\d{8}$/.test(d)) d = "0" + d.slice(3); else if (/^5\d{8}$/.test(d)) d = "0" + d; return /^05\d{8}$/.test(d) ? d : null; };
+  const phoneSug = (cid, i) => ((DB.comms[cid] || []).filter(x => x.si === i && x.ph).slice(-1)[0]) || null;
+  function savePhoneSug(cid, i, ph) {
+    DB.comms[cid] = DB.comms[cid] || [];
+    DB.comms[cid].push({ si: i, why: "مقترح جوال", via: "مقترح", ph: ph, note: `مقترح جوال ولي الأمر ${ph} — بانتظار اعتماد الإدارة`, date: hijriLabel(), ts: Date.now() });
+    save("comms:" + cid);
+  }
+  // كتلة «📱 أضف جوال ولي الأمر» — تُستعمل في بطاقة الطالب وفي نافذة الإرسال
+  function askPhoneHtml(cid, i, idp) {
+    const sug = phoneSug(cid, i);
+    return `<div class="pask">📱 لا رقم مسجل لولي أمر هذا الطالب${sug ? ` — <b>اقترحتَ <span dir="ltr">${esc(sug.ph)}</span></b> وهو بانتظار اعتماد الإدارة` : ""}
+      <div class="pin"><input id="${idp}-ph" class="search-box" inputmode="tel" maxlength="14" placeholder="05xxxxxxxx" value="${esc(sug ? sug.ph : "")}" style="direction:ltr;text-align:right" autocomplete="off"><button type="button" class="btn-soft" id="${idp}-save">💾 اقترح</button></div>
+      <small>يُحفظ باسمك مقترحاً يعتمده المدير بنقرة في «الطلاب» — لا يُكتب في سجل الطلاب مباشرة.</small>
+      <div id="${idp}-msg" style="font-weight:800;min-height:17px;font-size:12.5px"></div></div>`;
+  }
+  function bindAskPhone(o, cid, i, idp, after) {
+    const sv = o.querySelector("#" + idp + "-save"); if (!sv) return;
+    sv.onclick = () => {
+      const el = o.querySelector("#" + idp + "-ph"), msg = o.querySelector("#" + idp + "-msg"), n = normPh(el.value);
+      if (!n) { msg.style.color = "var(--bad)"; msg.textContent = "صيغة الجوال غير صحيحة — 05xxxxxxxx أو 9665xxxxxxxx"; return; }
+      savePhoneSug(cid, i, n);
+      msg.style.color = "var(--ok)"; msg.textContent = "✔ حُفظ مقترحاً — يعتمده المدير من لوحة «الطلاب»";
+      sv.disabled = true;
+      if (after) after();
+    };
+  }
+  /* نافذة الإرسال الموحّدة: معاينة + واتساب + نسخ + «✔ سجّل التواصل» — الواتساب والتسجيل على مسار
+     واحد، فما وصل البيت يظهر في سجل الطالب وفي لوحة المدير بلا خطوة إضافية ينساها المعلم. */
+  /* الاسم parentSendSheet لا sendSheet: في الملف دالةٌ باسم sendSheet لإرسال أوراق العمل (أسفلُه)،
+     وتصريحان بالاسم نفسه في نطاق واحد ⇒ يفوز الأخير صامتاً. فكان «💬 أبلغ ولي الأمر» و«👁 معاينة»
+     في تقارير أولياء الأمور ينادِيان مُرسِلَ الأوراق فيردّ «لا أسئلة في هذه الورقة» — سلسلةُ
+     ولي الأمر كلها ميتة بلا رسالة خطأ واحدة. */
+  function parentSendSheet(o) {
+    const cid = o.cid, i = o.i, c = classById(cid), s = c.students[i];
+    const ph = phoneOf(s), txt = o.text, done = o.done ? o.done() : null;
+    const refresh = () => { if (o.after) o.after(); };
+    const log = () => { logComm(cid, i, o.why, "واتساب", o.note); refresh(); };
+    openSheet(`<h4>${esc(o.title)}</h4>
+      <div class="msgprev">${esc(txt)}</div>
+      ${done ? `<div class="pask ok" style="margin-top:8px">✔ سُجّل تواصل سابق — ${esc(done.date)} (${esc(agoLabel(done.ts))})</div>` : ""}
+      ${ph ? "" : askPhoneHtml(cid, i, "ps")}
+      <div class="sheet-actions" style="flex-wrap:wrap">
+        <button class="btn-plain" style="flex:1 1 46%" id="ps-copy">📋 نسخ النص</button>
+        <button class="btn-plain" style="flex:1 1 46%" id="ps-log">✔ سجّل التواصل</button>
+        <a class="wa-btn ${ph ? "" : "off"}" style="flex:1 1 100%;margin:8px 0 0" id="ps-wa" target="_blank" rel="noopener" href="${waLink(ph, txt)}">💬 واتساب ولي الأمر${ph ? "" : " (لا رقم مسجل)"}</a>
+        <button class="btn-primary" style="flex:1 1 100%" id="ps-x">${esc(o.backLbl || "تم")}</button></div>`,
+      (ov) => {
+        const back = () => { if (o.back) o.back(); else closeSheet(); };
+        ov.querySelector("#ps-x").onclick = back;
+        ov.querySelector("#ps-copy").onclick = (ev) => {
+          const b = ev.currentTarget;
+          try { navigator.clipboard.writeText(txt).then(() => { b.textContent = "✔ نُسخ"; }, () => { b.textContent = "تعذّر النسخ"; }); }
+          catch (e) { b.textContent = "تعذّر النسخ"; }
+        };
+        ov.querySelector("#ps-log").onclick = () => { log(); back(); };
+        const wa = ov.querySelector("#ps-wa");
+        if (wa && ph) wa.addEventListener("click", () => { log(); setTimeout(back, 400); });
+        bindAskPhone(ov, cid, i, "ps", () => { refresh(); });
+      });
+  }
+  // سطر «💬 أبلغ ولي الأمر» داخل صف الطالب بعد غائب/متأخر/هارب
+  function parentAlert(cid, dt, i) {
+    const e = ((DB.recs[cid] || {})[dt] || {})[i] || {};
+    const stn = (e.a != null && STATES[e.a]) ? String(STATES[e.a].name || "") : "غياب";
+    parentSendSheet({
+      cid: cid, i: i, title: "💬 أبلغ ولي الأمر — " + classById(cid).students[i].n,
+      text: absentMessage(cid, i, stn, dt), why: "غياب متكرر", note: `إبلاغ غياب (${stn}) — ${dt}`,
+      done: () => lastParentComm(cid, i, dt),
+      after: () => { if (regClass === cid && regDate === dt && document.getElementById("reg-list")) drawRows(); }
+    });
+  }
+  function msgPreview(title, text, back) {
+    openSheet(`<h4>👁 ${esc(title)}</h4><div class="msgprev">${esc(text)}</div>
+      <div class="sheet-actions"><button class="btn-plain" id="mp-back">رجوع</button><button class="btn-primary" id="mp-copy">📋 نسخ النص</button></div>`,
+      (o) => {
+        o.querySelector("#mp-back").onclick = () => { if (back) back(); else closeSheet(); };
+        o.querySelector("#mp-copy").onclick = (ev) => {
+          const b = ev.currentTarget;
+          try { navigator.clipboard.writeText(text).then(() => { b.textContent = "✔ نُسخ"; }, () => { b.textContent = "تعذّر النسخ"; }); }
+          catch (e) { b.textContent = "تعذّر النسخ"; }
+        };
+      });
+  }
+  function absentNotify(cid, dt, back) {
+    const c = classById(cid), rows = [];
+    activeStudents(c).forEach(({ s, i }) => {
+      const e = ((DB.recs[cid] || {})[dt] || {})[i];
+      const stn = (e && e.a != null && STATES[e.a]) ? String(STATES[e.a].name || "") : "";
+      if (isAbsent(stn)) rows.push({ i: i, s: s, stn: stn });
+    });
+    if (!rows.length) {
+      openSheet(`<h4>📨 أولياء أمور الغائبين</h4><div class="empty-note">لا غياب مسجَّل في هذه الحصة 🌿</div><div class="sheet-actions"><button class="btn-primary" id="ab-x">تم</button></div>`,
+        (o) => o.querySelector("#ab-x").onclick = () => { if (back) back(); else closeSheet(); });
+      return;
+    }
+    const li = rows.map(r => {
+      const ph = String(r.s.p || "").replace(/\D/g, "").replace(/^0/, "966");
+      const txt = encodeURIComponent(absentMessage(cid, r.i, r.stn, dt));
+      const sent = ((DB.comms[cid] || []).filter(x => x.si === r.i && /غياب/.test(x.why || "")).slice(-1)[0]) || null;
+      return `<div class="absrow"><div class="an">${esc(r.s.n)} <span class="tag">${esc(r.stn)}</span>${sent ? `<small>✔ سُجّل تواصل سابق — ${esc(sent.date)}</small>` : ""}</div>
+        <div class="ab2"><button type="button" class="btn-plain" data-prev="${r.i}">👁 معاينة</button>
+        <a class="wa-btn ${ph ? "" : "off"}" data-wa="${r.i}" target="_blank" rel="noopener" href="https://wa.me/${ph}?text=${txt}">💬 واتساب${ph ? "" : " (لا رقم مسجل)"}</a></div></div>`;
+    }).join("");
+    openSheet(`<h4>📨 أبلغ أولياء الغائبين (${rows.length})</h4><div class="absl">${li}</div>
+      <div class="empty-note" style="padding:6px 2px 0;text-align:right;font-size:12px">كل رسالة فردية وتُسجَّل في سجل التواصل باسم «غياب متكرر»، فتبقى موثّقة عند أي شكوى أو زيارة إشرافية.</div>
+      <div class="sheet-actions"><button class="btn-primary" id="ab-x">تم</button></div>`,
+      (o) => {
+        o.querySelector("#ab-x").onclick = () => { if (back) back(); else closeSheet(); };
+        o.querySelectorAll("[data-prev]").forEach(b => b.onclick = () => {
+          const i = +b.dataset.prev, r = rows.find(x => x.i === i);
+          msgPreview("رسالة ولي أمر — " + r.s.n, absentMessage(cid, i, r.stn, dt), () => absentNotify(cid, dt, back));
+        });
+        o.querySelectorAll("[data-wa]").forEach(a => a.addEventListener("click", () => {
+          const i = +a.dataset.wa, r = rows.find(x => x.i === i); if (!r) return;
+          if (!String(r.s.p || "").replace(/\D/g, "")) return;              // زر بلا رقم لا يُسجَّل إرسالاً لم يقع
+          logAbsentComm(cid, i, r.stn, dt);
+          setTimeout(() => { if (OV.querySelector(".absl")) absentNotify(cid, dt, back); }, 500);
+        }));
+      });
+  }
   // 🎮 استوديو ألعاب الدرس — تخمين وصور وفرق (لوحة الشرف تبقى للتقييم اللحظي)
   let gameIv = null, gameIv2 = null;
   /* كل مؤجَّل داخل لعبة يُسجَّل هنا: الجولة التالية بعد التسوية، وقلب البطاقات، وشاشة النهاية…
@@ -2719,9 +3695,9 @@
       box.innerHTML = `<div class="live-stage"><div class="stage-bar"><span style="color:#fff;font-weight:800">🎮 ألعاب الدرس${d ? ": " + esc(d.title) : ""}</span><span style="color:#9fb0c4;font-size:12px;margin-inline-start:auto">من صور الدرس ومصطلحاته وقصته</span></div>
         <div class="gm-menu" ${hero ? `style="background-image:linear-gradient(rgba(10,20,32,.8),rgba(10,20,32,.96)),url('${hero.img}')"` : ""}>
           ${card("guess", "🖼️", "خمّن الصورة", "تنكشف الصورة قطعة قطعة… من يعرفها أولاً يفوز بأكثر النقاط", imgs.length >= 2)}
-          ${card("memory", "🧠", "الذاكرة المصوّرة", "اقلب البطاقات وطابق الصورة باسمها قبل نفاد المحاولات", imgs.length >= 3 || vocab.length >= 3)}
+          ${card("memory", "🧠", "الذاكرة المصوّرة", "أربع بطاقات سريعة: طابق الصورة باسمها", imgs.length >= 2 || scenes.filter(x => x && x.img).length >= 2 || vocab.length >= 2)}
           ${card("riddle", "🔤", "من أنا؟", "لغز المصطلح: تعريف وحروف مخفية… خمّن قبل أن تُكشف الحروف", vocab.length >= 3)}
-          ${card("order", "🧩", "رتّب القصة", "مشاهد قصة الدرس مبعثرة… أعدها إلى ترتيبها الصحيح", scenes.length >= 4)}
+          ${card("order", "🧩", "رتّب القصة", "مشهد واحد في كل خطوة: أيّها أولاً؟ ثم ماذا بعده؟", scenes.length >= 3)}
           ${card("teams", "⚔️", "تحدّي الفرق", "الفريق الأخضر ضد الذهبي: مؤقّت، سرقة السؤال، وعجلة تختار المجيب", bank.length >= 4)}
           ${card("match", "🔗", "مطابقة المصطلحات", "صِل كل مصطلح بتعريفه ضد الساعة", vocab.length >= 3)}
           ${card("ladder", "🪜", "سلّم المليون", "اصعد بالإجابات الصحيحة ومعك مساعدة 50:50", bank.length >= 3)}
@@ -2768,16 +3744,32 @@
       round();
     }
     // 🧠 الذاكرة المصوّرة — صورة ↔ اسمها (أو مصطلح ↔ تعريف)
+    /* 🧠 الذاكرة المصوّرة — زوجان فقط (أربع بطاقات) افتراضياً:
+       جولة الحصة يجب أن تنتهي في نصف دقيقة لا في خمس دقائق، والمعلم يزيد العدد بنفسه إن أراد.
+       والمطابقة صورة باسمها دائماً ما دامت للدرس صور (تُجمع من صور الدرس ومن مشاهد القصة)،
+       ولا يُلجأ إلى مصطلح+تعريف إلا إذا خلا الدرس من الصور تماماً. */
+    let memoPairs = 2;
+    function memoSource() {
+      const pics = [];
+      (imgs || []).forEach(x => { if (x && x.img && x.cap) pics.push({ img: x.img, cap: x.cap }); });
+      (scenes || []).forEach(x => { if (x && x.img && x.t && !pics.some(p => p.img === x.img)) pics.push({ img: x.img, cap: x.t }); });
+      return pics;
+    }
     function memory() {
+      const pics = memoSource(), withPics = pics.length >= 2;
+      const n = Math.max(2, Math.min(memoPairs, withPics ? pics.length : (vocab || []).length));
       let pairs;
-      if (imgs.length >= 3) pairs = shuffle(imgs).slice(0, 6).map((x, i) => ({ id: i, a: `<img src="${x.img}" alt="">`, b: esc(x.cap) }));
-      else pairs = shuffle(vocab).slice(0, 6).map((v, i) => ({ id: i, a: `<b>${esc(v.t)}</b>`, b: `<small>${esc(v.d)}</small>` }));
+      if (withPics) pairs = shuffle(pics).slice(0, n).map((x, i) => ({ id: i, a: `<img src="${x.img}" alt="">`, b: `<b>${esc(x.cap)}</b>` }));
+      else pairs = shuffle(vocab).slice(0, n).map((v, i) => ({ id: i, a: `<b>${esc(v.t)}</b>`, b: `<small>${esc(v.d)}</small>` }));
       const cards = shuffle(pairs.flatMap(p => [{ id: p.id, h: p.a, k: "a" }, { id: p.id, h: p.b, k: "b" }]));
       let open = [], found = 0, moves = 0; const t0 = Date.now(); let lock = false;
+      const maxP = withPics ? pics.length : (vocab || []).length;
+      const sizeBtn = [2, 3, 4].filter(k => k <= maxP).map(k => `<button class="live-btn mm-size${k === n ? " on" : ""}" data-p="${k}">${k * 2} بطاقات</button>`).join("");
       box.innerHTML = `<div class="live-stage">${bar("🧠 الذاكرة المصوّرة", `<span class="gm-hud" id="gm-hud" style="margin-inline-start:auto"></span>`)}
-        <div class="gm-body"><div class="gm-pickrow">${pickBtn}<span class="btip" style="margin:0">اقلب بطاقتين: الصورة واسمها</span></div>
-        <div class="mm-grid" style="--n:${cards.length <= 8 ? 4 : 4}">${cards.map((cd, i) => `<button class="mm-card" data-i="${i}"><div class="mm-in"><div class="mm-face mm-back">?</div><div class="mm-face mm-front">${cd.h}</div></div></button>`).join("")}</div></div></div>`;
+        <div class="gm-body"><div class="gm-pickrow">${pickBtn}<span class="btip" style="margin:0">${withPics ? "اقلب بطاقتين: الصورة واسمها" : "اقلب بطاقتين: المصطلح وتعريفه"}</span>${sizeBtn}</div>
+        <div class="mm-grid" style="--n:${cards.length <= 4 ? 2 : 4};max-width:${cards.length <= 4 ? "460px" : "820px"}">${cards.map((cd, i) => `<button class="mm-card" data-i="${i}"><div class="mm-in"><div class="mm-face mm-back">?</div><div class="mm-face mm-front">${cd.h}</div></div></button>`).join("")}</div></div></div>`;
       box.querySelector("#gm-back").onclick = menu; wirePick();
+      box.querySelectorAll(".mm-size").forEach(b2 => b2.onclick = () => { memoPairs = +b2.dataset.p; memory(); });
       const hud = box.querySelector("#gm-hud"); const tick = () => { hud.textContent = `⏱ ${fmtT((Date.now() - t0) / 1000)} · محاولات ${moves} · ${found}/${pairs.length}`; }; tick(); gameIv = setInterval(tick, 500);
       box.querySelectorAll(".mm-card").forEach(b => b.onclick = () => {
         if (lock || b.classList.contains("flip") || b.classList.contains("done")) return;
@@ -2809,40 +3801,98 @@
       }
       show();
     }
-    // 🧩 رتّب القصة — مشاهد مبعثرة
+    /* 🧩 رتّب القصة — سؤال واحد في كل خطوة.
+       الشكل السابق (ست بطاقات تُرتَّب دفعة واحدة ثم «تحقّق») كان فوق طاقة طفل أمام الفصل:
+       ذاكرة عاملة لست جُمل، وبلا أي تغذية راجعة حتى النهاية، فيخطئ في واحدة فيبدو كأنه أخطأ في الكل.
+       الآن: «أيّها يأتي أولاً؟» ثم «وماذا بعده؟» — اختيار واحد، وجواب فوري، والمشهد الصحيح ينضم إلى شريط القصة. */
+    let odCount = 4;
     function order() {
-      const src = scenes.map((s, k) => ({ k, s })).slice(0, 6); const disp = shuffle(src); let picked = [];
-      box.innerHTML = `<div class="live-stage">${bar("🧩 رتّب القصة", `<span class="gm-hud" id="gm-hud" style="margin-inline-start:auto">انقر المشاهد بترتيب حدوثها</span>`)}
-        <div class="gm-body"><div class="gm-pickrow">${pickBtn}<button class="live-btn" id="od-reset">↺ إعادة</button><button class="btn-primary" id="od-check" style="padding:8px 18px" disabled>✅ تحقّق</button></div>
-        <div class="od-grid">${disp.map((x, i) => `<button class="od-card" data-i="${i}"><span class="od-n"></span>${x.s.img ? `<img src="${x.s.img}" alt="">` : `<div class="od-emo">${x.s.v || "📘"}</div>`}<div class="od-t">${esc(x.s.t)}</div></button>`).join("")}</div></div></div>`;
-      box.querySelector("#gm-back").onclick = menu; wirePick();
-      const cards = [...box.querySelectorAll(".od-card")], chk = box.querySelector("#od-check");
-      const paint = () => { cards.forEach(cd => { const p = picked.indexOf(+cd.dataset.i); cd.querySelector(".od-n").textContent = p >= 0 ? (p + 1) : ""; cd.classList.toggle("sel", p >= 0); }); chk.disabled = picked.length !== disp.length; };
-      cards.forEach(cd => cd.onclick = () => { const i = +cd.dataset.i; const p = picked.indexOf(i); if (p >= 0) picked.splice(p, 1); else picked.push(i); paint(); });
-      box.querySelector("#od-reset").onclick = () => { picked = []; cards.forEach(cd => cd.classList.remove("ok", "no")); paint(); };
-      chk.onclick = () => {
-        let ok = 0; picked.forEach((di, pos) => { const right = disp[di].k === src[pos].k; cards[di].classList.add(right ? "ok" : "no"); if (right) ok++; });
-        box.querySelector("#gm-hud").textContent = `${ok}/${disp.length} في مكانها الصحيح`;
-        if (ok === disp.length) { confetti(); gameWait(() => finish("🧩 رتّب القصة", "ترتيب صحيح بالكامل — القصة اكتملت!"), 900); }
-      };
+      const all = scenes.map((s, k) => ({ k, s })).filter(x => x.s && (x.s.t || x.s.img));
+      const n = Math.max(3, Math.min(odCount, all.length));
+      const src = all.slice(0, n);
+      let step = 0, tries = 0, wrong = 0;
+      let rest = shuffle(src.slice());
+      const face = (x, small) => `${x.s.img ? `<img src="${x.s.img}" alt="">` : `<div class="od-emo">${x.s.v || "📘"}</div>`}${small ? "" : `<div class="od-t">${esc(x.s.t)}</div>`}`;
+      function draw() {
+        const done = src.slice(0, step);
+        const sizeBtn = [3, 4, 5, 6].filter(k => k <= all.length).map(k => `<button class="live-btn od-size${k === n ? " on" : ""}" data-n="${k}">${k} مشاهد</button>`).join("");
+        box.innerHTML = `<div class="live-stage">${bar("🧩 رتّب القصة", `<span class="gm-hud" id="gm-hud" style="margin-inline-start:auto">${step}/${src.length} · محاولات ${tries}</span>`)}
+          <div class="gm-body"><div class="gm-pickrow">${pickBtn}${sizeBtn}<button class="live-btn" id="od-reset">↺ من البداية</button></div>
+          <div class="od-strip">${done.length ? done.map((x, i) => `<div class="od-done"><span class="od-n">${i + 1}</span>${face(x, true)}<div class="od-t">${esc(x.s.t)}</div></div>`).join('<span class="od-arrow">←</span>') : `<div class="od-empty">شريط القصة فارغ… ابدأ بالمشهد الأول</div>`}</div>
+          <div class="gm-q" id="od-ask">${step === 0 ? "أيّ مشهد يأتي <b>أولاً</b>؟" : `وماذا يأتي <b>بعد</b> «${esc(src[step - 1].s.t)}»؟`}</div>
+          <div class="od-grid">${rest.map((x, i) => `<button class="od-card" data-k="${x.k}"><span class="od-n">؟</span>${face(x)}</button>`).join("")}</div></div></div>`;
+        box.querySelector("#gm-back").onclick = menu; wirePick();
+        box.querySelectorAll(".od-size").forEach(b2 => b2.onclick = () => { odCount = +b2.dataset.n; order(); });
+        box.querySelector("#od-reset").onclick = () => order();
+        box.querySelectorAll(".od-card").forEach(cd => cd.onclick = () => {
+          if (cd.classList.contains("no") || cd.classList.contains("ok")) return;
+          tries++;
+          const k = +cd.dataset.k, want = src[step].k;
+          if (k === want) {
+            cd.classList.add("ok"); confetti();
+            rest = rest.filter(x => x.k !== k); step++;
+            gameWait(() => { if (step >= src.length) { confetti(); finish("🧩 رتّب القصة", `القصة اكتملت! ${src.length} مشاهد بترتيبها`, wrong ? `بعد ${tries} محاولة` : "من أول مرة بلا خطأ 🌟"); } else draw(); }, 700);
+          } else {
+            wrong++; cd.classList.add("no");
+            const ask = box.querySelector("#od-ask");
+            if (ask && !ask.querySelector(".gm-fb")) ask.insertAdjacentHTML("beforeend", `<div class="gm-fb no">ليس هذا — انظر إلى الصورة وفكّر ماذا يحدث ${step === 0 ? "في البداية" : "بعدها"}</div>`);
+            gameWait(() => cd.classList.remove("no"), 900);
+          }
+          const hud = box.querySelector("#gm-hud"); if (hud) hud.textContent = `${step}/${src.length} · محاولات ${tries}`;
+        });
+      }
+      draw();
     }
     // ⚔️ تحدّي الفرق — الأخضر ضد الذهبي
     function teams() {
       const qs = shuffle(bank.filter(q => q.t !== "fill")).slice(0, 10);
-      const T = [{ n: "الفريق الأخضر", cl: "g", s: 0 }, { n: "الفريق الذهبي", cl: "y", s: 0 }];
+      /* لاعب واحد لكل فريق باسمه: الأخضر يميناً والذهبي يساراً (الترتيب في RTL).
+         الاختيار من الحاضرين، وينحاز لمن لم يشارك بعد في الحصة حتى تدور المشاركة على الجميع. */
+      const T = [{ n: "الفريق الأخضر", cl: "g", s: 0, si: null }, { n: "الفريق الذهبي", cl: "y", s: 0, si: null }];
+      const nameOfSi = (i) => (i == null || !c.students[i]) ? "" : c.students[i].n;
+      function pickPlayers() {
+        const pool = activeStudents(c).map(x => x.i).filter(i => !liveAway(i));
+        const list = pool.length >= 2 ? pool : activeStudents(c).map(x => x.i);
+        const fresh = list.filter(i => !liveTurns.done.has(i));
+        const bag = fresh.length >= 2 ? fresh : list;
+        const sh = shuffle(bag.slice());
+        T[0].si = sh[0] != null ? sh[0] : null;
+        T[1].si = sh.find(i => i !== T[0].si);
+        if (T[1].si == null) T[1].si = sh[1] != null ? sh[1] : null;
+        [T[0].si, T[1].si].forEach(i => { if (i != null) liveTurns.done.add(i); });
+      }
+      pickPlayers();
       let qi = 0, turn = 0, left = 15, steal = false, t0 = 0;
       function show() {
         stopGame();
         const it = qs[qi];
-        if (!it) { const w = T[0].s === T[1].s ? null : (T[0].s > T[1].s ? T[0] : T[1]); confetti(); finish("⚔️ تحدّي الفرق", w ? `🏆 الفائز: ${w.n}` : "🤝 تعادل!", `${T[0].n} ${T[0].s} — ${T[1].n} ${T[1].s}`); return; }
+        if (!it) {
+          const w = T[0].s === T[1].s ? null : (T[0].s > T[1].s ? T[0] : T[1]); confetti();
+          const nm = (x) => x.si != null ? `${x.n} (${esc(nameOfSi(x.si))})` : x.n;
+          finish("⚔️ تحدّي الفرق", w ? `🏆 الفائز: ${w.si != null ? esc(nameOfSi(w.si)) : w.n}` : "🤝 تعادل!", `${nm(T[0])} ${T[0].s} — ${nm(T[1])} ${T[1].s}`);
+          // تقييم فوري للمتنافسَين من شاشة النتيجة (رصد حقيقي في سجل اليوم)
+          const body = box.querySelector(".gm-body") || box;
+          const row = document.createElement("div"); row.className = "gm-award"; row.style.marginTop = "10px";
+          row.innerHTML = T.filter(x => x.si != null).map(x => `<button class="live-btn tm-eval" data-i="${x.si}">⭐ قيّم ${esc(nameOfSi(x.si))}</button>`).join(" ")
+            + ` <button class="live-btn" id="tm-again">🔁 متنافسان جديدان</button>`;
+          body.appendChild(row);
+          row.querySelectorAll(".tm-eval").forEach(b2 => b2.onclick = () => {
+            const i2 = +b2.dataset.i; applyLive(i2, "part"); b2.textContent = "✔ سُجّلت لـ " + nameOfSi(i2); b2.disabled = true; confetti();
+          });
+          const ag = row.querySelector("#tm-again"); if (ag) ag.onclick = () => teams();
+          return;
+        }
         left = 15; steal = false; t0 = Date.now();
-        const head = () => `<div class="tm-board"><div class="tm-team g ${turn === 0 ? "on" : ""}"><b>${T[0].n}</b><span>${T[0].s}</span></div><div class="tm-vs">${steal ? "🕵️ فرصة سرقة" : "دور"}</div><div class="tm-team y ${turn === 1 ? "on" : ""}"><b>${T[1].n}</b><span>${T[1].s}</span></div></div>`;
+        const teamBox = (x, on) => `<div class="tm-team ${x.cl} ${on ? "on" : ""}"><b>${x.n}</b>${x.si != null ? `<i class="tm-pl">${esc(nameOfSi(x.si))}</i>` : ""}<span>${x.s}</span></div>`;
+        const head = () => `<div class="tm-board">${teamBox(T[0], turn === 0)}<div class="tm-vs">${steal ? "🕵️ فرصة سرقة" : "دور"}</div>${teamBox(T[1], turn === 1)}</div>`;
         box.innerHTML = `<div class="live-stage">${bar("⚔️ تحدّي الفرق", `<span class="gm-hud" style="margin-inline-start:auto">سؤال ${qi + 1}/${qs.length}</span>`)}
-          <div class="gm-body gm-center"><div id="tm-head">${head()}</div><div class="gm-pickrow">${pickBtn}</div>
+          <div class="gm-body gm-center"><div id="tm-head">${head()}</div>
+          <div class="gm-pickrow"><button class="live-btn" id="tm-swap">🔁 غيّر المتنافسين</button><span class="btip" style="margin:0">${T[0].si != null && T[1].si != null ? `${esc(nameOfSi(T[0].si))} ضد ${esc(nameOfSi(T[1].si))}` : "اختر متنافسين"}</span></div>
           <div class="gm-timer"><div id="gm-tf" style="width:100%"></div></div>
           ${it.img ? `<img class="q-img" src="${it.img}" alt="">` : ""}<div class="gm-stmt" id="gm-stmt">${esc(it.q)}</div>
           <div class="qz-grid" style="width:100%">${it.opts.map((o, k) => o ? `<button class="qz-opt-card" data-k="${k}">${it.t === "tf" ? "" : L[k] + ". "}${esc(o)}</button>` : "").join("")}</div></div></div>`;
-        box.querySelector("#gm-back").onclick = menu; wirePick();
+        box.querySelector("#gm-back").onclick = menu;
+        const sw = box.querySelector("#tm-swap"); if (sw) sw.onclick = () => { pickPlayers(); show(); };
         const fill = box.querySelector("#gm-tf"), headEl = box.querySelector("#tm-head");
         const startTimer = (secs) => { stopGame(); left = secs; fill.style.width = "100%"; gameIv = setInterval(() => { left -= 0.1; fill.style.width = Math.max(0, left / secs * 100) + "%"; if (left <= 0) timeout(); }, 100); };
         const next = () => gameWait(() => { qi++; turn = 1 - turn; show(); }, 1500);
@@ -2850,8 +3900,8 @@
         function wire() {
           box.querySelectorAll(".qz-opt-card").forEach(b => b.onclick = () => {
             const ok = +b.dataset.k === it.correct; b.classList.add(ok ? "ok" : "no"); stopGame();
-            if (ok) { const fast = (Date.now() - t0) < 5000 && !steal; const gain = steal ? 5 : (10 + (fast ? 5 : 0)); T[turn].s += gain; confetti(); box.querySelector("#gm-stmt").insertAdjacentHTML("beforeend", `<div class="gm-fb ok">✅ +${gain} لصالح ${T[turn].n}${fast ? " (سرعة!)" : ""}</div>`); headEl.innerHTML = head(); box.querySelectorAll(".qz-opt-card").forEach(x => x.onclick = null); next(); return; }
-            if (!steal) { steal = true; turn = 1 - turn; headEl.innerHTML = head(); b.onclick = null; box.querySelector("#gm-stmt").insertAdjacentHTML("beforeend", `<div class="gm-fb no">❌ خطأ — الفرصة الآن لـ ${T[turn].n} (8 ثوانٍ)</div>`); t0 = Date.now(); startTimer(8); return; }
+            if (ok) { const fast = (Date.now() - t0) < 5000 && !steal; const gain = steal ? 5 : (10 + (fast ? 5 : 0)); T[turn].s += gain; confetti(); box.querySelector("#gm-stmt").insertAdjacentHTML("beforeend", `<div class="gm-fb ok">✅ +${gain} لصالح ${T[turn].si != null ? esc(nameOfSi(T[turn].si)) : T[turn].n}${fast ? " (سرعة!)" : ""}</div>`); headEl.innerHTML = head(); box.querySelectorAll(".qz-opt-card").forEach(x => x.onclick = null); next(); return; }
+            if (!steal) { steal = true; turn = 1 - turn; headEl.innerHTML = head(); b.onclick = null; box.querySelector("#gm-stmt").insertAdjacentHTML("beforeend", `<div class="gm-fb no">❌ خطأ — الفرصة الآن لـ ${T[turn].si != null ? esc(nameOfSi(T[turn].si)) : T[turn].n} (8 ثوانٍ)</div>`); t0 = Date.now(); startTimer(8); return; }
             box.querySelectorAll(".qz-opt-card").forEach(x => { x.onclick = null; if (+x.dataset.k === it.correct) x.classList.add("ok"); }); box.querySelector("#gm-stmt").insertAdjacentHTML("beforeend", `<div class="gm-fb no">❌ لا نقاط لأحد</div>`); turn = 1 - turn; next();
           });
         }
@@ -3186,7 +4236,8 @@
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px"><div class="field" style="margin:0"><label>من تاريخ</label><input type="date" id="wa-from" value="${ago}"></div><div class="field" style="margin:0"><label>إلى تاريخ</label><input type="date" id="wa-to" value="${today}"></div></div>
       <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px"><button class="btn-gold" id="wa-group" style="flex:1">💬 تقرير الفصل لقروب الواتس</button><button class="btn-gold" id="wa-each" style="flex:1">👨‍👩‍👦 رسالة لكل ولي أمر</button></div>
       <textarea class="note" id="wa-text" rows="9" style="margin-top:8px;display:none;direction:rtl"></textarea>
-      <div id="wa-act" style="display:none;gap:8px;margin-top:6px"><button class="btn-plain" id="wa-copy" style="flex:1">📋 نسخ النص</button><a class="wa-btn" id="wa-share" target="_blank" rel="noopener" style="flex:2;margin:0">💬 مشاركة في واتساب (اختر القروب)</a></div>`;
+      <div id="wa-act" style="display:none;gap:8px;margin-top:6px"><button class="btn-plain" id="wa-copy" style="flex:1">📋 نسخ النص</button><a class="wa-btn" id="wa-share" target="_blank" rel="noopener" style="flex:2;margin:0">💬 مشاركة في واتساب (اختر القروب)</a></div>
+      ${(() => { const a2 = activeStudents(classById(repClass)), n = a2.filter(x => !phoneOf(x.s)).length; return n ? `<div class="empty-note" style="padding:8px 2px 0;text-align:right;font-size:12.5px;color:var(--bad)">📱 ${n} من ${a2.length} بلا رقم ولي أمر — اقترح الرقم من بطاقة الطالب ويعتمده المدير بنقرة.</div>` : ""; })()}`;
     box.appendChild(wa);
     const rng = () => [wa.querySelector("#wa-from").value || ago, wa.querySelector("#wa-to").value || today];
     wa.querySelector("#wa-group").onclick = () => {
@@ -3195,12 +4246,38 @@
       const act = wa.querySelector("#wa-act"); act.style.display = "flex"; wa.querySelector("#wa-share").href = waLink("", txt);
       wa.querySelector("#wa-copy").onclick = () => { try { navigator.clipboard.writeText(ta.value); wa.querySelector("#wa-copy").textContent = "✔ نُسخ"; } catch (e) { ta.select(); document.execCommand("copy"); } };
     };
-    wa.querySelector("#wa-each").onclick = () => {
-      const [f, t] = rng(); const c = classById(repClass);
-      openSheet(`<h4>👨‍👩‍👦 رسالة لكل ولي أمر — ${esc(c.name)}</h4><div style="color:var(--muted);font-size:13px;margin-bottom:8px">الفترة ${hLabelShort(f)} → ${hLabelShort(t)} — كل زر يفتح واتساب برسالة جاهزة لولي أمر الطالب</div>
-        <div id="pe-list">${activeStudents(c).map(({ s, i }) => { const ph = phoneOf(s); return `<div class="stu"><span class="nm">${esc(s.n)}<small>${calcStudent(repClass, i, recsInRange(repClass, f, t)).pts} نقطة في الفترة</small></span><div style="display:flex;gap:6px"><button class="btn-soft" data-pg="${i}">📈</button><a class="wa-btn ${ph ? "" : "off"}" style="margin:0;padding:6px 10px;font-size:13px" target="_blank" rel="noopener" href="${waLink(ph, studentText(repClass, i, f, t))}">💬 إرسال</a></div></div>`; }).join("")}</div>
-        <div class="sheet-actions"><button class="btn-primary" onclick="window._sheetClose()">إغلاق</button></div>`, (o) => o.querySelectorAll("[data-pg]").forEach(b => b.onclick = () => studentProgress(repClass, +b.dataset.pg)));
-    };
+    wa.querySelector("#wa-each").onclick = () => { const [f, t] = rng(); parentEachSheet(f, t); };
+  }
+  /* روابط «رسالة لكل ولي أمر» كانت وسوم <a> عارية بلا أي تسجيل: يرسل المعلم عشرين رسالة ولا يبقى منها
+     سطر واحد في سجل التواصل. صارت تمرّ على مسار التسجيل نفسه بوسم «تقرير فترة»، ويظهر بجانب كل اسم
+     «✔ أُرسل قبل يومين»، و«👁» تعرض النص وتعمل بلا رقم (وتفتح حقل اقتراح الرقم). */
+  function parentEachSheet(f, t) {
+    const c = classById(repClass), act = activeStudents(c);
+    const noPh = act.filter(x => !phoneOf(x.s)).length;
+    openSheet(`<h4>👨‍👩‍👦 رسالة لكل ولي أمر — ${esc(c.name)}</h4>
+      <div style="color:var(--muted);font-size:13px;margin-bottom:8px">الفترة ${hLabelShort(f)} → ${hLabelShort(t)} — كل إرسال يُسجَّل في سجل التواصل بوسم «تقرير فترة»${noPh ? ` · <b style="color:var(--bad)">${noPh} من ${act.length} بلا رقم</b>` : ""}</div>
+      <div id="pe-list">${act.map(({ s, i }) => {
+      const ph = phoneOf(s), sent = lastCommWhy(repClass, i, "تقرير فترة");
+      return `<div class="stu"><span class="nm">${esc(s.n)}<small>${calcStudent(repClass, i, recsInRange(repClass, f, t)).pts} نقطة في الفترة${sent ? ` · <b style="color:var(--ok)">✔ أُرسل ${esc(agoLabel(sent.ts))}</b>` : ""}</small></span><div style="display:flex;gap:6px"><button class="btn-soft" data-pg="${i}">📈</button><button class="btn-soft" data-pv="${i}" title="معاينة النص وتسجيل التواصل">👁</button><a class="wa-btn ${ph ? "" : "off"}" data-pw="${i}" style="margin:0;padding:6px 10px;font-size:13px" target="_blank" rel="noopener" href="${waLink(ph, studentText(repClass, i, f, t))}">💬 إرسال</a></div></div>`;
+    }).join("")}</div>
+      <div class="sheet-actions"><button class="btn-primary" id="pe-x">إغلاق</button></div>`,
+      (o) => {
+        o.querySelector("#pe-x").onclick = closeSheet;
+        o.querySelectorAll("[data-pg]").forEach(b => b.onclick = () => studentProgress(repClass, +b.dataset.pg));
+        o.querySelectorAll("[data-pv]").forEach(b => b.onclick = () => {
+          const i = +b.dataset.pv;
+          parentSendSheet({
+            cid: repClass, i: i, title: "تقرير الفترة — " + c.students[i].n, text: studentText(repClass, i, f, t),
+            why: "تقرير فترة", note: `تقرير الفترة ${hLabelShort(f)} → ${hLabelShort(t)}`,
+            done: () => lastCommWhy(repClass, i, "تقرير فترة"), backLbl: "رجوع", back: () => parentEachSheet(f, t)
+          });
+        });
+        o.querySelectorAll("[data-pw]").forEach(a => a.addEventListener("click", () => {
+          const i = +a.dataset.pw; if (!phoneOf(c.students[i])) return;      // زر بلا رقم لا يُسجَّل إرسالاً لم يقع
+          logComm(repClass, i, "تقرير فترة", "واتساب", `تقرير الفترة ${hLabelShort(f)} → ${hLabelShort(t)}`);
+          setTimeout(() => { if (OV.querySelector("#pe-list")) parentEachSheet(f, t); }, 500);
+        }));
+      });
   }
 
   /* ═══════════ ✏️ تأليف الدروس أونلاين (لكل المواد) — يُحفظ سحابياً ويعمل عليه الدرس والقصة والأسئلة والألعاب والورقة ═══════════ */
@@ -3585,6 +4662,10 @@
 
   /* ═══ إقلاع ═══ */
   if (!CLOUD) { const ds = $("#demo-strip"); if (ds) ds.textContent = "نسخة تجريبية — طلاب بأسماء وهمية، والبيانات على هذا الجهاز فقط"; }
+  else { const ds = $("#demo-strip"); if (ds) ds.style.display = "none"; }
+  /* رابط بوابة الطالب في شاشة الدخول وسمٌ ثابت href="s/": من فتح ?demo كان يهبط في نسخة
+     البوابة السحابية فتقف عند «جارِ التحميل…» بلا بيانات — طريقٌ مسدود أمام مدرسةٍ تجرّب. */
+  if (!CLOUD) { const sl = document.querySelector(".stu-link"); if (sl) sl.setAttribute("href", "s/?demo"); }
   try { if (window.speechSynthesis) { window.speechSynthesis.getVoices(); window.speechSynthesis.onvoiceschanged = () => { try { window.speechSynthesis.getVoices(); } catch (e) { } }; } } catch (e) { }
   boot();
 })();

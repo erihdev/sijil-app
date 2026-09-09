@@ -81,6 +81,61 @@ button{font-family:inherit}
 .kpi .v{font-size:22px; font-weight:800; color:var(--goldl)}
 .kpi .l{font-size:11.5px; color:#c9d5e3; margin-top:2px}
 
+/* بطاقة اليوم الحيّة «رُصد ٢ من ٥ · غياب اليوم ٣» (js/app.js:paintDayCard) — بديل ثلاث بطاقات
+   ثابتة لا تتغيّر طوال الفصل الدراسي. تُنقر فتفتح قائمة حصص اليوم بحالة كل حصة. */
+#today-reg{display:block; margin-bottom:12px; cursor:pointer}
+#today-reg:focus-visible{outline:3px solid var(--gold); outline-offset:2px; border-radius:16px}
+.daycard{display:flex; align-items:center; gap:10px; min-height:60px;
+  background:linear-gradient(150deg,var(--navy),var(--navy2)); color:#fff;
+  border:1.5px solid var(--navy); border-radius:14px; padding:10px 13px;
+  box-shadow:0 2px 10px rgba(14,32,51,.10)}
+.daycard .ic{font-size:20px; line-height:1; flex:0 0 auto}
+.daycard .tx{display:flex; flex-direction:column; gap:2px; min-width:0; flex:1 1 auto}
+.daycard .tx b{font-size:17px; font-weight:800; color:var(--goldl); line-height:1.25}
+.daycard .tx small{font-size:11.5px; color:#c9d5e3; font-weight:700; line-height:1.35}
+.daycard .pill{background:rgba(255,255,255,.15); color:#fff; border-radius:20px; padding:4px 10px;
+  font-size:11.5px; font-weight:800; white-space:nowrap; flex:0 0 auto}
+.daycard .pill.bad{background:var(--bad)}
+.daycard .chev{font-size:22px; font-weight:800; color:var(--goldl); flex:0 0 auto; opacity:.75; line-height:1}
+.daycard.done{background:linear-gradient(150deg,#1d6b45,#134f33); border-color:#134f33}
+.daycard.warn{background:linear-gradient(150deg,#8c2f2f,#6d2020); border-color:#6d2020}
+.daycard.warn .tx b,.daycard.warn .chev{color:#ffe0ae}
+.daycard.flat{background:var(--card); color:var(--ink); border-color:var(--line)}
+.daycard.flat .tx b{color:var(--navy)}
+.daycard.flat .tx small,.daycard.flat .chev{color:var(--muted)}
+#today-reg:active .daycard{transform:scale(.99)}
+@media(max-width:400px){ .daycard{gap:8px; padding:10px 11px}
+  .daycard .tx b{font-size:15.5px} .daycard .tx small{font-size:11px}
+  .daycard .pill{font-size:10.5px; padding:3px 8px} }
+@media print{ #today-reg{display:none!important} }
+
+/* قائمة حصص اليوم داخل النافذة (js/app.js:daySheet) — كل سطر زر ينقل إلى رصد ذلك الفصل */
+.daysum{text-align:center; font-size:13.5px; color:var(--muted); font-weight:700; margin:-4px 0 12px}
+.daysum b{color:var(--navy); font-size:15.5px}
+.regrows{display:flex; flex-direction:column; gap:8px}
+.regrow{display:flex; align-items:center; gap:10px; width:100%; text-align:start; min-height:54px;
+  background:#fbf8f1; border:1.5px solid var(--line); border-radius:12px; padding:9px 12px;
+  font-family:inherit; font-size:14px; color:var(--ink); cursor:pointer}
+.regrow .mk{font-size:17px; line-height:1; flex:0 0 auto}
+.regrow .ttl{display:flex; flex-direction:column; gap:2px; flex:1 1 auto; min-width:0; font-weight:800}
+.regrow .ttl .ln{display:flex; align-items:center; gap:5px; flex-wrap:wrap}
+.regrow .ttl small{font-weight:700; font-size:11.5px; color:var(--muted)}
+.regrow .go{font-size:12.5px; font-weight:800; color:var(--navy); background:var(--goldl);
+  border-radius:20px; padding:4px 10px; white-space:nowrap; flex:0 0 auto}
+.regrow.full{background:#eef8f0; border-color:#c6e6cf}
+.regrow.part{background:#fdf6e3; border-color:#efe0bd}
+.regrow.none{background:#fdf1ef; border-color:#f0cfca}
+.regrow.isnow{box-shadow:0 0 0 2px rgba(215,169,63,.35)}
+.regrow .nowtag{background:var(--gold); color:var(--navy); border-radius:20px; padding:1px 9px;
+  font-size:11px; font-weight:800; flex:0 0 auto}
+
+/* نافذة «اختر الفصل»: الفصل الجاري أولاً بحجم مضاعف ووقته تحته (js/app.js:pickClassThen) */
+.picknow{display:flex; flex-direction:column; align-items:center; gap:4px; width:100%;
+  background:var(--navy); color:var(--goldl); border:2px solid var(--gold); border-radius:14px;
+  padding:15px 10px; margin-bottom:10px; font-family:inherit; cursor:pointer}
+.picknow b{font-size:22px; font-weight:800}
+.picknow small{font-size:12.5px; font-weight:700; color:#e7d9b4}
+
 /* حصص اليوم */
 .periods{display:flex; gap:8px; overflow-x:auto; padding-bottom:4px}
 .period{min-width:86px; background:#fbf8f1; border:1.5px solid var(--line); border-radius:12px;
@@ -90,6 +145,12 @@ button{font-family:inherit}
 .period .c{font-size:14px; font-weight:800; color:var(--navy); margin-top:6px}
 .period .tm{font-size:10.5px; color:var(--muted); font-weight:700; margin-top:3px; direction:ltr; unicode-bidi:isolate}
 .period.empty{opacity:.45}
+/* الخلية زر لا لافتة: نقرة تفتح رصد ذلك الفصل (js/app.js:renderToday) */
+button.period{font-family:inherit; color:inherit; cursor:pointer; display:block}
+button.period:active{transform:scale(.97)}
+.period .c .mk{font-size:11.5px; margin-inline-start:4px}
+.period .c .mk.ok{color:var(--ok)}
+.period .c .mk.part{color:#b07d12}
 /* الحصة الجارية الآن (js/app.js paintBell — من جدول أجراس المدرسة) */
 .period.now{background:#fdf6e3; border-color:var(--gold); box-shadow:0 0 0 2px rgba(215,169,63,.25); opacity:1}
 .period.now .p{background:var(--gold); color:var(--navy)}
@@ -111,6 +172,15 @@ button{font-family:inherit}
 .bellbar.soon{background:#f3f7fb; border-color:#d6e3ef; border-inline-start-color:var(--st4)}
 .bellbar.off{background:#f5f4f1; border-color:var(--line); border-inline-start-color:var(--muted); color:var(--muted)}
 .bellbar.off .tx b{color:var(--muted)}
+/* حصة فراغ: لون محايد وبلا جرس — بدل ادّعاء «الحصة الحالية: الثالثة» وخانة ح٣ تقول «—» */
+.bellbar.free{background:#f4f6f8; border-color:#dfe5ea; border-inline-start-color:#9aa7b4}
+.bellbar.free .tx b{color:var(--navy)}
+/* الشريط نفسه زر يفتح رصد الفصل الجاري (أو القادم في الفراغ) */
+.bellbar.tap{cursor:pointer}
+.bellbar.tap:active{transform:scale(.995)}
+.bellbar .go{margin-inline-start:6px; background:var(--goldl); color:var(--navy); border-radius:20px;
+  padding:3px 11px; font-weight:800; font-size:12px; white-space:nowrap; flex:0 0 auto}
+.bellbar.free .go,.bellbar.soon .go{margin-inline-start:auto}
 @media(max-width:420px){ .bellbar{font-size:13px; padding:9px 11px; gap:6px} .bellbar .left{margin-inline-start:0; font-size:12px} }
 @media print{ .bellbar{display:none!important} }
 .lesson-line{display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap}
@@ -131,19 +201,52 @@ button{font-family:inherit}
 .chip{border:1.5px solid var(--line); background:#fff; color:var(--navy); border-radius:22px;
   padding:8px 16px; font-size:14px; font-weight:800; cursor:pointer; white-space:nowrap; flex-shrink:0}
 .chip.on{background:var(--navy); color:var(--goldl); border-color:var(--navy)}
+/* شرائح التحضير وحدها (شرائح لوحة المدير تحمل <small> بمعنى آخر) — js/app.js:renderReg */
+#tab-reg .chip{padding:7px 14px; text-align:center; line-height:1.25}
+#tab-reg .chip .cn{display:block}
+#tab-reg .chip .ck{font-size:12px; margin-inline-start:5px}
+#tab-reg .chip .ck.ok{color:var(--ok)}
+#tab-reg .chip .ck.part{color:#b07d12}
+#tab-reg .chip.on .ck.ok{color:#8fe3b1}
+#tab-reg .chip.on .ck.part{color:#ffd98a}
+#tab-reg .chip small{display:block; font-size:10.5px; font-weight:800; margin-top:1px; line-height:1.2}
+#tab-reg .chip .nowt{color:#a8801f}
+#tab-reg .chip .nxt{color:var(--muted)}
+#tab-reg .chip.on .nowt{color:var(--goldl)}
+#tab-reg .chip.on .nxt{color:#c9d5e3}
+#tab-reg .chip.isnow{border-color:var(--gold); box-shadow:0 0 0 2px rgba(215,169,63,.25)}
 .reg-tools{display:flex; gap:8px; align-items:center; margin-bottom:10px; flex-wrap:wrap}
 .reg-tools input[type=date]{padding:9px 10px; border:1.5px solid var(--line); border-radius:10px;
   font-family:inherit; font-size:14px; background:#fff; color:var(--ink)}
 .btn-soft{background:#eef5ee; color:var(--ok); border:1.5px solid #cfe6cf; border-radius:10px;
   padding:9px 12px; font-size:13px; font-weight:800; cursor:pointer}
 
-.stu{display:flex; align-items:center; gap:8px; padding:9px 2px; border-bottom:1px solid #f3eee1}
+/* صف الطالب: سطر واحد على الشاشة العريضة (المغلّفان s1/s2 يذوبان بـ display:contents فيبقى
+   الترتيب الأصلي)، وسطران تحت 400px: الاسم كاملاً على عرض الشاشة ثم شريط الأزرار الثلاثة بـ44px. */
+.stu{display:flex; flex-wrap:wrap; align-items:center; gap:8px; padding:9px 2px; border-bottom:1px solid #f3eee1}
 .stu:last-child{border-bottom:none}
-.stu .num{width:22px; text-align:center; color:var(--muted); font-size:12px; font-weight:700}
-.stu .nm{flex:1; font-size:14.5px; font-weight:700; cursor:pointer; line-height:1.3}
+.stu .s1{display:flex; align-items:center; gap:8px; flex:1 1 auto; min-width:0}
+.stu .s2{display:flex; align-items:center; gap:8px; flex:0 0 auto}
+.stu .num{width:22px; text-align:center; color:var(--muted); font-size:12px; font-weight:700; flex:0 0 auto}
+.stu .nm{flex:1 1 auto; min-width:0; font-size:14.5px; font-weight:700; cursor:pointer; line-height:1.3}
 .stu .nm small{display:block; color:var(--muted); font-weight:400; font-size:11px}
 .statepill{min-width:64px; text-align:center; border-radius:10px; padding:7px 8px; font-size:12.5px;
-  font-weight:800; color:#fff; background:#c9cfd6; border:none; cursor:pointer}
+  font-weight:800; color:#fff; background:#c9cfd6; border:none; cursor:pointer; position:relative; flex:0 0 auto}
+.statepill .si{display:none}
+.statepill .sx{font-style:normal}
+/* سطر «أبلغ ولي الأمر» داخل صف الطالب بعد غائب/متأخر/هارب */
+.pnotify{flex:1 1 100%; border:1.5px solid var(--bad); background:#fdecec; color:#8d2020; border-radius:10px;
+  padding:7px 10px; font-size:12.8px; font-weight:800; font-family:inherit; cursor:pointer; text-align:start}
+.pnotify.done{border-color:#cfe6cf; background:#eef5ee; color:var(--ok)}
+.pnotify:active{transform:scale(.99)}
+/* اقتراح رقم ولي الأمر من المعلم (يعتمده المدير) */
+.pask{background:#fdf6e3; border:1.5px solid var(--gold); border-radius:12px; padding:10px 12px; margin-top:10px;
+  font-size:13px; line-height:1.85; color:#6b5410}
+.pask .pin{display:flex; gap:8px; margin:8px 0 4px}
+.pask .pin input{flex:1; margin:0}
+.pask .pin .btn-soft{flex:0 0 auto; white-space:nowrap}
+.pask small{display:block; color:var(--muted); font-size:11.5px; line-height:1.7}
+.pask.ok{background:#eef5ee; border-color:#cfe6cf; color:#1f5c33}
 .mini{width:38px; height:38px; border-radius:10px; border:1.5px solid var(--line); background:#fff;
   font-size:16px; cursor:pointer; display:flex; align-items:center; justify-content:center; position:relative}
 .mini.on{border-color:var(--gold); background:#fdf6e3}
@@ -218,10 +321,32 @@ button{font-family:inherit}
 /* ═══ الدرجات ═══ */
 .grade-table{width:100%; border-collapse:collapse; font-size:12.5px; background:#fff}
 .grade-table th{background:var(--navy); color:var(--goldl); padding:7px 4px; font-size:11px;
-  border:1px solid #2a466b; white-space:nowrap; position:sticky; top:0}
+  border:1px solid #2a466b; white-space:nowrap; position:sticky; top:0; z-index:4}
 .grade-table td{border:1px solid var(--line); padding:3px; text-align:center}
 .grade-table td.nm{text-align:right; font-weight:700; white-space:nowrap; padding:4px 8px; min-width:120px}
 .grade-table tr:nth-child(even) td{background:#fbf8f1}
+/* عمودا «م» و«الطالب» مثبّتان أفقياً: كان الاسم يختفي تماماً عند التمرير إلى آخر بنود التقييم،
+   فيُدخل المعلم الدرجة بعدّ الصفوف بإصبعه — وصفٌّ واحد يُخطئ فيه = درجة طالب على اسم آخر. */
+.grade-table th:first-child,.grade-table td:first-child{position:sticky; inset-inline-start:0;
+  width:24px; min-width:24px; max-width:24px; padding-inline:1px}
+.grade-table td:first-child{background:#fff; z-index:2}
+.grade-table th:first-child{z-index:6}
+.grade-table th:nth-child(2),.grade-table td.nm{position:sticky; inset-inline-start:24px}
+.grade-table td.nm{background:#fff; z-index:2}
+.grade-table th:nth-child(2){z-index:6}
+.grade-table tr:nth-child(even) td:first-child,.grade-table tr:nth-child(even) td.nm{background:#fbf8f1}
+.table-scroll.sx .grade-table td.nm,.table-scroll.sx .grade-table th:nth-child(2){
+  box-shadow:-7px 0 9px -7px rgba(14,32,51,.55)}
+/* وضع العمود الواحد على الجوال: اسم + حقل واحد لكل صف بلا تمرير أفقي */
+.gr-mode{display:flex; gap:8px; align-items:center; flex-wrap:wrap; margin:2px 2px 8px}
+.gr-mode select{flex:1 1 150px; padding:9px 10px; border:1.5px solid var(--line); border-radius:10px;
+  font-family:inherit; font-size:14px; background:#fff; color:var(--ink)}
+.gr-mode .btn-soft.on{background:var(--navy); color:var(--goldl); border-color:var(--navy)}
+.grade-table.gr1{font-size:14px}
+.grade-table.gr1 td.nm{min-width:0; white-space:normal; font-size:14.5px; line-height:1.35}
+.grade-table.gr1 input{width:100%; max-width:96px; height:42px; font-size:17px; font-weight:800}
+.grade-table.gr1 td.gcell{width:104px}
+.grade-table.gr1 tr.focused td{background:#fdf6e3}
 .grade-table input{width:46px; padding:6px 2px; border:1.5px solid var(--line); border-radius:8px;
   font-family:inherit; font-size:13px; text-align:center; background:#fff; color:var(--ink)}
 .grade-table input:focus{outline:none; border-color:var(--gold); background:#fdf6e3}
@@ -523,11 +648,27 @@ button{font-family:inherit}
 .od-card.sel{border-color:var(--gold)} .od-card.sel .od-n{opacity:1}
 .od-card.ok{border-color:#2e9e5b; box-shadow:0 0 0 3px #2e9e5b inset} .od-card.no{border-color:#d64545; box-shadow:0 0 0 3px #d64545 inset}
 .tm-board{display:grid; grid-template-columns:1fr auto 1fr; gap:12px; align-items:center; width:100%; max-width:760px; margin:0 auto 10px}
-.tm-team{border-radius:16px; padding:10px 14px; display:flex; justify-content:space-between; align-items:center; border:3px solid transparent; opacity:.65; transition:.3s}
+.tm-team{border-radius:16px; padding:10px 14px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:2px 8px; border:3px solid transparent; opacity:.65; transition:.3s}
+.tm-team .tm-pl{display:block; font-style:normal; font-size:12.5px; font-weight:700; opacity:.92; margin-top:2px; max-width:150px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+@media (max-width:720px){ .tm-team .tm-pl{font-size:11.5px; max-width:110px} }
 .tm-team b{font-size:min(3vw,18px)} .tm-team span{font-size:min(6vw,34px); font-weight:800; font-variant-numeric:tabular-nums}
 .tm-team.g{background:linear-gradient(135deg,#2e9e5b,#1e6b3f); color:#fff} .tm-team.y{background:linear-gradient(135deg,var(--gold),#a67c1f); color:#0E2033}
 .tm-team.on{opacity:1; border-color:#fff; transform:scale(1.04); box-shadow:0 8px 24px rgba(0,0,0,.4)}
 .tm-vs{color:#c9d5e3; font-weight:800}
+/* رتّب القصة: شريط المشاهد المكتملة + بطاقة السؤال الحالي */
+.od-strip{display:flex; align-items:stretch; gap:6px; flex-wrap:wrap; justify-content:center; width:100%; max-width:900px; margin:0 auto 8px; min-height:56px}
+.od-done{position:relative; width:120px; border-radius:12px; overflow:hidden; background:rgba(46,158,91,.16); border:2px solid #2e9e5b; display:flex; flex-direction:column}
+.od-done img{width:100%; aspect-ratio:16/9; object-fit:cover; display:block}
+.od-done .od-emo{font-size:30px; padding:4px}
+.od-done .od-t{font-size:11px; line-height:1.45; padding:4px 6px; max-height:48px; overflow:hidden}
+.od-done .od-n{opacity:1; width:24px; height:24px; font-size:13px; top:4px}
+.od-arrow{align-self:center; color:var(--gold); font-size:20px; font-weight:800}
+.od-empty{color:#9fb0c4; font-size:13px; align-self:center; padding:14px}
+.od-card .od-n{opacity:.55; background:rgba(255,255,255,.18); color:#fff}
+.od-card.ok{border-color:#2e9e5b; box-shadow:0 0 0 3px rgba(46,158,91,.45)}
+.od-card.no{border-color:#d64545; animation:odShake .35s}
+@keyframes odShake{25%{transform:translateX(-6px)}75%{transform:translateX(6px)}}
+@media (max-width:700px){ .od-done{width:96px} .od-done .od-t{font-size:10px} }
 @media (max-width:700px){ .od-grid{grid-template-columns:repeat(2,1fr)} .mm-grid{grid-template-columns:repeat(3,1fr)} }
 
 /* 🎡 من يجيب؟ + تقدّم الطالب */
@@ -639,3 +780,209 @@ button{font-family:inherit}
 
 .adm-toast.show{opacity:1}
 @media print{.adm-tools,#ab-actions,.adm-toast{display:none!important}}
+/* محطة المرفقات: بطاقات + سبورة فوق المرفق */
+.fl-grid{display:grid; grid-template-columns:repeat(auto-fill,minmax(190px,1fr)); gap:10px; width:100%; max-width:900px; margin:0 auto}
+.fl-card{position:relative; text-align:center; border-radius:14px; border:2px solid rgba(255,255,255,.18); background:rgba(255,255,255,.06); color:#fff; padding:14px 10px; cursor:pointer; font-family:inherit; display:flex; flex-direction:column; gap:4px; align-items:center}
+.fl-card:hover{border-color:var(--gold)} .fl-ic{font-size:30px} .fl-card b{font-size:13.5px; line-height:1.5; word-break:break-word} .fl-card small{color:#9fb0c4; font-size:11.5px}
+.fl-del{position:absolute; top:6px; inset-inline-start:6px; font-style:normal; font-size:15px; opacity:.6; padding:2px 6px; border-radius:8px}
+.fl-del:hover{opacity:1; background:rgba(214,69,69,.28)}
+.an-stage{background:#0a1420}
+.an-bar{flex-wrap:wrap; gap:6px}
+.an-tools{display:flex; align-items:center; gap:6px; flex-wrap:wrap; margin-inline-start:auto}
+.an-t{background:rgba(255,255,255,.10); border:2px solid transparent; color:#fff; border-radius:10px; padding:6px 9px; font-size:16px; cursor:pointer; line-height:1}
+.an-t.on{border-color:var(--gold); background:rgba(215,169,63,.22)}
+.an-c{width:26px; height:26px; border-radius:50%; border:2px solid rgba(255,255,255,.35); cursor:pointer; padding:0}
+.an-c.on{border-color:#fff; box-shadow:0 0 0 3px rgba(255,255,255,.28)}
+.an-w{background:rgba(255,255,255,.10); border:2px solid transparent; border-radius:10px; padding:6px 8px; cursor:pointer; display:flex; align-items:center; justify-content:center}
+.an-w.on{border-color:var(--gold)} .an-w i{display:block; background:#fff; border-radius:50%}
+.an-sep{width:1px; height:22px; background:rgba(255,255,255,.22)}
+.an-wrap{position:relative; flex:1; min-height:0; display:flex; align-items:center; justify-content:center; padding:8px; overflow:hidden}
+.an-wrap canvas{max-width:100%; max-height:100%; border-radius:10px; background:#fff; touch-action:none; cursor:crosshair}
+.an-tbox{position:absolute; z-index:6; display:flex; gap:4px; align-items:center}
+.an-tbox button{border:0; border-radius:8px; width:34px; height:34px; font-size:15px; font-weight:800; cursor:pointer}
+.an-tok{background:#2e9e5b; color:#fff} .an-tno{background:rgba(255,255,255,.85); color:#0E2033}
+.an-tin{position:static; z-index:5; font-family:inherit; font-size:15px; font-weight:700; padding:6px 10px; border-radius:8px; border:2px solid var(--gold); background:#fff; color:#0E2033; min-width:150px}
+@media (max-width:720px){ .an-tools{width:100%; margin:0} .an-t{padding:5px 7px; font-size:15px} .fl-grid{grid-template-columns:repeat(auto-fill,minmax(140px,1fr))} }
+
+/* ═══════════ الرصد بلا خوف: تراجع ومفتاح وحضور داخل الحصة ═══════════ */
+/* ↩ شريط التراجع — ست ثوانٍ بعد كل إجراء رصد، في التحضير وفي الحصة الحية.
+   داخل الحصة يُلحق بعنصر ملء الشاشة (وقتها لا شريط تبويبات تحته) فيهبط إلى 16px. */
+.undobar{position:fixed; inset-inline:12px; bottom:calc(66px + env(safe-area-inset-bottom)); z-index:96;
+  background:#142A44; color:#eaf1f8; border:1.5px solid var(--gold); border-radius:14px;
+  padding:9px 12px; display:flex; align-items:center; gap:10px; font-size:13.5px; font-weight:700;
+  box-shadow:0 10px 28px rgba(0,0,0,.34); animation:up .18s ease; max-width:560px; margin:0 auto}
+.undobar.onlive{bottom:16px}
+.undobar.onsheet{top:calc(12px + env(safe-area-inset-top)); bottom:auto; z-index:96}
+.undobar .ut{flex:1; line-height:1.55; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+.undobar .ub{flex-shrink:0; background:var(--gold); color:#0E2033; border:none; border-radius:10px;
+  padding:9px 14px; font-weight:800; font-size:14px; font-family:inherit; cursor:pointer; min-height:38px}
+.undobar .ub:active{transform:scale(.95)}
+
+/* 🔑 سطر مفتاح الرصد فوق قائمة الطلاب */
+.reglegend{width:100%; display:flex; align-items:center; gap:6px; flex-wrap:wrap; justify-content:space-between;
+  background:#fdf6e3; border:1px dashed var(--gold); border-radius:11px; padding:7px 10px; margin:0 0 8px;
+  font-family:inherit; font-size:12.3px; font-weight:700; color:var(--navy); cursor:pointer; text-align:right}
+.reglegend span{white-space:nowrap}
+.reglegend b{font-size:14px}
+.reglegend .q{color:var(--gold); font-weight:800; margin-inline-start:auto}
+.reglegend:active{background:#f7ecd2}
+@media(max-width:380px){ .reglegend{font-size:11.5px; gap:4px; padding:6px 8px} }
+
+/* بطاقة شرح المفاتيح (تظهر في نافذة عادية وفي نافذة الحصة الحية) */
+.keyhelp p{margin:0 0 9px; font-size:13.6px; line-height:1.95}
+.keyhelp .und{background:#eef5ee; border-inline-start:4px solid var(--ok); border-radius:8px; padding:8px 10px}
+.keyhelp .kx{background:var(--navy); color:var(--goldl); border-radius:6px; padding:1px 5px; font-size:11.5px; font-weight:800}
+.lsec2{font-weight:800; font-size:13px; color:var(--navy); margin:12px 2px 6px}
+.kchips{display:flex; flex-wrap:wrap; gap:5px}
+.kchip{background:#f3f6f9; border:1px solid var(--line); border-radius:9px; padding:4px 8px; font-size:12px; font-weight:700}
+.kchip b{color:var(--ok); margin-inline-start:3px}
+.kchip.neg b{color:var(--bad)}
+.live-act .keyhelp p{color:#e6edf5}
+.live-act .keyhelp .und{background:rgba(46,158,91,.18); border-inline-start-color:#3ad07a}
+.live-act .lsec2{color:var(--goldl)}
+.live-act .kchip{background:rgba(255,255,255,.09); border-color:rgba(255,255,255,.18); color:#e6edf5}
+.live-act .kchip b{color:#7ce4a5}
+.live-act .kchip.neg b{color:#ff9a9a}
+
+/* 👥 شريط حضور الحصة الحية فوق قائمة الطلاب */
+.liveatt{display:flex; align-items:center; gap:8px; flex-wrap:wrap; border-radius:12px;
+  padding:8px 10px; margin-bottom:10px; font-size:13.5px; font-weight:800; border:1.5px solid}
+.liveatt .t{flex:1; min-width:130px; line-height:1.5}
+.liveatt.none{background:rgba(214,69,69,.18); border-color:#ff8a8a; color:#ffd9d9}
+.liveatt.part{background:rgba(232,162,61,.18); border-color:#e8a23d; color:#ffe6bd}
+.liveatt.full{background:rgba(46,158,91,.16); border-color:#3ad07a; color:#c6f3d8}
+.liveatt .ab{background:var(--gold); color:#0E2033; border:none; border-radius:10px; padding:9px 12px;
+  font-weight:800; font-size:13.5px; font-family:inherit; cursor:pointer; min-height:40px; flex-shrink:0}
+.liveatt .ab:active{transform:scale(.96)}
+.liveatt .qb{background:rgba(255,255,255,.14); color:#fff; border:1px solid rgba(255,255,255,.3);
+  border-radius:10px; width:38px; min-height:38px; font-size:15px; font-family:inherit; cursor:pointer; flex-shrink:0}
+
+/* تحت 400px: النصّ سطراً كاملاً والزران يتقاسمان السطر التالي بدل أن يهبط ❔ وحده */
+@media(max-width:400px){
+  .liveatt{padding:7px 8px; gap:6px}
+  .liveatt .t{flex:1 1 100%; min-width:0; font-size:12.8px}
+  .liveatt .ab{flex:1; font-size:13px; padding:9px 6px}
+  .liveatt .qb{width:46px}
+  .whhint{padding:6px 8px}
+  .whhint span{flex:1 1 100%; min-width:0}
+  .whhint .ab{flex:1}
+}
+/* الضغطة المطوّلة على الجوال تُشغّل تحديد النص وقائمة iOS: تُعطَّل على البطاقة وعلى زر 🙋 معاً */
+.rcard, .stu .mini{-webkit-user-select:none; user-select:none; -webkit-touch-callout:none}
+/* حدّ ملوّن وأيقونة حالة على كل بطاقة روستر */
+.rcard .ric{position:absolute; top:5px; inset-inline-end:7px; font-size:14px; line-height:1}
+.rcard.st-none{border-style:dashed; border-color:rgba(255,255,255,.22)}
+.rcard.st-ok{border-color:#3ad07a; background:rgba(46,158,91,.14)}
+.rcard.st-warn{border-color:#e8a23d; background:rgba(232,162,61,.14)}
+.rcard.st-away{border-color:#ff8a8a; background:rgba(214,69,69,.14); opacity:.72}
+.rcard.st-away .rn{text-decoration:line-through; text-decoration-thickness:1px}
+
+/* 🎡 شريط حالة الحضور في العجلة */
+.whhint{display:flex; align-items:center; gap:8px; flex-wrap:wrap; padding:7px 10px; font-size:12.8px; font-weight:700}
+.whhint span{flex:1; min-width:150px; line-height:1.55}
+.whhint.none{background:rgba(214,69,69,.22); color:#ffd9d9}
+.whhint.part{background:rgba(232,162,61,.2); color:#ffe6bd}
+.whhint.ok{background:rgba(46,158,91,.18); color:#c6f3d8}
+.whhint .ab{background:var(--gold); color:#0E2033; border:none; border-radius:9px; padding:7px 11px;
+  font-weight:800; font-size:12.8px; font-family:inherit; cursor:pointer; flex-shrink:0}
+
+/* ✕ ثابت + «الأكثر استعمالاً» + أقسام مطوية في نافذة التقييم */
+.live-act .box{position:relative}
+.live-act .lx{position:absolute; top:8px; inset-inline-end:10px; z-index:2; width:36px; height:36px;
+  border-radius:50%; border:1.5px solid rgba(255,255,255,.3); background:rgba(255,255,255,.12);
+  color:#fff; font-size:17px; font-weight:800; font-family:inherit; cursor:pointer; line-height:1}
+.live-act .lx:active{transform:scale(.92)}
+.live-act h4{padding-inline:44px}
+.live-act .lsec.favh{display:flex; align-items:center; gap:8px}
+.live-act .favedit{margin-inline-start:auto; background:rgba(255,255,255,.12); color:var(--goldl);
+  border:1px solid rgba(255,255,255,.28); border-radius:8px; padding:4px 10px;
+  font-size:12px; font-weight:800; font-family:inherit; cursor:pointer}
+.live-act .favrow{grid-template-columns:repeat(2,1fr)}
+.live-act .favrow .act{outline:2px solid var(--gold); outline-offset:-2px}
+.live-act .lsec.fold{display:flex; align-items:center; gap:8px; width:100%; background:rgba(255,255,255,.07);
+  border:1px solid rgba(255,255,255,.16); border-radius:11px; padding:11px 12px; margin:12px 0 6px;
+  font-family:inherit; cursor:pointer; text-align:start}
+.live-act .lsec.fold .cv{margin-inline-start:auto; transition:transform .18s}
+.live-act .lsec.fold.open{background:rgba(215,169,63,.18); border-color:var(--gold)}
+.live-act .lsec.fold.open .cv{transform:rotate(180deg)}
+.live-act .favpick{display:grid; grid-template-columns:repeat(2,1fr); gap:7px; max-height:44vh; overflow:auto; padding:2px}
+.live-act .favp{background:#2b3f5c; color:#e6edf5; border:1.5px solid rgba(255,255,255,.16); border-radius:10px;
+  padding:9px 7px; font-size:12.8px; font-weight:800; font-family:inherit; cursor:pointer; text-align:start}
+.live-act .favp small{opacity:.75; margin-inline-start:4px}
+.live-act .favp.sel{outline:3px solid var(--gold); outline-offset:-3px; background:#3a5680}
+.live-act .favp.g{background:#26714a} .live-act .favp.r{background:#8d3535} .live-act .favp.b{background:#2f5f9e}
+
+/* 🎬 خلاصة الحصة عند الإنهاء */
+.sumwarn{background:#fdecec; border:1.5px solid var(--bad); border-radius:12px; padding:10px 12px;
+  font-size:13.2px; line-height:1.85; color:#7a1f1f; margin-bottom:10px}
+.sumwarn button{display:block; width:100%; margin-top:8px; background:var(--bad); color:#fff; border:none;
+  border-radius:10px; padding:11px; font-weight:800; font-size:14.5px; font-family:inherit; cursor:pointer}
+.sumwarn.part{background:#fdf6e3; border-color:var(--gold); color:#6b5410}
+.sumwarn.part button{background:var(--gold); color:#0E2033}
+.sumgrid{display:grid; grid-template-columns:repeat(4,1fr); gap:7px; margin-bottom:10px}
+.sumgrid .sc{background:#f5f7fa; border:1px solid var(--line); border-radius:11px; padding:8px 4px; text-align:center}
+.sumgrid .sc b{display:block; font-size:19px; font-weight:800; color:var(--navy); line-height:1.2}
+.sumgrid .sc span{font-size:11px; color:var(--muted); font-weight:700}
+.sumgrid .sc.bad b{color:var(--bad)} .sumgrid .sc.ok b{color:var(--ok)}
+.sumline{font-size:13.4px; line-height:1.9; padding:5px 2px; border-bottom:1px solid #f3eee1}
+.sumline:last-of-type{border-bottom:none}
+.execrow{display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin-bottom:10px}
+.execrow button{padding:12px 4px; border-radius:11px; border:1.5px solid var(--line); background:#fbf9f4;
+  font-size:14px; font-weight:800; font-family:inherit; color:var(--navy); cursor:pointer}
+.execrow button.sel{border-color:var(--gold); background:#fdf6e3; outline:2px solid var(--gold); outline-offset:-2px}
+.absl{max-height:52vh; overflow:auto}
+.absrow{border-bottom:1px solid var(--line); padding:9px 2px}
+.absrow:last-child{border-bottom:none}
+.absrow .an{font-size:14.5px; font-weight:800; color:var(--navy); line-height:1.6}
+.absrow .an small{display:block; color:var(--ok); font-weight:700; font-size:11.5px}
+.absrow .an .tag{background:var(--bad); color:#fff; border-radius:7px; padding:1px 7px; font-size:11.5px}
+.absrow .ab2{display:flex; gap:8px; align-items:center; margin-top:6px}
+.absrow .ab2 .wa-btn{flex:1; margin:0; padding:11px 8px; font-size:13.5px}
+.absrow .ab2 .btn-plain{flex:0 0 108px; padding:11px 6px; font-size:13px}
+.msgprev{background:#f5f7fa; border:1px solid var(--line); border-radius:12px; padding:12px 14px;
+  font-size:13.4px; line-height:2; white-space:pre-wrap; max-height:56vh; overflow:auto}
+@media(max-width:380px){
+  .sumgrid{grid-template-columns:repeat(2,1fr)}
+  .absrow .ab2{flex-wrap:wrap}
+  .absrow .ab2 .btn-plain{flex:1 1 100%}
+}
+
+
+/* ═══ البند ٤ — صف الطالب على الجوال: سطران، الاسم على عرض الشاشة، أزرار 44px ═══
+   قياس «قبل»: .nm = 41–60px وارتفاع الصف 85–104px، فأربعة طلاب في الشاشة و«أحمد عوض السبيعي»
+   ينكسر على ثلاثة أسطر — فصار المعلم يقرأ بالموضع لا بالاسم، ومن هنا تأتي أخطاء الرصد. */
+@media(min-width:401px){
+  #reg-list .stu .s1,#reg-list .stu .s2{display:contents}   /* الترتيب الأصلي على الشاشة العريضة */
+  #reg-list .stu .pts{order:3}
+  #reg-list .stu .s2 .mini{order:2}
+  #reg-list .stu .pnotify{order:4}
+}
+@media(max-width:400px){
+  #reg-list .stu{padding:1px 2px; gap:1px 6px}
+  #reg-list .stu .s1{flex:1 1 100%; gap:6px}
+  #reg-list .stu .s2{flex:1 1 100%; gap:6px}
+  #reg-list .stu .s2 .mini{flex:1 1 0; width:auto; height:44px; font-size:17px; border-radius:11px}
+  #reg-list .stu .num{width:16px; font-size:11px}
+  #reg-list .stu .nm{font-size:15px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+  #reg-list .stu .nm small{display:none}
+  #reg-list .stu .pts{min-width:26px; font-size:14px}
+  /* الحالة تصير نقطة ملوّنة بأيقونتها — ومساحة اللمس تمتد 9px حولها بلا زيادة في ارتفاع الصف */
+  #reg-list .statepill{min-width:0; width:24px; height:24px; padding:0; border-radius:50%; font-size:12px;
+    display:flex; align-items:center; justify-content:center; line-height:1; flex:0 0 24px}
+  #reg-list .statepill:not(.set){background:#fff; border:2px dashed #c9cfd6}
+  #reg-list .statepill .si{display:block}
+  #reg-list .statepill .sx{display:none}
+  #reg-list .statepill::after{content:""; position:absolute; inset:-9px}
+  #reg-list .pnotify{padding:6px 9px; font-size:12.4px; margin-top:1px}
+}
+
+/* زر «📨 أبلغ أولياء الغائبين (٣)» فوق قائمة الرصد */
+#reg-absbar:empty{display:none}
+#reg-absbar{margin:0 0 8px}
+.absbtn{width:100%; background:#fdecec; color:#8d2020; border:1.5px solid var(--bad); border-radius:11px;
+  padding:10px 12px; font-size:13.8px; font-weight:800; font-family:inherit; cursor:pointer}
+.absbtn:active{transform:scale(.99)}
+.stu-link{display:block; text-align:center; margin:12px auto 0; max-width:420px; padding:12px 16px; border-radius:14px;
+  background:linear-gradient(135deg,#2e9e5b,#1e6b3f); color:#fff; font-weight:800; font-size:15px; text-decoration:none;
+  box-shadow:0 6px 18px rgba(46,158,91,.25)}
+.stu-link:active{transform:translateY(1px)}

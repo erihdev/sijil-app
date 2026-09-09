@@ -51,6 +51,18 @@
 .report-table.ads tr.hl td{background:#fdf6e3!important}
 .ads-sub{font-size:12px;color:var(--muted);margin:-4px 0 8px;line-height:1.8}
 .ads-cnt{font-size:12px;color:var(--muted);margin:8px 2px 0;line-height:1.7}
+.ads-sug{border:1.5px solid var(--gold);background:#fdf6e3;border-radius:12px;padding:8px 10px;margin-bottom:10px}
+.ads-sug h4{margin:0 0 6px;font-size:14.5px;font-weight:800;color:#6b5410}
+.ads-sug .sr{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:7px 2px;border-top:1px dashed #e3d3a6}
+.ads-sug .sr:first-of-type{border-top:none}
+.ads-sug .sn{flex:1 1 190px;min-width:0;font-size:13.5px;font-weight:800;color:var(--navy);line-height:1.6}
+.ads-sug .sn small{display:block;color:var(--muted);font-weight:600;font-size:11.5px}
+.ads-sug .sp{font-weight:800;color:var(--navy);font-size:15px;letter-spacing:.5px}
+.ads-sug .sb{display:flex;gap:6px;flex:0 0 auto}
+.ads-sug .sb button{padding:7px 11px;font-size:13px;font-weight:800;font-family:inherit;border-radius:9px;cursor:pointer;border:1.5px solid var(--line);background:#fff;color:var(--navy)}
+.ads-sug .sb .ok{background:var(--ok);border-color:var(--ok);color:#fff}
+.ads-sug .sb button:disabled{opacity:.5;cursor:not-allowed}
+.ads-sug .note{font-size:11.5px;color:var(--muted);line-height:1.7;margin-top:6px}
 @media (max-width:520px){.ads-tools .search-box{flex-basis:100%}.ads-tools select{flex:1 1 auto}}`;
     document.head.appendChild(st);
   }
@@ -66,6 +78,59 @@
   // تطبيع عربي للبحث: تُحذف الحركات والتطويل، وتُوحَّد الألف والياء والتاء المربوطة
   const norm = (s) => String(s == null ? "" : s).replace(/[ً-ْٰـ]/g, "").replace(/[أإآٱ]/g, "ا").replace(/ى/g, "ي").replace(/ئ/g, "ي").replace(/ؤ/g, "و").replace(/ة/g, "ه").replace(/\s+/g, " ").trim();
   const digitsOf = (p) => String(p == null ? "" : p).replace(/[^\d]/g, "");
+
+  /* ═══ مقترحات أرقام أولياء الأمور ═══
+     المعلم هو من يعرف الرقم ولا يملك كتابته (سجل الطلاب رسمي)، فيرسله «مقترحاً» داخل سجل التواصل
+     نفسه (comms/{tid}_{cid} — لا مجموعة جديدة ولا قاعدة جديدة)، ويعتمده المدير هنا بنقرة واحدة
+     فيُكتب عبر saveSedit ويُقيَّد في سجل الإدارة باسم من اقترحه. */
+  const IGN = "sijil.adm.psug.ign";
+  const ignSet = () => { try { return new Set(JSON.parse(localStorage.getItem(IGN) || "[]")); } catch (e) { return new Set(); } };
+  const ignAdd = (k) => { try { const s = ignSet(); s.add(k); localStorage.setItem(IGN, JSON.stringify([...s].slice(-400))); } catch (e) { } };
+  function phoneSugs(sd) {
+    const s = S(), a = A(), ign = ignSet(), best = {};
+    Object.keys(sd.comms || {}).forEach(id => {
+      const cut = id.indexOf("_"); if (cut < 0) return;
+      const tid = id.slice(0, cut), cid = id.slice(cut + 1);
+      (sd.comms[id] || []).forEach(x => {
+        if (!x || !x.ph || x.si == null) return;
+        const ph = a.normMob(x.ph); if (!ph) return;
+        const k = cid + ":" + x.si;
+        if (!best[k] || (x.ts || 0) > (best[k].ts || 0)) best[k] = { cid, si: +x.si, ph, tid, ts: x.ts || 0, date: x.date || "" };
+      });
+    });
+    return Object.keys(best).map(k => {
+      const r = best[k], c = byId(r.cid), st = c && c.students && c.students[r.si];
+      if (!c || !st || st.moved) return null;                       // طالب منقول أو محذوف: لا اعتماد
+      if (a.normMob(st.p) === r.ph) return null;                    // اعتُمد فعلاً (أو الرقم نفسه)
+      if (ign.has(k + ":" + r.ph)) return null;                     // تجاهله المدير على هذا الجهاز
+      const t = (s.D.teachers || []).find(z => z.id === r.tid);
+      return Object.assign({ key: k, c, s: st, tname: t ? t.name : r.tid, cur: a.normMob(st.p) }, r);
+    }).filter(Boolean).sort((x, y) => (y.ts || 0) - (x.ts || 0));
+  }
+  function sugHtml(rows) {
+    if (!rows.length) return "";
+    return `<div class="ads-sug"><h4>📱 مقترحات أرقام أولياء الأمور (${rows.length})</h4>
+      ${rows.map((r, k) => `<div class="sr" data-sg="${k}">
+        <div class="sn">${esc(r.s.n)}<small>${esc(r.c.name)} · #${r.si + 1} · اقترحه ${esc(r.tname)}${r.date ? " — " + esc(r.date) : ""}${r.cur ? ` · المسجَّل الآن <span dir="ltr">${esc(r.cur)}</span>` : ""}</small></div>
+        <div class="sp" dir="ltr">${esc(r.ph)}</div>
+        <div class="sb"><button type="button" class="ok" data-ap="${k}">✔ اعتمد</button><button type="button" data-ig="${k}">✖ تجاهل</button></div></div>`).join("")}
+      <div class="note">الاعتماد يكتب الرقم في بيانات الطالب (sedits) ويُقيَّد في سجل الإدارة باسمك مع اسم من اقترحه. التجاهل يُخفي المقترح على هذا الجهاز فقط.</div></div>`;
+  }
+  function bindSug(root, rows, done) {
+    root.querySelectorAll("[data-ap]").forEach(b => b.onclick = async () => {
+      const r = rows[+b.dataset.ap]; if (!r) return;
+      b.disabled = true; b.textContent = "…";
+      let ok = false;
+      try { ok = await A().saveSedit(r.cid, r.si, { p: r.ph }); } catch (e) { ok = false; }
+      if (!ok) { b.disabled = false; b.textContent = "✔ اعتمد"; toast("تعذّر الحفظ — تحقق من الاتصال"); return; }
+      try { await A().adminlog("sedit", `${r.c.name} #${r.si + 1} ${r.s.n}: اعتماد مقترح جوال ${r.ph} (اقترحه ${r.tname})`); } catch (e) { }
+      A().invalidate(); toast("✔ اعتُمد الرقم"); if (done) done();
+    });
+    root.querySelectorAll("[data-ig]").forEach(b => b.onclick = () => {
+      const r = rows[+b.dataset.ig]; if (!r) return;
+      ignAdd(r.key + ":" + r.ph); toast("أُخفي المقترح"); if (done) done();
+    });
+  }
 
   function phoneCell(st, c, i) {
     const raw = String(st.p || "").trim(), n = A().normMob(raw);
@@ -276,6 +341,7 @@
     const withPhone = list.reduce((n, c) => n + s.activeStudents(c).filter(x => a.normMob(x.s.p)).length, 0);
     const movedOut = (s.D.moves || []).filter(m => m.to === "out" && !m.conflict).length;
     box.innerHTML = H.kpis([{ v: totalActive, l: "طالباً نشطاً" }, { v: list.length, l: "فصلاً" }, { v: withPhone, l: "بأرقام أولياء أمور" }]) +
+      '<div id="ads-sug"></div>' +
       H.card("👥 طلاب المدرسة", `
         <div class="adm-tools ads-tools"><input class="search-box" id="ads-q" placeholder="🔎 ابحث باسم الطالب أو جواله في كل الفصول…" autocomplete="off" value="${esc(query)}">
           <select id="ads-sort" title="الترتيب"><option value="list">ترتيب القائمة</option><option value="pts">الأعلى نقاطاً</option><option value="att">الأعلى حضوراً</option><option value="name">أبجدياً</option></select>
@@ -291,7 +357,14 @@
     if (!box.isConnected || box.querySelector("#ads-body") !== body) return;   // رُسم من جديد أثناء الانتظار
     let view = null;   // آخر عرض (للطباعة)
 
+    function drawSug() {
+      const host = box.querySelector("#ads-sug"); if (!host) return;
+      const rows = phoneSugs(sd);
+      host.innerHTML = sugHtml(rows);
+      bindSug(host, rows, () => render(box));
+    }
     function draw() {
+      drawSug();
       const q = query.trim();
       if (q.length >= 2) {
         const rows = searchRows(sd, q), nc = new Set(rows.map(r => r.c.id)).size;

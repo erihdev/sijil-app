@@ -221,6 +221,56 @@ service cloud.firestore {
       allow delete: if signedIn() && uid == request.auth.uid;
     }
 
+    // ── spins/{h}: بصمة رقم هوية الطالب — بوابة الطالب s/index.html ──
+    //    h = sha256(رقم الهوية|معرّف الفصل|الملح)، والمحتوى {cid, si, ts, c?}.
+    //    رقم الهوية نفسه لا يُرسل إلى الخادم ولا يُخزَّن في أي مستند: المعرّف بصمةٌ لا تُعكس،
+    //    والبوابة تحسبها في المتصفح ثم تقرأ مستنداً واحداً تعرف اسمه أصلاً.
+    //    get نعم، وlist لا أبداً ⇒ لا تُحصد بصمات الطلاب، ولا يُعرف من سُجّل ومن لم يُسجَّل،
+    //    ولا يُربط طالبٌ بفصله وفهرسه من بياناتٍ تُتصفَّح — كما في pins حرفاً بحرف.
+    //    c بصمة الرمز الاختياري sha256(الرمز|h): يضبطه الطالب مرة واحدة من جهازه، ولا يعرف h
+    //    إلا من يعرف رقم الهوية. ولا يُغيَّر بعدها ولا يُمحى إلا من لوحة المدير («نسيت رمزي»)،
+    //    إذ لو تُرك تغييره مفتوحاً لكل من يعرف h لاستطاع زميلٌ يعرف رقم هوية زميله أن يستبدل
+    //    رمزه ثم يدخل باسمه — فيسقط الرمزُ نفسه الذي وُضع ليسدّ هذه الثغرة.
+    //    ﴿حدّ معلوم﴾ المستند مقروء لمن يعرف h، فبصمة رمزٍ من أربع خانات فيه تُخمَّن خارج
+    //    الشبكة بعشرة آلاف محاولة. الرمز يحمي من الزميل الذي يعرف الرقم لا من مهاجم مُتقن،
+    //    ورفعُ الحماية يكون بنقل البصمة إلى معرّف مستند فرعي لا يُقرأ (انظر docs/STUDENT_SPEC.md).
+    match /spins/{h} {
+      allow get: if signedIn();
+      allow list: if false;
+      // الإنشاء: استيراد أرقام الهويات من لوحة المدير وحدها — بيانات طلاب، كـ sedits تماماً.
+      allow create: if signedIn()
+          && h.matches('^[0-9a-f]{64}$')
+          && request.resource.data.keys().hasOnly(['cid', 'si', 'ts'])
+          && request.resource.data.cid is string
+          && request.resource.data.cid.matches('^[A-Za-z0-9]{1,12}$')
+          && exists(/databases/$(database)/documents/classes/$(request.resource.data.cid))
+          && request.resource.data.si is int
+          && request.resource.data.si >= 0 && request.resource.data.si < 400
+          && request.resource.data.ts is number
+          && isAdminClaim();
+      // التحديث: (أ) الطالب يضبط رمزه أول مرة — c وحده يُضاف، وcid/si/ts تبقى حرفاً بحرف،
+      //          ولا يمرّ إن كان في المستند رمزٌ من قبل.
+      //          (ب) لوحة المدير: إعادة ضبط الرمز بنزعه، أو تصحيح الفصل/الفهرس عند إعادة الاستيراد.
+      allow update: if signedIn()
+          && request.resource.data.keys().hasOnly(['cid', 'si', 'ts', 'c'])
+          && (!('c' in request.resource.data) || isHash(request.resource.data.c))
+          && ((isHash(request.resource.data.get('c', ''))
+               && !('c' in resource.data)
+               && request.resource.data.cid == resource.data.cid
+               && request.resource.data.si == resource.data.si
+               && request.resource.data.ts == resource.data.ts)
+              || (isAdminClaim()
+                  && request.resource.data.cid is string
+                  && request.resource.data.cid.matches('^[A-Za-z0-9]{1,12}$')
+                  && exists(/databases/$(database)/documents/classes/$(request.resource.data.cid))
+                  && request.resource.data.si is int
+                  && request.resource.data.si >= 0 && request.resource.data.si < 400
+                  && request.resource.data.ts is number));
+      // الحذف: نقل الطالب بين الفصول يُعيد حساب البصمة فتُحذف القديمة — من لوحة المدير وحدها.
+      //    ولو فُتح لكل من يعرف المستند لحرم زميلٌ زميلَه من الدخول حتى يُعاد استيراده.
+      allow delete: if signedIn() && isAdminClaim();
+    }
+
     match /classes/{cid}   { allow read: if signedIn(); allow write: if false; }
     // ── الجدول المدرسي schedule/all: {rows:[{t,d,p,c}], tn, ts} — يحدّثه المدير من محرّر الجدول (استبدال كامل بلا merge)، لا إنشاء ولا حذف ──
     match /schedule/{doc} {
@@ -395,6 +445,34 @@ service cloud.firestore {
       //   يستبدل أسئلة ورقة وصل رابطها إلى فصل كامل — أو يفرّغها — فيرى الطلاب ورقة أخرى.
       allow update: if signedIn() && id.matches('^[a-z0-9]{4,12}$') && stamped()
           && assignShape() && anyClaim();
+      allow delete: if false;
+    }
+
+    // ── فهرس مهام الفصل assignidx/{cid}: {list:[{a,t,due,tid,mode,n,wk,code,tries,ts}], tn, ts} ──
+    //    بوابة الطالب لا تستطيع سرد assign (وسردُها يسلّم الطفل مفاتيح إجابات كل الاختبارات:
+    //    qs[].correct وqs[].ans داخل المستند نفسه)، فلا سبيل إلى «مهامي» إلا فهرسٌ **بلا أسئلة**
+    //    يكتبه المعلم لحظة إرسال الورقة. عناصره أوصافٌ فقط: معرّف الورقة وعنوانها وموعدها ونمطها.
+    //    القراءة: get لأي مصادَق (الطالب يقرأ فهرس فصله بمعرّفه)، والسرد لمن أثبت رقم معلم —
+    //    فلا يُحصد فهرس المدرسة كلها من الطرفية. والكتابة لمن أثبت رقم معلم وحده.
+    //    والقائمة تنمو ولا تنقص (كما في filesidx حرفاً بحرف): تفريغها يُخفي مهام فصل كامل عن طلابه.
+    match /assignidx/{cid} {
+      allow get: if signedIn();
+      allow list: if anyClaim();
+      allow create: if signedIn() && cid.matches('^[A-Za-z0-9]{1,12}$') && stamped() && anyClaim()
+          && request.resource.data.list is list
+          && request.resource.data.list.size() <= 200
+          && request.resource.data.keys().hasOnly(['list', 'tn', 'ts']);
+      allow update: if signedIn() && cid.matches('^[A-Za-z0-9]{1,12}$') && stamped() && anyClaim()
+          && request.resource.data.list is list
+          && request.resource.data.list.size() <= 200
+          && request.resource.data.keys().hasOnly(['list', 'tn', 'ts'])
+          // القائمة تنمو ولا تنقص، إلا عند بلوغ السقف فتسقط أقدم عشرين (كما في comms حرفاً بحرف)،
+          //   وإلا فتفريغُها يُخفي مهام فصل كامل عن طلابه بكتابة واحدة.
+          && (request.resource.data.list.hasAll(resource.data.get('list', []))
+              || (request.resource.data.list.size() >= 180
+                  && resource.data.get('list', []).size() >= 180
+                  && request.resource.data.list.hasAll(resource.data.list[20:resource.data.list.size()]))
+              || isAdminClaim());
       allow delete: if false;
     }
 
