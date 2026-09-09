@@ -55,27 +55,60 @@
     }
   ],
   "vocab": [
-    { "t": "after school", "d": "بعد المدرسة: وقت ما بعد انتهاء الدوام" },
-    { "t": "ride a bike", "d": "يركب الدراجة" },
-    { "t": "fly a kite", "d": "يطيّر طائرة ورقية" },
-    { "t": "homework", "d": "الواجب المنزلي" },
-    { "t": "don't", "d": "اختصار do not للنفي" },
-    { "t": "every day", "d": "كل يوم" }
+    {
+      "t": "after school",
+      "d": "بعد المدرسة: وقت ما بعد انتهاء الدوام"
+    },
+    {
+      "t": "ride a bike",
+      "d": "يركب الدراجة"
+    },
+    {
+      "t": "fly a kite",
+      "d": "يطيّر طائرة ورقية"
+    },
+    {
+      "t": "homework",
+      "d": "الواجب المنزلي"
+    },
+    {
+      "t": "don't",
+      "d": "اختصار do not للنفي"
+    },
+    {
+      "t": "every day",
+      "d": "كل يوم"
+    }
   ],
   "checks": [
     {
       "q": "عبارة fly a kite تعني؟",
-      "opts": ["يركب دراجة", "يطيّر طائرة ورقية", "يرسم صوراً", "يشاهد التلفاز"],
+      "opts": [
+        "يركب دراجة",
+        "يطيّر طائرة ورقية",
+        "يرسم صوراً",
+        "يشاهد التلفاز"
+      ],
       "correct": 1
     },
     {
       "q": "What do you do after school? — I ...... soccer.",
-      "opts": ["playing", "am play", "play", "plays"],
+      "opts": [
+        "playing",
+        "am play",
+        "play",
+        "plays"
+      ],
       "correct": 2
     },
     {
       "q": "Do you read books? — الإجابة القصيرة بالإيجاب؟",
-      "opts": ["Yes, I am.", "Yes, I do.", "Yes, I read.", "Yes, I does."],
+      "opts": [
+        "Yes, I am.",
+        "Yes, I do.",
+        "Yes, I read.",
+        "Yes, I does."
+      ],
       "correct": 1
     }
   ],
@@ -83,25 +116,43 @@
     {
       "t": "mcq",
       "q": "في القصة ماذا يفعل بيتر بعد المدرسة؟",
-      "opts": ["He draws pictures.", "He rides a bike.", "He flies a kite.", "He watches TV."],
+      "opts": [
+        "He draws pictures.",
+        "He rides a bike.",
+        "He flies a kite.",
+        "He watches TV."
+      ],
       "correct": 0
     },
     {
       "t": "mcq",
       "q": "...... you play video games? — No, I don't.",
-      "opts": ["Are", "Is", "Do", "Does"],
+      "opts": [
+        "Are",
+        "Is",
+        "Do",
+        "Does"
+      ],
       "correct": 2
     },
     {
       "t": "tf",
       "q": "المضارع البسيط يصف ما نفعله عادة كل يوم.",
-      "opts": ["صح", "خطأ"],
+      "opts": [
+        "صح",
+        "خطأ"
+      ],
       "correct": 0
     },
     {
       "t": "mcq",
       "q": "الجملة التي تصف عادة (وليس الآن) هي؟",
-      "opts": ["I'm reading now.", "I read every day.", "I am drawing.", "She's playing."],
+      "opts": [
+        "I'm reading now.",
+        "I read every day.",
+        "I am drawing.",
+        "She's playing."
+      ],
       "correct": 1
     },
     {
@@ -112,24 +163,60 @@
     {
       "t": "tf",
       "q": "عبارة do homework تعني «يشاهد التلفاز».",
-      "opts": ["صح", "خطأ"],
+      "opts": [
+        "صح",
+        "خطأ"
+      ],
       "correct": 1
     },
     {
       "t": "mcq",
       "q": "أي عبارة تعني «يرسم صوراً»؟",
-      "opts": ["read pictures", "draw pictures", "watch pictures", "play pictures"],
+      "opts": [
+        "read pictures",
+        "draw pictures",
+        "watch pictures",
+        "play pictures"
+      ],
       "correct": 1
     }
   ],
   "story": [
-    { "v": "🔔", "t": "رنّ الجرس الأخير، وخرج فهد يجري من المدرسة. سأله زميله في الباص: What do you do after school?" },
-    { "v": "📝", "t": "أجاب فهد: First, I do my homework. ثم ابتسم: Then I play soccer with my brothers!" },
-    { "v": "⚽", "t": "سأله زميله: Do you ride a bike? — Yes, I do! I ride my bike every day in the park." },
-    { "v": "🪁", "t": "Do you fly a kite? — No, I don't. لكنني أريد أن أتعلم! هل تعلّمني؟" },
-    { "v": "📖", "t": "في البيت قرأ فهد قصة Peter and his Sisters: Peter draws pictures and his sisters read books." },
-    { "v": "🎨", "t": "قرر فهد أن يجرّب شيئاً جديداً: I draw pictures too! ورسم طائرة ورقية ملونة." },
-    { "v": "🌟", "t": "في اليوم التالي أخبر المعلم: After school I do my homework, play soccer, and draw. أحسنت يا فهد!" }
+    {
+      "v": "🔔",
+      "t": "رنّ الجرس الأخير، وخرج فهد يجري من المدرسة. سأله زميله في الباص: What do you do after school?",
+      "n": "رَنَّ الْجَرَسُ الْأَخِيرُ، وَخَرَجَ فَهْدٌ يَجْرِي مِنَ الْمَدْرَسَةِ. سَأَلَهُ زَمِيلُهُ فِي الْبَاصِ: What do you do after school?"
+    },
+    {
+      "v": "📝",
+      "t": "أجاب فهد: First, I do my homework. ثم ابتسم: Then I play soccer with my brothers!",
+      "n": "أَجَابَ فَهْدٌ: First, I do my homework. ثُمَّ ابْتَسَمَ: Then I play soccer with my brothers!"
+    },
+    {
+      "v": "⚽",
+      "t": "سأله زميله: Do you ride a bike? — Yes, I do! I ride my bike every day in the park.",
+      "n": "سَأَلَهُ زَمِيلُهُ: Do you ride a bike? — Yes, I do! I ride my bike every day in the park."
+    },
+    {
+      "v": "🪁",
+      "t": "Do you fly a kite? — No, I don't. لكنني أريد أن أتعلم! هل تعلّمني؟",
+      "n": "Do you fly a kite? — No, I don't. لَكِنَّنِي أُرِيدُ أَنْ أَتَعَلَّمَ! هَلْ تُعَلِّمُنِي؟"
+    },
+    {
+      "v": "📖",
+      "t": "في البيت قرأ فهد قصة Peter and his Sisters: Peter draws pictures and his sisters read books.",
+      "n": "فِي الْبَيْتِ قَرَأَ فَهْدٌ قِصَّةَ Peter and his Sisters: Peter draws pictures and his sisters read books."
+    },
+    {
+      "v": "🎨",
+      "t": "قرر فهد أن يجرّب شيئاً جديداً: I draw pictures too! ورسم طائرة ورقية ملونة.",
+      "n": "قَرَّرَ فَهْدٌ أَنْ يُجَرِّبَ شَيْئاً جَدِيداً: I draw pictures too! وَرَسَمَ طَائِرَةً وَرَقِيَّةً مُلَوَّنَةً."
+    },
+    {
+      "v": "🌟",
+      "t": "في اليوم التالي أخبر المعلم: After school I do my homework, play soccer, and draw. أحسنت يا فهد!",
+      "n": "فِي الْيَوْمِ التَّالِي أَخْبَرَ الْمُعَلِّمَ: After school I do my homework, play soccer, and draw. أَحْسَنْتَ يَا فَهْدُ!"
+    }
   ],
   "activity": "اعمل استبياناً في الفصل: اسأل خمسة زملاء Do you play soccer? / Do you read books? / Do you ride a bike? وسجّل الإجابات في جدول بعلامة صح أو خطأ، ثم اكتب جملتين عن النتائج مثل: Four friends play soccer.",
   "summary": "أنشطة ما بعد المدرسة مثل play soccer و ride a bike و fly a kite، ونسأل What do you do after school? ونجيب بالمضارع البسيط I play…، ونسأل Do you…? ونجيب Yes, I do. أو No, I don't."

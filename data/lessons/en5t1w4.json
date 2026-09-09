@@ -49,27 +49,60 @@
     }
   ],
   "vocab": [
-    { "t": "shy", "d": "خجول: يتردد في الكلام مع الغرباء" },
-    { "t": "coach", "d": "مدرّب: يعلّم اللاعبين ويدرّبهم" },
-    { "t": "team", "d": "فريق: مجموعة تلعب أو تعمل معاً" },
-    { "t": "good at", "d": "جيد في: يجيد شيئاً ويتقنه" },
-    { "t": "medal", "d": "ميدالية: قطعة معدنية تُمنح للفائز" },
-    { "t": "club", "d": "نادٍ: مجموعة تجتمع لممارسة هواية واحدة" }
+    {
+      "t": "shy",
+      "d": "خجول: يتردد في الكلام مع الغرباء"
+    },
+    {
+      "t": "coach",
+      "d": "مدرّب: يعلّم اللاعبين ويدرّبهم"
+    },
+    {
+      "t": "team",
+      "d": "فريق: مجموعة تلعب أو تعمل معاً"
+    },
+    {
+      "t": "good at",
+      "d": "جيد في: يجيد شيئاً ويتقنه"
+    },
+    {
+      "t": "medal",
+      "d": "ميدالية: قطعة معدنية تُمنح للفائز"
+    },
+    {
+      "t": "club",
+      "d": "نادٍ: مجموعة تجتمع لممارسة هواية واحدة"
+    }
   ],
   "checks": [
     {
       "q": "الجملة الصحيحة؟",
-      "opts": ["She like painting.", "She likes painting.", "She likes paint.", "She liking painting."],
+      "opts": [
+        "She like painting.",
+        "She likes painting.",
+        "She likes paint.",
+        "She liking painting."
+      ],
       "correct": 1
     },
     {
       "q": "Does he like chess? — الجواب الصحيح:",
-      "opts": ["Yes, he do.", "Yes, he is.", "Yes, he does.", "Yes, he likes."],
+      "opts": [
+        "Yes, he do.",
+        "Yes, he is.",
+        "Yes, he does.",
+        "Yes, he likes."
+      ],
       "correct": 2
     },
     {
       "q": "كلمة coach تعني؟",
-      "opts": ["فريق", "مدرّب", "ميدالية", "نادٍ"],
+      "opts": [
+        "فريق",
+        "مدرّب",
+        "ميدالية",
+        "نادٍ"
+      ],
       "correct": 1
     }
   ],
@@ -77,19 +110,32 @@
     {
       "t": "mcq",
       "q": "نفي الجملة He likes cooking هو",
-      "opts": ["He don't like cooking.", "He doesn't likes cooking.", "He doesn't like cooking.", "He not like cooking."],
+      "opts": [
+        "He don't like cooking.",
+        "He doesn't likes cooking.",
+        "He doesn't like cooking.",
+        "He not like cooking."
+      ],
       "correct": 2
     },
     {
       "t": "tf",
       "q": "في السؤال Does she like…؟ يأتي الفعل like بلا s.",
-      "opts": ["صح", "خطأ"],
+      "opts": [
+        "صح",
+        "خطأ"
+      ],
       "correct": 0
     },
     {
       "t": "mcq",
       "q": "«أنا جيد في الرسم» بالإنجليزية؟",
-      "opts": ["I'm good at drawing.", "I'm good in draw.", "I good at drawing.", "I'm like drawing."],
+      "opts": [
+        "I'm good at drawing.",
+        "I'm good in draw.",
+        "I good at drawing.",
+        "I'm like drawing."
+      ],
       "correct": 0
     },
     {
@@ -100,30 +146,71 @@
     {
       "t": "mcq",
       "q": "عندما يقول زميلك I like chess وأنت تحبه أيضاً تقول",
-      "opts": ["Really?", "Me too!", "Good night!", "No, I don't."],
+      "opts": [
+        "Really?",
+        "Me too!",
+        "Good night!",
+        "No, I don't."
+      ],
       "correct": 1
     },
     {
       "t": "tf",
       "q": "كلمة shy تعني «شجاع».",
-      "opts": ["صح", "خطأ"],
+      "opts": [
+        "صح",
+        "خطأ"
+      ],
       "correct": 1
     },
     {
       "t": "mcq",
       "q": "السؤال المناسب للجواب: He likes taking photos.",
-      "opts": ["What do you like doing?", "What does he like doing?", "Does she like photos?", "What is he good at?"],
+      "opts": [
+        "What do you like doing?",
+        "What does he like doing?",
+        "Does she like photos?",
+        "What is he good at?"
+      ],
       "correct": 1
     }
   ],
   "story": [
-    { "v": "🚪", "t": "وقف جود عند باب نادي الكاراتيه خجولاً، فكل الأولاد يعرفون بعضهم وهو لا يعرف أحداً." },
-    { "v": "🥋", "t": "اقترب المدرّب وقال: Hi! I'm Coach Ali. What are you good at? همس جود: I'm good at running… I think." },
-    { "v": "👦", "t": "قدّم المدرّب زميلاً: This is Nasser. He likes karate, and he's good at jumping. ابتسم ناصر: Let's practice together!" },
-    { "v": "🤔", "t": "سأل جود: Does Nasser like chess? أجاب المدرّب: No, he doesn't. He likes karate and football." },
-    { "v": "💪", "t": "تدرّب جود أسبوعاً كاملاً، وكان يقول لنفسه كل يوم: I'm good at karate now!" },
-    { "v": "🏅", "t": "في نهاية الشهر نال جود ميدالية، وقال المدرّب للجميع: He was shy, but now he's brave. That's cool!" },
-    { "v": "🌟", "t": "جرّب قبل أن تقول لا أستطيع. أحسنت يا جود!" }
+    {
+      "v": "🚪",
+      "t": "وقف جود عند باب نادي الكاراتيه خجولاً، فكل الأولاد يعرفون بعضهم وهو لا يعرف أحداً.",
+      "n": "وَقَفَ جُودٌ عِنْدَ بَابِ نَادِي الْكَارَاتِيهِ خَجُولًا، فَكُلُّ الْأَوْلَادِ يَعْرِفُونَ بَعْضَهُمْ وَهُوَ لَا يَعْرِفُ أَحَدًا."
+    },
+    {
+      "v": "🥋",
+      "t": "اقترب المدرّب وقال: Hi! I'm Coach Ali. What are you good at? همس جود: I'm good at running… I think.",
+      "n": "اقْتَرَبَ الْمُدَرِّبُ وَقَالَ: Hi! I'm Coach Ali. What are you good at? هَمَسَ جُودٌ: I'm good at running… I think."
+    },
+    {
+      "v": "👦",
+      "t": "قدّم المدرّب زميلاً: This is Nasser. He likes karate, and he's good at jumping. ابتسم ناصر: Let's practice together!",
+      "n": "قَدَّمَ الْمُدَرِّبُ زَمِيلًا: This is Nasser. He likes karate, and he's good at jumping. ابْتَسَمَ نَاصِرٌ: Let's practice together!"
+    },
+    {
+      "v": "🤔",
+      "t": "سأل جود: Does Nasser like chess? أجاب المدرّب: No, he doesn't. He likes karate and football.",
+      "n": "سَأَلَ جُودٌ: Does Nasser like chess? أَجَابَ الْمُدَرِّبُ: No, he doesn't. He likes karate and football."
+    },
+    {
+      "v": "💪",
+      "t": "تدرّب جود أسبوعاً كاملاً، وكان يقول لنفسه كل يوم: I'm good at karate now!",
+      "n": "تَدَرَّبَ جُودٌ أُسْبُوعًا كَامِلًا، وَكَانَ يَقُولُ لِنَفْسِهِ كُلَّ يَوْمٍ: I'm good at karate now!"
+    },
+    {
+      "v": "🏅",
+      "t": "في نهاية الشهر نال جود ميدالية، وقال المدرّب للجميع: He was shy, but now he's brave. That's cool!",
+      "n": "فِي نِهَايَةِ الشَّهْرِ نَالَ جُودٌ مِيدَالِيَةً، وَقَالَ الْمُدَرِّبُ لِلْجَمِيعِ: He was shy, but now he's brave. That's cool!"
+    },
+    {
+      "v": "🌟",
+      "t": "جرّب قبل أن تقول لا أستطيع. أحسنت يا جود!",
+      "n": "جَرِّبْ قَبْلَ أَنْ تَقُولَ لَا أَسْتَطِيعُ. أَحْسَنْتَ يَا جُودْ!"
+    }
   ],
   "activity": "اسأل زميلك: What do you like doing? وWhat are you good at? ثم قدّمه للصف بجملتين: He likes… وHe's good at…، وليفعل هو الشيء نفسه عنك.",
   "summary": "تعلّمنا الحديث عن هوايات الآخرين بـ He/She likes وdoesn't like، والسؤال بـ Does he/she like…?، والتعبير عمّا نجيده بـ good at. وتدرّبنا على تعبيرات المحادثة مثل Me too وThat's cool."

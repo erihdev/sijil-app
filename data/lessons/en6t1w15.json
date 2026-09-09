@@ -52,27 +52,60 @@
     }
   ],
   "vocab": [
-    { "t": "patient", "d": "المريض الذي يزور الطبيب" },
-    { "t": "stethoscope", "d": "سماعة الطبيب التي يسمع بها القلب" },
-    { "t": "thermometer", "d": "مقياس الحرارة" },
-    { "t": "medicine", "d": "الدواء" },
-    { "t": "fever", "d": "حمّى، ارتفاع حرارة الجسم" },
-    { "t": "headache", "d": "صداع، ألم في الرأس" }
+    {
+      "t": "patient",
+      "d": "المريض الذي يزور الطبيب"
+    },
+    {
+      "t": "stethoscope",
+      "d": "سماعة الطبيب التي يسمع بها القلب"
+    },
+    {
+      "t": "thermometer",
+      "d": "مقياس الحرارة"
+    },
+    {
+      "t": "medicine",
+      "d": "الدواء"
+    },
+    {
+      "t": "fever",
+      "d": "حمّى، ارتفاع حرارة الجسم"
+    },
+    {
+      "t": "headache",
+      "d": "صداع، ألم في الرأس"
+    }
   ],
   "checks": [
     {
       "q": "الأداة التي يسمع بها الطبيب القلب:",
-      "opts": ["thermometer", "stethoscope", "bandage", "pill"],
+      "opts": [
+        "thermometer",
+        "stethoscope",
+        "bandage",
+        "pill"
+      ],
       "correct": 1
     },
     {
       "q": "أكمل: The doctor ...... patients every day.",
-      "opts": ["check", "checking", "checks", "is check"],
+      "opts": [
+        "check",
+        "checking",
+        "checks",
+        "is check"
+      ],
       "correct": 2
     },
     {
       "q": "«عندي صداع» بالإنجليزية:",
-      "opts": ["I have a headache.", "I have a cold.", "My stomach hurts.", "I have a fever."],
+      "opts": [
+        "I have a headache.",
+        "I have a cold.",
+        "My stomach hurts.",
+        "I have a fever."
+      ],
       "correct": 0
     }
   ],
@@ -80,25 +113,43 @@
     {
       "t": "mcq",
       "q": "الجملة الصحيحة:",
-      "opts": ["He finish work at 4.", "He finishs work at 4.", "He finishes work at 4.", "He is finish work at 4."],
+      "opts": [
+        "He finish work at 4.",
+        "He finishs work at 4.",
+        "He finishes work at 4.",
+        "He is finish work at 4."
+      ],
       "correct": 2
     },
     {
       "t": "tf",
       "q": "A nurse helps the doctor and takes care of patients.",
-      "opts": ["صح", "خطأ"],
+      "opts": [
+        "صح",
+        "خطأ"
+      ],
       "correct": 0
     },
     {
       "t": "mcq",
       "q": "«المريض» بالإنجليزية:",
-      "opts": ["nurse", "doctor", "medicine", "patient"],
+      "opts": [
+        "nurse",
+        "doctor",
+        "medicine",
+        "patient"
+      ],
       "correct": 3
     },
     {
       "t": "mcq",
       "q": "السؤال الذي يطرحه الطبيب أولاً:",
-      "opts": ["What's your hobby?", "What's the matter?", "What time is it?", "Where do you live?"],
+      "opts": [
+        "What's your hobby?",
+        "What's the matter?",
+        "What time is it?",
+        "Where do you live?"
+      ],
       "correct": 1
     },
     {
@@ -109,24 +160,60 @@
     {
       "t": "tf",
       "q": "نقول Get well soon للطبيب عندما ننهي الزيارة.",
-      "opts": ["صح", "خطأ"],
+      "opts": [
+        "صح",
+        "خطأ"
+      ],
       "correct": 1
     },
     {
       "t": "mcq",
       "q": "«ضمادة» بالإنجليزية:",
-      "opts": ["bandage", "white coat", "pill", "clinic"],
+      "opts": [
+        "bandage",
+        "white coat",
+        "pill",
+        "clinic"
+      ],
       "correct": 0
     }
   ],
   "story": [
-    { "v": "🤒", "t": "استيقظ سعود ورأسه يؤلمه وجسمه ساخن. قالت أمه: You have a fever. Let's go to the doctor." },
-    { "v": "🏥", "t": "في المستشفى رأى سعود الـ nurse تسجّل الأسماء، وطبيباً بمعطف أبيض يخرج من غرفته ويقول: Next patient, please!" },
-    { "v": "🩺", "t": "سأله الطبيب: What's the matter? قال سعود: I have a headache and a fever. فوضع الـ stethoscope على صدره." },
-    { "v": "🌡️", "t": "قاس حرارته بالـ thermometer: 38! Then he wrote a prescription: Take this medicine twice a day." },
-    { "v": "💡", "t": "سأل سعود بفضول: What do you do all day? ابتسم الطبيب: I check patients, I listen to their hearts, and I help them." },
-    { "v": "💊", "t": "في البيت شرب ماءً دافئاً وأخذ دواءه وارتاح. بعد يومين قال: I am fine now. Thank you, doctor!" },
-    { "v": "🌟", "t": "عرف سعود أن الطبيب يعمل طوال اليوم ليساعد الناس. أحسنت!" }
+    {
+      "v": "🤒",
+      "t": "استيقظ سعود ورأسه يؤلمه وجسمه ساخن. قالت أمه: You have a fever. Let's go to the doctor.",
+      "n": "اسْتَيْقَظَ سَعُودٌ وَرَأْسُهُ يُؤْلِمُهُ وَجِسْمُهُ سَاخِنْ. قَالَتْ أُمُّهُ: You have a fever. Let's go to the doctor."
+    },
+    {
+      "v": "🏥",
+      "t": "في المستشفى رأى سعود الـ nurse تسجّل الأسماء، وطبيباً بمعطف أبيض يخرج من غرفته ويقول: Next patient, please!",
+      "n": "فِي الْمُسْتَشْفَى رَأَى سَعُودٌ الـ nurse تُسَجِّلُ الْأَسْمَاءَ، وَطَبِيباً بِمِعْطَفٍ أَبْيَضَ يَخْرُجُ مِنْ غُرْفَتِهِ وَيَقُولُ: Next patient, please!"
+    },
+    {
+      "v": "🩺",
+      "t": "سأله الطبيب: What's the matter? قال سعود: I have a headache and a fever. فوضع الـ stethoscope على صدره.",
+      "n": "سَأَلَهُ الطَّبِيبُ: What's the matter? قَالَ سَعُودٌ: I have a headache and a fever. فَوَضَعَ الـ stethoscope عَلَى صَدْرِهْ."
+    },
+    {
+      "v": "🌡️",
+      "t": "قاس حرارته بالـ thermometer: 38! Then he wrote a prescription: Take this medicine twice a day.",
+      "n": "قَاسَ حَرَارَتَهُ بِالـ thermometer: 38! Then he wrote a prescription: Take this medicine twice a day."
+    },
+    {
+      "v": "💡",
+      "t": "سأل سعود بفضول: What do you do all day? ابتسم الطبيب: I check patients, I listen to their hearts, and I help them.",
+      "n": "سَأَلَ سَعُودٌ بِفُضُولٍ: What do you do all day? ابْتَسَمَ الطَّبِيبُ: I check patients, I listen to their hearts, and I help them."
+    },
+    {
+      "v": "💊",
+      "t": "في البيت شرب ماءً دافئاً وأخذ دواءه وارتاح. بعد يومين قال: I am fine now. Thank you, doctor!",
+      "n": "فِي الْبَيْتِ شَرِبَ مَاءً دَافِئاً وَأَخَذَ دَوَاءَهُ وَارْتَاحْ. بَعْدَ يَوْمَيْنِ قَالَ: I am fine now. Thank you, doctor!"
+    },
+    {
+      "v": "🌟",
+      "t": "عرف سعود أن الطبيب يعمل طوال اليوم ليساعد الناس. أحسنت!",
+      "n": "عَرَفَ سَعُودٌ أَنَّ الطَّبِيبَ يَعْمَلُ طَوَالَ الْيَوْمِ لِيُسَاعِدَ النَّاسْ. أَحْسَنْت!"
+    }
   ],
   "activity": "مثّل مع زميلك حواراً بين طبيب ومريض من ست جمل: What's the matter? / I have ... / Let me check ... / Take this medicine ... / Thank you, doctor. ثم اكتب ثلاث جمل عن يوم الطبيب بالمضارع البسيط.",
   "summary": "الطبيب يعمل في hospital ويفحص الـ patients بالـ stethoscope والـ thermometer ويكتب الدواء. نصف يومه بالمضارع البسيط مع s / es (checks, finishes)، ونعبّر عن المرض بـ I have a headache / a fever."

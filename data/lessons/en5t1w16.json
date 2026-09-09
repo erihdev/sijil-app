@@ -50,27 +50,60 @@
     }
   ],
   "vocab": [
-    { "t": "wheat", "d": "قمح: نبات يُصنع منه الدقيق والخبز" },
-    { "t": "flour", "d": "دقيق: مسحوق من القمح نخبز به" },
-    { "t": "come from", "d": "يأتي من: مصدر الشيء" },
-    { "t": "habit", "d": "عادة: شيء نفعله بانتظام" },
-    { "t": "yogurt", "d": "لبن رائب مصنوع من الحليب" },
-    { "t": "sweets", "d": "حلويات: أطعمة كثيرة السكر" }
+    {
+      "t": "wheat",
+      "d": "قمح: نبات يُصنع منه الدقيق والخبز"
+    },
+    {
+      "t": "flour",
+      "d": "دقيق: مسحوق من القمح نخبز به"
+    },
+    {
+      "t": "come from",
+      "d": "يأتي من: مصدر الشيء"
+    },
+    {
+      "t": "habit",
+      "d": "عادة: شيء نفعله بانتظام"
+    },
+    {
+      "t": "yogurt",
+      "d": "لبن رائب مصنوع من الحليب"
+    },
+    {
+      "t": "sweets",
+      "d": "حلويات: أطعمة كثيرة السكر"
+    }
   ],
   "checks": [
     {
       "q": "Where does cheese come from?",
-      "opts": ["From wheat", "From milk", "From rice", "From bees"],
+      "opts": [
+        "From wheat",
+        "From milk",
+        "From rice",
+        "From bees"
+      ],
       "correct": 1
     },
     {
       "q": "أي الأطعمة مصدره نباتي؟",
-      "opts": ["eggs", "fish", "bread", "yogurt"],
+      "opts": [
+        "eggs",
+        "fish",
+        "bread",
+        "yogurt"
+      ],
       "correct": 2
     },
     {
       "q": "أكمل: How ...... water do you drink?",
-      "opts": ["many", "much", "old", "often"],
+      "opts": [
+        "many",
+        "much",
+        "old",
+        "often"
+      ],
       "correct": 1
     }
   ],
@@ -78,19 +111,32 @@
     {
       "t": "mcq",
       "q": "العسل مصدره",
-      "opts": ["الأبقار", "النحل", "القمح", "النخيل"],
+      "opts": [
+        "الأبقار",
+        "النحل",
+        "القمح",
+        "النخيل"
+      ],
       "correct": 1
     },
     {
       "t": "tf",
       "q": "الدقيق flour يُصنع من القمح.",
-      "opts": ["صح", "خطأ"],
+      "opts": [
+        "صح",
+        "خطأ"
+      ],
       "correct": 0
     },
     {
       "t": "mcq",
       "q": "«اشرب كثيراً من الماء» بالإنجليزية؟",
-      "opts": ["Drink a lot of water.", "Eat a lot of water.", "Drinks water many.", "Don't drink water."],
+      "opts": [
+        "Drink a lot of water.",
+        "Eat a lot of water.",
+        "Drinks water many.",
+        "Don't drink water."
+      ],
       "correct": 0
     },
     {
@@ -101,30 +147,71 @@
     {
       "t": "mcq",
       "q": "مراجعة: الجملة الصحيحة؟",
-      "opts": ["There is two beds.", "He like swimming.", "She wants to be a doctor.", "How much eggs?"],
+      "opts": [
+        "There is two beds.",
+        "He like swimming.",
+        "She wants to be a doctor.",
+        "How much eggs?"
+      ],
       "correct": 2
     },
     {
       "t": "tf",
       "q": "من العادات الصحية الإكثار من الحلويات كل يوم.",
-      "opts": ["صح", "خطأ"],
+      "opts": [
+        "صح",
+        "خطأ"
+      ],
       "correct": 1
     },
     {
       "t": "mcq",
       "q": "مراجعة: What does he do? — الجواب الصحيح:",
-      "opts": ["He likes chess.", "He's a firefighter.", "There is a doctor.", "He wants a snack."],
+      "opts": [
+        "He likes chess.",
+        "He's a firefighter.",
+        "There is a doctor.",
+        "He wants a snack."
+      ],
       "correct": 1
     }
   ],
   "story": [
-    { "v": "🌾", "t": "زار ريان مزرعة عمّه في القصيم ورأى حقل قمح ذهبياً، فسأل: What do you make from wheat? أجاب عمّه: Flour, then bread!" },
-    { "v": "🐄", "t": "عند الحظيرة قال عمّه: Milk comes from cows. And cheese and yogurt come from milk. فتذكّر ريان مجموعة dairy." },
-    { "v": "🐝", "t": "رأى خلايا النحل وسأل: Where does honey come from? ضحك عمّه: From bees, not from the shop!" },
-    { "v": "🍽️", "t": "على الغداء صنّف ريان صحنه: rice from plants، chicken from animals، salad from plants. كل شيء له مصدر!" },
-    { "v": "💧", "t": "قال له عمّه: Drink a lot of water and don't eat too many sweets. فوعده ريان بعادات صحية." },
-    { "v": "📚", "t": "في المساء راجع ريان الفصل كاملاً: I like… There are… He's a… How much… فوجد أنه يتذكر كل وحدة!" },
-    { "v": "🌟", "t": "من يعرف مصدر طعامه يحترمه ويأكل بحكمة. أحسنت يا ريان!" }
+    {
+      "v": "🌾",
+      "t": "زار ريان مزرعة عمّه في القصيم ورأى حقل قمح ذهبياً، فسأل: What do you make from wheat? أجاب عمّه: Flour, then bread!",
+      "n": "زَارَ رَيَّانُ مَزْرَعَةَ عَمِّهِ فِي الْقَصِيمِ وَرَأَى حَقْلَ قَمْحٍ ذَهَبِيّاً، فَسَأَلَ: What do you make from wheat? أَجَابَ عَمُّهُ: Flour, then bread!"
+    },
+    {
+      "v": "🐄",
+      "t": "عند الحظيرة قال عمّه: Milk comes from cows. And cheese and yogurt come from milk. فتذكّر ريان مجموعة dairy.",
+      "n": "عِنْدَ الْحَظِيرَةِ قَالَ عَمُّهُ: Milk comes from cows. And cheese and yogurt come from milk. فَتَذَكَّرَ رَيَّانُ مَجْمُوعَةَ dairy."
+    },
+    {
+      "v": "🐝",
+      "t": "رأى خلايا النحل وسأل: Where does honey come from? ضحك عمّه: From bees, not from the shop!",
+      "n": "رَأَى خَلَايَا النَّحْلِ وَسَأَلَ: Where does honey come from? ضَحِكَ عَمُّهُ: From bees, not from the shop!"
+    },
+    {
+      "v": "🍽️",
+      "t": "على الغداء صنّف ريان صحنه: rice from plants، chicken from animals، salad from plants. كل شيء له مصدر!",
+      "n": "عَلَى الْغَدَاءِ صَنَّفَ رَيَّانُ صَحْنَهُ: rice from plants، chicken from animals، salad from plants. كُلُّ شَيْءٍ لَهُ مَصْدَرٌ!"
+    },
+    {
+      "v": "💧",
+      "t": "قال له عمّه: Drink a lot of water and don't eat too many sweets. فوعده ريان بعادات صحية.",
+      "n": "قَالَ لَهُ عَمُّهُ: Drink a lot of water and don't eat too many sweets. فَوَعَدَهُ رَيَّانُ بِعَادَاتٍ صِحِّيَّةٍ."
+    },
+    {
+      "v": "📚",
+      "t": "في المساء راجع ريان الفصل كاملاً: I like… There are… He's a… How much… فوجد أنه يتذكر كل وحدة!",
+      "n": "فِي الْمَسَاءِ رَاجَعَ رَيَّانُ الْفَصْلَ كَامِلاً: I like… There are… He's a… How much… فَوَجَدَ أَنَّهُ يَتَذَكَّرُ كُلَّ وَحْدَةٍ!"
+    },
+    {
+      "v": "🌟",
+      "t": "من يعرف مصدر طعامه يحترمه ويأكل بحكمة. أحسنت يا ريان!",
+      "n": "مَنْ يَعْرِفُ مَصْدَرَ طَعَامِهِ يَحْتَرِمُهُ وَيَأْكُلُ بِحِكْمَةٍ. أَحْسَنْتَ يَا رَيَّانُ!"
+    }
   ],
   "activity": "اكتب ثمانية أطعمة تأكلها في يوم واحد وصنّفها في عمودين: From plants وFrom animals، ثم اكتب ثلاث عادات صحية بصيغة الأمر أو النهي، وأخيراً اكتب جملة واحدة صحيحة من كل وحدة من وحدات الفصل الأربع.",
   "summary": "تعلّمنا أن الطعام يأتي من النباتات أو الحيوانات وتتبّعنا رحلة الخبز من القمح، وتعرّفنا على عادات الأكل الصحية. وراجعنا وحدة Glorious Food ووحدات الفصل الأول: الهوايات، والمنازل، والمهن، والطعام."

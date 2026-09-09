@@ -49,27 +49,60 @@
     }
   ],
   "vocab": [
-    { "t": "want to be", "d": "يريد أن يصبح: يتمنى مهنة في المستقبل" },
-    { "t": "uniform", "d": "زي موحّد يلبسه أصحاب مهنة معينة" },
-    { "t": "helmet", "d": "خوذة تحمي الرأس" },
-    { "t": "save", "d": "ينقذ: يخلّص شخصاً من الخطر" },
-    { "t": "patient", "d": "مريض يتلقى العلاج" },
-    { "t": "future", "d": "المستقبل: الزمن القادم" }
+    {
+      "t": "want to be",
+      "d": "يريد أن يصبح: يتمنى مهنة في المستقبل"
+    },
+    {
+      "t": "uniform",
+      "d": "زي موحّد يلبسه أصحاب مهنة معينة"
+    },
+    {
+      "t": "helmet",
+      "d": "خوذة تحمي الرأس"
+    },
+    {
+      "t": "save",
+      "d": "ينقذ: يخلّص شخصاً من الخطر"
+    },
+    {
+      "t": "patient",
+      "d": "مريض يتلقى العلاج"
+    },
+    {
+      "t": "future",
+      "d": "المستقبل: الزمن القادم"
+    }
   ],
   "checks": [
     {
       "q": "الجملة الصحيحة؟",
-      "opts": ["I want be a pilot.", "I want to be a pilot.", "I want to a pilot.", "I want to be pilot."],
+      "opts": [
+        "I want be a pilot.",
+        "I want to be a pilot.",
+        "I want to a pilot.",
+        "I want to be pilot."
+      ],
       "correct": 1
     },
     {
       "q": "A pilot ...... planes.",
-      "opts": ["fixes", "drives", "flies", "bakes"],
+      "opts": [
+        "fixes",
+        "drives",
+        "flies",
+        "bakes"
+      ],
       "correct": 2
     },
     {
       "q": "كلمة uniform تعني؟",
-      "opts": ["أداة", "زي عمل", "خوذة", "مريض"],
+      "opts": [
+        "أداة",
+        "زي عمل",
+        "خوذة",
+        "مريض"
+      ],
       "correct": 1
     }
   ],
@@ -77,19 +110,32 @@
     {
       "t": "mcq",
       "q": "What does he want to be? — الجواب الصحيح:",
-      "opts": ["He want to be a vet.", "He wants to be a vet.", "He is want a vet.", "He wants be vet."],
+      "opts": [
+        "He want to be a vet.",
+        "He wants to be a vet.",
+        "He is want a vet.",
+        "He wants be vet."
+      ],
       "correct": 1
     },
     {
       "t": "tf",
       "q": "بعد because نضع جملة كاملة فيها فاعل وفعل.",
-      "opts": ["صح", "خطأ"],
+      "opts": [
+        "صح",
+        "خطأ"
+      ],
       "correct": 0
     },
     {
       "t": "mcq",
       "q": "أكمل: I want to be a doctor ...... I like helping people.",
-      "opts": ["but", "because", "and", "or"],
+      "opts": [
+        "but",
+        "because",
+        "and",
+        "or"
+      ],
       "correct": 1
     },
     {
@@ -100,30 +146,71 @@
     {
       "t": "mcq",
       "q": "الشخص الذي يعتني بالحيوانات المريضة يريد أن يكون",
-      "opts": ["a vet", "a baker", "a pilot", "a dentist"],
+      "opts": [
+        "a vet",
+        "a baker",
+        "a pilot",
+        "a dentist"
+      ],
       "correct": 0
     },
     {
       "t": "tf",
       "q": "جملة I don't want to be a farmer تعني «أريد أن أصبح مزارعاً».",
-      "opts": ["صح", "خطأ"],
+      "opts": [
+        "صح",
+        "خطأ"
+      ],
       "correct": 1
     },
     {
       "t": "mcq",
       "q": "Why do you want to be a chef? — الجواب المناسب:",
-      "opts": ["Because I love cooking.", "He's a chef.", "In a restaurant.", "Yes, I do."],
+      "opts": [
+        "Because I love cooking.",
+        "He's a chef.",
+        "In a restaurant.",
+        "Yes, I do."
+      ],
       "correct": 0
     }
   ],
   "story": [
-    { "v": "🏫", "t": "أعلنت المدرسة عن Career Day، وجاء آباء الطلاب يحملون أدوات مهنهم. تحمّس سعود كثيراً." },
-    { "v": "🚒", "t": "دخل رجل إطفاء بخوذته وقال: I'm a firefighter. I save people from fires. صفّق الجميع بحرارة." },
-    { "v": "🩺", "t": "ثم تحدثت طبيبة: I help sick people. I wear a white coat. سأل سعود: Why? أجابت: Because I love helping people." },
-    { "v": "✈️", "t": "وقال طيار: I fly planes to many countries. لمعت عينا سعود: I want to be a pilot!" },
-    { "v": "🤔", "t": "سأله المعلم: Why do you want to be a pilot? أجاب سعود: Because I like traveling and I love the sky." },
-    { "v": "📋", "t": "كتب كل طالب حلمه على لوحة الفصل: I want to be a vet… an engineer… a teacher… وكل واحد ذكر السبب." },
-    { "v": "🌟", "t": "الحلم يبدأ بجملة: I want to be… أحسنت يا سعود!" }
+    {
+      "v": "🏫",
+      "t": "أعلنت المدرسة عن Career Day، وجاء آباء الطلاب يحملون أدوات مهنهم. تحمّس سعود كثيراً.",
+      "n": "أَعْلَنَتِ الْمَدْرَسَةُ عَنْ Career Day، وَجَاءَ آبَاءُ الطُّلَّابِ يَحْمِلُونَ أَدَوَاتِ مِهَنِهِمْ. تَحَمَّسَ سَعُودٌ كَثِيراً."
+    },
+    {
+      "v": "🚒",
+      "t": "دخل رجل إطفاء بخوذته وقال: I'm a firefighter. I save people from fires. صفّق الجميع بحرارة.",
+      "n": "دَخَلَ رَجُلُ إِطْفَاءٍ بِخُوذَتِهِ وَقَالَ: I'm a firefighter. I save people from fires. صَفَّقَ الْجَمِيعُ بِحَرَارَةٍ."
+    },
+    {
+      "v": "🩺",
+      "t": "ثم تحدثت طبيبة: I help sick people. I wear a white coat. سأل سعود: Why? أجابت: Because I love helping people.",
+      "n": "ثُمَّ تَحَدَّثَتْ طَبِيبَةٌ: I help sick people. I wear a white coat. سَأَلَ سَعُودٌ: Why? أَجَابَتْ: Because I love helping people."
+    },
+    {
+      "v": "✈️",
+      "t": "وقال طيار: I fly planes to many countries. لمعت عينا سعود: I want to be a pilot!",
+      "n": "وَقَالَ طَيَّارٌ: I fly planes to many countries. لَمَعَتْ عَيْنَا سَعُودٍ: I want to be a pilot!"
+    },
+    {
+      "v": "🤔",
+      "t": "سأله المعلم: Why do you want to be a pilot? أجاب سعود: Because I like traveling and I love the sky.",
+      "n": "سَأَلَهُ الْمُعَلِّمُ: Why do you want to be a pilot? أَجَابَ سَعُودٌ: Because I like traveling and I love the sky."
+    },
+    {
+      "v": "📋",
+      "t": "كتب كل طالب حلمه على لوحة الفصل: I want to be a vet… an engineer… a teacher… وكل واحد ذكر السبب.",
+      "n": "كَتَبَ كُلُّ طَالِبٍ حُلْمَهُ عَلَى لَوْحَةِ الْفَصْلِ: I want to be a vet… an engineer… a teacher… وَكُلُّ وَاحِدٍ ذَكَرَ السَّبَبَ."
+    },
+    {
+      "v": "🌟",
+      "t": "الحلم يبدأ بجملة: I want to be… أحسنت يا سعود!",
+      "n": "الْحُلْمُ يَبْدَأُ بِجُمْلَةٍ: I want to be… أَحْسَنْتَ يَا سَعُودُ!"
+    }
   ],
   "activity": "اكتب ثلاث جمل عن مهنة المستقبل: I want to be a … because …، وما يفعله صاحب هذه المهنة، ثم ارسم زيّ العمل أو أداته، واسأل زميلك: What do you want to be?",
   "summary": "تعلّمنا التعبير عن مهنة المستقبل بـ I want to be a…، وذكر السبب بـ because مع جملة كاملة، ووصف ما يفعله أصحاب المهن مثل A pilot flies planes. وعشنا قصة يوم المهن في المدرسة."

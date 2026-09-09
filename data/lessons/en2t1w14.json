@@ -54,27 +54,57 @@
     }
   ],
   "vocab": [
-    { "t": "friend", "d": "صديق" },
-    { "t": "He", "d": "هو (للولد)" },
-    { "t": "She", "d": "هي (للبنت)" },
-    { "t": "running", "d": "يجري الآن" },
-    { "t": "has", "d": "معه، يملك" },
-    { "t": "ball", "d": "كرة" }
+    {
+      "t": "friend",
+      "d": "صديق"
+    },
+    {
+      "t": "He",
+      "d": "هو (للولد)"
+    },
+    {
+      "t": "She",
+      "d": "هي (للبنت)"
+    },
+    {
+      "t": "running",
+      "d": "يجري الآن"
+    },
+    {
+      "t": "has",
+      "d": "معه، يملك"
+    },
+    {
+      "t": "ball",
+      "d": "كرة"
+    }
   ],
   "checks": [
     {
       "q": "This is my friend معناها:",
-      "opts": ["هذا صديقي", "هو يجري", "معه كرة"],
+      "opts": [
+        "هذا صديقي",
+        "هو يجري",
+        "معه كرة"
+      ],
       "correct": 0
     },
     {
       "q": "للحديث عن الولد نستعمل:",
-      "opts": ["She", "He", "I"],
+      "opts": [
+        "She",
+        "He",
+        "I"
+      ],
       "correct": 1
     },
     {
       "q": "جواب What is he doing?",
-      "opts": ["He has a ball", "He is my friend", "He is reading"],
+      "opts": [
+        "He has a ball",
+        "He is my friend",
+        "He is reading"
+      ],
       "correct": 2
     }
   ],
@@ -82,25 +112,40 @@
     {
       "t": "mcq",
       "q": "معنى He has a book:",
-      "opts": ["هو يقرأ كتاباً", "معه كتاب", "هذا كتابي"],
+      "opts": [
+        "هو يقرأ كتاباً",
+        "معه كتاب",
+        "هذا كتابي"
+      ],
       "correct": 1
     },
     {
       "t": "mcq",
       "q": "للحديث عن الأخت نستعمل:",
-      "opts": ["He", "You", "She"],
+      "opts": [
+        "He",
+        "You",
+        "She"
+      ],
       "correct": 2
     },
     {
       "t": "tf",
       "q": "Who is he? معناها: من هو؟",
-      "opts": ["صح", "خطأ"],
+      "opts": [
+        "صح",
+        "خطأ"
+      ],
       "correct": 0
     },
     {
       "t": "mcq",
       "q": "run بعد إضافة ing تصبح:",
-      "opts": ["running", "runs", "ran"],
+      "opts": [
+        "running",
+        "runs",
+        "ran"
+      ],
       "correct": 0
     },
     {
@@ -111,24 +156,59 @@
     {
       "t": "tf",
       "q": "She is drawing معناها: هو يجري.",
-      "opts": ["صح", "خطأ"],
+      "opts": [
+        "صح",
+        "خطأ"
+      ],
       "correct": 1
     },
     {
       "t": "mcq",
       "q": "كيف أسأل: ماذا معه؟",
-      "opts": ["Who is he?", "What does he have?", "What is he doing?"],
+      "opts": [
+        "Who is he?",
+        "What does he have?",
+        "What is he doing?"
+      ],
       "correct": 1
     }
   ],
   "story": [
-    { "v": "🏠", "t": "جاء سعود لزيارة فهد في البيت. قال فهد لأمه: This is my friend Saud!" },
-    { "v": "👦", "t": "سأل سعود عن ولد يلعب في الفناء: Who is he? أجاب فهد: He is my brother Turki." },
-    { "v": "🏃", "t": "كان تركي يجري وراء الكرة. قال سعود: What is he doing? فأجاب فهد: He is running!" },
-    { "v": "⚽", "t": "ثم سأل: What does he have? فقال فهد: He has a ball. هيا نلعب معه!" },
-    { "v": "📚", "t": "في الداخل كانت أخت فهد الصغيرة تقرأ. همس فهد: She is reading. She has a book." },
-    { "v": "🪁", "t": "بعد اللعب أخرج فهد طائرة ورقية: I have a kite! وطاروا بها معاً في الفناء." },
-    { "v": "🌟", "t": "في المساء قال سعود لأبيه: Fahd is my friend. He has a kite! أحسنت!" }
+    {
+      "v": "🏠",
+      "t": "جاء سعود لزيارة فهد في البيت. قال فهد لأمه: This is my friend Saud!",
+      "n": "جَاءَ سَعُودٌ لِزِيَارَةِ فَهْدٍ فِي الْبَيْتِ. قَالَ فَهْدٌ لِأُمِّهِ: This is my friend Saud!"
+    },
+    {
+      "v": "👦",
+      "t": "سأل سعود عن ولد يلعب في الفناء: Who is he? أجاب فهد: He is my brother Turki.",
+      "n": "سَأَلَ سَعُودٌ عَنْ وَلَدٍ يَلْعَبُ فِي الْفِنَاءِ: Who is he? أَجَابَ فَهْدٌ: He is my brother Turki."
+    },
+    {
+      "v": "🏃",
+      "t": "كان تركي يجري وراء الكرة. قال سعود: What is he doing? فأجاب فهد: He is running!",
+      "n": "كَانَ تُرْكِي يَجْرِي وَرَاءَ الْكُرَةِ. قَالَ سَعُودٌ: What is he doing? فَأَجَابَ فَهْدٌ: He is running!"
+    },
+    {
+      "v": "⚽",
+      "t": "ثم سأل: What does he have? فقال فهد: He has a ball. هيا نلعب معه!",
+      "n": "ثُمَّ سَأَلَ: What does he have? فَقَالَ فَهْدٌ: He has a ball. هَيَّا نَلْعَبْ مَعَهُ!"
+    },
+    {
+      "v": "📚",
+      "t": "في الداخل كانت أخت فهد الصغيرة تقرأ. همس فهد: She is reading. She has a book.",
+      "n": "فِي الدَّاخِلِ كَانَتْ أُخْتُ فَهْدٍ الصَّغِيرَةُ تَقْرَأُ. هَمَسَ فَهْدٌ: She is reading. She has a book."
+    },
+    {
+      "v": "🪁",
+      "t": "بعد اللعب أخرج فهد طائرة ورقية: I have a kite! وطاروا بها معاً في الفناء.",
+      "n": "بَعْدَ اللَّعِبِ أَخْرَجَ فَهْدٌ طَائِرَةً وَرَقِيَّةً: I have a kite! وَطَارُوا بِهَا مَعًا فِي الْفِنَاءِ."
+    },
+    {
+      "v": "🌟",
+      "t": "في المساء قال سعود لأبيه: Fahd is my friend. He has a kite! أحسنت!",
+      "n": "فِي الْمَسَاءِ قَالَ سَعُودٌ لِأَبِيهِ: Fahd is my friend. He has a kite! أَحْسَنْتَ!"
+    }
   ],
   "activity": "قف مع زميلك أمام الفصل وقل: This is my friend … ثم يمثّل زميلك فعلاً والفصل يقول: He is running / He is reading. وأعطه شيئاً وقل: He has a book.",
   "summary": "نقدّم صديقنا بـ This is my friend، ونستعمل He للولد و She للبنت، ونسأل What is he doing? He is running، و What does he have? He has a ball."

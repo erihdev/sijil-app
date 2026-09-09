@@ -53,27 +53,60 @@
     }
   ],
   "vocab": [
-    { "t": "hobby", "d": "هواية: نشاط نحبه ونفعله في وقت الفراغ" },
-    { "t": "collect", "d": "يجمع أشياء مثل الطوابع" },
-    { "t": "take photos", "d": "يلتقط صوراً بالكاميرا" },
-    { "t": "build models", "d": "يبني مجسّمات صغيرة" },
-    { "t": "doesn't", "d": "اختصار does not للنفي مع He و She" },
-    { "t": "crafts", "d": "أعمال يدوية" }
+    {
+      "t": "hobby",
+      "d": "هواية: نشاط نحبه ونفعله في وقت الفراغ"
+    },
+    {
+      "t": "collect",
+      "d": "يجمع أشياء مثل الطوابع"
+    },
+    {
+      "t": "take photos",
+      "d": "يلتقط صوراً بالكاميرا"
+    },
+    {
+      "t": "build models",
+      "d": "يبني مجسّمات صغيرة"
+    },
+    {
+      "t": "doesn't",
+      "d": "اختصار does not للنفي مع He و She"
+    },
+    {
+      "t": "crafts",
+      "d": "أعمال يدوية"
+    }
   ],
   "checks": [
     {
       "q": "الجملة الصحيحة هي؟",
-      "opts": ["He like to cook.", "He likes to cook.", "He likes to cooks.", "He liking to cook."],
+      "opts": [
+        "He like to cook.",
+        "He likes to cook.",
+        "He likes to cooks.",
+        "He liking to cook."
+      ],
       "correct": 1
     },
     {
       "q": "She ...... like to swim.",
-      "opts": ["don't", "doesn't", "isn't", "not"],
+      "opts": [
+        "don't",
+        "doesn't",
+        "isn't",
+        "not"
+      ],
       "correct": 1
     },
     {
       "q": "عبارة collect stamps تعني؟",
-      "opts": ["يلتقط صوراً", "يبني مجسّمات", "يجمع الطوابع", "يذهب للصيد"],
+      "opts": [
+        "يلتقط صوراً",
+        "يبني مجسّمات",
+        "يجمع الطوابع",
+        "يذهب للصيد"
+      ],
       "correct": 2
     }
   ],
@@ -81,25 +114,43 @@
     {
       "t": "mcq",
       "q": "...... he like to take photos? — Yes, he does.",
-      "opts": ["Do", "Is", "Does", "Are"],
+      "opts": [
+        "Do",
+        "Is",
+        "Does",
+        "Are"
+      ],
       "correct": 2
     },
     {
       "t": "mcq",
       "q": "My sister ...... to make crafts.",
-      "opts": ["like", "likes", "liking", "is like"],
+      "opts": [
+        "like",
+        "likes",
+        "liking",
+        "is like"
+      ],
       "correct": 1
     },
     {
       "t": "tf",
       "q": "بعد doesn't نضيف s للفعل.",
-      "opts": ["صح", "خطأ"],
+      "opts": [
+        "صح",
+        "خطأ"
+      ],
       "correct": 1
     },
     {
       "t": "mcq",
       "q": "Does she like to cook? — ...... (لا)",
-      "opts": ["No, she don't.", "No, she isn't.", "No, she doesn't.", "No, she not."],
+      "opts": [
+        "No, she don't.",
+        "No, she isn't.",
+        "No, she doesn't.",
+        "No, she not."
+      ],
       "correct": 2
     },
     {
@@ -110,24 +161,60 @@
     {
       "t": "tf",
       "q": "عبارة build models تعني «يبني مجسّمات».",
-      "opts": ["صح", "خطأ"],
+      "opts": [
+        "صح",
+        "خطأ"
+      ],
       "correct": 0
     },
     {
       "t": "mcq",
       "q": "What does he like to do? — ......",
-      "opts": ["He likes to play the oud.", "He like to play the oud.", "Yes, he does.", "He is play the oud."],
+      "opts": [
+        "He likes to play the oud.",
+        "He like to play the oud.",
+        "Yes, he does.",
+        "He is play the oud."
+      ],
       "correct": 0
     }
   ],
   "story": [
-    { "v": "📷", "t": "في عطلة نهاية الأسبوع جمعت نورة عائلتها لتكتب عن هواياتهم لواجب الإنجليزية." },
-    { "v": "🎣", "t": "بدأت بأبيها: My father likes to go fishing. لكنه قال ضاحكاً: I don't like to cook the fish!" },
-    { "v": "📮", "t": "أخوها الصغير أخرج ألبومه: He likes to collect stamps. He has one hundred stamps!" },
-    { "v": "🍳", "t": "أمها في المطبخ: My mother likes to cook. وكتبت نورة: She doesn't like to take photos." },
-    { "v": "❓", "t": "اتصلت بابن عمها: Does he like to build models? أجابت عمتها: Yes, he does! غرفته مليئة بالطائرات." },
-    { "v": "✍️", "t": "راجعت نورة كتابتها: مع He و She الفعل likes بحرف s، وبعد doesn't يعود بلا s. ممتاز!" },
-    { "v": "🌟", "t": "قرأت واجبها في الفصل، فقالت المعلمة: Every likes and doesn't is perfect! أحسنتِ يا نورة!" }
+    {
+      "v": "📷",
+      "t": "في عطلة نهاية الأسبوع جمعت نورة عائلتها لتكتب عن هواياتهم لواجب الإنجليزية.",
+      "n": "فِي عُطْلَةِ نِهَايَةِ الْأُسْبُوعِ جَمَعَتْ نُورَةُ عَائِلَتَهَا لِتَكْتُبَ عَنْ هِوَايَاتِهِمْ لِوَاجِبِ الْإِنْجِلِيزِيَّةِ."
+    },
+    {
+      "v": "🎣",
+      "t": "بدأت بأبيها: My father likes to go fishing. لكنه قال ضاحكاً: I don't like to cook the fish!",
+      "n": "بَدَأَتْ بِأَبِيهَا: My father likes to go fishing. لَكِنَّهُ قَالَ ضَاحِكًا: I don't like to cook the fish!"
+    },
+    {
+      "v": "📮",
+      "t": "أخوها الصغير أخرج ألبومه: He likes to collect stamps. He has one hundred stamps!",
+      "n": "أَخُوهَا الصَّغِيرُ أَخْرَجَ أَلْبُومَهُ: He likes to collect stamps. He has one hundred stamps!"
+    },
+    {
+      "v": "🍳",
+      "t": "أمها في المطبخ: My mother likes to cook. وكتبت نورة: She doesn't like to take photos.",
+      "n": "أُمُّهَا فِي الْمَطْبَخِ: My mother likes to cook. وَكَتَبَتْ نُورَةُ: She doesn't like to take photos."
+    },
+    {
+      "v": "❓",
+      "t": "اتصلت بابن عمها: Does he like to build models? أجابت عمتها: Yes, he does! غرفته مليئة بالطائرات.",
+      "n": "اتَّصَلَتْ بِابْنِ عَمِّهَا: Does he like to build models? أَجَابَتْ عَمَّتُهَا: Yes, he does! غُرْفَتُهُ مَلِيئَةٌ بِالطَّائِرَاتِ."
+    },
+    {
+      "v": "✍️",
+      "t": "راجعت نورة كتابتها: مع He و She الفعل likes بحرف s، وبعد doesn't يعود بلا s. ممتاز!",
+      "n": "رَاجَعَتْ نُورَةُ كِتَابَتَهَا: مَعَ He وَ She الْفِعْلُ likes بِحَرْفِ s، وَبَعْدَ doesn't يَعُودُ بِلَا s. مُمْتَازٌ!"
+    },
+    {
+      "v": "🌟",
+      "t": "قرأت واجبها في الفصل، فقالت المعلمة: Every likes and doesn't is perfect! أحسنتِ يا نورة!",
+      "n": "قَرَأَتْ وَاجِبَهَا فِي الْفَصْلِ، فَقَالَتِ الْمُعَلِّمَةُ: Every likes and doesn't is perfect! أَحْسَنْتِ يَا نُورَةُ!"
+    }
   ],
   "activity": "اكتب عن ثلاثة من أفراد عائلتك: لكل واحد جملة بما يحب (likes to) وجملة بما لا يحب (doesn't like to)، ثم اسأل زميلك عن أحدهم بسؤال يبدأ بـ Does، وليجب بإجابة قصيرة.",
   "summary": "مع He و She نقول likes to في الإثبات و doesn't like to في النفي، ونسأل Does he/she like to…? ونجيب Yes, he does. أو No, she doesn't.، ونتحدث عن هوايات مثل collect stamps و take photos و build models."

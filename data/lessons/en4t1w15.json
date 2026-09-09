@@ -55,27 +55,60 @@
     }
   ],
   "vocab": [
-    { "t": "week", "d": "الأسبوع: سبعة أيام" },
-    { "t": "compound word", "d": "كلمة مركبة من كلمتين مثل homework" },
-    { "t": "afternoon", "d": "فترة ما بعد الظهر" },
-    { "t": "visit", "d": "يزور" },
-    { "t": "park", "d": "حديقة عامة" },
-    { "t": "Tuesday", "d": "يوم الثلاثاء" }
+    {
+      "t": "week",
+      "d": "الأسبوع: سبعة أيام"
+    },
+    {
+      "t": "compound word",
+      "d": "كلمة مركبة من كلمتين مثل homework"
+    },
+    {
+      "t": "afternoon",
+      "d": "فترة ما بعد الظهر"
+    },
+    {
+      "t": "visit",
+      "d": "يزور"
+    },
+    {
+      "t": "park",
+      "d": "حديقة عامة"
+    },
+    {
+      "t": "Tuesday",
+      "d": "يوم الثلاثاء"
+    }
   ],
   "checks": [
     {
       "q": "في النص: ماذا يفعل ماجد يوم الأربعاء؟",
-      "opts": ["He plays soccer.", "He plays basketball.", "He rides his bike.", "He visits his grandmother."],
+      "opts": [
+        "He plays soccer.",
+        "He plays basketball.",
+        "He rides his bike.",
+        "He visits his grandmother."
+      ],
       "correct": 1
     },
     {
       "q": "الكلمة المركبة من home + work هي؟",
-      "opts": ["workhome", "homework", "home-work", "homeswork"],
+      "opts": [
+        "workhome",
+        "homework",
+        "home-work",
+        "homeswork"
+      ],
       "correct": 1
     },
     {
       "q": "الفعل المناسب مع a kite هو؟",
-      "opts": ["play", "ride", "fly", "read"],
+      "opts": [
+        "play",
+        "ride",
+        "fly",
+        "read"
+      ],
       "correct": 2
     }
   ],
@@ -83,25 +116,43 @@
     {
       "t": "mcq",
       "q": "basketball كلمة مركبة من؟",
-      "opts": ["basket + ball", "bask + etball", "basketb + all", "ba + sketball"],
+      "opts": [
+        "basket + ball",
+        "bask + etball",
+        "basketb + all",
+        "ba + sketball"
+      ],
       "correct": 0
     },
     {
       "t": "mcq",
       "q": "متى يزور ماجد جدته؟",
-      "opts": ["On Sunday", "On Monday", "On Tuesday", "On Thursday"],
+      "opts": [
+        "On Sunday",
+        "On Monday",
+        "On Tuesday",
+        "On Thursday"
+      ],
       "correct": 3
     },
     {
       "t": "tf",
       "q": "أسماء أيام الأسبوع تبدأ بحرف كبير في الإنجليزية.",
-      "opts": ["صح", "خطأ"],
+      "opts": [
+        "صح",
+        "خطأ"
+      ],
       "correct": 0
     },
     {
       "t": "mcq",
       "q": "الجملة الصحيحة هي؟",
-      "opts": ["I ride soccer.", "I play a bike.", "I ride a bike.", "I fly a book."],
+      "opts": [
+        "I ride soccer.",
+        "I play a bike.",
+        "I ride a bike.",
+        "I fly a book."
+      ],
       "correct": 2
     },
     {
@@ -112,24 +163,60 @@
     {
       "t": "tf",
       "q": "كلمة afternoon مركبة من after و noon.",
-      "opts": ["صح", "خطأ"],
+      "opts": [
+        "صح",
+        "خطأ"
+      ],
       "correct": 0
     },
     {
       "t": "mcq",
       "q": "الكلمة التي تعني «يزور»؟",
-      "opts": ["play", "visit", "read", "watch"],
+      "opts": [
+        "play",
+        "visit",
+        "read",
+        "watch"
+      ],
       "correct": 1
     }
   ],
   "story": [
-    { "v": "📅", "t": "طلبت المعلمة كتابة فقرة بعنوان My Week. نظرت لمى إلى تقويم غرفتها وبدأت تتذكر أيامها." },
-    { "v": "⚽", "t": "كتبت: On Sunday, I play football with my cousins. ولاحظت أن football من foot + ball!" },
-    { "v": "📚", "t": "On Monday, I do my homework and read a story. تذكرت أن homework أيضاً كلمة مركبة." },
-    { "v": "🚲", "t": "On Tuesday, I ride my bike. كادت تكتب play my bike لكنها تذكرت: ride مع الدراجة!" },
-    { "v": "👵", "t": "On Thursday, I visit my grandmother. وابتسمت: grandmother = grand + mother. الكلمات المركبة في كل مكان!" },
-    { "v": "🔍", "t": "راجعت لمى فقرتها: كل يوم بحرف كبير، وكل جملة تنتهي بنقطة، وختمتها: I like my week!" },
-    { "v": "🌟", "t": "قالت المعلمة: A perfect paragraph, Lama! واحتفظت بها نموذجاً للفصل. أحسنتِ!" }
+    {
+      "v": "📅",
+      "t": "طلبت المعلمة كتابة فقرة بعنوان My Week. نظرت لمى إلى تقويم غرفتها وبدأت تتذكر أيامها.",
+      "n": "طَلَبَتِ الْمُعَلِّمَةُ كِتَابَةَ فِقْرَةٍ بِعُنْوَانِ My Week. نَظَرَتْ لَمَى إِلَى تَقْوِيمِ غُرْفَتِهَا وَبَدَأَتْ تَتَذَكَّرُ أَيَّامَهَا."
+    },
+    {
+      "v": "⚽",
+      "t": "كتبت: On Sunday, I play football with my cousins. ولاحظت أن football من foot + ball!",
+      "n": "كَتَبَتْ: On Sunday, I play football with my cousins. وَلَاحَظَتْ أَنَّ football مِنْ foot + ball!"
+    },
+    {
+      "v": "📚",
+      "t": "On Monday, I do my homework and read a story. تذكرت أن homework أيضاً كلمة مركبة.",
+      "n": "On Monday, I do my homework and read a story. تَذَكَّرَتْ أَنَّ homework أَيْضًا كَلِمَةٌ مُرَكَّبَةْ."
+    },
+    {
+      "v": "🚲",
+      "t": "On Tuesday, I ride my bike. كادت تكتب play my bike لكنها تذكرت: ride مع الدراجة!",
+      "n": "On Tuesday, I ride my bike. كَادَتْ تَكْتُبُ play my bike لَكِنَّهَا تَذَكَّرَتْ: ride مَعَ الدَّرَّاجَةْ!"
+    },
+    {
+      "v": "👵",
+      "t": "On Thursday, I visit my grandmother. وابتسمت: grandmother = grand + mother. الكلمات المركبة في كل مكان!",
+      "n": "On Thursday, I visit my grandmother. وَابْتَسَمَتْ: grandmother = grand + mother. الْكَلِمَاتُ الْمُرَكَّبَةُ فِي كُلِّ مَكَانْ!"
+    },
+    {
+      "v": "🔍",
+      "t": "راجعت لمى فقرتها: كل يوم بحرف كبير، وكل جملة تنتهي بنقطة، وختمتها: I like my week!",
+      "n": "رَاجَعَتْ لَمَى فِقْرَتَهَا: كُلُّ يَوْمٍ بِحَرْفٍ كَبِيرٍ، وَكُلُّ جُمْلَةٍ تَنْتَهِي بِنُقْطَةٍ، وَخَتَمَتْهَا: I like my week!"
+    },
+    {
+      "v": "🌟",
+      "t": "قالت المعلمة: A perfect paragraph, Lama! واحتفظت بها نموذجاً للفصل. أحسنتِ!",
+      "n": "قَالَتِ الْمُعَلِّمَةُ: A perfect paragraph, Lama! وَاحْتَفَظَتْ بِهَا نَمُوذَجًا لِلْفَصْلِ. أَحْسَنْتِ!"
+    }
   ],
   "activity": "اصنع جدولاً لأسبوعك من سبعة صفوف، اكتب في كل صف اسم اليوم بالإنجليزية ونشاطاً واحداً بالفعل والاسم المناسبين، ثم حوّل الجدول إلى فقرة من خمس جمل تبدأ بـ My name is وتنتهي بـ I like my week!",
   "summary": "نقرأ عن أنشطة الأسبوع مع أيام تبدأ بحرف كبير وحرف الجر On، ونكوّن كلمات مركبة مثل basketball و homework، ونربط الفعل بالاسم الصحيح مثل ride a bike و fly a kite، ونكتب فقرة قصيرة عن أسبوعنا."

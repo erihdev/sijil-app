@@ -52,27 +52,60 @@
     }
   ],
   "vocab": [
-    { "t": "firefighter", "d": "رجل الإطفاء الذي يطفئ الحرائق" },
-    { "t": "fire engine", "d": "سيارة الإطفاء الحمراء" },
-    { "t": "hose", "d": "خرطوم يخرج منه الماء بقوة" },
-    { "t": "helmet", "d": "خوذة تحمي الرأس" },
-    { "t": "rescue", "d": "ينقذ شخصاً من الخطر" },
-    { "t": "brave", "d": "شجاع لا يخاف" }
+    {
+      "t": "firefighter",
+      "d": "رجل الإطفاء الذي يطفئ الحرائق"
+    },
+    {
+      "t": "fire engine",
+      "d": "سيارة الإطفاء الحمراء"
+    },
+    {
+      "t": "hose",
+      "d": "خرطوم يخرج منه الماء بقوة"
+    },
+    {
+      "t": "helmet",
+      "d": "خوذة تحمي الرأس"
+    },
+    {
+      "t": "rescue",
+      "d": "ينقذ شخصاً من الخطر"
+    },
+    {
+      "t": "brave",
+      "d": "شجاع لا يخاف"
+    }
   ],
   "checks": [
     {
       "q": "«خرطوم الماء» بالإنجليزية:",
-      "opts": ["ladder", "hose", "helmet", "mask"],
+      "opts": [
+        "ladder",
+        "hose",
+        "helmet",
+        "mask"
+      ],
       "correct": 1
     },
     {
       "q": "أكمل: A firefighter ...... out fires.",
-      "opts": ["put", "puts", "putting", "is put"],
+      "opts": [
+        "put",
+        "puts",
+        "putting",
+        "is put"
+      ],
       "correct": 1
     },
     {
       "q": "رقم الدفاع المدني في السعودية:",
-      "opts": ["997", "911", "999", "998"],
+      "opts": [
+        "997",
+        "911",
+        "999",
+        "998"
+      ],
       "correct": 3
     }
   ],
@@ -80,25 +113,43 @@
     {
       "t": "mcq",
       "q": "قاعدة السلامة الصحيحة:",
-      "opts": ["You must play with matches.", "You mustn't play with matches.", "You must hide under the bed.", "You mustn't get out fast."],
+      "opts": [
+        "You must play with matches.",
+        "You mustn't play with matches.",
+        "You must hide under the bed.",
+        "You mustn't get out fast."
+      ],
       "correct": 1
     },
     {
       "t": "mcq",
       "q": "«ينقذ» بالإنجليزية:",
-      "opts": ["rescue", "climb", "drive", "hide"],
+      "opts": [
+        "rescue",
+        "climb",
+        "drive",
+        "hide"
+      ],
       "correct": 0
     },
     {
       "t": "tf",
       "q": "A firefighter works at the fire station.",
-      "opts": ["صح", "خطأ"],
+      "opts": [
+        "صح",
+        "خطأ"
+      ],
       "correct": 0
     },
     {
       "t": "mcq",
       "q": "الشيء الذي يحمي رأس رجل الإطفاء:",
-      "opts": ["boots", "gloves", "helmet", "hose"],
+      "opts": [
+        "boots",
+        "gloves",
+        "helmet",
+        "hose"
+      ],
       "correct": 2
     },
     {
@@ -109,24 +160,60 @@
     {
       "t": "tf",
       "q": "put out تعني «يرتدي».",
-      "opts": ["صح", "خطأ"],
+      "opts": [
+        "صح",
+        "خطأ"
+      ],
       "correct": 1
     },
     {
       "t": "mcq",
       "q": "«سلّم» بالإنجليزية:",
-      "opts": ["mask", "ladder", "engine", "station"],
+      "opts": [
+        "mask",
+        "ladder",
+        "engine",
+        "station"
+      ],
       "correct": 1
     }
   ],
   "story": [
-    { "v": "🚒", "t": "زار فصل جود الـ fire station. وقفت أمامهم fire engine حمراء ضخمة، فقال رجل الإطفاء: Welcome! I am Captain Khalid." },
-    { "v": "⛑️", "t": "جرّب جود الـ helmet والـ boots فكانت ثقيلة جداً! ضحك الكابتن: We wear them to be safe. They protect us from fire." },
-    { "v": "💦", "t": "فتح الكابتن الـ hose فاندفع الماء بقوة. قال: We put out fires with water, and we climb ladders to rescue people." },
-    { "v": "❓", "t": "سأل جود: Is your job dangerous? أجاب: Yes, it is dangerous, but we are brave because we help people." },
-    { "v": "📵", "t": "ثم علّمهم القواعد: You mustn't play with matches. If there is a fire, you must get out fast and call 998." },
-    { "v": "🔥", "t": "وأراهم التدريب: Stop, drop, and roll! فكرّر الطلاب الحركة وهم يضحكون ويتعلّمون." },
-    { "v": "🌟", "t": "عاد جود يحترم هؤلاء الأبطال ويعرف كيف يحمي نفسه. أحسنت!" }
+    {
+      "v": "🚒",
+      "t": "زار فصل جود الـ fire station. وقفت أمامهم fire engine حمراء ضخمة، فقال رجل الإطفاء: Welcome! I am Captain Khalid.",
+      "n": "زَارَ فَصْلُ جُودٍ الـ fire station. وَقَفَتْ أَمَامَهُمْ fire engine حَمْرَاءُ ضَخْمَةٌ، فَقَالَ رَجُلُ الْإِطْفَاءِ: Welcome! I am Captain Khalid."
+    },
+    {
+      "v": "⛑️",
+      "t": "جرّب جود الـ helmet والـ boots فكانت ثقيلة جداً! ضحك الكابتن: We wear them to be safe. They protect us from fire.",
+      "n": "جَرَّبَ جُودٌ الـ helmet وَالـ boots فَكَانَتْ ثَقِيلَةً جِدّاً! ضَحِكَ الْكَابْتِنُ: We wear them to be safe. They protect us from fire."
+    },
+    {
+      "v": "💦",
+      "t": "فتح الكابتن الـ hose فاندفع الماء بقوة. قال: We put out fires with water, and we climb ladders to rescue people.",
+      "n": "فَتَحَ الْكَابْتِنُ الـ hose فَانْدَفَعَ الْمَاءُ بِقُوَّةٍ. قَالَ: We put out fires with water, and we climb ladders to rescue people."
+    },
+    {
+      "v": "❓",
+      "t": "سأل جود: Is your job dangerous? أجاب: Yes, it is dangerous, but we are brave because we help people.",
+      "n": "سَأَلَ جُودٌ: Is your job dangerous? أَجَابَ: Yes, it is dangerous, but we are brave because we help people."
+    },
+    {
+      "v": "📵",
+      "t": "ثم علّمهم القواعد: You mustn't play with matches. If there is a fire, you must get out fast and call 998.",
+      "n": "ثُمَّ عَلَّمَهُمُ الْقَوَاعِدَ: You mustn't play with matches. If there is a fire, you must get out fast and call 998."
+    },
+    {
+      "v": "🔥",
+      "t": "وأراهم التدريب: Stop, drop, and roll! فكرّر الطلاب الحركة وهم يضحكون ويتعلّمون.",
+      "n": "وَأَرَاهُمُ التَّدْرِيبَ: Stop, drop, and roll! فَكَرَّرَ الطُّلَّابُ الْحَرَكَةَ وَهُمْ يَضْحَكُونَ وَيَتَعَلَّمُونْ."
+    },
+    {
+      "v": "🌟",
+      "t": "عاد جود يحترم هؤلاء الأبطال ويعرف كيف يحمي نفسه. أحسنت!",
+      "n": "عَادَ جُودٌ يَحْتَرِمُ هَؤُلَاءِ الْأَبْطَالَ وَيَعْرِفُ كَيْفَ يَحْمِي نَفْسَهْ. أَحْسَنْتَ!"
+    }
   ],
   "activity": "ارسم رجل إطفاء واكتب أسماء خمس قطع من معداته بالإنجليزية، ثم اكتب ثلاث قواعد سلامة لبيتك تبدأ بـ You must أو You mustn't، واحفظ رقم الدفاع المدني 998.",
   "summary": "رجل الإطفاء يعمل في fire station ويستخدم fire engine وhose وladder وhelmet، ويطفئ الحرائق (puts out fires) وينقذ الناس (rescues people)، وهو brave. قواعد السلامة بـ must / mustn't، ورقم الدفاع المدني 998."

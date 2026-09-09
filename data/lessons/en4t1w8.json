@@ -52,27 +52,60 @@
     }
   ],
   "vocab": [
-    { "t": "busy", "d": "مشغول" },
-    { "t": "sunlight", "d": "ضوء الشمس الذي تحتاجه النباتات" },
-    { "t": "soil", "d": "التربة التي ينمو فيها النبات" },
-    { "t": "pet", "d": "حيوان أليف نربّيه في البيت مثل القطة" },
-    { "t": "living things", "d": "الكائنات الحية مثل النباتات والحيوانات" },
-    { "t": "need", "d": "يحتاج" }
+    {
+      "t": "busy",
+      "d": "مشغول"
+    },
+    {
+      "t": "sunlight",
+      "d": "ضوء الشمس الذي تحتاجه النباتات"
+    },
+    {
+      "t": "soil",
+      "d": "التربة التي ينمو فيها النبات"
+    },
+    {
+      "t": "pet",
+      "d": "حيوان أليف نربّيه في البيت مثل القطة"
+    },
+    {
+      "t": "living things",
+      "d": "الكائنات الحية مثل النباتات والحيوانات"
+    },
+    {
+      "t": "need",
+      "d": "يحتاج"
+    }
   ],
   "checks": [
     {
       "q": "في نص A Busy Saturday ماذا يفعل عمر؟",
-      "opts": ["He's washing the car.", "He's watering the plants.", "He's cooking lunch.", "He's sleeping."],
+      "opts": [
+        "He's washing the car.",
+        "He's watering the plants.",
+        "He's cooking lunch.",
+        "He's sleeping."
+      ],
       "correct": 1
     },
     {
       "q": "الفعل take في المضارع المستمر يُكتب؟",
-      "opts": ["takeing", "takking", "taking", "takes"],
+      "opts": [
+        "takeing",
+        "takking",
+        "taking",
+        "takes"
+      ],
       "correct": 2
     },
     {
       "q": "أي هذه الأشياء تحتاجه النباتات لتنمو؟",
-      "opts": ["sunlight", "toys", "books", "clothes"],
+      "opts": [
+        "sunlight",
+        "toys",
+        "books",
+        "clothes"
+      ],
       "correct": 0
     }
   ],
@@ -80,25 +113,43 @@
     {
       "t": "mcq",
       "q": "الفعل sit في المضارع المستمر يُكتب؟",
-      "opts": ["siting", "sitting", "siteing", "sits"],
+      "opts": [
+        "siting",
+        "sitting",
+        "siteing",
+        "sits"
+      ],
       "correct": 1
     },
     {
       "t": "mcq",
       "q": "الفعل play في المضارع المستمر يُكتب؟",
-      "opts": ["plaing", "playying", "playing", "plaiing"],
+      "opts": [
+        "plaing",
+        "playying",
+        "playing",
+        "plaiing"
+      ],
       "correct": 2
     },
     {
       "t": "tf",
       "q": "في النص: الأم تغسل السيارة.",
-      "opts": ["صح", "خطأ"],
+      "opts": [
+        "صح",
+        "خطأ"
+      ],
       "correct": 1
     },
     {
       "t": "mcq",
       "q": "Animals need food, water, air, and ......",
-      "opts": ["a safe home", "a car", "a pencil", "a photo"],
+      "opts": [
+        "a safe home",
+        "a car",
+        "a pencil",
+        "a photo"
+      ],
       "correct": 0
     },
     {
@@ -109,24 +160,60 @@
     {
       "t": "tf",
       "q": "عند إضافة ing إلى make نحذف حرف e.",
-      "opts": ["صح", "خطأ"],
+      "opts": [
+        "صح",
+        "خطأ"
+      ],
       "correct": 0
     },
     {
       "t": "mcq",
       "q": "الجملة المكتوبة بشكل صحيح هي؟",
-      "opts": ["mom is sweeping the floor", "Mom is sweeping the floor.", "Mom sweeping is the floor.", "Mom is sweep the floor."],
+      "opts": [
+        "mom is sweeping the floor",
+        "Mom is sweeping the floor.",
+        "Mom sweeping is the floor.",
+        "Mom is sweep the floor."
+      ],
       "correct": 1
     }
   ],
   "story": [
-    { "v": "🪴", "t": "أعطت المعلمة كل طالب نبتة صغيرة ليعتني بها أسبوعاً. أخذ فهد نبتته وسمّاها Sunny." },
-    { "v": "💧", "t": "في البيت كتب فهد في دفتره: I'm watering the plant. ثم توقف: هل تحتاج شيئاً غير الماء؟" },
-    { "v": "☀️", "t": "بحث في كتاب العلوم: Plants need water, sunlight, air, and soil. فنقل النبتة إلى النافذة." },
-    { "v": "🐱", "t": "جاءت قطته تموء. I'm feeding the cat, أعطاها الطعام والماء: Animals need food and water too." },
-    { "v": "📝", "t": "كتب فهد نصه: It's Saturday. I'm watering Sunny. My cat is eating. My mom is making lunch." },
-    { "v": "🔍", "t": "راجع كتابته: make + ing = making؟ نعم، حذف e! و sit → sitting بمضاعفة t. كل شيء صحيح." },
-    { "v": "🌟", "t": "بعد أسبوع عادت Sunny خضراء ومزهرة. قالت المعلمة: You took great care of it! أحسنت يا فهد!" }
+    {
+      "v": "🪴",
+      "t": "أعطت المعلمة كل طالب نبتة صغيرة ليعتني بها أسبوعاً. أخذ فهد نبتته وسمّاها Sunny.",
+      "n": "أَعْطَتِ الْمُعَلِّمَةُ كُلَّ طَالِبٍ نَبْتَةً صَغِيرَةً لِيَعْتَنِيَ بِهَا أُسْبُوعاً. أَخَذَ فَهْدٌ نَبْتَتَهُ وَسَمَّاهَا Sunny."
+    },
+    {
+      "v": "💧",
+      "t": "في البيت كتب فهد في دفتره: I'm watering the plant. ثم توقف: هل تحتاج شيئاً غير الماء؟",
+      "n": "فِي الْبَيْتِ كَتَبَ فَهْدٌ فِي دَفْتَرِهِ: I'm watering the plant. ثُمَّ تَوَقَّفَ: هَلْ تَحْتَاجُ شَيْئاً غَيْرَ الْمَاءْ؟"
+    },
+    {
+      "v": "☀️",
+      "t": "بحث في كتاب العلوم: Plants need water, sunlight, air, and soil. فنقل النبتة إلى النافذة.",
+      "n": "بَحَثَ فِي كِتَابِ الْعُلُومِ: Plants need water, sunlight, air, and soil. فَنَقَلَ النَّبْتَةَ إِلَى النَّافِذَةْ."
+    },
+    {
+      "v": "🐱",
+      "t": "جاءت قطته تموء. I'm feeding the cat, أعطاها الطعام والماء: Animals need food and water too.",
+      "n": "جَاءَتْ قِطَّتُهُ تَمُوءُ. I'm feeding the cat, أَعْطَاهَا الطَّعَامَ وَالْمَاءَ: Animals need food and water too."
+    },
+    {
+      "v": "📝",
+      "t": "كتب فهد نصه: It's Saturday. I'm watering Sunny. My cat is eating. My mom is making lunch.",
+      "n": "كَتَبَ فَهْدٌ نَصَّهُ: It's Saturday. I'm watering Sunny. My cat is eating. My mom is making lunch."
+    },
+    {
+      "v": "🔍",
+      "t": "راجع كتابته: make + ing = making؟ نعم، حذف e! و sit → sitting بمضاعفة t. كل شيء صحيح.",
+      "n": "رَاجَعَ كِتَابَتَهُ: make + ing = making؟ نَعَمْ، حَذَفَ e! وَ sit → sitting بِمُضَاعَفَةِ t. كُلُّ شَيْءٍ صَحِيحْ."
+    },
+    {
+      "v": "🌟",
+      "t": "بعد أسبوع عادت Sunny خضراء ومزهرة. قالت المعلمة: You took great care of it! أحسنت يا فهد!",
+      "n": "بَعْدَ أُسْبُوعٍ عَادَتْ Sunny خَضْرَاءَ وَمُزْهِرَةً. قَالَتِ الْمُعَلِّمَةُ: You took great care of it! أَحْسَنْتَ يَا فَهْدْ!"
+    }
   ],
   "activity": "ازرع بذرة فاصولياء في كوب فيه تربة، وضعها قرب النافذة واسقها كل يومين. سجّل يومياً جملة بالإنجليزية عمّا تفعله مثل: I'm watering the plant. وارسم النبتة في نهاية الأسبوع.",
   "summary": "نضيف ing مباشرة للأفعال، ونحذف e قبلها ونضاعف الساكن في الأفعال القصيرة؛ ونكتب جملاً عن الأعمال المنزلية، ونعرف أن النباتات تحتاج water و sunlight و air و soil، والحيوانات تحتاج food و water وبيتاً آمناً."

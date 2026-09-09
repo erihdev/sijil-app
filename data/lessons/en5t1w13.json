@@ -48,27 +48,60 @@
     }
   ],
   "vocab": [
-    { "t": "snack", "d": "وجبة خفيفة نأكلها بين الوجبات الرئيسة" },
-    { "t": "ingredient", "d": "مكوّن: مادة تدخل في صنع الطعام" },
-    { "t": "countable", "d": "معدود: اسم يمكن عدّه مثل egg" },
-    { "t": "uncountable", "d": "غير معدود: اسم لا يُعدّ مثل milk" },
-    { "t": "slice", "d": "شريحة: قطعة رقيقة من الخبز أو الجبن" },
-    { "t": "lettuce", "d": "خس: ورق أخضر نأكله في السلطة" }
+    {
+      "t": "snack",
+      "d": "وجبة خفيفة نأكلها بين الوجبات الرئيسة"
+    },
+    {
+      "t": "ingredient",
+      "d": "مكوّن: مادة تدخل في صنع الطعام"
+    },
+    {
+      "t": "countable",
+      "d": "معدود: اسم يمكن عدّه مثل egg"
+    },
+    {
+      "t": "uncountable",
+      "d": "غير معدود: اسم لا يُعدّ مثل milk"
+    },
+    {
+      "t": "slice",
+      "d": "شريحة: قطعة رقيقة من الخبز أو الجبن"
+    },
+    {
+      "t": "lettuce",
+      "d": "خس: ورق أخضر نأكله في السلطة"
+    }
   ],
   "checks": [
     {
       "q": "أي الأسماء غير معدود؟",
-      "opts": ["egg", "apple", "milk", "tomato"],
+      "opts": [
+        "egg",
+        "apple",
+        "milk",
+        "tomato"
+      ],
       "correct": 2
     },
     {
       "q": "أكمل: How ...... eggs do you need?",
-      "opts": ["much", "many", "old", "long"],
+      "opts": [
+        "much",
+        "many",
+        "old",
+        "long"
+      ],
       "correct": 1
     },
     {
       "q": "كلمة ingredient تعني؟",
-      "opts": ["وجبة خفيفة", "مكوّن", "شريحة", "كوب"],
+      "opts": [
+        "وجبة خفيفة",
+        "مكوّن",
+        "شريحة",
+        "كوب"
+      ],
       "correct": 1
     }
   ],
@@ -76,19 +109,32 @@
     {
       "t": "mcq",
       "q": "الجملة الصحيحة؟",
-      "opts": ["I want a bread.", "I want some bread.", "I want two breads.", "I want an bread."],
+      "opts": [
+        "I want a bread.",
+        "I want some bread.",
+        "I want two breads.",
+        "I want an bread."
+      ],
       "correct": 1
     },
     {
       "t": "tf",
       "q": "الأسماء غير المعدودة مثل rice لا تُجمع.",
-      "opts": ["صح", "خطأ"],
+      "opts": [
+        "صح",
+        "خطأ"
+      ],
       "correct": 0
     },
     {
       "t": "mcq",
       "q": "«كوب حليب» بالإنجليزية؟",
-      "opts": ["a slice of milk", "a glass of milk", "a milk", "many milk"],
+      "opts": [
+        "a slice of milk",
+        "a glass of milk",
+        "a milk",
+        "many milk"
+      ],
       "correct": 1
     },
     {
@@ -99,30 +145,71 @@
     {
       "t": "mcq",
       "q": "جمع كلمة tomato هو",
-      "opts": ["tomatos", "tomatoes", "tomatoies", "tomato"],
+      "opts": [
+        "tomatos",
+        "tomatoes",
+        "tomatoies",
+        "tomato"
+      ],
       "correct": 1
     },
     {
       "t": "tf",
       "q": "نستخدم How many مع الأسماء غير المعدودة.",
-      "opts": ["صح", "خطأ"],
+      "opts": [
+        "صح",
+        "خطأ"
+      ],
       "correct": 1
     },
     {
       "t": "mcq",
       "q": "«عسل» بالإنجليزية؟",
-      "opts": ["jam", "butter", "honey", "cheese"],
+      "opts": [
+        "jam",
+        "butter",
+        "honey",
+        "cheese"
+      ],
       "correct": 2
     }
   ],
   "story": [
-    { "v": "🏠", "t": "عاد فهد من المدرسة جائعاً، وقررت أمه أن يصنع وجبته الخفيفة بنفسه: Make your favorite snack!" },
-    { "v": "🧊", "t": "فتح الثلاجة وعدّ: There are four eggs and two tomatoes. ثم رأى الجبن: There is some cheese." },
-    { "v": "🍞", "t": "أراد خبزاً فقال: I want a bread. صحّحته أمه: Bread is uncountable. Say: some bread or a slice of bread." },
-    { "v": "❓", "t": "سألها: How many eggs do I need? أجابت: Two eggs. ثم سأل: How much milk? أجابت: One glass." },
-    { "v": "🥪", "t": "وضع الجبن والطماطم بين شريحتي خبز، وصبّ كوب حليب: My snack has a lot of ingredients!" },
-    { "v": "😋", "t": "أكل فهد الشطيرة وقال: Delicious! ثم كتب في دفتره: eggs معدود، milk غير معدود." },
-    { "v": "🌟", "t": "من يعرف ما يُعدّ يعرف كيف يسأل. أحسنت يا فهد!" }
+    {
+      "v": "🏠",
+      "t": "عاد فهد من المدرسة جائعاً، وقررت أمه أن يصنع وجبته الخفيفة بنفسه: Make your favorite snack!",
+      "n": "عَادَ فَهْدٌ مِنَ الْمَدْرَسَةِ جَائِعاً، وَقَرَّرَتْ أُمُّهُ أَنْ يَصْنَعَ وَجْبَتَهُ الْخَفِيفَةَ بِنَفْسِهِ: Make your favorite snack!"
+    },
+    {
+      "v": "🧊",
+      "t": "فتح الثلاجة وعدّ: There are four eggs and two tomatoes. ثم رأى الجبن: There is some cheese.",
+      "n": "فَتَحَ الثَّلَّاجَةَ وَعَدَّ: There are four eggs and two tomatoes. ثُمَّ رَأَى الْجُبْنَ: There is some cheese."
+    },
+    {
+      "v": "🍞",
+      "t": "أراد خبزاً فقال: I want a bread. صحّحته أمه: Bread is uncountable. Say: some bread or a slice of bread.",
+      "n": "أَرَادَ خُبْزاً فَقَالَ: I want a bread. صَحَّحَتْهُ أُمُّهُ: Bread is uncountable. Say: some bread or a slice of bread."
+    },
+    {
+      "v": "❓",
+      "t": "سألها: How many eggs do I need? أجابت: Two eggs. ثم سأل: How much milk? أجابت: One glass.",
+      "n": "سَأَلَهَا: How many eggs do I need? أَجَابَتْ: Two eggs. ثُمَّ سَأَلَ: How much milk? أَجَابَتْ: One glass."
+    },
+    {
+      "v": "🥪",
+      "t": "وضع الجبن والطماطم بين شريحتي خبز، وصبّ كوب حليب: My snack has a lot of ingredients!",
+      "n": "وَضَعَ الْجُبْنَ وَالطَّمَاطِمَ بَيْنَ شَرِيحَتَيْ خُبْزٍ، وَصَبَّ كُوبَ حَلِيبٍ: My snack has a lot of ingredients!"
+    },
+    {
+      "v": "😋",
+      "t": "أكل فهد الشطيرة وقال: Delicious! ثم كتب في دفتره: eggs معدود، milk غير معدود.",
+      "n": "أَكَلَ فَهْدٌ الشَّطِيرَةَ وَقَالَ: Delicious! ثُمَّ كَتَبَ فِي دَفْتَرِهِ: eggs مَعْدُودٌ، milk غَيْرُ مَعْدُودٍ."
+    },
+    {
+      "v": "🌟",
+      "t": "من يعرف ما يُعدّ يعرف كيف يسأل. أحسنت يا فهد!",
+      "n": "مَنْ يَعْرِفُ مَا يُعَدُّ يَعْرِفُ كَيْفَ يَسْأَلُ. أَحْسَنْتَ يَا فَهْدُ!"
+    }
   ],
   "activity": "افتح ثلاجة بيتك واكتب عشرة أطعمة بالإنجليزية في جدول: عمود Countable وعمود Uncountable، ثم اكتب سؤالين أحدهما بـ How many والآخر بـ How much عن محتوياتها.",
   "summary": "تعلّمنا مفردات الطعام ومكوّنات الوجبة الخفيفة، والفرق بين الأسماء المعدودة مثل egg وغير المعدودة مثل milk، ووحدات القياس مثل a slice of وa glass of، والسؤال بـ How many مع المعدود وHow much مع غير المعدود."

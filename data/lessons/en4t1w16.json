@@ -55,27 +55,60 @@
     }
   ],
   "vocab": [
-    { "t": "country", "d": "بلد أو دولة" },
-    { "t": "popular", "d": "مشهور ومحبوب عند كثير من الناس" },
-    { "t": "origami", "d": "فن طيّ الورق من اليابان" },
-    { "t": "cricket", "d": "لعبة بمضرب وكرة مشهورة في الهند" },
-    { "t": "hide-and-seek", "d": "لعبة الغميضة" },
-    { "t": "different", "d": "مختلف" }
+    {
+      "t": "country",
+      "d": "بلد أو دولة"
+    },
+    {
+      "t": "popular",
+      "d": "مشهور ومحبوب عند كثير من الناس"
+    },
+    {
+      "t": "origami",
+      "d": "فن طيّ الورق من اليابان"
+    },
+    {
+      "t": "cricket",
+      "d": "لعبة بمضرب وكرة مشهورة في الهند"
+    },
+    {
+      "t": "hide-and-seek",
+      "d": "لعبة الغميضة"
+    },
+    {
+      "t": "different",
+      "d": "مختلف"
+    }
   ],
   "checks": [
     {
       "q": "فن طيّ الورق origami من أي بلد؟",
-      "opts": ["Brazil", "Japan", "India", "China"],
+      "opts": [
+        "Brazil",
+        "Japan",
+        "India",
+        "China"
+      ],
       "correct": 1
     },
     {
       "q": "اللعبة المشهورة في الهند هي؟",
-      "opts": ["cricket", "origami", "chess", "kites"],
+      "opts": [
+        "cricket",
+        "origami",
+        "chess",
+        "kites"
+      ],
       "correct": 0
     },
     {
       "q": "مراجعة: ...... are my cousins.",
-      "opts": ["This", "He", "These", "She"],
+      "opts": [
+        "This",
+        "He",
+        "These",
+        "She"
+      ],
       "correct": 2
     }
   ],
@@ -83,25 +116,43 @@
     {
       "t": "mcq",
       "q": "Where are you from? — I'm ...... Saudi Arabia.",
-      "opts": ["in", "from", "on", "at"],
+      "opts": [
+        "in",
+        "from",
+        "on",
+        "at"
+      ],
       "correct": 1
     },
     {
       "t": "mcq",
       "q": "مراجعة: جمع كلمة child هو؟",
-      "opts": ["childs", "children", "childes", "childen"],
+      "opts": [
+        "childs",
+        "children",
+        "childes",
+        "childen"
+      ],
       "correct": 1
     },
     {
       "t": "tf",
       "q": "كرة القدم لعبة شعبية في البرازيل والسعودية.",
-      "opts": ["صح", "خطأ"],
+      "opts": [
+        "صح",
+        "خطأ"
+      ],
       "correct": 0
     },
     {
       "t": "mcq",
       "q": "مراجعة: What is she doing now? — She ...... the plants.",
-      "opts": ["waters", "is watering", "water", "was water"],
+      "opts": [
+        "waters",
+        "is watering",
+        "water",
+        "was water"
+      ],
       "correct": 1
     },
     {
@@ -112,24 +163,60 @@
     {
       "t": "tf",
       "q": "كلمة popular تعني «مختلف».",
-      "opts": ["صح", "خطأ"],
+      "opts": [
+        "صح",
+        "خطأ"
+      ],
       "correct": 1
     },
     {
       "t": "mcq",
       "q": "مراجعة: Does he like to swim? — ......",
-      "opts": ["Yes, he is.", "Yes, he do.", "Yes, he does.", "Yes, he likes."],
+      "opts": [
+        "Yes, he is.",
+        "Yes, he do.",
+        "Yes, he does.",
+        "Yes, he likes."
+      ],
       "correct": 2
     }
   ],
   "story": [
-    { "v": "🌍", "t": "جاء إلى فصل جود ضيف عاش في بلدان كثيرة، وسأل: What do you like to play after school?" },
-    { "v": "⚽", "t": "قالت جود: I like to play football. فقال الضيف: In Brazil, children love football too! Same!" },
-    { "v": "🪁", "t": "وقال: In China, children fly kites. فصاحت جود: I fly a kite too! ورسمت طائرتها الورقية." },
-    { "v": "📄", "t": "ثم أخرج ورقة وطواها طائراً: In Japan, this is origami. تعلم الفصل كله طيّ طائر ورقي." },
-    { "v": "🏏", "t": "وحكى عن الهند: Many children play cricket. It's different from football. قالت جود: Different, but fun!" },
-    { "v": "📝", "t": "بعد الزيارة راجع المعلم الفصل كله: This/These, was/were, likes… وأجابت جود عن كل سؤال." },
-    { "v": "🌟", "t": "قال المعلم: You learned so much this term! ابتسمت جود: الإنجليزية تجمع أطفال العالم. أحسنتِ!" }
+    {
+      "v": "🌍",
+      "t": "جاء إلى فصل جود ضيف عاش في بلدان كثيرة، وسأل: What do you like to play after school?",
+      "n": "جَاءَ إِلَى فَصْلِ جُودَ ضَيْفٌ عَاشَ فِي بُلْدَانٍ كَثِيرَةٍ، وَسَأَلَ: What do you like to play after school?"
+    },
+    {
+      "v": "⚽",
+      "t": "قالت جود: I like to play football. فقال الضيف: In Brazil, children love football too! Same!",
+      "n": "قَالَتْ جُودُ: I like to play football. فَقَالَ الضَّيْفُ: In Brazil, children love football too! Same!"
+    },
+    {
+      "v": "🪁",
+      "t": "وقال: In China, children fly kites. فصاحت جود: I fly a kite too! ورسمت طائرتها الورقية.",
+      "n": "وَقَالَ: In China, children fly kites. فَصَاحَتْ جُودُ: I fly a kite too! وَرَسَمَتْ طَائِرَتَهَا الْوَرَقِيَّةَ."
+    },
+    {
+      "v": "📄",
+      "t": "ثم أخرج ورقة وطواها طائراً: In Japan, this is origami. تعلم الفصل كله طيّ طائر ورقي.",
+      "n": "ثُمَّ أَخْرَجَ وَرَقَةً وَطَوَاهَا طَائِراً: In Japan, this is origami. تَعَلَّمَ الْفَصْلُ كُلُّهُ طَيَّ طَائِرٍ وَرَقِيٍّ."
+    },
+    {
+      "v": "🏏",
+      "t": "وحكى عن الهند: Many children play cricket. It's different from football. قالت جود: Different, but fun!",
+      "n": "وَحَكَى عَنِ الْهِنْدِ: Many children play cricket. It's different from football. قَالَتْ جُودُ: Different, but fun!"
+    },
+    {
+      "v": "📝",
+      "t": "بعد الزيارة راجع المعلم الفصل كله: This/These, was/were, likes… وأجابت جود عن كل سؤال.",
+      "n": "بَعْدَ الزِّيَارَةِ رَاجَعَ الْمُعَلِّمُ الْفَصْلَ كُلَّهُ: This/These, was/were, likes… وَأَجَابَتْ جُودُ عَنْ كُلِّ سُؤَالٍ."
+    },
+    {
+      "v": "🌟",
+      "t": "قال المعلم: You learned so much this term! ابتسمت جود: الإنجليزية تجمع أطفال العالم. أحسنتِ!",
+      "n": "قَالَ الْمُعَلِّمُ: You learned so much this term! ابْتَسَمَتْ جُودُ: الْإِنْجِلِيزِيَّةُ تَجْمَعُ أَطْفَالَ الْعَالَمِ. أَحْسَنْتِ!"
+    }
   ],
   "activity": "اختر بلداً واحداً وابحث عن لعبة يحبها أطفاله، ثم اكتب ثلاث جمل: In (البلد), children like to… / In Saudi Arabia, we like to… / They are the same أو different. ثم أجب عن عشرة أسئلة مراجعة يختارها المعلم من دروس الفصل.",
   "summary": "أطفال العالم يحبون اللعب بألعاب مختلفة مثل football و cricket و origami و kites؛ وراجعنا مفردات الفصل وقواعده: This/These، الجمع، المضارع المستمر، There is/are، was/were، والمضارع البسيط مع like/likes."

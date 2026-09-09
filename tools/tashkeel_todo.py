@@ -21,6 +21,7 @@ import argparse
 import io
 import json
 import os
+import re
 import sys
 import glob
 import unicodedata
@@ -30,6 +31,8 @@ sys.path.insert(0, HERE)
 from tashkeel_merge import bare, density, LESSONS  # noqa: E402
 
 MIN_DENSITY = 0.30
+# حرفٌ عربيٌّ واحد على الأقل — وإلا فالمشهد إنجليزيٌّ خالص ولا معنى لتشكيله
+AR = re.compile("[ء-ي]")
 
 
 def subject_of(key: str) -> str:
@@ -54,6 +57,10 @@ def scan(subjects=None):
         for sc in (d.get("story") or []):
             t = (sc or {}).get("t") or ""
             if not t:
+                continue
+            # مشهدٌ إنجليزيٌّ خالص (في دروس en): كثافته صفرٌ حتماً فيرفضه الفاحص أبداً،
+            #   فليس «باقياً» بل غيرَ قابلٍ للتشكيل — والنطق يقرأ نصّ الشاشة كما هو.
+            if not AR.search(t):
                 continue
             total += 1
             n = (sc or {}).get("n") or ""

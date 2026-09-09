@@ -50,27 +50,60 @@
     }
   ],
   "vocab": [
-    { "t": "collect", "d": "يجمع أشياء من نوع واحد ويحتفظ بها" },
-    { "t": "collection", "d": "مجموعة الأشياء التي جمعناها" },
-    { "t": "stamp", "d": "طابع بريد" },
-    { "t": "coin", "d": "عملة معدنية" },
-    { "t": "shell", "d": "صدفة من البحر" },
-    { "t": "rare", "d": "نادر، لا يوجد منه إلا القليل" }
+    {
+      "t": "collect",
+      "d": "يجمع أشياء من نوع واحد ويحتفظ بها"
+    },
+    {
+      "t": "collection",
+      "d": "مجموعة الأشياء التي جمعناها"
+    },
+    {
+      "t": "stamp",
+      "d": "طابع بريد"
+    },
+    {
+      "t": "coin",
+      "d": "عملة معدنية"
+    },
+    {
+      "t": "shell",
+      "d": "صدفة من البحر"
+    },
+    {
+      "t": "rare",
+      "d": "نادر، لا يوجد منه إلا القليل"
+    }
   ],
   "checks": [
     {
       "q": "«طوابع» بالإنجليزية:",
-      "opts": ["coins", "stamps", "shells", "cards"],
+      "opts": [
+        "coins",
+        "stamps",
+        "shells",
+        "cards"
+      ],
       "correct": 1
     },
     {
       "q": "أكمل: She ...... got twenty shells.",
-      "opts": ["have", "has", "is", "does"],
+      "opts": [
+        "have",
+        "has",
+        "is",
+        "does"
+      ],
       "correct": 1
     },
     {
       "q": "العدد 40 يُكتب:",
-      "opts": ["fourty", "forteen", "forty", "fourteen"],
+      "opts": [
+        "fourty",
+        "forteen",
+        "forty",
+        "fourteen"
+      ],
       "correct": 2
     }
   ],
@@ -78,25 +111,43 @@
     {
       "t": "mcq",
       "q": "السؤال الصحيح:",
-      "opts": ["How many stamps you have got?", "How many stamps have you got?", "How many have you got stamps?", "How many stamps has you got?"],
+      "opts": [
+        "How many stamps you have got?",
+        "How many stamps have you got?",
+        "How many have you got stamps?",
+        "How many stamps has you got?"
+      ],
       "correct": 1
     },
     {
       "t": "tf",
       "q": "نقول: They has got a lot of coins.",
-      "opts": ["صح", "خطأ"],
+      "opts": [
+        "صح",
+        "خطأ"
+      ],
       "correct": 1
     },
     {
       "t": "mcq",
       "q": "«نادر» بالإنجليزية:",
-      "opts": ["rare", "shiny", "new", "colorful"],
+      "opts": [
+        "rare",
+        "shiny",
+        "new",
+        "colorful"
+      ],
       "correct": 0
     },
     {
       "t": "mcq",
       "q": "العدد 100 يُقال:",
-      "opts": ["a thousand", "ten", "ninety", "a hundred"],
+      "opts": [
+        "a thousand",
+        "ten",
+        "ninety",
+        "a hundred"
+      ],
       "correct": 3
     },
     {
@@ -107,24 +158,60 @@
     {
       "t": "tf",
       "q": "الرد الصحيح على Have you got a rare coin? هو Yes, I have.",
-      "opts": ["صح", "خطأ"],
+      "opts": [
+        "صح",
+        "خطأ"
+      ],
       "correct": 0
     },
     {
       "t": "mcq",
       "q": "«أصداف» بالإنجليزية:",
-      "opts": ["stones", "stickers", "shells", "key rings"],
+      "opts": [
+        "stones",
+        "stickers",
+        "shells",
+        "key rings"
+      ],
       "correct": 2
     }
   ],
   "story": [
-    { "v": "🐚", "t": "على شاطئ الخبر وجد ريان صدفة لامعة. قال: This shell is shiny and special! ووضعها في جيبه." },
-    { "v": "🧺", "t": "في كل زيارة للبحر جمع المزيد. قالت أمه: You have got a collection now! فأحضر صندوقاً ورتّبها فيه." },
-    { "v": "🔢", "t": "عدّها ريان بصوت عالٍ: ten, twenty, thirty… I have got forty shells! وكتب الرقم على الصندوق." },
-    { "v": "🏫", "t": "في المدرسة قال زميله جود: I collect stamps. I have got a hundred stamps! سأله ريان: Have you got a rare one?" },
-    { "v": "📮", "t": "أجاب جود: Yes, I have. This stamp is very old. It is from 1970. اندهش ريان من ألوانه." },
-    { "v": "🤝", "t": "اتفقا على عرض مجموعتيهما في معرض الفصل: Rayan has got shells, and Joud has got stamps." },
-    { "v": "🌟", "t": "من صدفة واحدة بدأت هواية جميلة تعلّم الصبر والترتيب. أحسنت!" }
+    {
+      "v": "🐚",
+      "t": "على شاطئ الخبر وجد ريان صدفة لامعة. قال: This shell is shiny and special! ووضعها في جيبه.",
+      "n": "عَلَى شَاطِئِ الْخُبَرِ وَجَدَ رَيَّانُ صَدَفَةً لَامِعَةً. قَالَ: This shell is shiny and special! وَوَضَعَهَا فِي جَيْبِهِ."
+    },
+    {
+      "v": "🧺",
+      "t": "في كل زيارة للبحر جمع المزيد. قالت أمه: You have got a collection now! فأحضر صندوقاً ورتّبها فيه.",
+      "n": "فِي كُلِّ زِيَارَةٍ لِلْبَحْرِ جَمَعَ الْمَزِيدَ. قَالَتْ أُمُّهُ: You have got a collection now! فَأَحْضَرَ صُنْدُوقاً وَرَتَّبَهَا فِيهِ."
+    },
+    {
+      "v": "🔢",
+      "t": "عدّها ريان بصوت عالٍ: ten, twenty, thirty… I have got forty shells! وكتب الرقم على الصندوق.",
+      "n": "عَدَّهَا رَيَّانُ بِصَوْتٍ عَالٍ: ten, twenty, thirty… I have got forty shells! وَكَتَبَ الرَّقْمَ عَلَى الصُّنْدُوقِ."
+    },
+    {
+      "v": "🏫",
+      "t": "في المدرسة قال زميله جود: I collect stamps. I have got a hundred stamps! سأله ريان: Have you got a rare one?",
+      "n": "فِي الْمَدْرَسَةِ قَالَ زَمِيلُهُ جُودٌ: I collect stamps. I have got a hundred stamps! سَأَلَهُ رَيَّانُ: Have you got a rare one?"
+    },
+    {
+      "v": "📮",
+      "t": "أجاب جود: Yes, I have. This stamp is very old. It is from 1970. اندهش ريان من ألوانه.",
+      "n": "أَجَابَ جُودٌ: Yes, I have. This stamp is very old. It is from 1970. انْدَهَشَ رَيَّانُ مِنْ أَلْوَانِهِ."
+    },
+    {
+      "v": "🤝",
+      "t": "اتفقا على عرض مجموعتيهما في معرض الفصل: Rayan has got shells, and Joud has got stamps.",
+      "n": "اتَّفَقَا عَلَى عَرْضِ مَجْمُوعَتَيْهِمَا فِي مَعْرِضِ الْفَصْلِ: Rayan has got shells, and Joud has got stamps."
+    },
+    {
+      "v": "🌟",
+      "t": "من صدفة واحدة بدأت هواية جميلة تعلّم الصبر والترتيب. أحسنت!",
+      "n": "مِنْ صَدَفَةٍ وَاحِدَةٍ بَدَأَتْ هِوَايَةٌ جَمِيلَةٌ تُعَلِّمُ الصَّبْرَ وَالتَّرْتِيبَ. أَحْسَنْت!"
+    }
   ],
   "activity": "اسأل خمسة من زملائك: What do you collect? How many have you got? وسجّل الإجابات في جدول بالإنجليزية، ثم اكتب جملتين بـ has got عن زميل واحد.",
   "summary": "الناس يجمعون stamps وcoins وshells وcards. نتحدث عن مجموعاتنا بـ have got / has got، ونسأل بـ How many … have you got?، ونعدّ بالأعداد الكبيرة (forty, a hundred)، ونصف القطع بـ old وrare وshiny."

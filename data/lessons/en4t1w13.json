@@ -55,27 +55,60 @@
     }
   ],
   "vocab": [
-    { "t": "like to", "d": "يحب أن يفعل شيئاً" },
-    { "t": "club", "d": "نادٍ: مكان نمارس فيه الأنشطة بعد المدرسة" },
-    { "t": "basketball", "d": "كرة السلة" },
-    { "t": "chess", "d": "الشطرنج: لعبة على رقعة" },
-    { "t": "swim", "d": "يسبح" },
-    { "t": "together", "d": "معاً" }
+    {
+      "t": "like to",
+      "d": "يحب أن يفعل شيئاً"
+    },
+    {
+      "t": "club",
+      "d": "نادٍ: مكان نمارس فيه الأنشطة بعد المدرسة"
+    },
+    {
+      "t": "basketball",
+      "d": "كرة السلة"
+    },
+    {
+      "t": "chess",
+      "d": "الشطرنج: لعبة على رقعة"
+    },
+    {
+      "t": "swim",
+      "d": "يسبح"
+    },
+    {
+      "t": "together",
+      "d": "معاً"
+    }
   ],
   "checks": [
     {
       "q": "في القصة من يحب الرسم؟",
-      "opts": ["Omar", "Sami", "Ali", "Khalid"],
+      "opts": [
+        "Omar",
+        "Sami",
+        "Ali",
+        "Khalid"
+      ],
       "correct": 1
     },
     {
       "q": "الجملة الصحيحة هي؟",
-      "opts": ["I like to swimming.", "I like to swims.", "I like to swim.", "I like swim to."],
+      "opts": [
+        "I like to swimming.",
+        "I like to swims.",
+        "I like to swim.",
+        "I like swim to."
+      ],
       "correct": 2
     },
     {
       "q": "كلمة together تعني؟",
-      "opts": ["وحدي", "معاً", "بعد", "دائماً"],
+      "opts": [
+        "وحدي",
+        "معاً",
+        "بعد",
+        "دائماً"
+      ],
       "correct": 1
     }
   ],
@@ -83,25 +116,43 @@
     {
       "t": "mcq",
       "q": "Ali doesn't like to ......",
-      "opts": ["play chess", "swim", "read", "draw"],
+      "opts": [
+        "play chess",
+        "swim",
+        "read",
+        "draw"
+      ],
       "correct": 1
     },
     {
       "t": "mcq",
       "q": "Do you like to play basketball? — ...... (لا)",
-      "opts": ["No, I'm not.", "No, I don't.", "No, I do.", "No, I like."],
+      "opts": [
+        "No, I'm not.",
+        "No, I don't.",
+        "No, I do.",
+        "No, I like."
+      ],
       "correct": 1
     },
     {
       "t": "tf",
       "q": "بعد like to نضيف ing إلى الفعل.",
-      "opts": ["صح", "خطأ"],
+      "opts": [
+        "صح",
+        "خطأ"
+      ],
       "correct": 1
     },
     {
       "t": "mcq",
       "q": "أي كلمة تعني «الشطرنج»؟",
-      "opts": ["tennis", "chess", "basketball", "kite"],
+      "opts": [
+        "tennis",
+        "chess",
+        "basketball",
+        "kite"
+      ],
       "correct": 1
     },
     {
@@ -112,24 +163,60 @@
     {
       "t": "tf",
       "q": "عبارة Let's play together! دعوة للعب معاً.",
-      "opts": ["صح", "خطأ"],
+      "opts": [
+        "صح",
+        "خطأ"
+      ],
       "correct": 0
     },
     {
       "t": "mcq",
       "q": "I ...... like to run. I like to swim.",
-      "opts": ["don't", "not", "isn't", "no"],
+      "opts": [
+        "don't",
+        "not",
+        "isn't",
+        "no"
+      ],
       "correct": 0
     }
   ],
   "story": [
-    { "v": "🏫", "t": "انضم سعود إلى نادي ما بعد المدرسة لأول مرة. كان الجميع يعرفون بعضهم إلا هو." },
-    { "v": "🏀", "t": "اقترب منه عمر وقال: I like to play basketball. Do you like to play? فأجاب سعود بخجل: Yes, I do." },
-    { "v": "🏊", "t": "وفي بركة السباحة سأله المدرب: Do you like to swim? — No, I don't، لكنني أحب أن أتعلم!" },
-    { "v": "♟️", "t": "في ركن الشطرنج جلس علي: I don't like to swim either. I like to play chess. Let's play together!" },
-    { "v": "🎨", "t": "وفي ركن الرسم قال سامي: I like to paint. فرسم سعود معه لوحة كبيرة للنادي." },
-    { "v": "🗣️", "t": "في نهاية اليوم قال سعود بثقة: I like to play basketball and chess. I don't like to swim… yet!" },
-    { "v": "🌟", "t": "ضحك الأصدقاء وقالوا: You're one of us now! لقد وجد سعود أصدقاء جدداً. أحسنت!" }
+    {
+      "v": "🏫",
+      "t": "انضم سعود إلى نادي ما بعد المدرسة لأول مرة. كان الجميع يعرفون بعضهم إلا هو.",
+      "n": "انْضَمَّ سَعُودٌ إِلَى نَادِي مَا بَعْدَ الْمَدْرَسَةِ لِأَوَّلِ مَرَّةٍ. كَانَ الْجَمِيعُ يَعْرِفُونَ بَعْضَهُمْ إِلَّا هُوَ."
+    },
+    {
+      "v": "🏀",
+      "t": "اقترب منه عمر وقال: I like to play basketball. Do you like to play? فأجاب سعود بخجل: Yes, I do.",
+      "n": "اقْتَرَبَ مِنْهُ عُمَرُ وَقَالَ: I like to play basketball. Do you like to play? فَأَجَابَ سَعُودٌ بِخَجَلٍ: Yes, I do."
+    },
+    {
+      "v": "🏊",
+      "t": "وفي بركة السباحة سأله المدرب: Do you like to swim? — No, I don't، لكنني أحب أن أتعلم!",
+      "n": "وَفِي بِرْكَةِ السِّبَاحَةِ سَأَلَهُ الْمُدَرِّبُ: Do you like to swim? — No, I don't، لَكِنَّنِي أُحِبُّ أَنْ أَتَعَلَّمَ!"
+    },
+    {
+      "v": "♟️",
+      "t": "في ركن الشطرنج جلس علي: I don't like to swim either. I like to play chess. Let's play together!",
+      "n": "فِي رُكْنِ الشِّطْرَنْجِ جَلَسَ عَلِيٌّ: I don't like to swim either. I like to play chess. Let's play together!"
+    },
+    {
+      "v": "🎨",
+      "t": "وفي ركن الرسم قال سامي: I like to paint. فرسم سعود معه لوحة كبيرة للنادي.",
+      "n": "وَفِي رُكْنِ الرَّسْمِ قَالَ سَامِي: I like to paint. فَرَسَمَ سَعُودٌ مَعَهُ لَوْحَةً كَبِيرَةً لِلنَّادِي."
+    },
+    {
+      "v": "🗣️",
+      "t": "في نهاية اليوم قال سعود بثقة: I like to play basketball and chess. I don't like to swim… yet!",
+      "n": "فِي نِهَايَةِ الْيَوْمِ قَالَ سَعُودٌ بِثِقَةٍ: I like to play basketball and chess. I don't like to swim… yet!"
+    },
+    {
+      "v": "🌟",
+      "t": "ضحك الأصدقاء وقالوا: You're one of us now! لقد وجد سعود أصدقاء جدداً. أحسنت!",
+      "n": "ضَحِكَ الْأَصْدِقَاءُ وَقَالُوا: You're one of us now! لَقَدْ وَجَدَ سَعُودٌ أَصْدِقَاءَ جُدُداً. أَحْسَنْتَ!"
+    }
   ],
   "activity": "مثّل مع زميلك حوار النادي: يسأل أحدكما What do you like to do after school? ويجيب الآخر بجملتين إحداهما بـ I like to والأخرى بـ I don't like to، ثم يقترح لعبة مشتركة بعبارة Let's… together!",
   "summary": "نعبّر عمّا نحب بـ I like to + الفعل وعمّا لا نحب بـ I don't like to، ونسأل Do you like to…? ونجيب Yes, I do. أو No, I don't.، ونتحدث عن أنشطة النادي مثل basketball و chess و swim."

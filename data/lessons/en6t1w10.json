@@ -50,27 +50,60 @@
     }
   ],
   "vocab": [
-    { "t": "hobby", "d": "هواية، شيء نحب فعله في وقت الفراغ" },
-    { "t": "drawing", "d": "الرسم بالقلم" },
-    { "t": "painting", "d": "التلوين بالفرشاة والألوان" },
-    { "t": "sketchbook", "d": "دفتر خاص بالرسم" },
-    { "t": "enjoy", "d": "يستمتع بـ" },
-    { "t": "twice", "d": "مرتين" }
+    {
+      "t": "hobby",
+      "d": "هواية، شيء نحب فعله في وقت الفراغ"
+    },
+    {
+      "t": "drawing",
+      "d": "الرسم بالقلم"
+    },
+    {
+      "t": "painting",
+      "d": "التلوين بالفرشاة والألوان"
+    },
+    {
+      "t": "sketchbook",
+      "d": "دفتر خاص بالرسم"
+    },
+    {
+      "t": "enjoy",
+      "d": "يستمتع بـ"
+    },
+    {
+      "t": "twice",
+      "d": "مرتين"
+    }
   ],
   "checks": [
     {
       "q": "أكمل: I like ...... pictures.",
-      "opts": ["draw", "drawing", "draws", "to drawing"],
+      "opts": [
+        "draw",
+        "drawing",
+        "draws",
+        "to drawing"
+      ],
       "correct": 1
     },
     {
       "q": "«التصوير» بالإنجليزية:",
-      "opts": ["photography", "painting", "cycling", "cooking"],
+      "opts": [
+        "photography",
+        "painting",
+        "cycling",
+        "cooking"
+      ],
       "correct": 0
     },
     {
       "q": "الرد المناسب على: How often do you draw?",
-      "opts": ["Because it is fun.", "With a pencil.", "Twice a week.", "My hobby is drawing."],
+      "opts": [
+        "Because it is fun.",
+        "With a pencil.",
+        "Twice a week.",
+        "My hobby is drawing."
+      ],
       "correct": 2
     }
   ],
@@ -78,25 +111,43 @@
     {
       "t": "mcq",
       "q": "الجملة الصحيحة:",
-      "opts": ["She enjoys cook.", "She enjoys to cook.", "She enjoy cooking.", "She enjoys cooking."],
+      "opts": [
+        "She enjoys cook.",
+        "She enjoys to cook.",
+        "She enjoy cooking.",
+        "She enjoys cooking."
+      ],
       "correct": 3
     },
     {
       "t": "mcq",
       "q": "«فرشاة» بالإنجليزية:",
-      "opts": ["brush", "paper", "pencil", "paint"],
+      "opts": [
+        "brush",
+        "paper",
+        "pencil",
+        "paint"
+      ],
       "correct": 0
     },
     {
       "t": "tf",
       "q": "swim + ing تُكتب swiming.",
-      "opts": ["صح", "خطأ"],
+      "opts": [
+        "صح",
+        "خطأ"
+      ],
       "correct": 1
     },
     {
       "t": "mcq",
       "q": "السؤال المناسب للإجابة: My hobby is swimming.",
-      "opts": ["How often do you swim?", "What's your hobby?", "Why do you swim?", "Where do you swim?"],
+      "opts": [
+        "How often do you swim?",
+        "What's your hobby?",
+        "Why do you swim?",
+        "Where do you swim?"
+      ],
       "correct": 1
     },
     {
@@ -107,24 +158,60 @@
     {
       "t": "tf",
       "q": "كلمة twice تعني مرتين.",
-      "opts": ["صح", "خطأ"],
+      "opts": [
+        "صح",
+        "خطأ"
+      ],
       "correct": 0
     },
     {
       "t": "mcq",
       "q": "الإجابة التي تبدأ بـ Because تناسب السؤال:",
-      "opts": ["What's your hobby?", "How often do you draw?", "Why do you like drawing?", "What do you draw?"],
+      "opts": [
+        "What's your hobby?",
+        "How often do you draw?",
+        "Why do you like drawing?",
+        "What do you draw?"
+      ],
       "correct": 2
     }
   ],
   "story": [
-    { "v": "✏️", "t": "في حصة الفنية سأل المعلم: What's your hobby? أجاب سعود بخجل: My hobby is drawing. I like drawing horses." },
-    { "v": "📓", "t": "أخرج سعود sketchbook مليئاً برسوم الخيل. اندهش زملاؤه: Wow! How often do you draw? قال: Every day!" },
-    { "v": "🎨", "t": "قال المعلم: Try painting today. أمسك سعود الـ brush والـ paint لأول مرة، فاختلطت الألوان على الورقة." },
-    { "v": "😅", "t": "ضحك سعود: I love drawing, but I don't like painting yet! قال المعلم: Practice, and you will enjoy it." },
-    { "v": "🐎", "t": "بعد ثلاث محاولات ظهر حصان بلونٍ بنّي جميل. صاح سعود: I did it! Now I enjoy painting too." },
-    { "v": "🖼️", "t": "علّق المعلم الرسمة على الجدار وكتب تحتها: Saud loves drawing and painting. Why? Because it is fun!" },
-    { "v": "🌟", "t": "هوايتك موهبة تكبر بالتدريب. أحسنت!" }
+    {
+      "v": "✏️",
+      "t": "في حصة الفنية سأل المعلم: What's your hobby? أجاب سعود بخجل: My hobby is drawing. I like drawing horses.",
+      "n": "فِي حِصَّةِ الْفَنِّيَّةِ سَأَلَ الْمُعَلِّمُ: What's your hobby? أَجَابَ سَعُودٌ بِخَجَلٍ: My hobby is drawing. I like drawing horses."
+    },
+    {
+      "v": "📓",
+      "t": "أخرج سعود sketchbook مليئاً برسوم الخيل. اندهش زملاؤه: Wow! How often do you draw? قال: Every day!",
+      "n": "أَخْرَجَ سَعُودٌ sketchbook مَلِيئًا بِرُسُومِ الْخَيْلِ. انْدَهَشَ زُمَلَاؤُهُ: Wow! How often do you draw? قَالَ: Every day!"
+    },
+    {
+      "v": "🎨",
+      "t": "قال المعلم: Try painting today. أمسك سعود الـ brush والـ paint لأول مرة، فاختلطت الألوان على الورقة.",
+      "n": "قَالَ الْمُعَلِّمُ: Try painting today. أَمْسَكَ سَعُودٌ الـ brush وَالـ paint لِأَوَّلِ مَرَّةٍ، فَاخْتَلَطَتِ الْأَلْوَانُ عَلَى الْوَرَقَةِ."
+    },
+    {
+      "v": "😅",
+      "t": "ضحك سعود: I love drawing, but I don't like painting yet! قال المعلم: Practice, and you will enjoy it.",
+      "n": "ضَحِكَ سَعُودٌ: I love drawing, but I don't like painting yet! قَالَ الْمُعَلِّمُ: Practice, and you will enjoy it."
+    },
+    {
+      "v": "🐎",
+      "t": "بعد ثلاث محاولات ظهر حصان بلونٍ بنّي جميل. صاح سعود: I did it! Now I enjoy painting too.",
+      "n": "بَعْدَ ثَلَاثِ مُحَاوَلَاتٍ ظَهَرَ حِصَانٌ بِلَوْنٍ بُنِّيٍّ جَمِيلٍ. صَاحَ سَعُودٌ: I did it! Now I enjoy painting too."
+    },
+    {
+      "v": "🖼️",
+      "t": "علّق المعلم الرسمة على الجدار وكتب تحتها: Saud loves drawing and painting. Why? Because it is fun!",
+      "n": "عَلَّقَ الْمُعَلِّمُ الرَّسْمَةَ عَلَى الْجِدَارِ وَكَتَبَ تَحْتَهَا: Saud loves drawing and painting. Why? Because it is fun!"
+    },
+    {
+      "v": "🌟",
+      "t": "هوايتك موهبة تكبر بالتدريب. أحسنت!",
+      "n": "هِوَايَتُكَ مَوْهِبَةٌ تَكْبُرُ بِالتَّدْرِيبِ. أَحْسَنْتَ!"
+    }
   ],
   "activity": "ارسم شيئاً تحبه في دفتر الرسم، ثم اكتب تحت الرسمة أربع جمل بالإنجليزية: My hobby is ... / I like ...ing ... / I draw ... a week. / I like it because ... واعرضها على زملائك.",
   "summary": "نتحدث عن الهوايات مثل drawing وswimming وphotography بعبارات like / love / enjoy + ing، ونسأل بـ What's your hobby? وHow often…? ونجيب بـ every day أو twice a week، ونذكر السبب بـ because."

@@ -50,27 +50,60 @@
     }
   ],
   "vocab": [
-    { "t": "between", "d": "بين: في الوسط بين شيئين" },
-    { "t": "behind", "d": "خلف: وراء الشيء" },
-    { "t": "in front of", "d": "أمام: قدّام الشيء" },
-    { "t": "next to", "d": "بجانب: قريب جداً وملاصق" },
-    { "t": "above", "d": "فوق الشيء دون أن يلمسه" },
-    { "t": "keys", "d": "مفاتيح: نفتح بها الأبواب" }
+    {
+      "t": "between",
+      "d": "بين: في الوسط بين شيئين"
+    },
+    {
+      "t": "behind",
+      "d": "خلف: وراء الشيء"
+    },
+    {
+      "t": "in front of",
+      "d": "أمام: قدّام الشيء"
+    },
+    {
+      "t": "next to",
+      "d": "بجانب: قريب جداً وملاصق"
+    },
+    {
+      "t": "above",
+      "d": "فوق الشيء دون أن يلمسه"
+    },
+    {
+      "t": "keys",
+      "d": "مفاتيح: نفتح بها الأبواب"
+    }
   ],
   "checks": [
     {
       "q": "أكمل: ...... two beds in the bedroom.",
-      "opts": ["There is", "There are", "It is", "They is"],
+      "opts": [
+        "There is",
+        "There are",
+        "It is",
+        "They is"
+      ],
       "correct": 1
     },
     {
       "q": "كلمة between تعني؟",
-      "opts": ["خلف", "بين", "تحت", "أمام"],
+      "opts": [
+        "خلف",
+        "بين",
+        "تحت",
+        "أمام"
+      ],
       "correct": 1
     },
     {
       "q": "Is there a TV? — الجواب الصحيح:",
-      "opts": ["Yes, it is.", "Yes, there are.", "Yes, there is.", "Yes, I do."],
+      "opts": [
+        "Yes, it is.",
+        "Yes, there are.",
+        "Yes, there is.",
+        "Yes, I do."
+      ],
       "correct": 2
     }
   ],
@@ -78,19 +111,32 @@
     {
       "t": "mcq",
       "q": "الجملة الصحيحة؟",
-      "opts": ["There is three chairs.", "There are a sofa.", "There is a lamp on the desk.", "There are a bed."],
+      "opts": [
+        "There is three chairs.",
+        "There are a sofa.",
+        "There is a lamp on the desk.",
+        "There are a bed."
+      ],
       "correct": 2
     },
     {
       "t": "tf",
       "q": "There isn't a garden تعني «لا توجد حديقة».",
-      "opts": ["صح", "خطأ"],
+      "opts": [
+        "صح",
+        "خطأ"
+      ],
       "correct": 0
     },
     {
       "t": "mcq",
       "q": "القطة تحت الطاولة: The cat is ...... the table.",
-      "opts": ["on", "under", "behind", "between"],
+      "opts": [
+        "on",
+        "under",
+        "behind",
+        "between"
+      ],
       "correct": 1
     },
     {
@@ -101,30 +147,71 @@
     {
       "t": "mcq",
       "q": "Where are the books? — الجواب المناسب:",
-      "opts": ["It's on the shelf.", "They're on the shelf.", "Yes, there are.", "There is a book."],
+      "opts": [
+        "It's on the shelf.",
+        "They're on the shelf.",
+        "Yes, there are.",
+        "There is a book."
+      ],
       "correct": 1
     },
     {
       "t": "tf",
       "q": "نستخدم There are مع الاسم المفرد.",
-      "opts": ["صح", "خطأ"],
+      "opts": [
+        "صح",
+        "خطأ"
+      ],
       "correct": 1
     },
     {
       "t": "mcq",
       "q": "«أمام» بالإنجليزية؟",
-      "opts": ["behind", "next to", "in front of", "near"],
+      "opts": [
+        "behind",
+        "next to",
+        "in front of",
+        "near"
+      ],
       "correct": 2
     }
   ],
   "story": [
-    { "v": "🔑", "t": "صاح والد ريان: Where are the keys? فالعائلة تريد الخروج ومفاتيح البيت الجديد ضائعة!" },
-    { "v": "🛋️", "t": "ركض ريان إلى غرفة المعيشة: Are they on the sofa? No! Under the cushion? No! ثم صرخ: Behind the TV? No!" },
-    { "v": "🍽️", "t": "ذهبت أخته إلى المطبخ: There are plates on the table, but there aren't any keys!" },
-    { "v": "🛏️", "t": "في غرفة النوم نظر ريان بين السريرين: Between the beds? ثم فوق الرف: There is a book above the bed… no keys." },
-    { "v": "🚪", "t": "فجأة تذكّر ريان: The keys are next to the door! ركض إلى المدخل… وهناك كانت معلّقة بجانب الباب!" },
-    { "v": "😄", "t": "ضحك الجميع، وقال الأب: Where were they? أجاب ريان بفخر: Next to the door, in front of us all the time!" },
-    { "v": "🌟", "t": "من يعرف حروف الجر يجد ما يبحث عنه. أحسنت يا ريان!" }
+    {
+      "v": "🔑",
+      "t": "صاح والد ريان: Where are the keys? فالعائلة تريد الخروج ومفاتيح البيت الجديد ضائعة!",
+      "n": "صَاحَ وَالِدُ رَيَّانَ: Where are the keys? فَالْعَائِلَةُ تُرِيدُ الْخُرُوجَ وَمَفَاتِيحُ الْبَيْتِ الْجَدِيدِ ضَائِعَة!"
+    },
+    {
+      "v": "🛋️",
+      "t": "ركض ريان إلى غرفة المعيشة: Are they on the sofa? No! Under the cushion? No! ثم صرخ: Behind the TV? No!",
+      "n": "رَكَضَ رَيَّانُ إِلَى غُرْفَةِ الْمَعِيشَةِ: Are they on the sofa? No! Under the cushion? No! ثُمَّ صَرَخَ: Behind the TV? No!"
+    },
+    {
+      "v": "🍽️",
+      "t": "ذهبت أخته إلى المطبخ: There are plates on the table, but there aren't any keys!",
+      "n": "ذَهَبَتْ أُخْتُهُ إِلَى الْمَطْبَخِ: There are plates on the table, but there aren't any keys!"
+    },
+    {
+      "v": "🛏️",
+      "t": "في غرفة النوم نظر ريان بين السريرين: Between the beds? ثم فوق الرف: There is a book above the bed… no keys.",
+      "n": "فِي غُرْفَةِ النَّوْمِ نَظَرَ رَيَّانُ بَيْنَ السَّرِيرَيْنِ: Between the beds? ثُمَّ فَوْقَ الرَّفِّ: There is a book above the bed… no keys."
+    },
+    {
+      "v": "🚪",
+      "t": "فجأة تذكّر ريان: The keys are next to the door! ركض إلى المدخل… وهناك كانت معلّقة بجانب الباب!",
+      "n": "فَجْأَةً تَذَكَّرَ رَيَّانُ: The keys are next to the door! رَكَضَ إِلَى الْمَدْخَلِ… وَهُنَاكَ كَانَتْ مُعَلَّقَةً بِجَانِبِ الْبَابْ!"
+    },
+    {
+      "v": "😄",
+      "t": "ضحك الجميع، وقال الأب: Where were they? أجاب ريان بفخر: Next to the door, in front of us all the time!",
+      "n": "ضَحِكَ الْجَمِيعُ، وَقَالَ الْأَبُ: Where were they? أَجَابَ رَيَّانُ بِفَخْرٍ: Next to the door, in front of us all the time!"
+    },
+    {
+      "v": "🌟",
+      "t": "من يعرف حروف الجر يجد ما يبحث عنه. أحسنت يا ريان!",
+      "n": "مَنْ يَعْرِفْ حُرُوفَ الْجَرِّ يَجِدْ مَا يَبْحَثُ عَنْهُ. أَحْسَنْتَ يَا رَيَّانْ!"
+    }
   ],
   "activity": "ضع قلماً وممحاة وكتاباً على مكتبك في أماكن مختلفة، ثم اكتب خمس جمل تصف مكان كل شيء باستخدام on وunder وnext to وbetween وin front of، واقرأها لزميلك ليعيد ترتيب الأشياء كما وصفت.",
   "summary": "تعلّمنا أن There is تأتي مع المفرد وThere are مع الجمع، وتعرّفنا على حروف الجر المكانية مثل on وunder وbetween وbehind، وتدرّبنا على السؤال بـ Is there…? وWhere is…? من خلال قصة المفاتيح الضائعة."

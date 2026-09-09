@@ -48,27 +48,57 @@
     }
   ],
   "vocab": [
-    { "t": "every day", "d": "كل يوم" },
-    { "t": "brother", "d": "أخ" },
-    { "t": "milk", "d": "حليب — يبدأ بصوت /m/" },
-    { "t": "nose", "d": "أنف — يبدأ بصوت /n/" },
-    { "t": "orange", "d": "برتقالة — تبدأ بصوت /o/" },
-    { "t": "pen", "d": "قلم — يبدأ بصوت /p/" }
+    {
+      "t": "every day",
+      "d": "كل يوم"
+    },
+    {
+      "t": "brother",
+      "d": "أخ"
+    },
+    {
+      "t": "milk",
+      "d": "حليب — يبدأ بصوت /m/"
+    },
+    {
+      "t": "nose",
+      "d": "أنف — يبدأ بصوت /n/"
+    },
+    {
+      "t": "orange",
+      "d": "برتقالة — تبدأ بصوت /o/"
+    },
+    {
+      "t": "pen",
+      "d": "قلم — يبدأ بصوت /p/"
+    }
   ],
   "checks": [
     {
       "q": "كلمة تبدأ بصوت /m/؟",
-      "opts": ["nose", "milk", "pen"],
+      "opts": [
+        "nose",
+        "milk",
+        "pen"
+      ],
       "correct": 1
     },
     {
       "q": "أكمل: She ...... the table.",
-      "opts": ["set", "sets", "setting"],
+      "opts": [
+        "set",
+        "sets",
+        "setting"
+      ],
       "correct": 1
     },
     {
       "q": "معنى every day؟",
-      "opts": ["كل يوم", "كل أسبوع", "اليوم"],
+      "opts": [
+        "كل يوم",
+        "كل أسبوع",
+        "اليوم"
+      ],
       "correct": 0
     }
   ],
@@ -76,25 +106,40 @@
     {
       "t": "mcq",
       "q": "الحرف الأول في orange؟",
-      "opts": ["o", "p", "n"],
+      "opts": [
+        "o",
+        "p",
+        "n"
+      ],
       "correct": 0
     },
     {
       "t": "tf",
       "q": "كلمة nose تعني أنف.",
-      "opts": ["صح", "خطأ"],
+      "opts": [
+        "صح",
+        "خطأ"
+      ],
       "correct": 0
     },
     {
       "t": "mcq",
       "q": "أكمل: My brother ...... the floor.",
-      "opts": ["sweep", "sweeps", "sweeping"],
+      "opts": [
+        "sweep",
+        "sweeps",
+        "sweeping"
+      ],
       "correct": 1
     },
     {
       "t": "mcq",
       "q": "معنى pen؟",
-      "opts": ["حليب", "برتقالة", "قلم"],
+      "opts": [
+        "حليب",
+        "برتقالة",
+        "قلم"
+      ],
       "correct": 2
     },
     {
@@ -105,24 +150,59 @@
     {
       "t": "tf",
       "q": "الجملة I makes my bed صحيحة.",
-      "opts": ["صح", "خطأ"],
+      "opts": [
+        "صح",
+        "خطأ"
+      ],
       "correct": 1
     },
     {
       "t": "mcq",
       "q": "Who sets the table? نسأل بها عن؟",
-      "opts": ["متى؟", "من؟", "أين؟"],
+      "opts": [
+        "متى؟",
+        "من؟",
+        "أين؟"
+      ],
       "correct": 1
     }
   ],
   "story": [
-    { "v": "🎤", "t": "بدأ الفصل بأنشودة: Make the bed, make the bed, every day! وتركي يمثّل ترتيب السرير." },
-    { "v": "👦", "t": "عرض المعلم صورة ولد يغسل الأطباق: He washes the dishes. لاحظ تركي حرف s في آخر الفعل." },
-    { "v": "📖", "t": "قرأ تركي النص: I help at home every day. My brother sweeps the floor." },
-    { "v": "❓", "t": "سأل المعلم: Who sweeps the floor? فأجاب تركي بسرعة: My brother!" },
-    { "v": "🥛", "t": "ثم الأصوات: /m/ milk، /n/ nose، /o/ orange، /p/ pen. أشار تركي إلى أنفه عند nose!" },
-    { "v": "🍊", "t": "في البيت رأى تركي برتقالة على المائدة: orange تبدأ بـ /o/! وقال لأمه: I set the table." },
-    { "v": "🌟", "t": "ردّد تركي وقرأ ونطق أربعة أصوات جديدة. أحسنت يا تركي!" }
+    {
+      "v": "🎤",
+      "t": "بدأ الفصل بأنشودة: Make the bed, make the bed, every day! وتركي يمثّل ترتيب السرير.",
+      "n": "بَدَأَ الْفَصْلُ بِأُنْشُودَةٍ: Make the bed, make the bed, every day! وَتُرْكِي يُمَثِّلُ تَرْتِيبَ السَّرِيرْ."
+    },
+    {
+      "v": "👦",
+      "t": "عرض المعلم صورة ولد يغسل الأطباق: He washes the dishes. لاحظ تركي حرف s في آخر الفعل.",
+      "n": "عَرَضَ الْمُعَلِّمُ صُورَةَ وَلَدٍ يَغْسِلُ الْأَطْبَاقَ: He washes the dishes. لَاحَظَ تُرْكِي حَرْفَ s فِي آخِرِ الْفِعْلْ."
+    },
+    {
+      "v": "📖",
+      "t": "قرأ تركي النص: I help at home every day. My brother sweeps the floor.",
+      "n": "قَرَأَ تُرْكِي النَّصَّ: I help at home every day. My brother sweeps the floor."
+    },
+    {
+      "v": "❓",
+      "t": "سأل المعلم: Who sweeps the floor? فأجاب تركي بسرعة: My brother!",
+      "n": "سَأَلَ الْمُعَلِّمُ: Who sweeps the floor? فَأَجَابَ تُرْكِي بِسُرْعَةٍ: My brother!"
+    },
+    {
+      "v": "🥛",
+      "t": "ثم الأصوات: /m/ milk، /n/ nose، /o/ orange، /p/ pen. أشار تركي إلى أنفه عند nose!",
+      "n": "ثُمَّ الْأَصْوَاتُ: /m/ milk، /n/ nose، /o/ orange، /p/ pen. أَشَارَ تُرْكِي إِلَى أَنْفِهِ عِنْدَ nose!"
+    },
+    {
+      "v": "🍊",
+      "t": "في البيت رأى تركي برتقالة على المائدة: orange تبدأ بـ /o/! وقال لأمه: I set the table.",
+      "n": "فِي الْبَيْتِ رَأَى تُرْكِي بُرْتُقَالَةً عَلَى الْمَائِدَةِ: orange تَبْدَأُ بِـ /o/! وَقَالَ لِأُمِّهِ: I set the table."
+    },
+    {
+      "v": "🌟",
+      "t": "ردّد تركي وقرأ ونطق أربعة أصوات جديدة. أحسنت يا تركي!",
+      "n": "رَدَّدَ تُرْكِي وَقَرَأَ وَنَطَقَ أَرْبَعَةَ أَصْوَاتٍ جَدِيدَةْ. أَحْسَنْتَ يَا تُرْكِي!"
+    }
   ],
   "activity": "اكتب جملتين عن أخيك أو أختك في البيت: He makes his bed. She sets the table. ثم ارسم milk و nose و orange و pen واكتب الحرف الأول لكل كلمة.",
   "summary": "نضيف s للفعل مع he و she: He makes his bed. ونقرأ نصوصاً عن المساعدة every day. ونطقنا الأصوات /m/ milk، /n/ nose، /o/ orange، /p/ pen."

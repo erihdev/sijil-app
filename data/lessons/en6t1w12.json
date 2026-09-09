@@ -49,27 +49,60 @@
     }
   ],
   "vocab": [
-    { "t": "library", "d": "المكتبة، مكان فيه كتب كثيرة نستعيرها" },
-    { "t": "author", "d": "المؤلّف الذي كتب الكتاب" },
-    { "t": "title", "d": "عنوان الكتاب" },
-    { "t": "character", "d": "شخصية في القصة" },
-    { "t": "comic", "d": "قصة مصوّرة بالرسوم" },
-    { "t": "borrow", "d": "يستعير كتاباً ثم يعيده" }
+    {
+      "t": "library",
+      "d": "المكتبة، مكان فيه كتب كثيرة نستعيرها"
+    },
+    {
+      "t": "author",
+      "d": "المؤلّف الذي كتب الكتاب"
+    },
+    {
+      "t": "title",
+      "d": "عنوان الكتاب"
+    },
+    {
+      "t": "character",
+      "d": "شخصية في القصة"
+    },
+    {
+      "t": "comic",
+      "d": "قصة مصوّرة بالرسوم"
+    },
+    {
+      "t": "borrow",
+      "d": "يستعير كتاباً ثم يعيده"
+    }
   ],
   "checks": [
     {
       "q": "«المؤلّف» بالإنجليزية:",
-      "opts": ["title", "author", "cover", "page"],
+      "opts": [
+        "title",
+        "author",
+        "cover",
+        "page"
+      ],
       "correct": 1
     },
     {
       "q": "الكتاب الذي نبحث فيه عن معاني الكلمات:",
-      "opts": ["comic", "atlas", "magazine", "dictionary"],
+      "opts": [
+        "comic",
+        "atlas",
+        "magazine",
+        "dictionary"
+      ],
       "correct": 3
     },
     {
       "q": "أكمل: This is ...... book in the library.",
-      "opts": ["the longest", "longer", "long", "the longer"],
+      "opts": [
+        "the longest",
+        "longer",
+        "long",
+        "the longer"
+      ],
       "correct": 0
     }
   ],
@@ -77,25 +110,43 @@
     {
       "t": "mcq",
       "q": "السؤال المناسب للإجابة: I like adventure stories.",
-      "opts": ["How many books do you have?", "What kind of books do you like?", "Where do you read?", "Who is the author?"],
+      "opts": [
+        "How many books do you have?",
+        "What kind of books do you like?",
+        "Where do you read?",
+        "Who is the author?"
+      ],
       "correct": 1
     },
     {
       "t": "tf",
       "q": "The cover is the first page inside the book with the story.",
-      "opts": ["صح", "خطأ"],
+      "opts": [
+        "صح",
+        "خطأ"
+      ],
       "correct": 1
     },
     {
       "t": "mcq",
       "q": "صيغة التفضيل من funny:",
-      "opts": ["the funnyest", "the most funny", "the funniest", "funnier"],
+      "opts": [
+        "the funnyest",
+        "the most funny",
+        "the funniest",
+        "funnier"
+      ],
       "correct": 2
     },
     {
       "t": "mcq",
       "q": "«يستعير» بالإنجليزية:",
-      "opts": ["borrow", "read", "write", "buy"],
+      "opts": [
+        "borrow",
+        "read",
+        "write",
+        "buy"
+      ],
       "correct": 0
     },
     {
@@ -106,24 +157,60 @@
     {
       "t": "tf",
       "q": "الشخصية في القصة تسمّى character.",
-      "opts": ["صح", "خطأ"],
+      "opts": [
+        "صح",
+        "خطأ"
+      ],
       "correct": 0
     },
     {
       "t": "mcq",
       "q": "الرد المناسب على: How many books did you read last month?",
-      "opts": ["I read at home.", "I like comics.", "I read two books.", "My favorite author."],
+      "opts": [
+        "I read at home.",
+        "I like comics.",
+        "I read two books.",
+        "My favorite author."
+      ],
       "correct": 2
     }
   ],
   "story": [
-    { "v": "📚", "t": "قالت المعلمة إن أفضل قارئ هذا الشهر سيحصل على جائزة. لم تكن لمى تحب القراءة، لكنها ذهبت إلى الـ library." },
-    { "v": "🔎", "t": "سألتها أمينة المكتبة: What kind of books do you like? ترددت لمى ثم قالت: Maybe adventure stories?" },
-    { "v": "🦅", "t": "أعطتها كتاباً عنوانه «The Little Falcon». قرأت لمى الغلاف: The title, the author, the cover… ثم فتحت الصفحة الأولى." },
-    { "v": "🌙", "t": "في الليل لم تستطع التوقف! The main character is a brave falcon. صارت تقرأ chapter بعد chapter." },
-    { "v": "📖", "t": "في الأسبوع التالي استعارت comic وكتاب علوم. قالت لأخيها: I read three books this month. This is the funniest one!" },
-    { "v": "🏆", "t": "سألتها المعلمة: How many books did you read? أجابت لمى بفخر: Three! Reading is the best hobby!" },
-    { "v": "🌟", "t": "من طالبة لا تحب القراءة إلى أفضل قارئة في الفصل. أحسنت!" }
+    {
+      "v": "📚",
+      "t": "قالت المعلمة إن أفضل قارئ هذا الشهر سيحصل على جائزة. لم تكن لمى تحب القراءة، لكنها ذهبت إلى الـ library.",
+      "n": "قَالَتِ الْمُعَلِّمَةُ إِنَّ أَفْضَلَ قَارِئٍ هَذَا الشَّهْرَ سَيَحْصُلُ عَلَى جَائِزَةٍ. لَمْ تَكُنْ لَمَى تُحِبُّ الْقِرَاءَةَ، لَكِنَّهَا ذَهَبَتْ إِلَى الـ library."
+    },
+    {
+      "v": "🔎",
+      "t": "سألتها أمينة المكتبة: What kind of books do you like? ترددت لمى ثم قالت: Maybe adventure stories?",
+      "n": "سَأَلَتْهَا أَمِينَةُ الْمَكْتَبَةِ: What kind of books do you like? تَرَدَّدَتْ لَمَى ثُمَّ قَالَتْ: Maybe adventure stories?"
+    },
+    {
+      "v": "🦅",
+      "t": "أعطتها كتاباً عنوانه «The Little Falcon». قرأت لمى الغلاف: The title, the author, the cover… ثم فتحت الصفحة الأولى.",
+      "n": "أَعْطَتْهَا كِتَاباً عُنْوَانُهُ «The Little Falcon». قَرَأَتْ لَمَى الْغِلَافَ: The title, the author, the cover… ثُمَّ فَتَحَتِ الصَّفْحَةَ الْأُولَى."
+    },
+    {
+      "v": "🌙",
+      "t": "في الليل لم تستطع التوقف! The main character is a brave falcon. صارت تقرأ chapter بعد chapter.",
+      "n": "فِي اللَّيْلِ لَمْ تَسْتَطِعِ التَّوَقُّفَ! The main character is a brave falcon. صَارَتْ تَقْرَأُ chapter بَعْدَ chapter."
+    },
+    {
+      "v": "📖",
+      "t": "في الأسبوع التالي استعارت comic وكتاب علوم. قالت لأخيها: I read three books this month. This is the funniest one!",
+      "n": "فِي الْأُسْبُوعِ التَّالِي اسْتَعَارَتْ comic وَكِتَابَ عُلُومٍ. قَالَتْ لِأَخِيهَا: I read three books this month. This is the funniest one!"
+    },
+    {
+      "v": "🏆",
+      "t": "سألتها المعلمة: How many books did you read? أجابت لمى بفخر: Three! Reading is the best hobby!",
+      "n": "سَأَلَتْهَا الْمُعَلِّمَةُ: How many books did you read? أَجَابَتْ لَمَى بِفَخْرٍ: Three! Reading is the best hobby!"
+    },
+    {
+      "v": "🌟",
+      "t": "من طالبة لا تحب القراءة إلى أفضل قارئة في الفصل. أحسنت!",
+      "n": "مِنْ طَالِبَةٍ لَا تُحِبُّ الْقِرَاءَةَ إِلَى أَفْضَلِ قَارِئَةٍ فِي الْفَصْلِ. أَحْسَنْتِ!"
+    }
   ],
   "activity": "اختر كتاباً قرأته واكتب بطاقة تعريف به بالإنجليزية: Title / Author / Kind of book / Main character / I like it because... ثم قدّمها لزملائك في دقيقة واحدة.",
   "summary": "تعرّفنا على أنواع الكتب (story, comic, dictionary, atlas) وأجزائها (title, cover, author, character)، وسألنا بـ What kind of books do you like? وHow many books did you read?، واستخدمنا التفضيل the longest وthe funniest وthe best."

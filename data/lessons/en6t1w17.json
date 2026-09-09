@@ -53,27 +53,60 @@
     }
   ],
   "vocab": [
-    { "t": "future", "d": "المستقبل، الزمن القادم" },
-    { "t": "robot", "d": "آلة تعمل وتتحرك بأوامر البرمجة" },
-    { "t": "programmer", "d": "مبرمج يكتب أوامر الحاسوب" },
-    { "t": "astronaut", "d": "رائد فضاء يسافر خارج الأرض" },
-    { "t": "coding", "d": "البرمجة، كتابة الأوامر للحاسوب" },
-    { "t": "will", "d": "سوف، للحديث عن المستقبل" }
+    {
+      "t": "future",
+      "d": "المستقبل، الزمن القادم"
+    },
+    {
+      "t": "robot",
+      "d": "آلة تعمل وتتحرك بأوامر البرمجة"
+    },
+    {
+      "t": "programmer",
+      "d": "مبرمج يكتب أوامر الحاسوب"
+    },
+    {
+      "t": "astronaut",
+      "d": "رائد فضاء يسافر خارج الأرض"
+    },
+    {
+      "t": "coding",
+      "d": "البرمجة، كتابة الأوامر للحاسوب"
+    },
+    {
+      "t": "will",
+      "d": "سوف، للحديث عن المستقبل"
+    }
   ],
   "checks": [
     {
       "q": "«رائد فضاء» بالإنجليزية:",
-      "opts": ["scientist", "astronaut", "programmer", "pilot"],
+      "opts": [
+        "scientist",
+        "astronaut",
+        "programmer",
+        "pilot"
+      ],
       "correct": 1
     },
     {
       "q": "أكمل: Robots ...... help doctors in the future.",
-      "opts": ["will", "wills", "is", "did"],
+      "opts": [
+        "will",
+        "wills",
+        "is",
+        "did"
+      ],
       "correct": 0
     },
     {
       "q": "الجملة الصحيحة:",
-      "opts": ["I want to be a astronaut.", "I want to be an pilot.", "I want to be an engineer.", "I want to be a app developer."],
+      "opts": [
+        "I want to be a astronaut.",
+        "I want to be an pilot.",
+        "I want to be an engineer.",
+        "I want to be a app developer."
+      ],
       "correct": 2
     }
   ],
@@ -81,25 +114,43 @@
     {
       "t": "mcq",
       "q": "نفي will هو:",
-      "opts": ["willn't", "won't", "don't will", "not will"],
+      "opts": [
+        "willn't",
+        "won't",
+        "don't will",
+        "not will"
+      ],
       "correct": 1
     },
     {
       "t": "mcq",
       "q": "الجملة الصحيحة:",
-      "opts": ["She will be a scientist.", "She will bes a scientist.", "She will to be a scientist.", "She wills be a scientist."],
+      "opts": [
+        "She will be a scientist.",
+        "She will bes a scientist.",
+        "She will to be a scientist.",
+        "She wills be a scientist."
+      ],
       "correct": 0
     },
     {
       "t": "tf",
       "q": "A programmer writes code for computers.",
-      "opts": ["صح", "خطأ"],
+      "opts": [
+        "صح",
+        "خطأ"
+      ],
       "correct": 0
     },
     {
       "t": "mcq",
       "q": "الرد الصحيح على: Will you be a game designer?",
-      "opts": ["Yes, I am.", "Yes, I do.", "Yes, I will.", "Yes, I want."],
+      "opts": [
+        "Yes, I am.",
+        "Yes, I do.",
+        "Yes, I will.",
+        "Yes, I want."
+      ],
       "correct": 2
     },
     {
@@ -110,24 +161,60 @@
     {
       "t": "tf",
       "q": "من مراجعة الوحدة: A chef puts out fires.",
-      "opts": ["صح", "خطأ"],
+      "opts": [
+        "صح",
+        "خطأ"
+      ],
       "correct": 1
     },
     {
       "t": "mcq",
       "q": "«البرمجة» بالإنجليزية:",
-      "opts": ["drone", "coding", "robot", "future"],
+      "opts": [
+        "drone",
+        "coding",
+        "robot",
+        "future"
+      ],
       "correct": 1
     }
   ],
   "story": [
-    { "v": "🤖", "t": "في معرض العلوم بالمدرسة رأى ريان روبوتاً صغيراً يمشي. سأل: Who made this? أجاب المعلم: A robot engineer!" },
-    { "v": "💻", "t": "قال المعلم: In the future, robots will help doctors and cars will drive themselves. فتح ريان عينيه دهشة." },
-    { "v": "🚀", "t": "في ركن آخر تحدثت نورة عن الفضاء: I will be an astronaut. Saudi astronauts went to space, and I will go too!" },
-    { "v": "🎮", "t": "قال سعود: I will be a game designer. سأله ريان: Will you make a football game? أجاب: Yes, I will!" },
-    { "v": "🧠", "t": "سأل ريان: What skills do I need? قال المعلم: Learn coding, speak English well, and keep learning." },
-    { "v": "📋", "t": "في نهاية المعرض راجع الفصل مهن الوحدة: a doctor helps, a pilot flies, a firefighter rescues… and we will be the future!" },
-    { "v": "🌟", "t": "المستقبل يصنعه من يتعلّم اليوم. أحسنت!" }
+    {
+      "v": "🤖",
+      "t": "في معرض العلوم بالمدرسة رأى ريان روبوتاً صغيراً يمشي. سأل: Who made this? أجاب المعلم: A robot engineer!",
+      "n": "فِي مَعْرِضِ الْعُلُومِ بِالْمَدْرَسَةِ رَأَى رَيَّانُ رُوبُوتًا صَغِيرًا يَمْشِي. سَأَلَ: Who made this? أَجَابَ الْمُعَلِّمُ: A robot engineer!"
+    },
+    {
+      "v": "💻",
+      "t": "قال المعلم: In the future, robots will help doctors and cars will drive themselves. فتح ريان عينيه دهشة.",
+      "n": "قَالَ الْمُعَلِّمُ: In the future, robots will help doctors and cars will drive themselves. فَتَحَ رَيَّانُ عَيْنَيْهِ دَهْشَةْ."
+    },
+    {
+      "v": "🚀",
+      "t": "في ركن آخر تحدثت نورة عن الفضاء: I will be an astronaut. Saudi astronauts went to space, and I will go too!",
+      "n": "فِي رُكْنٍ آخَرَ تَحَدَّثَتْ نُورَةُ عَنِ الْفَضَاءِ: I will be an astronaut. Saudi astronauts went to space, and I will go too!"
+    },
+    {
+      "v": "🎮",
+      "t": "قال سعود: I will be a game designer. سأله ريان: Will you make a football game? أجاب: Yes, I will!",
+      "n": "قَالَ سَعُودٌ: I will be a game designer. سَأَلَهُ رَيَّانُ: Will you make a football game? أَجَابَ: Yes, I will!"
+    },
+    {
+      "v": "🧠",
+      "t": "سأل ريان: What skills do I need? قال المعلم: Learn coding, speak English well, and keep learning.",
+      "n": "سَأَلَ رَيَّانُ: What skills do I need? قَالَ الْمُعَلِّمُ: Learn coding, speak English well, and keep learning."
+    },
+    {
+      "v": "📋",
+      "t": "في نهاية المعرض راجع الفصل مهن الوحدة: a doctor helps, a pilot flies, a firefighter rescues… and we will be the future!",
+      "n": "فِي نِهَايَةِ الْمَعْرِضِ رَاجَعَ الْفَصْلُ مِهَنَ الْوَحْدَةِ: a doctor helps, a pilot flies, a firefighter rescues… and we will be the future!"
+    },
+    {
+      "v": "🌟",
+      "t": "المستقبل يصنعه من يتعلّم اليوم. أحسنت!",
+      "n": "الْمُسْتَقْبَلُ يَصْنَعُهُ مَنْ يَتَعَلَّمُ الْيَوْمْ. أَحْسَنْتَ!"
+    }
   ],
   "activity": "اكتب فقرة من خمس جمل بعنوان My Future تستخدم فيها will وwon't: I will be a ... / I will learn ... / Robots will ... / People won't ... ثم ارسم مهنة المستقبل التي تحلم بها واعرضها في الفصل.",
   "summary": "مهن المستقبل مثل programmer وastronaut وrobot engineer تحتاج مهارات coding والإنجليزية والتعلّم المستمر. نتحدث عن المستقبل بـ will / won't + الفعل الأصلي، ونراجع مفردات المهن وتراكيب a / an وwant to be وmust / mustn't."

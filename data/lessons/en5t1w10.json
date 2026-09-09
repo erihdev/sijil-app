@@ -48,27 +48,60 @@
     }
   ],
   "vocab": [
-    { "t": "job", "d": "مهنة: العمل الذي يقوم به الشخص ليكسب رزقه" },
-    { "t": "community", "d": "المجتمع: الناس الذين يعيشون معاً في مكان واحد" },
-    { "t": "firefighter", "d": "رجل إطفاء: يطفئ الحرائق وينقذ الناس" },
-    { "t": "vet", "d": "طبيب بيطري: يعالج الحيوانات" },
-    { "t": "mechanic", "d": "ميكانيكي: يصلح السيارات" },
-    { "t": "engineer", "d": "مهندس: يصمّم الآلات والمباني والطرق" }
+    {
+      "t": "job",
+      "d": "مهنة: العمل الذي يقوم به الشخص ليكسب رزقه"
+    },
+    {
+      "t": "community",
+      "d": "المجتمع: الناس الذين يعيشون معاً في مكان واحد"
+    },
+    {
+      "t": "firefighter",
+      "d": "رجل إطفاء: يطفئ الحرائق وينقذ الناس"
+    },
+    {
+      "t": "vet",
+      "d": "طبيب بيطري: يعالج الحيوانات"
+    },
+    {
+      "t": "mechanic",
+      "d": "ميكانيكي: يصلح السيارات"
+    },
+    {
+      "t": "engineer",
+      "d": "مهندس: يصمّم الآلات والمباني والطرق"
+    }
   ],
   "checks": [
     {
       "q": "الشخص الذي يعالج الحيوانات هو",
-      "opts": ["dentist", "vet", "nurse", "chef"],
+      "opts": [
+        "dentist",
+        "vet",
+        "nurse",
+        "chef"
+      ],
       "correct": 1
     },
     {
       "q": "What does she do? — الجواب الصحيح:",
-      "opts": ["She's a teacher.", "She likes teaching.", "She is teach.", "Yes, she does."],
+      "opts": [
+        "She's a teacher.",
+        "She likes teaching.",
+        "She is teach.",
+        "Yes, she does."
+      ],
       "correct": 0
     },
     {
       "q": "أكمل: He's ...... engineer.",
-      "opts": ["a", "an", "the", "some"],
+      "opts": [
+        "a",
+        "an",
+        "the",
+        "some"
+      ],
       "correct": 1
     }
   ],
@@ -76,19 +109,32 @@
     {
       "t": "mcq",
       "q": "«رجل إطفاء» بالإنجليزية؟",
-      "opts": ["police officer", "firefighter", "farmer", "pilot"],
+      "opts": [
+        "police officer",
+        "firefighter",
+        "farmer",
+        "pilot"
+      ],
       "correct": 1
     },
     {
       "t": "tf",
       "q": "نضع an قبل الكلمة التي تبدأ بصوت علة مثل an actor.",
-      "opts": ["صح", "خطأ"],
+      "opts": [
+        "صح",
+        "خطأ"
+      ],
       "correct": 0
     },
     {
       "t": "mcq",
       "q": "أين يعمل الطاهي؟ A chef works in a ......",
-      "opts": ["hospital", "garage", "restaurant", "fire station"],
+      "opts": [
+        "hospital",
+        "garage",
+        "restaurant",
+        "fire station"
+      ],
       "correct": 2
     },
     {
@@ -99,30 +145,71 @@
     {
       "t": "mcq",
       "q": "السؤال المناسب للجواب: He's a pilot.",
-      "opts": ["Where does he work?", "What does he do?", "What does he like?", "How old is he?"],
+      "opts": [
+        "Where does he work?",
+        "What does he do?",
+        "What does he like?",
+        "How old is he?"
+      ],
       "correct": 1
     },
     {
       "t": "tf",
       "q": "الجملة He's doctor صحيحة.",
-      "opts": ["صح", "خطأ"],
+      "opts": [
+        "صح",
+        "خطأ"
+      ],
       "correct": 1
     },
     {
       "t": "mcq",
       "q": "الشخص الذي يصلح السيارات هو",
-      "opts": ["a baker", "a mechanic", "a dentist", "a postman"],
+      "opts": [
+        "a baker",
+        "a mechanic",
+        "a dentist",
+        "a postman"
+      ],
       "correct": 1
     }
   ],
   "story": [
-    { "v": "🚌", "t": "في الحافلة المدرسية سأل المعلم فهد: What does your father do? فكّر فهد كيف يقولها بالإنجليزية." },
-    { "v": "🔧", "t": "أجاب: He's a mechanic. He works in a garage. ابتسم المعلم: Great! A mechanic fixes cars." },
-    { "v": "🏥", "t": "قال زميله عبدالله: My mother is a nurse. She works in a hospital. وقالت أخرى: My uncle is an engineer!" },
-    { "v": "🤔", "t": "تساءل فهد: an engineer وليس a engineer؟ شرح المعلم: engineer تبدأ بصوت علة، فنقول an." },
-    { "v": "🚒", "t": "مرّت الحافلة بمحطة إطفاء، فصاح الجميع: A firefighter works at a fire station! وأشاروا إلى الشاحنة الحمراء." },
-    { "v": "🧑‍🏫", "t": "سأل فهد معلمه: What do you do? ضحك المعلم: I'm a teacher, of course! And you are a great student." },
-    { "v": "🌟", "t": "كل مهنة تخدم الناس، وكل عامل يستحق الاحترام. أحسنت يا فهد!" }
+    {
+      "v": "🚌",
+      "t": "في الحافلة المدرسية سأل المعلم فهد: What does your father do? فكّر فهد كيف يقولها بالإنجليزية.",
+      "n": "فِي الْحَافِلَةِ الْمَدْرَسِيَّةِ سَأَلَ الْمُعَلِّمُ فَهْدَ: What does your father do? فَكَّرَ فَهْدٌ كَيْفَ يَقُولُهَا بِالْإِنْجِلِيزِيَّةْ."
+    },
+    {
+      "v": "🔧",
+      "t": "أجاب: He's a mechanic. He works in a garage. ابتسم المعلم: Great! A mechanic fixes cars.",
+      "n": "أَجَابَ: He's a mechanic. He works in a garage. ابْتَسَمَ الْمُعَلِّمُ: Great! A mechanic fixes cars."
+    },
+    {
+      "v": "🏥",
+      "t": "قال زميله عبدالله: My mother is a nurse. She works in a hospital. وقالت أخرى: My uncle is an engineer!",
+      "n": "قَالَ زَمِيلُهُ عَبْدُاللَّهِ: My mother is a nurse. She works in a hospital. وَقَالَتْ أُخْرَى: My uncle is an engineer!"
+    },
+    {
+      "v": "🤔",
+      "t": "تساءل فهد: an engineer وليس a engineer؟ شرح المعلم: engineer تبدأ بصوت علة، فنقول an.",
+      "n": "تَسَاءَلَ فَهْدٌ: an engineer وَلَيْسَ a engineer؟ شَرَحَ الْمُعَلِّمُ: engineer تَبْدَأُ بِصَوْتِ عِلَّةٍ، فَنَقُولُ an."
+    },
+    {
+      "v": "🚒",
+      "t": "مرّت الحافلة بمحطة إطفاء، فصاح الجميع: A firefighter works at a fire station! وأشاروا إلى الشاحنة الحمراء.",
+      "n": "مَرَّتِ الْحَافِلَةُ بِمَحَطَّةِ إِطْفَاءٍ، فَصَاحَ الْجَمِيعُ: A firefighter works at a fire station! وَأَشَارُوا إِلَى الشَّاحِنَةِ الْحَمْرَاءْ."
+    },
+    {
+      "v": "🧑‍🏫",
+      "t": "سأل فهد معلمه: What do you do? ضحك المعلم: I'm a teacher, of course! And you are a great student.",
+      "n": "سَأَلَ فَهْدٌ مُعَلِّمَهُ: What do you do? ضَحِكَ الْمُعَلِّمُ: I'm a teacher, of course! And you are a great student."
+    },
+    {
+      "v": "🌟",
+      "t": "كل مهنة تخدم الناس، وكل عامل يستحق الاحترام. أحسنت يا فهد!",
+      "n": "كُلُّ مِهْنَةٍ تَخْدُمُ النَّاسَ، وَكُلُّ عَامِلٍ يَسْتَحِقُّ الِاحْتِرَامْ. أَحْسَنْتَ يَا فَهْدْ!"
+    }
   ],
   "activity": "اكتب أسماء ثلاثة أشخاص تعرفهم ومهنة كل واحد ومكان عمله بالإنجليزية بجملتين: My uncle is a doctor. He works in a hospital. ثم اسأل زميلك: What does he do? عن أحدهم.",
   "summary": "تعلّمنا أسماء المهن في المجتمع مثل doctor وfirefighter وmechanic، والسؤال What does he/she do? والجواب He's a…، واستخدام a وan، وأماكن العمل مثل hospital وgarage وfarm."

@@ -56,27 +56,60 @@
     }
   ],
   "vocab": [
-    { "t": "family", "d": "العائلة: الأب والأم والإخوة والأقارب" },
-    { "t": "grandfather", "d": "الجد: والد الأب أو الأم" },
-    { "t": "aunt", "d": "العمة أو الخالة" },
-    { "t": "cousin", "d": "ابن العم أو الخال أو بنتهما" },
-    { "t": "photo", "d": "الصورة الفوتوغرافية" },
-    { "t": "Who's this?", "d": "سؤال معناه: من هذا؟" }
+    {
+      "t": "family",
+      "d": "العائلة: الأب والأم والإخوة والأقارب"
+    },
+    {
+      "t": "grandfather",
+      "d": "الجد: والد الأب أو الأم"
+    },
+    {
+      "t": "aunt",
+      "d": "العمة أو الخالة"
+    },
+    {
+      "t": "cousin",
+      "d": "ابن العم أو الخال أو بنتهما"
+    },
+    {
+      "t": "photo",
+      "d": "الصورة الفوتوغرافية"
+    },
+    {
+      "t": "Who's this?",
+      "d": "سؤال معناه: من هذا؟"
+    }
   ],
   "checks": [
     {
       "q": "كلمة grandmother تعني؟",
-      "opts": ["الأم", "الجدة", "الأخت", "الخالة"],
+      "opts": [
+        "الأم",
+        "الجدة",
+        "الأخت",
+        "الخالة"
+      ],
       "correct": 1
     },
     {
       "q": "أي جملة تصف الأخت بشكل صحيح؟",
-      "opts": ["This is my sister. He's eight.", "This is my sister. She's eight.", "This is my brother. She's eight.", "These is my sister."],
+      "opts": [
+        "This is my sister. He's eight.",
+        "This is my sister. She's eight.",
+        "This is my brother. She's eight.",
+        "These is my sister."
+      ],
       "correct": 1
     },
     {
       "q": "ماذا نسأل لمعرفة الشخص في الصورة؟",
-      "opts": ["How old are you?", "What's this?", "Who's this?", "Where is it?"],
+      "opts": [
+        "How old are you?",
+        "What's this?",
+        "Who's this?",
+        "Where is it?"
+      ],
       "correct": 2
     }
   ],
@@ -84,25 +117,43 @@
     {
       "t": "mcq",
       "q": "أخو أبي يُسمّى بالإنجليزية؟",
-      "opts": ["uncle", "aunt", "cousin", "brother"],
+      "opts": [
+        "uncle",
+        "aunt",
+        "cousin",
+        "brother"
+      ],
       "correct": 0
     },
     {
       "t": "mcq",
       "q": "This is my mother. ...... a doctor.",
-      "opts": ["He's", "It's", "She's", "They"],
+      "opts": [
+        "He's",
+        "It's",
+        "She's",
+        "They"
+      ],
       "correct": 2
     },
     {
       "t": "tf",
       "q": "كلمة cousin تعني ابن العم أو ابن الخال.",
-      "opts": ["صح", "خطأ"],
+      "opts": [
+        "صح",
+        "خطأ"
+      ],
       "correct": 0
     },
     {
       "t": "mcq",
       "q": "الكلمة التي تعني «طفل رضيع»؟",
-      "opts": ["boy", "baby", "brother", "dad"],
+      "opts": [
+        "boy",
+        "baby",
+        "brother",
+        "dad"
+      ],
       "correct": 1
     },
     {
@@ -113,24 +164,60 @@
     {
       "t": "tf",
       "q": "نستخدم She's مع كلمة father.",
-      "opts": ["صح", "خطأ"],
+      "opts": [
+        "صح",
+        "خطأ"
+      ],
       "correct": 1
     },
     {
       "t": "mcq",
       "q": "Who's this? — ...... my aunt.",
-      "opts": ["He's", "This is", "Find", "How"],
+      "opts": [
+        "He's",
+        "This is",
+        "Find",
+        "How"
+      ],
       "correct": 1
     }
   ],
   "story": [
-    { "v": "📸", "t": "طلب المعلم من الطلاب إحضار صورة عائلية. اختار ريان صورة العيد الماضي وفيها كل العائلة." },
-    { "v": "👨‍👩‍👦", "t": "وقف ريان أمام الفصل وأشار: This is my father, and this is my mother." },
-    { "v": "👴", "t": "ثم أشار إلى رجل يبتسم في الوسط: This is my grandfather. He's seventy years old." },
-    { "v": "❓", "t": "سأل زميله: Who's this? فأجاب ريان: He's my uncle Khalid. He's a teacher." },
-    { "v": "👧", "t": "وقال عن الطفلة الصغيرة: This is my cousin Jood. She's four. She's a baby… no, she's not a baby now!" },
-    { "v": "😄", "t": "ضحك الفصل، وعدّ ريان إخوته: I have two brothers and one sister." },
-    { "v": "🌟", "t": "قال المعلم: Great job, Rayan! ألبوم صور واحد علّمنا العائلة كلها. أحسنت!" }
+    {
+      "v": "📸",
+      "t": "طلب المعلم من الطلاب إحضار صورة عائلية. اختار ريان صورة العيد الماضي وفيها كل العائلة.",
+      "n": "طَلَبَ الْمُعَلِّمُ مِنَ الطُّلَّابِ إِحْضَارَ صُورَةٍ عَائِلِيَّةٍ. اخْتَارَ رَيَّانُ صُورَةَ الْعِيدِ الْمَاضِي وَفِيهَا كُلُّ الْعَائِلَةِ."
+    },
+    {
+      "v": "👨‍👩‍👦",
+      "t": "وقف ريان أمام الفصل وأشار: This is my father, and this is my mother.",
+      "n": "وَقَفَ رَيَّانُ أَمَامَ الْفَصْلِ وَأَشَارَ: This is my father, and this is my mother."
+    },
+    {
+      "v": "👴",
+      "t": "ثم أشار إلى رجل يبتسم في الوسط: This is my grandfather. He's seventy years old.",
+      "n": "ثُمَّ أَشَارَ إِلَى رَجُلٍ يَبْتَسِمُ فِي الْوَسَطِ: This is my grandfather. He's seventy years old."
+    },
+    {
+      "v": "❓",
+      "t": "سأل زميله: Who's this? فأجاب ريان: He's my uncle Khalid. He's a teacher.",
+      "n": "سَأَلَ زَمِيلُهُ: Who's this? فَأَجَابَ رَيَّانُ: He's my uncle Khalid. He's a teacher."
+    },
+    {
+      "v": "👧",
+      "t": "وقال عن الطفلة الصغيرة: This is my cousin Jood. She's four. She's a baby… no, she's not a baby now!",
+      "n": "وَقَالَ عَنِ الطِّفْلَةِ الصَّغِيرَةِ: This is my cousin Jood. She's four. She's a baby… no, she's not a baby now!"
+    },
+    {
+      "v": "😄",
+      "t": "ضحك الفصل، وعدّ ريان إخوته: I have two brothers and one sister.",
+      "n": "ضَحِكَ الْفَصْلُ، وَعَدَّ رَيَّانُ إِخْوَتَهُ: I have two brothers and one sister."
+    },
+    {
+      "v": "🌟",
+      "t": "قال المعلم: Great job, Rayan! ألبوم صور واحد علّمنا العائلة كلها. أحسنت!",
+      "n": "قَالَ الْمُعَلِّمُ: Great job, Rayan! أَلْبُومُ صُوَرٍ وَاحِدٌ عَلَّمَنَا الْعَائِلَةَ كُلَّهَا. أَحْسَنْتَ!"
+    }
   ],
   "activity": "ارسم شجرة عائلتك الصغيرة (الجد، الجدة، الأب، الأم، الإخوة) واكتب تحت كل فرد اسمه بالإنجليزية، ثم قدّم عائلتك لزميلك بجمل مثل: This is my grandmother. She's kind.",
   "summary": "نسمّي أفراد العائلة بالإنجليزية مثل father و mother و grandfather و uncle و cousin، ونقدّمهم بعبارة This is my… ونصف الذكور بـ He's والإناث بـ She's."

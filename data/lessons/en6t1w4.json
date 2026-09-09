@@ -50,27 +50,60 @@
     }
   ],
   "vocab": [
-    { "t": "whale", "d": "الحوت، أكبر حيوان في البحر" },
-    { "t": "dolphin", "d": "الدلفين، حيوان ذكي يقفز فوق الماء" },
-    { "t": "octopus", "d": "الأخطبوط، له ثماني أذرع" },
-    { "t": "shell", "d": "الصدفة الصلبة التي تحمي السلحفاة" },
-    { "t": "ocean", "d": "المحيط، بحر واسع وعميق جداً" },
-    { "t": "huge", "d": "ضخم جداً" }
+    {
+      "t": "whale",
+      "d": "الحوت، أكبر حيوان في البحر"
+    },
+    {
+      "t": "dolphin",
+      "d": "الدلفين، حيوان ذكي يقفز فوق الماء"
+    },
+    {
+      "t": "octopus",
+      "d": "الأخطبوط، له ثماني أذرع"
+    },
+    {
+      "t": "shell",
+      "d": "الصدفة الصلبة التي تحمي السلحفاة"
+    },
+    {
+      "t": "ocean",
+      "d": "المحيط، بحر واسع وعميق جداً"
+    },
+    {
+      "t": "huge",
+      "d": "ضخم جداً"
+    }
   ],
   "checks": [
     {
       "q": "«سلحفاة» بالإنجليزية:",
-      "opts": ["crab", "turtle", "shark", "whale"],
+      "opts": [
+        "crab",
+        "turtle",
+        "shark",
+        "whale"
+      ],
       "correct": 1
     },
     {
       "q": "أكمل: The whale is ...... than the dolphin.",
-      "opts": ["big", "more big", "bigger", "biggest"],
+      "opts": [
+        "big",
+        "more big",
+        "bigger",
+        "biggest"
+      ],
       "correct": 2
     },
     {
       "q": "الكائن الذي له ثماني أذرع:",
-      "opts": ["octopus", "jellyfish", "starfish", "seahorse"],
+      "opts": [
+        "octopus",
+        "jellyfish",
+        "starfish",
+        "seahorse"
+      ],
       "correct": 0
     }
   ],
@@ -78,25 +111,43 @@
     {
       "t": "mcq",
       "q": "الجملة الصحيحة:",
-      "opts": ["The dolphin is fast than the turtle.", "The dolphin is faster than the turtle.", "The dolphin is faster the turtle.", "The dolphin is more faster than the turtle."],
+      "opts": [
+        "The dolphin is fast than the turtle.",
+        "The dolphin is faster than the turtle.",
+        "The dolphin is faster the turtle.",
+        "The dolphin is more faster than the turtle."
+      ],
       "correct": 1
     },
     {
       "t": "tf",
       "q": "The octopus has a hard shell.",
-      "opts": ["صح", "خطأ"],
+      "opts": [
+        "صح",
+        "خطأ"
+      ],
       "correct": 1
     },
     {
       "t": "mcq",
       "q": "صيغة المقارنة من small هي:",
-      "opts": ["smaller", "smallest", "more small", "smallier"],
+      "opts": [
+        "smaller",
+        "smallest",
+        "more small",
+        "smallier"
+      ],
       "correct": 0
     },
     {
       "t": "mcq",
       "q": "الكائن الذي يمشي جانبياً:",
-      "opts": ["whale", "seahorse", "crab", "jellyfish"],
+      "opts": [
+        "whale",
+        "seahorse",
+        "crab",
+        "jellyfish"
+      ],
       "correct": 2
     },
     {
@@ -107,24 +158,60 @@
     {
       "t": "tf",
       "q": "The whale is bigger than the crab.",
-      "opts": ["صح", "خطأ"],
+      "opts": [
+        "صح",
+        "خطأ"
+      ],
       "correct": 0
     },
     {
       "t": "mcq",
       "q": "«محيط» بالإنجليزية:",
-      "opts": ["sea", "sand", "shell", "ocean"],
+      "opts": [
+        "sea",
+        "sand",
+        "shell",
+        "ocean"
+      ],
       "correct": 3
     }
   ],
   "story": [
-    { "v": "🌊", "t": "زار ريان مع عائلته حوض الأسماك الكبير في جدة. أول ما رآه كان سلحفاة تسبح ببطء: A turtle! It has a hard shell." },
-    { "v": "🐬", "t": "ثم قفز dolphin فوق الماء. صاح ريان: The dolphin is faster than the turtle! فضحكت أخته نورة." },
-    { "v": "🐙", "t": "وفي حوض مظلم تحرّك octopus بأذرعه الثماني. عدّها ريان: One, two… eight arms!" },
-    { "v": "🦈", "t": "مرّ shark ببطء وأسنانه تلمع. همس ريان: It has sharp teeth. It is longer than the seahorse." },
-    { "v": "🐋", "t": "على شاشة كبيرة ظهر whale ضخم. قرأ ريان اللوحة: The whale is the biggest animal in the sea. It is huge!" },
-    { "v": "🦀", "t": "عند الخروج رأى crab صغيراً يمشي جانبياً على الرمل. قال ريان: The crab is smaller than the octopus." },
-    { "v": "🌟", "t": "عاد ريان وهو يقارن كل كائن بالآخر: bigger, faster, smaller. أحسنت!" }
+    {
+      "v": "🌊",
+      "t": "زار ريان مع عائلته حوض الأسماك الكبير في جدة. أول ما رآه كان سلحفاة تسبح ببطء: A turtle! It has a hard shell.",
+      "n": "زَارَ رَيَّانُ مَعَ عَائِلَتِهِ حَوْضَ الْأَسْمَاكِ الْكَبِيرَ فِي جَدَّةْ. أَوَّلُ مَا رَآهُ كَانَ سُلَحْفَاةً تَسْبَحُ بِبُطْءٍ: A turtle! It has a hard shell."
+    },
+    {
+      "v": "🐬",
+      "t": "ثم قفز dolphin فوق الماء. صاح ريان: The dolphin is faster than the turtle! فضحكت أخته نورة.",
+      "n": "ثُمَّ قَفَزَ dolphin فَوْقَ الْمَاءْ. صَاحَ رَيَّانُ: The dolphin is faster than the turtle! فَضَحِكَتْ أُخْتُهُ نُورَةْ."
+    },
+    {
+      "v": "🐙",
+      "t": "وفي حوض مظلم تحرّك octopus بأذرعه الثماني. عدّها ريان: One, two… eight arms!",
+      "n": "وَفِي حَوْضٍ مُظْلِمٍ تَحَرَّكَ octopus بِأَذْرُعِهِ الثَّمَانِي. عَدَّهَا رَيَّانُ: One, two… eight arms!"
+    },
+    {
+      "v": "🦈",
+      "t": "مرّ shark ببطء وأسنانه تلمع. همس ريان: It has sharp teeth. It is longer than the seahorse.",
+      "n": "مَرَّ shark بِبُطْءٍ وَأَسْنَانُهُ تَلْمَعْ. هَمَسَ رَيَّانُ: It has sharp teeth. It is longer than the seahorse."
+    },
+    {
+      "v": "🐋",
+      "t": "على شاشة كبيرة ظهر whale ضخم. قرأ ريان اللوحة: The whale is the biggest animal in the sea. It is huge!",
+      "n": "عَلَى شَاشَةٍ كَبِيرَةٍ ظَهَرَ whale ضَخْمْ. قَرَأَ رَيَّانُ اللَّوْحَةَ: The whale is the biggest animal in the sea. It is huge!"
+    },
+    {
+      "v": "🦀",
+      "t": "عند الخروج رأى crab صغيراً يمشي جانبياً على الرمل. قال ريان: The crab is smaller than the octopus.",
+      "n": "عِنْدَ الْخُرُوجِ رَأَى crab صَغِيرًا يَمْشِي جَانِبِيًّا عَلَى الرَّمْلْ. قَالَ رَيَّانُ: The crab is smaller than the octopus."
+    },
+    {
+      "v": "🌟",
+      "t": "عاد ريان وهو يقارن كل كائن بالآخر: bigger, faster, smaller. أحسنت!",
+      "n": "عَادَ رَيَّانُ وَهُوَ يُقَارِنُ كُلَّ كَائِنٍ بِالْآخَرِ: bigger, faster, smaller. أَحْسَنْتَ!"
+    }
   ],
   "activity": "ارسم ثلاثة كائنات بحرية بأحجام مختلفة، واكتب تحت كل رسمة اسمها بالإنجليزية، ثم اكتب ثلاث جمل مقارنة مثل: The whale is bigger than the fish.",
   "summary": "تعرّفنا على كائنات البحر مثل whale وdolphin وoctopus وturtle، ووصفناها بصفات مثل huge وsharp، وقارنّا بينها بإضافة er إلى الصفة ثم than: The whale is bigger than the dolphin."

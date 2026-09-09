@@ -52,27 +52,60 @@
     }
   ],
   "vocab": [
-    { "t": "medicine", "d": "دواء: يأخذه المريض ليشفى" },
-    { "t": "check", "d": "يفحص: يتأكد من حالة الشيء أو الشخص" },
-    { "t": "finish", "d": "ينهي: يصل إلى نهاية العمل" },
-    { "t": "service", "d": "خدمة: عمل يُقدَّم لمساعدة الناس" },
-    { "t": "municipality", "d": "البلدية: الجهة التي تهتم بنظافة المدينة وشوارعها" },
-    { "t": "grow up", "d": "يكبر: يصبح بالغاً" }
+    {
+      "t": "medicine",
+      "d": "دواء: يأخذه المريض ليشفى"
+    },
+    {
+      "t": "check",
+      "d": "يفحص: يتأكد من حالة الشيء أو الشخص"
+    },
+    {
+      "t": "finish",
+      "d": "ينهي: يصل إلى نهاية العمل"
+    },
+    {
+      "t": "service",
+      "d": "خدمة: عمل يُقدَّم لمساعدة الناس"
+    },
+    {
+      "t": "municipality",
+      "d": "البلدية: الجهة التي تهتم بنظافة المدينة وشوارعها"
+    },
+    {
+      "t": "grow up",
+      "d": "يكبر: يصبح بالغاً"
+    }
   ],
   "checks": [
     {
       "q": "drive + r = ؟",
-      "opts": ["driveer", "driver", "drivor", "driving"],
+      "opts": [
+        "driveer",
+        "driver",
+        "drivor",
+        "driving"
+      ],
       "correct": 1
     },
     {
       "q": "بحسب النص، متى تبدأ سارة عملها؟",
-      "opts": ["At 3 o'clock", "At 7 o'clock", "At 9 o'clock", "At 12 o'clock"],
+      "opts": [
+        "At 3 o'clock",
+        "At 7 o'clock",
+        "At 9 o'clock",
+        "At 12 o'clock"
+      ],
       "correct": 1
     },
     {
       "q": "الجهة التي يعمل فيها رجال الإطفاء",
-      "opts": ["البلدية", "المدرسة", "الدفاع المدني", "المستشفى"],
+      "opts": [
+        "البلدية",
+        "المدرسة",
+        "الدفاع المدني",
+        "المستشفى"
+      ],
       "correct": 2
     }
   ],
@@ -80,19 +113,32 @@
     {
       "t": "mcq",
       "q": "اسم المهنة من الفعل act هو",
-      "opts": ["acter", "actor", "acting", "actist"],
+      "opts": [
+        "acter",
+        "actor",
+        "acting",
+        "actist"
+      ],
       "correct": 1
     },
     {
       "t": "tf",
       "q": "كلمة Finally تعني «أولاً».",
-      "opts": ["صح", "خطأ"],
+      "opts": [
+        "صح",
+        "خطأ"
+      ],
       "correct": 1
     },
     {
       "t": "mcq",
       "q": "بحسب النص، ماذا تفعل سارة أولاً؟",
-      "opts": ["She gives medicine.", "She checks the patients.", "She talks to the doctor.", "She goes home."],
+      "opts": [
+        "She gives medicine.",
+        "She checks the patients.",
+        "She talks to the doctor.",
+        "She goes home."
+      ],
       "correct": 1
     },
     {
@@ -103,30 +149,71 @@
     {
       "t": "mcq",
       "q": "الجهة التي تحافظ على نظافة المدينة وحدائقها",
-      "opts": ["hospital", "municipality", "police", "airport"],
+      "opts": [
+        "hospital",
+        "municipality",
+        "police",
+        "airport"
+      ],
       "correct": 1
     },
     {
       "t": "tf",
       "q": "نضيف er إلى كل الأفعال لصنع أسماء المهن دون استثناء.",
-      "opts": ["صح", "خطأ"],
+      "opts": [
+        "صح",
+        "خطأ"
+      ],
       "correct": 1
     },
     {
       "t": "mcq",
       "q": "الجملة الأنسب لبداية فقرة My future job؟",
-      "opts": ["I use a computer.", "When I grow up, I want to be an engineer.", "Roads are safe.", "Thank you."],
+      "opts": [
+        "I use a computer.",
+        "When I grow up, I want to be an engineer.",
+        "Roads are safe.",
+        "Thank you."
+      ],
       "correct": 1
     }
   ],
   "story": [
-    { "v": "📖", "t": "قرأ ريان نصاً عن الممرضة سارة، ورتّب يومها: First… Then… Finally… فأعجبه أن لكل عمل نظاماً." },
-    { "v": "🔤", "t": "في تمرين Word Work كتب: teach → teacher، drive → driver، ثم توقف عند act… فكتب actor بـ or كما قال المعلم." },
-    { "v": "🚶", "t": "في طريق عودته رأى عامل النظافة يكنس الشارع، فقال له: Thank you! فابتسم العامل ولوّح له." },
-    { "v": "🚓", "t": "عند الإشارة رأى شرطي المرور ينظّم السير، وتذكّر: A police officer keeps people safe. كلها خدمات للمجتمع!" },
-    { "v": "✍️", "t": "في البيت كتب فقرته: When I grow up, I want to be a doctor because I like helping people. I will work in a hospital." },
-    { "v": "👨‍👩‍👦", "t": "قرأ الفقرة على والده فقال: Great job, Rayan! ثم أضاف ريان جملة أخيرة: I will help my country." },
-    { "v": "🌟", "t": "من يحترم كل مهنة يستحق مهنة يفخر بها. أحسنت يا ريان!" }
+    {
+      "v": "📖",
+      "t": "قرأ ريان نصاً عن الممرضة سارة، ورتّب يومها: First… Then… Finally… فأعجبه أن لكل عمل نظاماً.",
+      "n": "قَرَأَ رَيَّانُ نَصّاً عَنِ الْمُمَرِّضَةِ سَارَةَ، وَرَتَّبَ يَوْمَهَا: First… Then… Finally… فَأَعْجَبَهُ أَنَّ لِكُلِّ عَمَلٍ نِظَاماً."
+    },
+    {
+      "v": "🔤",
+      "t": "في تمرين Word Work كتب: teach → teacher، drive → driver، ثم توقف عند act… فكتب actor بـ or كما قال المعلم.",
+      "n": "فِي تَمْرِينِ Word Work كَتَبَ: teach → teacher، drive → driver، ثُمَّ تَوَقَّفَ عِنْدَ act… فَكَتَبَ actor بِـ or كَمَا قَالَ الْمُعَلِّمُ."
+    },
+    {
+      "v": "🚶",
+      "t": "في طريق عودته رأى عامل النظافة يكنس الشارع، فقال له: Thank you! فابتسم العامل ولوّح له.",
+      "n": "فِي طَرِيقِ عَوْدَتِهِ رَأَى عَامِلَ النَّظَافَةِ يَكْنُسُ الشَّارِعَ، فَقَالَ لَهُ: Thank you! فَابْتَسَمَ الْعَامِلُ وَلَوَّحَ لَهُ."
+    },
+    {
+      "v": "🚓",
+      "t": "عند الإشارة رأى شرطي المرور ينظّم السير، وتذكّر: A police officer keeps people safe. كلها خدمات للمجتمع!",
+      "n": "عِنْدَ الْإِشَارَةِ رَأَى شُرْطِيَّ الْمُرُورِ يُنَظِّمُ السَّيْرَ، وَتَذَكَّرَ: A police officer keeps people safe. كُلُّهَا خَدَمَاتٌ لِلْمُجْتَمَعِ!"
+    },
+    {
+      "v": "✍️",
+      "t": "في البيت كتب فقرته: When I grow up, I want to be a doctor because I like helping people. I will work in a hospital.",
+      "n": "فِي الْبَيْتِ كَتَبَ فِقْرَتَهُ: When I grow up, I want to be a doctor because I like helping people. I will work in a hospital."
+    },
+    {
+      "v": "👨‍👩‍👦",
+      "t": "قرأ الفقرة على والده فقال: Great job, Rayan! ثم أضاف ريان جملة أخيرة: I will help my country.",
+      "n": "قَرَأَ الْفِقْرَةَ عَلَى وَالِدِهِ فَقَالَ: Great job, Rayan! ثُمَّ أَضَافَ رَيَّانُ جُمْلَةً أَخِيرَةً: I will help my country."
+    },
+    {
+      "v": "🌟",
+      "t": "من يحترم كل مهنة يستحق مهنة يفخر بها. أحسنت يا ريان!",
+      "n": "مَنْ يَحْتَرِمْ كُلَّ مِهْنَةٍ يَسْتَحِقَّ مِهْنَةً يَفْخَرُ بِهَا. أَحْسَنْتَ يَا رَيَّان!"
+    }
   ],
   "activity": "اكتب فقرة من خمس جمل بعنوان My future job تذكر فيها المهنة والسبب ومكان العمل وكيف تخدم مجتمعك، ثم حوّل خمسة أفعال إلى أسماء مهن بإضافة er أو or.",
   "summary": "قرأنا عن يوم في حياة ممرضة ورتّبنا أحداثه بكلمات First وThen وFinally، وتعلّمنا صنع أسماء المهن باللاحقة er/or، وكتبنا فقرة عن مهنة المستقبل. وتعرّفنا على جهات الخدمات في مجتمعنا كالمستشفى والدفاع المدني والبلدية."

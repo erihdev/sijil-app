@@ -50,27 +50,57 @@
     }
   ],
   "vocab": [
-    { "t": "where", "d": "أين" },
-    { "t": "at home", "d": "في البيت" },
-    { "t": "at school", "d": "في المدرسة" },
-    { "t": "queen", "d": "ملكة — تبدأ بصوت /kw/" },
-    { "t": "rabbit", "d": "أرنب — يبدأ بصوت /r/" },
-    { "t": "sun", "d": "شمس — تبدأ بصوت /s/" }
+    {
+      "t": "where",
+      "d": "أين"
+    },
+    {
+      "t": "at home",
+      "d": "في البيت"
+    },
+    {
+      "t": "at school",
+      "d": "في المدرسة"
+    },
+    {
+      "t": "queen",
+      "d": "ملكة — تبدأ بصوت /kw/"
+    },
+    {
+      "t": "rabbit",
+      "d": "أرنب — يبدأ بصوت /r/"
+    },
+    {
+      "t": "sun",
+      "d": "شمس — تبدأ بصوت /s/"
+    }
   ],
   "checks": [
     {
       "q": "الرد على Where were you yesterday?",
-      "opts": ["I was at home", "I am eight", "It is sunny"],
+      "opts": [
+        "I was at home",
+        "I am eight",
+        "It is sunny"
+      ],
       "correct": 0
     },
     {
       "q": "كلمة تبدأ بصوت /r/؟",
-      "opts": ["sun", "rabbit", "queen"],
+      "opts": [
+        "sun",
+        "rabbit",
+        "queen"
+      ],
       "correct": 1
     },
     {
       "q": "معنى at school؟",
-      "opts": ["في البيت", "في الحديقة", "في المدرسة"],
+      "opts": [
+        "في البيت",
+        "في الحديقة",
+        "في المدرسة"
+      ],
       "correct": 2
     }
   ],
@@ -78,25 +108,40 @@
     {
       "t": "mcq",
       "q": "أكمل: Where ...... you yesterday?",
-      "opts": ["was", "were", "is"],
+      "opts": [
+        "was",
+        "were",
+        "is"
+      ],
       "correct": 1
     },
     {
       "t": "tf",
       "q": "sun تبدأ بصوت /s/.",
-      "opts": ["صح", "خطأ"],
+      "opts": [
+        "صح",
+        "خطأ"
+      ],
       "correct": 0
     },
     {
       "t": "mcq",
       "q": "I was at the ...... (الحديقة)",
-      "opts": ["park", "home", "school"],
+      "opts": [
+        "park",
+        "home",
+        "school"
+      ],
       "correct": 0
     },
     {
       "t": "mcq",
       "q": "اليوم الذي يأتي قبل Saturday؟",
-      "opts": ["Sunday", "Thursday", "Friday"],
+      "opts": [
+        "Sunday",
+        "Thursday",
+        "Friday"
+      ],
       "correct": 2
     },
     {
@@ -107,24 +152,59 @@
     {
       "t": "tf",
       "q": "نقول I was at school للحديث عن اليوم الحاضر.",
-      "opts": ["صح", "خطأ"],
+      "opts": [
+        "صح",
+        "خطأ"
+      ],
       "correct": 1
     },
     {
       "t": "mcq",
       "q": "معنى It was sunny yesterday؟",
-      "opts": ["كان الجو ممطراً أمس", "الجو مشمس اليوم", "كان الجو مشمساً أمس"],
+      "opts": [
+        "كان الجو ممطراً أمس",
+        "الجو مشمس اليوم",
+        "كان الجو مشمساً أمس"
+      ],
       "correct": 2
     }
   ],
   "story": [
-    { "v": "🎶", "t": "بدأت الحصة بأنشودة الأيام: Sunday, Monday, Tuesday… وسعود يصفّق مع كل يوم." },
-    { "v": "🏠", "t": "سأل المعلم: Where were you yesterday, Saud? فأجاب: I was at home. It was rainy." },
-    { "v": "🌳", "t": "وسأل فهد فقال: I was at the park! It was sunny. فتمنى سعود لو ذهب معه." },
-    { "v": "📖", "t": "قرأ سعود النص: Yesterday was Friday. I was at home. Today is Saturday." },
-    { "v": "👑", "t": "ثم الأصوات: /kw/ queen، /r/ rabbit، /s/ sun، /t/ tiger. لاحظ سعود أن sun هي أصل sunny!" },
-    { "v": "🔁", "t": "في المراجعة رتّب سعود بطاقات الطقس على السبورة وقال: was للأمس، is لليوم." },
-    { "v": "🌟", "t": "أتقن سعود السؤال عن الأمس وأصوات أربعة حروف. أحسنت يا سعود!" }
+    {
+      "v": "🎶",
+      "t": "بدأت الحصة بأنشودة الأيام: Sunday, Monday, Tuesday… وسعود يصفّق مع كل يوم.",
+      "n": "بَدَأَتِ الْحِصَّةُ بِأُنْشُودَةِ الْأَيَّامِ: Sunday, Monday, Tuesday… وَسَعُودٌ يُصَفِّقُ مَعَ كُلِّ يَوْمٍ."
+    },
+    {
+      "v": "🏠",
+      "t": "سأل المعلم: Where were you yesterday, Saud? فأجاب: I was at home. It was rainy.",
+      "n": "سَأَلَ الْمُعَلِّمُ: Where were you yesterday, Saud? فَأَجَابَ: I was at home. It was rainy."
+    },
+    {
+      "v": "🌳",
+      "t": "وسأل فهد فقال: I was at the park! It was sunny. فتمنى سعود لو ذهب معه.",
+      "n": "وَسَأَلَ فَهْدٌ فَقَالَ: I was at the park! It was sunny. فَتَمَنَّى سَعُودٌ لَوْ ذَهَبَ مَعَهُ."
+    },
+    {
+      "v": "📖",
+      "t": "قرأ سعود النص: Yesterday was Friday. I was at home. Today is Saturday.",
+      "n": "قَرَأَ سَعُودٌ النَّصَّ: Yesterday was Friday. I was at home. Today is Saturday."
+    },
+    {
+      "v": "👑",
+      "t": "ثم الأصوات: /kw/ queen، /r/ rabbit، /s/ sun، /t/ tiger. لاحظ سعود أن sun هي أصل sunny!",
+      "n": "ثُمَّ الْأَصْوَاتُ: /kw/ queen، /r/ rabbit، /s/ sun، /t/ tiger. لَاحَظَ سَعُودٌ أَنَّ sun هِيَ أَصْلُ sunny!"
+    },
+    {
+      "v": "🔁",
+      "t": "في المراجعة رتّب سعود بطاقات الطقس على السبورة وقال: was للأمس، is لليوم.",
+      "n": "فِي الْمُرَاجَعَةِ رَتَّبَ سَعُودٌ بِطَاقَاتِ الطَّقْسِ عَلَى السَّبُّورَةِ وَقَالَ: was لِلْأَمْسِ، is لِلْيَوْمِ."
+    },
+    {
+      "v": "🌟",
+      "t": "أتقن سعود السؤال عن الأمس وأصوات أربعة حروف. أحسنت يا سعود!",
+      "n": "أَتْقَنَ سَعُودٌ السُّؤَالَ عَنِ الْأَمْسِ وَأَصْوَاتَ أَرْبَعَةِ حُرُوفٍ. أَحْسَنْتَ يَا سَعُودُ!"
+    }
   ],
   "activity": "اسأل زميلك: Where were you yesterday? وسجّل جوابه: He was at… ثم اكتب كلمة لكل حرف: q, r, s, t وارسمها.",
   "summary": "نسأل Where were you yesterday? ونجيب I was at home. ونردّد أيام الأسبوع، ونطقنا الأصوات /kw/ queen، /r/ rabbit، /s/ sun، /t/ tiger."

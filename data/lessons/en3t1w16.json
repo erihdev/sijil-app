@@ -51,27 +51,57 @@
     }
   ],
   "vocab": [
-    { "t": "hospital", "d": "مستشفى" },
-    { "t": "airport", "d": "مطار" },
-    { "t": "farm", "d": "مزرعة" },
-    { "t": "umbrella", "d": "مظلة — تبدأ بصوت /u/" },
-    { "t": "van", "d": "شاحنة صغيرة — تبدأ بصوت /v/" },
-    { "t": "zebra", "d": "حمار وحشي — يبدأ بصوت /z/" }
+    {
+      "t": "hospital",
+      "d": "مستشفى"
+    },
+    {
+      "t": "airport",
+      "d": "مطار"
+    },
+    {
+      "t": "farm",
+      "d": "مزرعة"
+    },
+    {
+      "t": "umbrella",
+      "d": "مظلة — تبدأ بصوت /u/"
+    },
+    {
+      "t": "van",
+      "d": "شاحنة صغيرة — تبدأ بصوت /v/"
+    },
+    {
+      "t": "zebra",
+      "d": "حمار وحشي — يبدأ بصوت /z/"
+    }
   ],
   "checks": [
     {
       "q": "أين يعمل الطبيب؟",
-      "opts": ["hospital", "airport", "farm"],
+      "opts": [
+        "hospital",
+        "airport",
+        "farm"
+      ],
       "correct": 0
     },
     {
       "q": "كلمة تبدأ بصوت /z/؟",
-      "opts": ["van", "zebra", "water"],
+      "opts": [
+        "van",
+        "zebra",
+        "water"
+      ],
       "correct": 1
     },
     {
       "q": "معنى umbrella؟",
-      "opts": ["مظلة", "شاحنة صغيرة", "ماء"],
+      "opts": [
+        "مظلة",
+        "شاحنة صغيرة",
+        "ماء"
+      ],
       "correct": 0
     }
   ],
@@ -79,25 +109,40 @@
     {
       "t": "mcq",
       "q": "A pilot works at ......",
-      "opts": ["a farm", "an airport", "a school"],
+      "opts": [
+        "a farm",
+        "an airport",
+        "a school"
+      ],
       "correct": 1
     },
     {
       "t": "tf",
       "q": "كلمة box تنتهي بصوت /ks/.",
-      "opts": ["صح", "خطأ"],
+      "opts": [
+        "صح",
+        "خطأ"
+      ],
       "correct": 0
     },
     {
       "t": "mcq",
       "q": "الحرف الأول في water؟",
-      "opts": ["v", "u", "w"],
+      "opts": [
+        "v",
+        "u",
+        "w"
+      ],
       "correct": 2
     },
     {
       "t": "mcq",
       "q": "Where does he work? معناها؟",
-      "opts": ["ماذا يعمل؟", "أين يعمل؟", "متى يعمل؟"],
+      "opts": [
+        "ماذا يعمل؟",
+        "أين يعمل؟",
+        "متى يعمل؟"
+      ],
       "correct": 1
     },
     {
@@ -108,24 +153,59 @@
     {
       "t": "tf",
       "q": "المزارع farmer يعمل في hospital.",
-      "opts": ["صح", "خطأ"],
+      "opts": [
+        "صح",
+        "خطأ"
+      ],
       "correct": 1
     },
     {
       "t": "mcq",
       "q": "مراجعة: الرد بـ «نعم» على Can you swim?",
-      "opts": ["Yes, I do", "Yes, I can", "Yes, it is"],
+      "opts": [
+        "Yes, I do",
+        "Yes, I can",
+        "Yes, it is"
+      ],
       "correct": 1
     }
   ],
   "story": [
-    { "v": "🎵", "t": "ردّد الفصل أنشودة المهن: Doctor, doctor, what do you do? وفهد يمثّل الطبيب بسماعة." },
-    { "v": "🏥", "t": "قال المعلم: A doctor works at a hospital. A pilot works at an airport. وفهد يربط كل مهنة بمكانها." },
-    { "v": "📖", "t": "قرأ فهد النص: This is my uncle. He's a cook. He works at a restaurant." },
-    { "v": "☂️", "t": "ثم الأصوات: /u/ umbrella، /v/ van، /w/ water. هتف فهد: اقتربنا من نهاية الحروف!" },
-    { "v": "🦓", "t": "وأخيراً: box، yo-yo، zebra! رسم فهد zebra على السبورة وضحك الجميع." },
-    { "v": "🔁", "t": "في المراجعة تذكّر فهد الفصل كله: Hello… It's a shark… I can run… I make my bed… Yesterday was sunny…" },
-    { "v": "🌟", "t": "أنهى فهد الفصل الدراسي وهو يعرف أصوات الحروف كلها. أحسنت يا فهد!" }
+    {
+      "v": "🎵",
+      "t": "ردّد الفصل أنشودة المهن: Doctor, doctor, what do you do? وفهد يمثّل الطبيب بسماعة.",
+      "n": "رَدَّدَ الْفَصْلُ أُنْشُودَةَ الْمِهَنِ: Doctor, doctor, what do you do? وَفَهْدٌ يُمَثِّلُ الطَّبِيبَ بِسَمَّاعَةٍ."
+    },
+    {
+      "v": "🏥",
+      "t": "قال المعلم: A doctor works at a hospital. A pilot works at an airport. وفهد يربط كل مهنة بمكانها.",
+      "n": "قَالَ الْمُعَلِّمُ: A doctor works at a hospital. A pilot works at an airport. وَفَهْدٌ يَرْبِطُ كُلَّ مِهْنَةٍ بِمَكَانِهَا."
+    },
+    {
+      "v": "📖",
+      "t": "قرأ فهد النص: This is my uncle. He's a cook. He works at a restaurant.",
+      "n": "قَرَأَ فَهْدٌ النَّصَّ: This is my uncle. He's a cook. He works at a restaurant."
+    },
+    {
+      "v": "☂️",
+      "t": "ثم الأصوات: /u/ umbrella، /v/ van، /w/ water. هتف فهد: اقتربنا من نهاية الحروف!",
+      "n": "ثُمَّ الْأَصْوَاتُ: /u/ umbrella، /v/ van، /w/ water. هَتَفَ فَهْدٌ: اقْتَرَبْنَا مِنْ نِهَايَةِ الْحُرُوفِ!"
+    },
+    {
+      "v": "🦓",
+      "t": "وأخيراً: box، yo-yo، zebra! رسم فهد zebra على السبورة وضحك الجميع.",
+      "n": "وَأَخِيراً: box، yo-yo، zebra! رَسَمَ فَهْدٌ zebra عَلَى السَّبُّورَةِ وَضَحِكَ الْجَمِيعُ."
+    },
+    {
+      "v": "🔁",
+      "t": "في المراجعة تذكّر فهد الفصل كله: Hello… It's a shark… I can run… I make my bed… Yesterday was sunny…",
+      "n": "فِي الْمُرَاجَعَةِ تَذَكَّرَ فَهْدٌ الْفَصْلَ كُلَّهُ: Hello… It's a shark… I can run… I make my bed… Yesterday was sunny…"
+    },
+    {
+      "v": "🌟",
+      "t": "أنهى فهد الفصل الدراسي وهو يعرف أصوات الحروف كلها. أحسنت يا فهد!",
+      "n": "أَنْهَى فَهْدٌ الْفَصْلَ الدِّرَاسِيَّ وَهُوَ يَعْرِفُ أَصْوَاتَ الْحُرُوفِ كُلَّهَا. أَحْسَنْتَ يَا فَهْدُ!"
+    }
   ],
   "activity": "اصنع بطاقة لمهنة تحبها: ارسمها واكتب: He's a… He works at a… ثم اكتب الحروف من u إلى z مع كلمة لكل حرف.",
   "summary": "لكل مهنة مكان عمل: hospital و school و airport و farm. ونطقنا الأصوات الأخيرة umbrella و van و water و box و yo-yo و zebra، وراجعنا وحدات الفصل كلها."

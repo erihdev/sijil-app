@@ -51,27 +51,60 @@
     }
   ],
   "vocab": [
-    { "t": "characters", "d": "شخصيات القصة: من فيها" },
-    { "t": "setting", "d": "مكان القصة وزمانها" },
-    { "t": "plot", "d": "أحداث القصة من البداية إلى النهاية" },
-    { "t": "opposite", "d": "الضد: كلمة معناها عكس الأخرى" },
-    { "t": "rhyme", "d": "قافية: تشابه في نهاية الكلمات مثل cat و hat" },
-    { "t": "problem", "d": "مشكلة تحدث في وسط القصة" }
+    {
+      "t": "characters",
+      "d": "شخصيات القصة: من فيها"
+    },
+    {
+      "t": "setting",
+      "d": "مكان القصة وزمانها"
+    },
+    {
+      "t": "plot",
+      "d": "أحداث القصة من البداية إلى النهاية"
+    },
+    {
+      "t": "opposite",
+      "d": "الضد: كلمة معناها عكس الأخرى"
+    },
+    {
+      "t": "rhyme",
+      "d": "قافية: تشابه في نهاية الكلمات مثل cat و hat"
+    },
+    {
+      "t": "problem",
+      "d": "مشكلة تحدث في وسط القصة"
+    }
   ],
   "checks": [
     {
       "q": "مكان قصة The Little Boat هو؟",
-      "opts": ["the forest", "the castle", "the sea", "the village"],
+      "opts": [
+        "the forest",
+        "the castle",
+        "the sea",
+        "the village"
+      ],
       "correct": 2
     },
     {
       "q": "ضد كلمة happy هو؟",
-      "opts": ["sad", "big", "old", "weak"],
+      "opts": [
+        "sad",
+        "big",
+        "old",
+        "weak"
+      ],
       "correct": 0
     },
     {
       "q": "أي كلمة تتقافى مع cat؟",
-      "opts": ["car", "hat", "cut", "cap"],
+      "opts": [
+        "car",
+        "hat",
+        "cut",
+        "cap"
+      ],
       "correct": 1
     }
   ],
@@ -79,25 +112,43 @@
     {
       "t": "mcq",
       "q": "من أو ما الذي يحدث في القصة يُسمّى؟",
-      "opts": ["Title", "Setting", "Characters", "Plot"],
+      "opts": [
+        "Title",
+        "Setting",
+        "Characters",
+        "Plot"
+      ],
       "correct": 3
     },
     {
       "t": "mcq",
       "q": "ضد كلمة strong هو؟",
-      "opts": ["tall", "weak", "young", "little"],
+      "opts": [
+        "tall",
+        "weak",
+        "young",
+        "little"
+      ],
       "correct": 1
     },
     {
       "t": "tf",
       "q": "في القصة ساعدت السفينة الكبيرة القارب الصغير.",
-      "opts": ["صح", "خطأ"],
+      "opts": [
+        "صح",
+        "خطأ"
+      ],
       "correct": 0
     },
     {
       "t": "mcq",
       "q": "الكلمة التي تتقافى مع king هي؟",
-      "opts": ["kind", "ring", "kite", "keep"],
+      "opts": [
+        "kind",
+        "ring",
+        "kite",
+        "keep"
+      ],
       "correct": 1
     },
     {
@@ -108,24 +159,60 @@
     {
       "t": "tf",
       "q": "كلمة Setting تعني شخصيات القصة.",
-      "opts": ["صح", "خطأ"],
+      "opts": [
+        "صح",
+        "خطأ"
+      ],
       "correct": 1
     },
     {
       "t": "mcq",
       "q": "الجملة المناسبة لبداية القصة هي؟",
-      "opts": ["The end.", "Finally, they were friends.", "Once upon a time, there was a little boat.", "Then a strong wind came."],
+      "opts": [
+        "The end.",
+        "Finally, they were friends.",
+        "Once upon a time, there was a little boat.",
+        "Then a strong wind came."
+      ],
       "correct": 2
     }
   ],
   "story": [
-    { "v": "📚", "t": "أعلن المعلم مسابقة: اكتبوا قصة قصيرة بالإنجليزية! حمل ريان قلمه وفكّر: عن ماذا أكتب؟" },
-    { "v": "🐪", "t": "اختار شخصيته: a small camel، والمكان: in the desert. كتب العنوان: The Little Camel." },
-    { "v": "🌅", "t": "البداية: Once upon a time, there was a little camel. He was happy in the big desert." },
-    { "v": "🌪️", "t": "الوسط والمشكلة: Then a strong wind came. The camel was afraid and alone." },
-    { "v": "🧑‍🤝‍🧑", "t": "النهاية والحل: A kind boy helped the camel. Finally, they were friends. The end." },
-    { "v": "🔠", "t": "راجع ريان: الأضداد small/big، happy/afraid، والقافية sand/hand في آخر سطر. القصة جاهزة!" },
-    { "v": "🌟", "t": "قرأ قصته أمام الفصل. قال المعلم: Characters, setting, plot… all there! أحسنت يا ريان!" }
+    {
+      "v": "📚",
+      "t": "أعلن المعلم مسابقة: اكتبوا قصة قصيرة بالإنجليزية! حمل ريان قلمه وفكّر: عن ماذا أكتب؟",
+      "n": "أَعْلَنَ الْمُعَلِّمُ مُسَابَقَةً: اكْتُبُوا قِصَّةً قَصِيرَةً بِالْإِنْجِلِيزِيَّةِ! حَمَلَ رَيَّانُ قَلَمَهُ وَفَكَّرَ: عَنْ مَاذَا أَكْتُبُ؟"
+    },
+    {
+      "v": "🐪",
+      "t": "اختار شخصيته: a small camel، والمكان: in the desert. كتب العنوان: The Little Camel.",
+      "n": "اخْتَارَ شَخْصِيَّتَهُ: a small camel، وَالْمَكَانَ: in the desert. كَتَبَ الْعُنْوَانَ: The Little Camel."
+    },
+    {
+      "v": "🌅",
+      "t": "البداية: Once upon a time, there was a little camel. He was happy in the big desert.",
+      "n": "الْبِدَايَةُ: Once upon a time, there was a little camel. He was happy in the big desert."
+    },
+    {
+      "v": "🌪️",
+      "t": "الوسط والمشكلة: Then a strong wind came. The camel was afraid and alone.",
+      "n": "الْوَسَطُ وَالْمُشْكِلَةُ: Then a strong wind came. The camel was afraid and alone."
+    },
+    {
+      "v": "🧑‍🤝‍🧑",
+      "t": "النهاية والحل: A kind boy helped the camel. Finally, they were friends. The end.",
+      "n": "النِّهَايَةُ وَالْحَلُّ: A kind boy helped the camel. Finally, they were friends. The end."
+    },
+    {
+      "v": "🔠",
+      "t": "راجع ريان: الأضداد small/big، happy/afraid، والقافية sand/hand في آخر سطر. القصة جاهزة!",
+      "n": "رَاجَعَ رَيَّانُ: الْأَضْدَادَ small/big، happy/afraid، وَالْقَافِيَةَ sand/hand فِي آخِرِ سَطْرٍ. الْقِصَّةُ جَاهِزَةٌ!"
+    },
+    {
+      "v": "🌟",
+      "t": "قرأ قصته أمام الفصل. قال المعلم: Characters, setting, plot… all there! أحسنت يا ريان!",
+      "n": "قَرَأَ قِصَّتَهُ أَمَامَ الْفَصْلِ. قَالَ الْمُعَلِّمُ: Characters, setting, plot… all there! أَحْسَنْتَ يَا رَيَّانُ!"
+    }
   ],
   "activity": "اكتب قصة من خمس جمل بالإنجليزية بعنوان من اختيارك، وحدّد فيها بالألوان: الشخصيات (أحمر)، المكان (أخضر)، والمشكلة والحل (أزرق). ثم اقرأها لزميلك واطلب منه أن يذكر عنصرين من عناصرها.",
   "summary": "نقرأ القصة ونحدّد عناصرها: العنوان والشخصيات والمكان والأحداث ذات البداية والوسط والنهاية؛ ونلعب بالأضداد مثل big/small والقوافي مثل cat/hat، ونكتب قصة قصيرة بـ was/were وكلمات الترتيب."

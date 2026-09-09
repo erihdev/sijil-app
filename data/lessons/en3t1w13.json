@@ -43,27 +43,57 @@
     }
   ],
   "vocab": [
-    { "t": "yesterday", "d": "أمس" },
-    { "t": "today", "d": "اليوم" },
-    { "t": "sunny", "d": "مشمس" },
-    { "t": "rainy", "d": "ممطر" },
-    { "t": "cloudy", "d": "غائم" },
-    { "t": "windy", "d": "عاصف" }
+    {
+      "t": "yesterday",
+      "d": "أمس"
+    },
+    {
+      "t": "today",
+      "d": "اليوم"
+    },
+    {
+      "t": "sunny",
+      "d": "مشمس"
+    },
+    {
+      "t": "rainy",
+      "d": "ممطر"
+    },
+    {
+      "t": "cloudy",
+      "d": "غائم"
+    },
+    {
+      "t": "windy",
+      "d": "عاصف"
+    }
   ],
   "checks": [
     {
       "q": "معنى yesterday؟",
-      "opts": ["اليوم", "أمس", "غداً"],
+      "opts": [
+        "اليوم",
+        "أمس",
+        "غداً"
+      ],
       "correct": 1
     },
     {
       "q": "مع yesterday نستخدم؟",
-      "opts": ["is", "was", "are"],
+      "opts": [
+        "is",
+        "was",
+        "are"
+      ],
       "correct": 1
     },
     {
       "q": "rainy معناها؟",
-      "opts": ["مشمس", "غائم", "ممطر"],
+      "opts": [
+        "مشمس",
+        "غائم",
+        "ممطر"
+      ],
       "correct": 2
     }
   ],
@@ -71,25 +101,40 @@
     {
       "t": "mcq",
       "q": "اليوم الذي يأتي بعد Sunday؟",
-      "opts": ["Monday", "Friday", "Saturday"],
+      "opts": [
+        "Monday",
+        "Friday",
+        "Saturday"
+      ],
       "correct": 0
     },
     {
       "t": "mcq",
       "q": "أكمل: Today ...... sunny.",
-      "opts": ["was", "is", "were"],
+      "opts": [
+        "was",
+        "is",
+        "were"
+      ],
       "correct": 1
     },
     {
       "t": "tf",
       "q": "cloudy تعني عاصف.",
-      "opts": ["صح", "خطأ"],
+      "opts": [
+        "صح",
+        "خطأ"
+      ],
       "correct": 1
     },
     {
       "t": "mcq",
       "q": "أكمل: Yesterday ...... Thursday.",
-      "opts": ["is", "are", "was"],
+      "opts": [
+        "is",
+        "are",
+        "was"
+      ],
       "correct": 2
     },
     {
@@ -100,24 +145,59 @@
     {
       "t": "tf",
       "q": "أسماء الأيام بالإنجليزية تبدأ بحرف كبير.",
-      "opts": ["صح", "خطأ"],
+      "opts": [
+        "صح",
+        "خطأ"
+      ],
       "correct": 0
     },
     {
       "t": "mcq",
       "q": "معنى windy؟",
-      "opts": ["حار", "عاصف", "بارد"],
+      "opts": [
+        "حار",
+        "عاصف",
+        "بارد"
+      ],
       "correct": 1
     }
   ],
   "story": [
-    { "v": "🌧️", "t": "يوم الأحد عاد ناصر من المدرسة مبللاً بالمطر وقال: It is rainy today!" },
-    { "v": "☀️", "t": "وفي الاثنين أشرقت الشمس. قال ناصر: Yesterday was rainy. Today is sunny!" },
-    { "v": "📅", "t": "سأله المعلم: What day is it today? فأجاب: Today is Monday. Yesterday was Sunday." },
-    { "v": "🌬️", "t": "في الثلاثاء هبّت ريح قوية: It is windy today! وطارت أوراق ناصر في الفناء." },
-    { "v": "☁️", "t": "في الأربعاء نظر إلى السماء: It is cloudy. ثم تذكّر: Yesterday was windy." },
-    { "v": "📝", "t": "كتب ناصر مفكّرة الطقس للأسبوع: Sunday rainy, Monday sunny, Tuesday windy, Wednesday cloudy." },
-    { "v": "🌟", "t": "صار ناصر يميّز بين was للأمس و is لليوم. أحسنت يا ناصر!" }
+    {
+      "v": "🌧️",
+      "t": "يوم الأحد عاد ناصر من المدرسة مبللاً بالمطر وقال: It is rainy today!",
+      "n": "يَوْمَ الْأَحَدِ عَادَ نَاصِرٌ مِنَ الْمَدْرَسَةِ مُبَلَّلاً بِالْمَطَرِ وَقَالَ: It is rainy today!"
+    },
+    {
+      "v": "☀️",
+      "t": "وفي الاثنين أشرقت الشمس. قال ناصر: Yesterday was rainy. Today is sunny!",
+      "n": "وَفِي الِاثْنَيْنِ أَشْرَقَتِ الشَّمْسْ. قَالَ نَاصِرٌ: Yesterday was rainy. Today is sunny!"
+    },
+    {
+      "v": "📅",
+      "t": "سأله المعلم: What day is it today? فأجاب: Today is Monday. Yesterday was Sunday.",
+      "n": "سَأَلَهُ الْمُعَلِّمُ: What day is it today? فَأَجَابَ: Today is Monday. Yesterday was Sunday."
+    },
+    {
+      "v": "🌬️",
+      "t": "في الثلاثاء هبّت ريح قوية: It is windy today! وطارت أوراق ناصر في الفناء.",
+      "n": "فِي الثُّلَاثَاءِ هَبَّتْ رِيحٌ قَوِيَّةٌ: It is windy today! وَطَارَتْ أَوْرَاقُ نَاصِرٍ فِي الْفِنَاءْ."
+    },
+    {
+      "v": "☁️",
+      "t": "في الأربعاء نظر إلى السماء: It is cloudy. ثم تذكّر: Yesterday was windy.",
+      "n": "فِي الْأَرْبِعَاءِ نَظَرَ إِلَى السَّمَاءِ: It is cloudy. ثُمَّ تَذَكَّرَ: Yesterday was windy."
+    },
+    {
+      "v": "📝",
+      "t": "كتب ناصر مفكّرة الطقس للأسبوع: Sunday rainy, Monday sunny, Tuesday windy, Wednesday cloudy.",
+      "n": "كَتَبَ نَاصِرٌ مُفَكِّرَةَ الطَّقْسِ لِلْأُسْبُوعِ: Sunday rainy, Monday sunny, Tuesday windy, Wednesday cloudy."
+    },
+    {
+      "v": "🌟",
+      "t": "صار ناصر يميّز بين was للأمس و is لليوم. أحسنت يا ناصر!",
+      "n": "صَارَ نَاصِرٌ يُمَيِّزُ بَيْنَ was لِلْأَمْسِ وَ is لِلْيَوْمْ. أَحْسَنْتَ يَا نَاصِرْ!"
+    }
   ],
   "activity": "اصنع مفكّرة طقس لأسبوع كامل: اكتب اسم كل يوم بالإنجليزية وارسم الطقس بجانبه، ثم قل لزميلك: Today is… Yesterday was…",
   "summary": "أيام الأسبوع من Sunday إلى Saturday، والطقس sunny و rainy و cloudy و windy. نقول Yesterday was للأمس و Today is لليوم."

@@ -50,27 +50,60 @@
     }
   ],
   "vocab": [
-    { "t": "city", "d": "المدينة، مكان كبير فيه ناس كثيرون ومبانٍ عالية" },
-    { "t": "village", "d": "القرية، مكان صغير هادئ فيه مزارع" },
-    { "t": "skyscraper", "d": "ناطحة سحاب، مبنى عالٍ جداً" },
-    { "t": "traffic", "d": "حركة السيارات في الشوارع" },
-    { "t": "quiet", "d": "هادئ، بلا ضجيج" },
-    { "t": "fresh air", "d": "هواء نقي ونظيف" }
+    {
+      "t": "city",
+      "d": "المدينة، مكان كبير فيه ناس كثيرون ومبانٍ عالية"
+    },
+    {
+      "t": "village",
+      "d": "القرية، مكان صغير هادئ فيه مزارع"
+    },
+    {
+      "t": "skyscraper",
+      "d": "ناطحة سحاب، مبنى عالٍ جداً"
+    },
+    {
+      "t": "traffic",
+      "d": "حركة السيارات في الشوارع"
+    },
+    {
+      "t": "quiet",
+      "d": "هادئ، بلا ضجيج"
+    },
+    {
+      "t": "fresh air",
+      "d": "هواء نقي ونظيف"
+    }
   ],
   "checks": [
     {
       "q": "«ناطحة سحاب» بالإنجليزية:",
-      "opts": ["skyscraper", "field", "well", "farm"],
+      "opts": [
+        "skyscraper",
+        "field",
+        "well",
+        "farm"
+      ],
       "correct": 0
     },
     {
       "q": "أكمل: There ...... many cars in the city.",
-      "opts": ["is", "are", "am", "be"],
+      "opts": [
+        "is",
+        "are",
+        "am",
+        "be"
+      ],
       "correct": 1
     },
     {
       "q": "صيغة المقارنة من noisy:",
-      "opts": ["noisyer", "more noisy", "noisiest", "noisier"],
+      "opts": [
+        "noisyer",
+        "more noisy",
+        "noisiest",
+        "noisier"
+      ],
       "correct": 3
     }
   ],
@@ -78,25 +111,43 @@
     {
       "t": "mcq",
       "q": "الجملة الصحيحة:",
-      "opts": ["There is a farm in the village.", "There are a farm in the village.", "There a farm in the village.", "There is farms in the village."],
+      "opts": [
+        "There is a farm in the village.",
+        "There are a farm in the village.",
+        "There a farm in the village.",
+        "There is farms in the village."
+      ],
       "correct": 0
     },
     {
       "t": "tf",
       "q": "The village is noisier than the city.",
-      "opts": ["صح", "خطأ"],
+      "opts": [
+        "صح",
+        "خطأ"
+      ],
       "correct": 1
     },
     {
       "t": "mcq",
       "q": "الشيء الذي نجده عادة في القرية لا في المدينة:",
-      "opts": ["metro", "skyscraper", "palm farm", "big mall"],
+      "opts": [
+        "metro",
+        "skyscraper",
+        "palm farm",
+        "big mall"
+      ],
       "correct": 2
     },
     {
       "t": "mcq",
       "q": "الرد الصحيح على: Is there a hospital in the city?",
-      "opts": ["Yes, there are.", "Yes, it is.", "Yes, there is.", "Yes, is there."],
+      "opts": [
+        "Yes, there are.",
+        "Yes, it is.",
+        "Yes, there is.",
+        "Yes, is there."
+      ],
       "correct": 2
     },
     {
@@ -107,24 +158,60 @@
     {
       "t": "tf",
       "q": "كلمة traffic تعني حركة السيارات في الشوارع.",
-      "opts": ["صح", "خطأ"],
+      "opts": [
+        "صح",
+        "خطأ"
+      ],
       "correct": 0
     },
     {
       "t": "mcq",
       "q": "«هواء نقي» بالإنجليزية:",
-      "opts": ["fresh water", "fresh air", "clean field", "quiet air"],
+      "opts": [
+        "fresh water",
+        "fresh air",
+        "clean field",
+        "quiet air"
+      ],
       "correct": 1
     }
   ],
   "story": [
-    { "v": "🏙️", "t": "يعيش فهد في الرياض. من نافذته يرى skyscrapers وtraffic لا يتوقف. قال: The city is busy and noisy." },
-    { "v": "🚗", "t": "في الإجازة سافر إلى قرية جدّه. كلما ابتعدوا قلّت السيارات، وقال والده: There aren't any skyscrapers here." },
-    { "v": "🌴", "t": "استقبله الجد بين النخيل: There is a farm and there are many palm trees. تنفّس فهد: The air is fresh!" },
-    { "v": "🐐", "t": "في الصباح لم يوقظه صوت السيارات بل صوت الماعز. ضحك فهد: The village is quieter than the city." },
-    { "v": "💧", "t": "أراه الجد الـ well القديم ثم المسجد الصغير. سأل فهد: Is there a mall here? أجاب الجد: No, there isn't." },
-    { "v": "📝", "t": "كتب فهد في دفتر رحلته: The city is bigger, but the village is cleaner and quieter. I love both!" },
-    { "v": "🌟", "t": "عاد فهد وقد عرف أن لكل مكان جماله الخاص. أحسنت!" }
+    {
+      "v": "🏙️",
+      "t": "يعيش فهد في الرياض. من نافذته يرى skyscrapers وtraffic لا يتوقف. قال: The city is busy and noisy.",
+      "n": "يَعِيشُ فَهْدٌ فِي الرِّيَاضِ. مِنْ نَافِذَتِهِ يَرَى skyscrapers وtraffic لَا يَتَوَقَّفُ. قَالَ: The city is busy and noisy."
+    },
+    {
+      "v": "🚗",
+      "t": "في الإجازة سافر إلى قرية جدّه. كلما ابتعدوا قلّت السيارات، وقال والده: There aren't any skyscrapers here.",
+      "n": "فِي الْإِجَازَةِ سَافَرَ إِلَى قَرْيَةِ جَدِّهِ. كُلَّمَا ابْتَعَدُوا قَلَّتِ السَّيَّارَاتُ، وَقَالَ وَالِدُهُ: There aren't any skyscrapers here."
+    },
+    {
+      "v": "🌴",
+      "t": "استقبله الجد بين النخيل: There is a farm and there are many palm trees. تنفّس فهد: The air is fresh!",
+      "n": "اسْتَقْبَلَهُ الْجَدُّ بَيْنَ النَّخِيلِ: There is a farm and there are many palm trees. تَنَفَّسَ فَهْدٌ: The air is fresh!"
+    },
+    {
+      "v": "🐐",
+      "t": "في الصباح لم يوقظه صوت السيارات بل صوت الماعز. ضحك فهد: The village is quieter than the city.",
+      "n": "فِي الصَّبَاحِ لَمْ يُوقِظْهُ صَوْتُ السَّيَّارَاتِ بَلْ صَوْتُ الْمَاعِزِ. ضَحِكَ فَهْدٌ: The village is quieter than the city."
+    },
+    {
+      "v": "💧",
+      "t": "أراه الجد الـ well القديم ثم المسجد الصغير. سأل فهد: Is there a mall here? أجاب الجد: No, there isn't.",
+      "n": "أَرَاهُ الْجَدُّ الـ well الْقَدِيمَ ثُمَّ الْمَسْجِدَ الصَّغِيرَ. سَأَلَ فَهْدٌ: Is there a mall here? أَجَابَ الْجَدُّ: No, there isn't."
+    },
+    {
+      "v": "📝",
+      "t": "كتب فهد في دفتر رحلته: The city is bigger, but the village is cleaner and quieter. I love both!",
+      "n": "كَتَبَ فَهْدٌ فِي دَفْتَرِ رِحْلَتِهِ: The city is bigger, but the village is cleaner and quieter. I love both!"
+    },
+    {
+      "v": "🌟",
+      "t": "عاد فهد وقد عرف أن لكل مكان جماله الخاص. أحسنت!",
+      "n": "عَادَ فَهْدٌ وَقَدْ عَرَفَ أَنَّ لِكُلِّ مَكَانٍ جَمَالَهُ الْخَاصَّ. أَحْسَنْتَ!"
+    }
   ],
   "activity": "ارسم عموداً للمدينة وعموداً للقرية، واكتب في كل عمود ثلاث جمل بـ There is / There are، ثم اكتب جملتي مقارنة بينهما مثل: The city is busier than the village.",
   "summary": "المدينة فيها skyscrapers وtraffic وmalls وهي busy وnoisy، والقرية فيها farms وpalm trees وهي quiet وclean. نصف المكان بـ There is / There are ونقارن بـ bigger وnoisier وquieter."

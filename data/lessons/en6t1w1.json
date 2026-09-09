@@ -52,27 +52,60 @@
     }
   ],
   "vocab": [
-    { "t": "greeting", "d": "تحية نبدأ بها الحديث مثل Hello" },
-    { "t": "classmate", "d": "زميل معك في الفصل نفسه" },
-    { "t": "timetable", "d": "الجدول الذي يبيّن حصص كل يوم" },
-    { "t": "subject", "d": "مادة دراسية مثل Math وScience" },
-    { "t": "favorite", "d": "المفضّل الذي تحبه أكثر من غيره" },
-    { "t": "schoolbag", "d": "الحقيبة التي نضع فيها الكتب والأدوات" }
+    {
+      "t": "greeting",
+      "d": "تحية نبدأ بها الحديث مثل Hello"
+    },
+    {
+      "t": "classmate",
+      "d": "زميل معك في الفصل نفسه"
+    },
+    {
+      "t": "timetable",
+      "d": "الجدول الذي يبيّن حصص كل يوم"
+    },
+    {
+      "t": "subject",
+      "d": "مادة دراسية مثل Math وScience"
+    },
+    {
+      "t": "favorite",
+      "d": "المفضّل الذي تحبه أكثر من غيره"
+    },
+    {
+      "t": "schoolbag",
+      "d": "الحقيبة التي نضع فيها الكتب والأدوات"
+    }
   ],
   "checks": [
     {
       "q": "ما الردّ المناسب على: What's your name?",
-      "opts": ["I am ten.", "My name is Fahad.", "I am fine.", "It is Sunday."],
+      "opts": [
+        "I am ten.",
+        "My name is Fahad.",
+        "I am fine.",
+        "It is Sunday."
+      ],
       "correct": 1
     },
     {
       "q": "الأداة التي نمسح بها الكتابة هي:",
-      "opts": ["ruler", "pencil", "eraser", "notebook"],
+      "opts": [
+        "ruler",
+        "pencil",
+        "eraser",
+        "notebook"
+      ],
       "correct": 2
     },
     {
       "q": "أكمل: We ...... in grade six.",
-      "opts": ["are", "am", "is", "be"],
+      "opts": [
+        "are",
+        "am",
+        "is",
+        "be"
+      ],
       "correct": 0
     }
   ],
@@ -80,25 +113,43 @@
     {
       "t": "mcq",
       "q": "التحية المناسبة في الصباح هي:",
-      "opts": ["Good night", "Good afternoon", "Good morning", "Goodbye"],
+      "opts": [
+        "Good night",
+        "Good afternoon",
+        "Good morning",
+        "Goodbye"
+      ],
       "correct": 2
     },
     {
       "t": "mcq",
       "q": "«مسطرة» بالإنجليزية:",
-      "opts": ["ruler", "eraser", "desk", "board"],
+      "opts": [
+        "ruler",
+        "eraser",
+        "desk",
+        "board"
+      ],
       "correct": 0
     },
     {
       "t": "tf",
       "q": "نقول: She are my teacher.",
-      "opts": ["صح", "خطأ"],
+      "opts": [
+        "صح",
+        "خطأ"
+      ],
       "correct": 1
     },
     {
       "t": "mcq",
       "q": "السؤال المناسب لمعرفة العمر هو:",
-      "opts": ["What's your name?", "Where are you?", "What grade are you in?", "How old are you?"],
+      "opts": [
+        "What's your name?",
+        "Where are you?",
+        "What grade are you in?",
+        "How old are you?"
+      ],
       "correct": 3
     },
     {
@@ -109,24 +160,60 @@
     {
       "t": "tf",
       "q": "كلمة Science تعني مادة العلوم.",
-      "opts": ["صح", "خطأ"],
+      "opts": [
+        "صح",
+        "خطأ"
+      ],
       "correct": 0
     },
     {
       "t": "mcq",
       "q": "الجدول الذي يبيّن حصص كل يوم يسمّى:",
-      "opts": ["notebook", "timetable", "schoolbag", "subject"],
+      "opts": [
+        "notebook",
+        "timetable",
+        "schoolbag",
+        "subject"
+      ],
       "correct": 1
     }
   ],
   "story": [
-    { "v": "🎒", "t": "في أول يوم دراسي حمل سعود حقيبته الجديدة، وفيها pen وruler وnotebook، وقلبه يخفق من الحماس." },
-    { "v": "🚪", "t": "دخل الفصل فرأى طالباً جديداً يجلس وحده. ابتسم وقال: Hello! My name is Saud. What's your name?" },
-    { "v": "🤝", "t": "أجاب الطالب: My name is Rayan. I am eleven years old. ثم تصافحا وقالا معاً: Nice to meet you!" },
-    { "v": "📋", "t": "علّق المعلم الـ timetable على السبورة، فقرأ سعود: We have English on Sunday and Science on Monday." },
-    { "v": "📚", "t": "سأل ريان: What's your favorite subject? فأجاب سعود: My favorite subject is Science. And you?" },
-    { "v": "✏️", "t": "نسي ريان قلمه، فأعطاه سعود pencil وقال: We are classmates now! فشكره ريان بابتسامة واسعة." },
-    { "v": "🌟", "t": "بكلمات إنجليزية بسيطة كسب سعود صديقاً جديداً في أول يوم. أحسنت!" }
+    {
+      "v": "🎒",
+      "t": "في أول يوم دراسي حمل سعود حقيبته الجديدة، وفيها pen وruler وnotebook، وقلبه يخفق من الحماس.",
+      "n": "فِي أَوَّلِ يَوْمٍ دِرَاسِيٍّ حَمَلَ سَعُودٌ حَقِيبَتَهُ الْجَدِيدَةَ، وَفِيهَا pen وَruler وَnotebook، وَقَلْبُهُ يَخْفِقُ مِنَ الْحَمَاسِ."
+    },
+    {
+      "v": "🚪",
+      "t": "دخل الفصل فرأى طالباً جديداً يجلس وحده. ابتسم وقال: Hello! My name is Saud. What's your name?",
+      "n": "دَخَلَ الْفَصْلَ فَرَأَى طَالِباً جَدِيداً يَجْلِسُ وَحْدَهُ. ابْتَسَمَ وَقَالَ: Hello! My name is Saud. What's your name?"
+    },
+    {
+      "v": "🤝",
+      "t": "أجاب الطالب: My name is Rayan. I am eleven years old. ثم تصافحا وقالا معاً: Nice to meet you!",
+      "n": "أَجَابَ الطَّالِبُ: My name is Rayan. I am eleven years old. ثُمَّ تَصَافَحَا وَقَالَا مَعاً: Nice to meet you!"
+    },
+    {
+      "v": "📋",
+      "t": "علّق المعلم الـ timetable على السبورة، فقرأ سعود: We have English on Sunday and Science on Monday.",
+      "n": "عَلَّقَ الْمُعَلِّمُ الْـ timetable عَلَى السَّبُّورَةِ، فَقَرَأَ سَعُودٌ: We have English on Sunday and Science on Monday."
+    },
+    {
+      "v": "📚",
+      "t": "سأل ريان: What's your favorite subject? فأجاب سعود: My favorite subject is Science. And you?",
+      "n": "سَأَلَ رَيَّانُ: What's your favorite subject? فَأَجَابَ سَعُودٌ: My favorite subject is Science. And you?"
+    },
+    {
+      "v": "✏️",
+      "t": "نسي ريان قلمه، فأعطاه سعود pencil وقال: We are classmates now! فشكره ريان بابتسامة واسعة.",
+      "n": "نَسِيَ رَيَّانُ قَلَمَهُ، فَأَعْطَاهُ سَعُودٌ pencil وَقَالَ: We are classmates now! فَشَكَرَهُ رَيَّانُ بِابْتِسَامَةٍ وَاسِعَةٍ."
+    },
+    {
+      "v": "🌟",
+      "t": "بكلمات إنجليزية بسيطة كسب سعود صديقاً جديداً في أول يوم. أحسنت!",
+      "n": "بِكَلِمَاتٍ إِنْجِلِيزِيَّةٍ بَسِيطَةٍ كَسَبَ سَعُودٌ صَدِيقاً جَدِيداً فِي أَوَّلِ يَوْمٍ. أَحْسَنْتَ!"
+    }
   ],
   "activity": "اكتب بطاقة تعريف بنفسك بالإنجليزية من أربع جمل: My name is ... / I am ... years old. / I am in grade six. / My favorite subject is ... ثم اقرأها أمام زميلك واسأله: What's your name?",
   "summary": "نرحّب بـ Hello وGood morning، ونتعارف بـ What's your name? وHow old are you?، ونستخدم am مع I وis مع المفرد وare مع الجمع، ونعرف أسماء أدوات الفصل والمواد الدراسية."

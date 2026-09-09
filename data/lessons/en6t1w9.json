@@ -51,27 +51,60 @@
     }
   ],
   "vocab": [
-    { "t": "weekend", "d": "عطلة نهاية الأسبوع" },
-    { "t": "grandparents", "d": "الجد والجدة" },
-    { "t": "cousin", "d": "ابن العم أو الخال أو ابنتهما" },
-    { "t": "picnic", "d": "نزهة نأكل فيها في الخارج" },
-    { "t": "went", "d": "ذهب، ماضي go" },
-    { "t": "last", "d": "الماضي أو السابق، مثل last weekend" }
+    {
+      "t": "weekend",
+      "d": "عطلة نهاية الأسبوع"
+    },
+    {
+      "t": "grandparents",
+      "d": "الجد والجدة"
+    },
+    {
+      "t": "cousin",
+      "d": "ابن العم أو الخال أو ابنتهما"
+    },
+    {
+      "t": "picnic",
+      "d": "نزهة نأكل فيها في الخارج"
+    },
+    {
+      "t": "went",
+      "d": "ذهب، ماضي go"
+    },
+    {
+      "t": "last",
+      "d": "الماضي أو السابق، مثل last weekend"
+    }
   ],
   "checks": [
     {
       "q": "ماضي الفعل go هو:",
-      "opts": ["goed", "went", "gone", "goes"],
+      "opts": [
+        "goed",
+        "went",
+        "gone",
+        "goes"
+      ],
       "correct": 1
     },
     {
       "q": "«جدّة» بالإنجليزية:",
-      "opts": ["aunt", "mother", "grandmother", "cousin"],
+      "opts": [
+        "aunt",
+        "mother",
+        "grandmother",
+        "cousin"
+      ],
       "correct": 2
     },
     {
       "q": "أكمل: We ...... football last Friday.",
-      "opts": ["played", "play", "plays", "playing"],
+      "opts": [
+        "played",
+        "play",
+        "plays",
+        "playing"
+      ],
       "correct": 0
     }
   ],
@@ -79,25 +112,43 @@
     {
       "t": "mcq",
       "q": "الجملة الصحيحة في الماضي:",
-      "opts": ["I eat dates yesterday.", "I ated dates yesterday.", "I ate dates yesterday.", "I eated dates yesterday."],
+      "opts": [
+        "I eat dates yesterday.",
+        "I ated dates yesterday.",
+        "I ate dates yesterday.",
+        "I eated dates yesterday."
+      ],
       "correct": 2
     },
     {
       "t": "mcq",
       "q": "السؤال الصحيح:",
-      "opts": ["What did you do last weekend?", "What did you did last weekend?", "What you did last weekend?", "What do you did last weekend?"],
+      "opts": [
+        "What did you do last weekend?",
+        "What did you did last weekend?",
+        "What you did last weekend?",
+        "What do you did last weekend?"
+      ],
       "correct": 0
     },
     {
       "t": "tf",
       "q": "ماضي الفعل have هو haved.",
-      "opts": ["صح", "خطأ"],
+      "opts": [
+        "صح",
+        "خطأ"
+      ],
       "correct": 1
     },
     {
       "t": "mcq",
       "q": "«ابن العم» بالإنجليزية:",
-      "opts": ["uncle", "brother", "nephew", "cousin"],
+      "opts": [
+        "uncle",
+        "brother",
+        "nephew",
+        "cousin"
+      ],
       "correct": 3
     },
     {
@@ -108,24 +159,58 @@
     {
       "t": "tf",
       "q": "We visited our grandparents. — الفعل هنا منتظم أُضيف إليه ed.",
-      "opts": ["صح", "خطأ"],
+      "opts": [
+        "صح",
+        "خطأ"
+      ],
       "correct": 0
     },
     {
       "t": "mcq",
       "q": "ماضي الفعل see هو:",
-      "opts": ["seed", "saw", "seen", "sees"],
+      "opts": [
+        "seed",
+        "saw",
+        "seen",
+        "sees"
+      ],
       "correct": 1
     }
   ],
   "story": [
-    { "v": "🏫", "t": "يوم الأحد سأل المعلم: What did you do last weekend? رفعت نورة يدها بحماس لتحكي عن عطلتها." },
-    { "v": "🚗", "t": "قالت: On Thursday, we went to my grandparents' house. My grandmother cooked kabsa and we had lunch together." },
-    { "v": "🌳", "t": "On Friday, we went to the park. I played with my cousins and my father took photos." },
-    { "v": "🏜️", "t": "On Saturday, we went to the desert. We had a picnic and I saw a lot of stars at night!" },
-    { "v": "🤔", "t": "سأل زميلها: Did you watch TV? أجابت نورة: No, I didn't. I was busy with my family!" },
-    { "v": "📸", "t": "أرت نورة الصور للفصل وقالت: I visited, I played, I went, I saw… It was a great weekend." },
-    { "v": "🌟", "t": "صفّق الفصل لنورة التي حكت عطلتها كاملة بالماضي البسيط. أحسنت!" }
+    {
+      "v": "🏫",
+      "t": "يوم الأحد سأل المعلم: What did you do last weekend? رفعت نورة يدها بحماس لتحكي عن عطلتها.",
+      "n": "يَوْمَ الْأَحَدِ سَأَلَ الْمُعَلِّمُ: What did you do last weekend? رَفَعَتْ نُورَةُ يَدَهَا بِحَمَاسٍ لِتَحْكِيَ عَنْ عُطْلَتِهَا."
+    },
+    {
+      "v": "🚗",
+      "t": "قالت: On Thursday, we went to my grandparents' house. My grandmother cooked kabsa and we had lunch together.",
+      "n": "قَالَتْ: On Thursday, we went to my grandparents' house. My grandmother cooked kabsa and we had lunch together."
+    },
+    {
+      "v": "🌳",
+      "t": "On Friday, we went to the park. I played with my cousins and my father took photos."
+    },
+    {
+      "v": "🏜️",
+      "t": "On Saturday, we went to the desert. We had a picnic and I saw a lot of stars at night!"
+    },
+    {
+      "v": "🤔",
+      "t": "سأل زميلها: Did you watch TV? أجابت نورة: No, I didn't. I was busy with my family!",
+      "n": "سَأَلَ زَمِيلُهَا: Did you watch TV? أَجَابَتْ نُورَةُ: No, I didn't. I was busy with my family!"
+    },
+    {
+      "v": "📸",
+      "t": "أرت نورة الصور للفصل وقالت: I visited, I played, I went, I saw… It was a great weekend.",
+      "n": "أَرَتْ نُورَةُ الصُّوَرَ لِلْفَصْلِ وَقَالَتْ: I visited, I played, I went, I saw… It was a great weekend."
+    },
+    {
+      "v": "🌟",
+      "t": "صفّق الفصل لنورة التي حكت عطلتها كاملة بالماضي البسيط. أحسنت!",
+      "n": "صَفَّقَ الْفَصْلُ لِنُورَةَ الَّتِي حَكَتْ عُطْلَتَهَا كَامِلَةً بِالْمَاضِي الْبَسِيطِ. أَحْسَنْتِ!"
+    }
   ],
   "activity": "اكتب فقرة من خمس جمل بالإنجليزية عن عطلتك الماضية مستخدماً أفعالاً في الماضي (went, visited, played, had, ate)، ثم اسأل زميلك: What did you do last weekend? وسجّل إجابته.",
   "summary": "نحكي عن العطلة بالماضي البسيط: الأفعال المنتظمة بإضافة ed (visited, played) وغير المنتظمة بأشكال خاصة (went, had, ate, saw)، ونسأل بـ What did you do last weekend? ونجيب مع ذكر أفراد العائلة والأنشطة."

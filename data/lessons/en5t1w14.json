@@ -50,27 +50,60 @@
     }
   ],
   "vocab": [
-    { "t": "recipe", "d": "وصفة: خطوات إعداد طعام معيّن" },
-    { "t": "spread", "d": "يدهن: يفرد الزبدة أو الجبن على الخبز" },
-    { "t": "mix", "d": "يخلط المكوّنات معاً" },
-    { "t": "bowl", "d": "وعاء عميق للخلط أو للحساء" },
-    { "t": "knife", "d": "سكين للتقطيع، وتُستخدم بحذر" },
-    { "t": "finally", "d": "أخيراً: كلمة الخطوة الأخيرة" }
+    {
+      "t": "recipe",
+      "d": "وصفة: خطوات إعداد طعام معيّن"
+    },
+    {
+      "t": "spread",
+      "d": "يدهن: يفرد الزبدة أو الجبن على الخبز"
+    },
+    {
+      "t": "mix",
+      "d": "يخلط المكوّنات معاً"
+    },
+    {
+      "t": "bowl",
+      "d": "وعاء عميق للخلط أو للحساء"
+    },
+    {
+      "t": "knife",
+      "d": "سكين للتقطيع، وتُستخدم بحذر"
+    },
+    {
+      "t": "finally",
+      "d": "أخيراً: كلمة الخطوة الأخيرة"
+    }
   ],
   "checks": [
     {
       "q": "الجملة التي في صيغة الأمر؟",
-      "opts": ["I cut the bread.", "Cut the bread.", "He cuts the bread.", "She is cutting."],
+      "opts": [
+        "I cut the bread.",
+        "Cut the bread.",
+        "He cuts the bread.",
+        "She is cutting."
+      ],
       "correct": 1
     },
     {
       "q": "كلمة Then تعني؟",
-      "opts": ["أولاً", "ثم", "أخيراً", "لأن"],
+      "opts": [
+        "أولاً",
+        "ثم",
+        "أخيراً",
+        "لأن"
+      ],
       "correct": 1
     },
     {
       "q": "الأداة التي نخلط فيها السلطة؟",
-      "opts": ["knife", "fork", "bowl", "oven"],
+      "opts": [
+        "knife",
+        "fork",
+        "bowl",
+        "oven"
+      ],
       "correct": 2
     }
   ],
@@ -78,19 +111,32 @@
     {
       "t": "mcq",
       "q": "«لا تلمس المقلاة الساخنة» بالإنجليزية؟",
-      "opts": ["Not touch the hot pan.", "Don't touch the hot pan.", "You don't touch hot pan.", "Touch not the hot pan."],
+      "opts": [
+        "Not touch the hot pan.",
+        "Don't touch the hot pan.",
+        "You don't touch hot pan.",
+        "Touch not the hot pan."
+      ],
       "correct": 1
     },
     {
       "t": "tf",
       "q": "في صيغة الأمر نبدأ الجملة بالفعل مباشرة.",
-      "opts": ["صح", "خطأ"],
+      "opts": [
+        "صح",
+        "خطأ"
+      ],
       "correct": 0
     },
     {
       "t": "mcq",
       "q": "الكلمة التي تبدأ بها الخطوة الأولى في الوصفة",
-      "opts": ["Finally", "Next", "First", "Then"],
+      "opts": [
+        "Finally",
+        "Next",
+        "First",
+        "Then"
+      ],
       "correct": 2
     },
     {
@@ -101,30 +147,71 @@
     {
       "t": "mcq",
       "q": "فعل «يصبّ» بالإنجليزية؟",
-      "opts": ["peel", "pour", "boil", "bake"],
+      "opts": [
+        "peel",
+        "pour",
+        "boil",
+        "bake"
+      ],
       "correct": 1
     },
     {
       "t": "tf",
       "q": "كلمة pan تعني «صحن».",
-      "opts": ["صح", "خطأ"],
+      "opts": [
+        "صح",
+        "خطأ"
+      ],
       "correct": 1
     },
     {
       "t": "mcq",
       "q": "الترتيب الصحيح لصنع شطيرة الجبن؟",
-      "opts": ["Eat, cut, spread", "Cut the bread, spread the cheese, eat", "Spread, eat, cut", "Eat, spread, cut"],
+      "opts": [
+        "Eat, cut, spread",
+        "Cut the bread, spread the cheese, eat",
+        "Spread, eat, cut",
+        "Eat, spread, cut"
+      ],
       "correct": 1
     }
   ],
   "story": [
-    { "v": "🥪", "t": "قرر جود أن يصنع أول شطيرة في حياته وحده، فوقف في المطبخ وسأل أخاه الكبير: What's first?" },
-    { "v": "🚿", "t": "قال أخوه: First, wash the tomatoes and the lettuce. غسلها جود جيداً ووضعها على لوح التقطيع." },
-    { "v": "🔪", "t": "ثم: Then, cut the tomatoes. Be careful with the knife! أمسك جود السكين بحذر وقطّع شرائح رقيقة." },
-    { "v": "🧈", "t": "قال: Next, spread the cheese on the bread. Don't add too much salt! فدهن الجبن ووضع رشة ملح صغيرة." },
-    { "v": "🥬", "t": "Finally, put the lettuce and tomatoes on top. أغلق جود الشطيرة وسأل: Is it ready? أجاب أخوه: Yes! Serve it!" },
-    { "v": "😋", "t": "قضم جود أول قضمة وصاح: It tastes great! وقال أخوه ضاحكاً: Because you followed the steps in order." },
-    { "v": "🌟", "t": "الخطوة الصحيحة في وقتها الصحيح تصنع الفرق. أحسنت يا جود!" }
+    {
+      "v": "🥪",
+      "t": "قرر جود أن يصنع أول شطيرة في حياته وحده، فوقف في المطبخ وسأل أخاه الكبير: What's first?",
+      "n": "قَرَّرَ جُودُ أَنْ يَصْنَعَ أَوَّلَ شَطِيرَةٍ فِي حَيَاتِهِ وَحْدَهُ، فَوَقَفَ فِي الْمَطْبَخِ وَسَأَلَ أَخَاهُ الْكَبِيرَ: What's first?"
+    },
+    {
+      "v": "🚿",
+      "t": "قال أخوه: First, wash the tomatoes and the lettuce. غسلها جود جيداً ووضعها على لوح التقطيع.",
+      "n": "قَالَ أَخُوهُ: First, wash the tomatoes and the lettuce. غَسَلَهَا جُودٌ جَيِّدًا وَوَضَعَهَا عَلَى لَوْحِ التَّقْطِيعْ."
+    },
+    {
+      "v": "🔪",
+      "t": "ثم: Then, cut the tomatoes. Be careful with the knife! أمسك جود السكين بحذر وقطّع شرائح رقيقة.",
+      "n": "ثُمَّ: Then, cut the tomatoes. Be careful with the knife! أَمْسَكَ جُودٌ السِّكِّينَ بِحَذَرٍ وَقَطَّعَ شَرَائِحَ رَقِيقَةْ."
+    },
+    {
+      "v": "🧈",
+      "t": "قال: Next, spread the cheese on the bread. Don't add too much salt! فدهن الجبن ووضع رشة ملح صغيرة.",
+      "n": "قَالَ: Next, spread the cheese on the bread. Don't add too much salt! فَدَهَنَ الْجُبْنَ وَوَضَعَ رَشَّةَ مِلْحٍ صَغِيرَةْ."
+    },
+    {
+      "v": "🥬",
+      "t": "Finally, put the lettuce and tomatoes on top. أغلق جود الشطيرة وسأل: Is it ready? أجاب أخوه: Yes! Serve it!",
+      "n": "Finally, put the lettuce and tomatoes on top. أَغْلَقَ جُودٌ الشَّطِيرَةَ وَسَأَلَ: Is it ready? أَجَابَ أَخُوهُ: Yes! Serve it!"
+    },
+    {
+      "v": "😋",
+      "t": "قضم جود أول قضمة وصاح: It tastes great! وقال أخوه ضاحكاً: Because you followed the steps in order.",
+      "n": "قَضَمَ جُودٌ أَوَّلَ قَضْمَةٍ وَصَاحَ: It tastes great! وَقَالَ أَخُوهُ ضَاحِكًا: Because you followed the steps in order."
+    },
+    {
+      "v": "🌟",
+      "t": "الخطوة الصحيحة في وقتها الصحيح تصنع الفرق. أحسنت يا جود!",
+      "n": "الْخُطْوَةُ الصَّحِيحَةُ فِي وَقْتِهَا الصَّحِيحِ تَصْنَعُ الْفَرْقَ. أَحْسَنْتَ يَا جُودْ!"
+    }
   ],
   "activity": "اكتب وصفة وجبتك الخفيفة المفضلة في أربع خطوات بصيغة الأمر تبدأ بـ First وThen وNext وFinally، واذكر أداتين من أدوات المطبخ، ثم اقرأها لزميلك ليمثّل الخطوات بالحركة.",
   "summary": "تعلّمنا أفعال المطبخ مثل cut وspread وmix، وأدواته مثل knife وbowl، وصيغة الأمر للتعليمات والنهي بـ Don't، وترتيب خطوات الوصفة بكلمات First وThen وNext وFinally."
