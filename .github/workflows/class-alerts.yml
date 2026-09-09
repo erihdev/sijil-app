@@ -114,3 +114,25 @@ jobs:
             cat run.log
             echo '```'
           } >> "$GITHUB_STEP_SUMMARY"
+
+      # ── إشعارات الطلاب: واجب جديد أو رسالة من المعلم ──
+      #    سكربتٌ مستقل: يقرأ اشتراكات الطلاب spush وفهرس أوراق فصولهم وصناديق رسائلهم،
+      #    فيرسل لمن وصله جديدٌ منذ آخر إشعار. فشلُه لا يُسقط تنبيهات الحصص (يعمل بعدها).
+      - name: إشعارات الطلاب (واجب أو رسالة جديدة)
+        if: steps.gate.outputs.ready == 'yes'
+        continue-on-error: true
+        env:
+          SA_JSON: ${{ secrets.SA_JSON }}
+          VAPID_PRIVATE: ${{ secrets.VAPID_PRIVATE }}
+          VAPID_SUB: ${{ secrets.VAPID_SUB }}
+          DRY: ${{ inputs.dry_run && '--dry-run' || '' }}
+        run: |
+          ARGS=()
+          if [ -n "$DRY" ]; then ARGS+=("$DRY"); fi
+          python tools/push_students.py "${ARGS[@]}" | tee students.log
+          {
+            echo "### إشعارات الطلاب"
+            echo '```'
+            cat students.log
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"

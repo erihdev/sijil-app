@@ -677,6 +677,28 @@ service cloud.firestore {
     //      لا يملك العميل إثبات هوية يُربط به المعرّف. ولو اشترطنا إثباتاً برقم الدخول لانكسر
     //      تفعيل التنبيهات على الجلسات المستأنفة (التي لم يُكتب فيها الرقم أصلاً).
     //      الأثر الأقصى: تحويل إشعارات حصص معلم إلى جهاز آخر أو حرمانه منها — لا قراءة لبياناته.
+    /* ── اشتراك إشعارات الطالب spush/{mk} ──
+       بمفتاح صندوقه: من يعرفه هو الطالب نفسه (المفتاح داخل بصمة هويته). لا تُقرأ من متصفح
+       أحدٍ إطلاقاً — المُرسِل حسابُ خدمة يتجاوز القواعد، والمعلم لا يحتاج عنوان اشتراك طفل.
+       cid يلزم المُرسِل ليعرف فهرس أي فصل يخصّ هذا الاشتراك. */
+    match /spush/{mk} {
+      allow read: if false;
+      allow create, update: if signedIn() && isMk(mk)
+          && request.resource.data.keys().hasOnly(['ep', 'p256dh', 'auth', 'cid', 'si', 'ua', 'tz', 'ts'])
+          && request.resource.data.ep is string
+          && request.resource.data.ep.size() > 0
+          && request.resource.data.ep.size() <= 500
+          && request.resource.data.ep.matches('^https://.*')
+          && request.resource.data.p256dh is string && request.resource.data.p256dh.size() <= 200
+          && request.resource.data.auth is string && request.resource.data.auth.size() <= 100
+          && request.resource.data.cid is string && request.resource.data.cid.matches('^[A-Za-z0-9]{1,12}$')
+          && request.resource.data.si is int && request.resource.data.si >= 0 && request.resource.data.si < 400
+          && request.resource.data.ts is number
+          && (!('ua' in request.resource.data) || (request.resource.data.ua is string && request.resource.data.ua.size() <= 200))
+          && (!('tz' in request.resource.data) || (request.resource.data.tz is string && request.resource.data.tz.size() <= 60));
+      allow delete: if signedIn() && isMk(mk);
+    }
+
     match /push/{tid} {
       allow read: if false;
       allow create, update: if signedIn() && tid.matches('^t[0-9]{2,3}$')

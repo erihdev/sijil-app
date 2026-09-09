@@ -1034,6 +1034,121 @@
     var cell = function (l, n) { return n ? '<span><small>' + esc(l) + '</small><b>' + esc(n) + '</b></span>' : ""; };
     return '<div class="csig">' + cell(st.lbl[st.viceKey], st.vice) + cell(st.lbl.principal, st.principal) + '</div>';
   }
+  /* ══════════════════════════ 🔔 إشعارات الطالب ══════════════════════════
+     ثلاث طبقات بالترتيب:
+       ١) شارةٌ على التبويب وتنبيهٌ داخل الصفحة (تعمل بلا إذن ولا خادم) — أعلاه في watchMsgs.
+       ٢) إشعار نظامٍ حقيقي والصفحة مفتوحة أو في الخلفية: Notification من عامل الخدمة.
+       ٣) إشعارٌ والتطبيق مُغلق: اشتراك دفع (spush/{mk}) يُرسل إليه من المهمة المجدولة.
+     والإذن لا يُطلب إلا بضغطة الطفل على الزر — لا نافذة إذنٍ تنبت في وجهه أول ما يدخل. */
+  var NKEY = "sijil.s.notify";
+  var VAPID_S = "BKOng8K19p2wBbjSGrOf2fufPNku7G0fF-Qr1BMe9oxsLoQcF5sZHPbkvQXQJLwp7mxgmyK7UCVZ1EBH8A35Tjc";
+  function nSupported() { try { return ("Notification" in window) && ("serviceWorker" in navigator); } catch (e) { return false; } }
+  function nState() { try { return Notification.permission; } catch (e) { return "default"; } }
+  function nOn() { try { return nState() === "granted" && localStorage.getItem(NKEY) === "1"; } catch (e) { return false; } }
+  function nSet(v) { try { localStorage.setItem(NKEY, v ? "1" : "0"); } catch (e) { } }
+  // الآيفون: الإشعارات لا تعمل إلا إن كان التطبيق مثبَّتاً على الشاشة الرئيسة (iOS 16.4+)
+  function nIosNeedsInstall() {
+    try {
+      var ua = navigator.userAgent || "";
+      var apple = /iPhone|iPad|iPod/.test(ua) || (/Macintosh/.test(ua) && navigator.maxTouchPoints > 1);
+      if (!apple) return false;
+      var installed = (window.navigator.standalone === true) || (window.matchMedia && window.matchMedia("(display-mode: standalone)").matches);
+      return !installed;
+    } catch (e) { return false; }
+  }
+  function b64u(v) {
+    var pad = "=".repeat((4 - v.length % 4) % 4), b = (v + pad).replace(/-/g, "+").replace(/_/g, "/");
+    var raw = atob(b), out = new Uint8Array(raw.length);
+    for (var i = 0; i < raw.length; i++) out[i] = raw.charCodeAt(i);
+    return out;
+  }
+  var NREG = null;
+  function nReg() {
+    if (NREG) return NREG;
+     // عامل الخدمة في جذر الموقع (فيه معالج push منذ إشعارات المعلمين) ونطاقه يشمل /s/
+    NREG = navigator.serviceWorker.register("../sw.js").then(function (r) { return navigator.serviceWorker.ready.then(function () { return r; }); });
+    return NREG;
+  }
+  // إشعار نظام حقيقي (لا نافذة داخل الصفحة): يظهر ولو كان التبويب في الخلفية
+  function nShow(title, body, tag) {
+    if (!nOn()) return;
+    try {
+      nReg().then(function (r) {
+        try {
+          r.showNotification(title, {
+            body: body, tag: tag || "sijil-s", icon: "../icon-192.png", badge: "../icon-192.png",
+            lang: "ar", dir: "rtl", data: { url: "./" }, vibrate: [120, 60, 120]
+          });
+        } catch (e) { try { new Notification(title, { body: body, dir: "rtl", lang: "ar" }); } catch (e2) { } }
+      }, function () { try { new Notification(title, { body: body, dir: "rtl", lang: "ar" }); } catch (e) { } });
+    } catch (e) { }
+  }
+  /* اشتراك الدفع: يُخزَّن في spush/{mk} — مفتاح صندوقه هو معرّفه، فلا يعرفه أحد سواه.
+     فشلُه لا يُعطّل الطبقتين الأوليين (شارة وتنبيه والصفحة مفتوحة). */
+  function nSubscribe() {
+    var mk = (ST.S || {}).mk;
+    if (!mk || !ST.CLOUD || !ST.db) return Promise.resolve(false);
+    return nReg().then(function (r) {
+      return r.pushManager.getSubscription().then(function (old) {
+        return old || r.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: b64u(VAPID_S) });
+      });
+    }).then(function (sub) {
+      var j = sub.toJSON ? sub.toJSON() : {};
+      var keys = j.keys || {};
+      if (!j.endpoint || !keys.p256dh || !keys.auth) return false;
+      var tz = ""; try { tz = Intl.DateTimeFormat().resolvedOptions().timeZone || ""; } catch (e) { }
+      return ST.db.doc("spush/" + mk).set({
+        ep: String(j.endpoint).slice(0, 500), p256dh: String(keys.p256dh).slice(0, 200),
+        auth: String(keys.auth).slice(0, 100), cid: String(ST.S.cid), si: +ST.S.si,
+        ua: String(navigator.userAgent || "").slice(0, 200), tz: String(tz).slice(0, 60), ts: Date.now()
+      }).then(function () { return true; }, function () { return false; });
+    }, function () { return false; });
+  }
+  function nUnsubscribe() {
+    var mk = (ST.S || {}).mk;
+    try { if (mk && ST.CLOUD && ST.db) ST.db.doc("spush/" + mk).delete(); } catch (e) { }
+    try { nReg().then(function (r) { r.pushManager.getSubscription().then(function (sb) { if (sb) sb.unsubscribe(); }); }); } catch (e) { }
+  }
+  // بطاقة الإشعارات — تُركَّب في «رسائلي» وفي «بطاقتي»
+  function nCardHtml() {
+    if (!nSupported()) return '<div class="card"><b>🔔 التنبيهات</b><p class="sub" style="margin:6px 0 0">متصفحك لا يدعم التنبيهات — افتح البوابة من كروم أو سفاري حديث.</p></div>';
+    if (nIosNeedsInstall()) {
+      return '<div class="card"><b>🔔 نبّهني بالجديد</b>'
+        + '<p class="sub" style="margin:6px 0 8px">على الآيفون تعمل التنبيهات بعد إضافة البوابة إلى الشاشة الرئيسة:</p>'
+        + '<ol class="nsteps"><li>اضغط زر المشاركة ⬆️ في أسفل سفاري</li><li>اختر «إضافة إلى الشاشة الرئيسية»</li>'
+        + '<li>افتح «سجلي» من الأيقونة الجديدة</li><li>ثم اضغط «نبّهني بالجديد» هنا</li></ol></div>';
+    }
+    if (nState() === "denied") {
+      return '<div class="card"><b>🔔 التنبيهات موقوفة</b><p class="sub" style="margin:6px 0 0">أنت (أو والدك) منعتَ التنبيهات لهذا الموقع. افتح إعدادات المتصفح ← الإشعارات ← اسمح لـ«سجلي».</p></div>';
+    }
+    if (nOn()) {
+      return '<div class="card"><b>🔔 التنبيهات مفعّلة ✅</b>'
+        + '<p class="sub" style="margin:6px 0 8px">يصلك تنبيه عند وصول واجب أو ورقة أو رسالة من معلمك.</p>'
+        + '<button class="go soft" id="n-test">🔔 جرّب تنبيهاً الآن</button>'
+        + '<button class="go soft" id="n-off" style="margin-top:9px">إيقاف التنبيهات</button></div>';
+    }
+    return '<div class="card"><b>🔔 نبّهني بالجديد</b>'
+      + '<p class="sub" style="margin:6px 0 8px">يوصلك تنبيه فور ما يرسل معلمك واجباً أو ورقة أو رسالة — ثم تدخل حسابك وتشوف التفاصيل.</p>'
+      + '<button class="go gold" id="n-on">🔔 فعّل التنبيهات</button></div>';
+  }
+  function nBind(el) {
+    var on = byId(el, "#n-on"), off = byId(el, "#n-off"), tst = byId(el, "#n-test");
+    if (on) on.onclick = function () {
+      on.disabled = true; on.textContent = "لحظة…";
+      var ask = null;
+      try { ask = Notification.requestPermission(); } catch (e) { ask = null; }
+      Promise.resolve(ask).then(function (p) {
+        var okp = (p === "granted") || (nState() === "granted");
+        if (!okp) { on.disabled = false; on.textContent = "🔔 فعّل التنبيهات"; ST.toast("ما سمحت بالتنبيهات 🙂"); return; }
+        nSet(true);
+        nShow("سجلي — تم ✅", "بنبّهك أول ما يرسل معلمك شيئاً جديداً.", "sijil-s-on");
+        nSubscribe();
+        try { ST.refresh(); } catch (e) { }
+      });
+    };
+    if (off) off.onclick = function () { nSet(false); nUnsubscribe(); try { ST.refresh(); } catch (e) { } };
+    if (tst) tst.onclick = function () { nShow("سجلي — تنبيه تجريبي 🔔", "كذا بيوصلك التنبيه إن شاء الله.", "sijil-s-test"); };
+  }
   /* ══════════════════════════ ٦) 📬 رسائلي — صندوق الطالب ووليّه ══════════════════════════
      يقرأ smsg/{mk} حيث mk مفتاح صندوقه داخل بصمة هويته: مستندٌ لطالبٍ واحد، لا يُسرد بالقواعد
      ولا يجده من لا يعرف المفتاح. فالاستدعاء ومستوى الابن لا يمرّان بمستند فصلٍ يقرؤه كل طلابه.
@@ -1112,8 +1227,11 @@
       var n = unreadCount(list);
       try { ST.tabCount("msg", n); } catch (e) { }
       if (before && list.length > before) {
+        var top = list[0] || {};
         try { ST.toast("📬 وصلتك رسالة جديدة من معلمك"); } catch (e) { }
         try { if (navigator.vibrate) navigator.vibrate(120); } catch (e) { }
+        // إشعار نظامٍ حقيقي: يظهر ولو كان التبويب في الخلفية
+        nShow("📬 رسالة من معلمك", String(top.t || "افتح بوابتك لتقرأها"), "sijil-s-msg");
       }
       if (before !== list.length) { try { if (ST.S) ST.refresh(); } catch (e) { } }
     });
@@ -1136,7 +1254,8 @@
         if (!list.length) {
           h += '<div class="card mid"><div class="big">📭</div><h1>ما وصلك شيء</h1>'
             + '<p class="sub" style="margin:0">حين يرسل لك معلمك رسالة أو استدعاءً أو تقريراً عن مستواك، تجدها هنا 🌱</p></div>';
-          el.innerHTML = h; ST.tabCount("msg", 0); return;
+          h += nCardHtml();
+          el.innerHTML = h; nBind(el); ST.tabCount("msg", 0); return;
         }
         h += list.map(function (m) {
           var K = MKIND[m.k] || MKIND.free, isNew = !seen[m.i];
@@ -1149,7 +1268,9 @@
         }).join("");
         h += '<div class="card no-print" style="margin-top:4px">'
           + '<button class="go soft" id="m-share">💬 أرسل آخر رسالة لوالديّ</button></div>';
+        h += nCardHtml();
         el.innerHTML = h;
+        nBind(el);
         // فتحُ التبويب = قراءةٌ: الشارة تنزل، ويعرف المعلم أنها قُرئت
         seenPut(list.map(function (m) { return m.i; }));
         try { ST.tabCount("msg", 0); } catch (e) { }
@@ -1165,7 +1286,41 @@
   // الشارة تُحسب مع الدخول لا عند فتح التبويب — وإلا لم يعرف الطفل أن عنده جديداً
   /* تُحسب الشارة عند الدخول (حدثٌ تُطلقه النواة) لا بمؤقّت أعمى: الطفل قد يمكث في شاشة الدخول
      دقيقةً، ومؤقّتٌ يسبق جلسته يمرّ بلا شيء فلا يرى شارة إلا إن فتح التبويب بنفسه. */
-  function msgStart() { if (!ST.S) return; msgBadge(); watchMsgs(); }
+  /* المهام أيضاً: شارةٌ بعدد ما لم يُحلّ، واستماعٌ حيّ لفهرس أوراق فصله — فيصل التنبيه
+     لحظة إرسال المعلم لا عند فتح التبويب. والورقة الموجَّهة لغيره لا تُحسب ولا تُنبّه. */
+  var TSUB = null;
+  function taskBadge() {
+    return loadTasksSafe().then(function (list) {
+      var open = (list || []).filter(function (x) { return !C.subs[x.a]; }).length;
+      try { ST.tabCount("task", open); } catch (e) { }
+      return open;
+    });
+  }
+  function watchTasks() {
+    var cid = (ST.S || {}).cid;
+    if (!cid || TSUB || typeof ST.sub !== "function") return;
+    TSUB = ST.sub("assignidx/" + cid, function (data) {
+      var si = ST.S.si;
+      var list = (((data || {}).list) || []).map(normTask).filter(function (x) {
+        return x.a && (!x.to.length || x.to.indexOf(si) >= 0);
+      });
+      var before = C.tasks ? C.tasks.length : 0;
+      if (!C.tasks || list.length !== before) {
+        var mine = {}; ST.myTeachers().forEach(function (t) { mine[t.id] = t; });
+        list.forEach(function (x) { var t = mine[x.tid]; if (t) { x.tn = t.name; x.subj = t.subject; } });
+        var fresh = C.tasks ? list.filter(function (x) { return !C.tasks.some(function (y) { return y.a === x.a; }); }) : [];
+        C.tasks = list;
+        taskBadge();
+        if (before && fresh.length) {
+          var one = fresh[0];
+          try { ST.toast("✏️ وصلك واجب جديد"); } catch (e) { }
+          nShow("✏️ واجب جديد من معلمك", String(one.t || "") + (one.subj ? " — " + one.subj : ""), "sijil-s-task");
+          try { if (ST.S) ST.refresh(); } catch (e) { }
+        }
+      }
+    });
+  }
+  function msgStart() { if (!ST.S) return; msgBadge(); watchMsgs(); taskBadge(); watchTasks(); }
   try { window.addEventListener("sijil:student-in", msgStart); } catch (e) { }
   try { setTimeout(msgStart, 1200); } catch (e) { }
   /* ══════════════════════════ ٥) شهادتي ══════════════════════════ */
