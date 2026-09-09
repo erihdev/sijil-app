@@ -16,8 +16,10 @@
   يوماً ثم عادت. وأول اشتراكٍ يبدأ من لحظته (``spush.ts``) فلا تُصبّ عليه أوراقُ الفصل كلها.
 
 الخصوصية:
-  لا يُطبع رقم هوية ولا مفتاح صندوق ولا عنوان اشتراك ولا اسم طالب — السجل يذكر الفصل والنوع
-  والعنوان وحدها. واشتراكٌ يرفضه خادم الدفع بـ404/410 يُحذف مستنده.
+  لا يُطبع رقم هوية ولا مفتاح صندوق ولا عنوان اشتراك ولا اسم طالب. وفي التشغيل الحقيقي لا
+  يُطبع عنوانُ رسالةٍ ولا معرّف فصل أيضاً — عدّادُ النوع وحده — لأن الخرج يُصبّ في ملخّص
+  مهمةٍ يقرؤه أي أحد في مستودعٍ عامّ. والتفصيل يبقى في ‎--dry-run‎ للفحص المحلي.
+  واشتراكٌ يرفضه خادم الدفع بـ404/410 يُحذف مستنده.
 
 الأسرار (من متغيرات البيئة، كما في tools/push_send.py):
   SA_JSON · VAPID_PRIVATE · VAPID_SUB
@@ -25,7 +27,7 @@
 التشغيل:
   python tools/push_students.py                 إرسال حقيقي
   python tools/push_students.py --dry-run       حساب وطباعة بلا إرسال وبلا كتابة
-  python tools/push_students.py --max-age 240   أقصى عمر للعنصر بالدقائق (الافتراضي 180)
+  python tools/push_students.py --max-age 240   أقصى عمر للعنصر بالدقائق (الافتراضي 4320)
 
 رمز الخروج: 0 عند النجاح (ولو لم يكن هناك ما يُرسل)، 1 عند خطأ يمنع العمل.
 """
@@ -84,9 +86,19 @@ def set_doc(store: "Store", path: str, data: dict) -> bool:
 
 
 def main(argv=None) -> int:
+    # الخرج عربيٌّ وفيه ✖ و→: بلا هذا الحرس ينهار أول نداء log على أي بيئة لا تُعلن UTF-8
+    #   (التشغيل اليدوي على ويندوز مثلاً) فتسقط المهمة كلها بلا إرسال شيء. نفسه في push_send.
+    try:
+        sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+    except (AttributeError, ValueError):
+        pass
+
     ap = argparse.ArgumentParser(description="إشعارات الطلاب: واجب جديد أو رسالة من المعلم")
     ap.add_argument("--dry-run", action="store_true", help="بلا إرسال وبلا كتابة")
-    ap.add_argument("--max-age", type=int, default=180, help="أقصى عمر للعنصر بالدقائق")
+    # الافتراضي يتجاوز فجوة الجدولة لا مدّة الحصة: نافذة cron تنتهي 13:55 بالرياض، فما يرسله
+    #   المعلم عصراً لا يمرّ عليه تشغيلٌ إلا صباح الغد (فجوة ١٩ ساعة) وعطلة نهاية الأسبوع
+    #   فجوتها ٥٩ ساعة. وكان الافتراضي ١٨٠ دقيقة فيُتخطّى العنصر بلا علامة ⇒ لا يصل أبداً.
+    ap.add_argument("--max-age", type=int, default=4320, help="أقصى عمر للعنصر بالدقائق (٣ أيام)")
     args = ap.parse_args(argv)
 
     sa_raw = os.environ.get("SA_JSON", "")
@@ -110,6 +122,7 @@ def main(argv=None) -> int:
     max_age_ms = max(1, args.max_age) * 60_000
     idx: dict = {}
     sent = quiet = cleaned = gone = 0
+    by_kind: dict = {}
 
     # الطالب المحذوف (حركة خروج to=="out") يبقى اشتراكه في spush ولا سبيل لحذفه من جهازه —
     # فلا يُرسل إليه شيء بعد خروجه. والبوابة ترفض دخوله أصلاً، فالإشعار وحده كان سيصله.
@@ -129,7 +142,15 @@ def main(argv=None) -> int:
             continue
 
         mark = store.get("pushlog/s_" + mk) or {}
-        last = num(mark.get("last"), 0) or num(d.get("ts"), 0)
+        # علامةٌ لكل قناة: كانت علامةٌ واحدة تُكتب بزمن المُرسَل وحده، فإذا وصل الطالب
+        #   «استدعاء لمقابلة» ثم ورقةُ عملٍ بعده بدقيقة ابتلع تنبيهُ الورقة تنبيهَ الاستدعاء
+        #   إلى الأبد (زمنه صار أقلَّ من العلامة). وأول اشتراكٍ يبدأ من لحظته فلا تُصبّ عليه
+        #   أوراق الفصل كلها.
+        base = num(mark.get("last"), 0) or num(d.get("ts"), 0)
+        last_of = {
+            "task": num(mark.get("t_task"), 0) or base,
+            "msg": num(mark.get("t_msg"), 0) or base,
+        }
 
         # ── أوراق فصله (والورقة الموجَّهة to لغيره لا تُحسب) ──
         if cid not in idx:
@@ -145,44 +166,62 @@ def main(argv=None) -> int:
         task = newest(mine)
         msg = newest((store.get("smsg/" + mk) or {}).get("list") or [])
 
-        best, kind = None, ""
+        # كل قناةٍ على حدة: أحدثُ ما فيها إن كان جديداً وليس أقدم من max-age
+        due = []
         for cand, k in ((task, "task"), (msg, "msg")):
-            if not cand or num(cand.get("ts")) <= last:
+            if not cand or num(cand.get("ts")) <= last_of[k]:
                 continue
             if now_ms - num(cand.get("ts")) > max_age_ms:      # قديمٌ جداً: لا نُوقظ به أحداً
                 continue
-            if best is None or num(cand.get("ts")) > num(best.get("ts")):
-                best, kind = cand, k
-        if not best:
+            due.append((cand, k))
+        if not due:
             quiet += 1
             continue
+        due.sort(key=lambda x: num(x[0].get("ts")))            # الأقدم أولاً فيقرأه بترتيبه
 
-        if kind == "task":
-            title = "✏️ واجب جديد من معلمك"
-            body = MODE_AR.get(str(best.get("mode") or "ws"), "ورقة") + ": " + str(best.get("t") or "")[:70]
-        else:
-            title = "📬 رسالة من معلمك"
-            body = KIND_AR.get(str(best.get("k") or "free"), "رسالة") + " — " + str(best.get("t") or "")[:70]
+        stamp = {"ts": now_ms}
+        dead = False
+        for best, kind in due:
+            if kind == "task":
+                title = "✏️ واجب جديد من معلمك"
+                body = MODE_AR.get(str(best.get("mode") or "ws"), "ورقة") + ": " + str(best.get("t") or "")[:70]
+            else:
+                title = "📬 رسالة من معلمك"
+                body = KIND_AR.get(str(best.get("k") or "free"), "رسالة") + " — " + str(best.get("t") or "")[:70]
 
-        alert = {
-            "payload": {"title": title, "body": body, "tag": "sijil-s-" + kind, "url": "./s/"},
-            "sub": {"ep": ep, "p256dh": str(d.get("p256dh") or ""), "auth": str(d.get("auth") or "")},
-        }
-        log("→ %s | %s | %s" % (cid, kind, body[:52]))
-        if args.dry_run:
-            sent += 1
-            continue
+            alert = {
+                "payload": {"title": title, "body": body, "tag": "sijil-s-" + kind, "url": "./s/"},
+                "sub": {"ep": ep, "p256dh": str(d.get("p256dh") or ""), "auth": str(d.get("auth") or "")},
+            }
+            # السجل يُصبّ في ملخّص مهمةٍ عامّ في مستودعٍ عامّ: النوع وحده — لا عنوانَ يكتبه
+            #   المعلم بيده ولا معرّف فصل. فـ«c2a | msg | استدعاء لمقابلة» ثلاث مرات كانت
+            #   تُخبر العالم أن ثلاثة في ثاني (أ) استُدعي أولياء أمورهم ذلك الصباح.
+            if args.dry_run:
+                log("→ %s | %s | %s" % (cid, kind, body[:52]))
+                sent += 1
+                stamp["t_" + kind] = num(best.get("ts"))
+                continue
 
-        ok, code, why = send_one(alert, vp, vs)
-        if ok:
-            sent += 1
-            set_doc(store, "pushlog/s_" + mk, {"last": num(best.get("ts")), "ts": now_ms, "kind": kind})
-        elif code in (404, 410):
-            store.delete("spush/" + mk)
-            cleaned += 1
-        else:
-            log("  ✖ تعذّر الإرسال (%s %s)" % (code, why))
+            ok, code, why = send_one(alert, vp, vs)
+            if ok:
+                sent += 1
+                by_kind[kind] = by_kind.get(kind, 0) + 1
+                stamp["t_" + kind] = num(best.get("ts"))
+            elif code in (404, 410):
+                store.delete("spush/" + mk)
+                cleaned += 1
+                dead = True
+                break
+            else:
+                log("  ✖ تعذّر الإرسال (%s %s)" % (code, why))
+        if not dead and len(stamp) > 1:
+            stamp["last"] = max(v for k, v in stamp.items() if k.startswith("t_"))
+            if args.dry_run:
+                continue
+            set_doc(store, "pushlog/s_" + mk, stamp)
 
+    if by_kind:
+        log("النوع: " + " · ".join("%s %d" % (k, v) for k, v in sorted(by_kind.items())))
     log("أُرسل %d · بلا جديد %d · اشتراكات منتهية حُذفت %d · طلاب خارج القائمة %d" % (sent, quiet, cleaned, gone))
     return 0
 

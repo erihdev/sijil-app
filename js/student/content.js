@@ -116,6 +116,17 @@
     if (n === 2) return "اثنتان";
     return String(n);
   }
+  /* صيغة العدد في العربية: مفردٌ ثم مثنّى بلا رقم ثم جمع قلّة (3-10) ثم تمييزٌ مفرد.
+     forms = [المفرد, المثنّى, جمع القلّة, تمييز ما فوق العشرة]. */
+  function arWord(n, forms) {
+    n = Math.abs(n | 0);
+    if (n === 1) return forms[0];
+    if (n === 2) return forms[1];
+    if (n <= 10) return n + " " + forms[2];
+    return n + " " + forms[3];
+  }
+  var W_SUBJ = ["مادة واحدة", "مادتان", "مواد", "مادة"];
+  var W_NOTE = ["ملاحظة سلوكية واحدة", "ملاحظتان سلوكيتان", "ملاحظات سلوكية", "ملاحظة سلوكية"];
   function daysWord(n) {
     n = Math.abs(n | 0);
     if (n === 1) return "يوم واحد";
@@ -168,8 +179,16 @@
   /* ═══ حساب المواد ═══ */
   function recsOf(tid) { return (RECS || {})[tid] || {}; }
   function calcT(tid) { return ST.calcOne(recsOf(tid), ST.S.si); }
-  function stIdx(name) { var S = ST.STATES || []; for (var i = 0; i < S.length; i++) if (String(S[i].name || "").indexOf(name) >= 0) return i; return -1; }
-  function stCnt(t, name) { var k = stIdx(name); return k >= 0 ? (t.st[k] || 0) : 0; }
+  /* عدّ الحالات بمسحٍ على المكتبة كلها لا بأول تطابق: المدير يُعيد تسمية الحالات بحرية من
+     لوحته، فحالتان تحملان «مستأذن» كانت تُحسب أُولاهما وحدها، وحالةٌ تحمل «مستأذن بعذر»
+     كانت تُعدّ مرتين فيهبط المقام إلى الصفر. وهذا هو تعريف s/index.html نفسه حرفاً بحرف. */
+  function stSum(t, re) {
+    var S = ST.STATES || [], n = 0;
+    for (var i = 0; i < S.length; i++) if (re.test(String(S[i].name || ""))) n += (t.st[i] || 0);
+    return n;
+  }
+  function stCnt(t, name) { return stSum(t, new RegExp(name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"))); }
+  var RE_EXC = /مستأذن|بعذر/;
 
   /* الدرجة التلقائية — منقولة عن js/app.js:autoGrade بمقاماتها نفسها.
      بند «الأوراق» يجمع الواجبات اليدوية مع الأوراق التفاعلية المعروفة لنا (تسليمات قرأناها
@@ -179,7 +198,7 @@
     var t = calcT(tid), v = {}, why = {}, A = ASSESS(), BEH = ST.BEH || [];
     var find = function (k) { for (var i = 0; i < A.length; i++) if (A[i].k === k) return A[i]; return null; };
     var stD = t.st.reduce(function (x, y) { return x + y; }, 0);
-    var excD = stCnt(t, "مستأذن") + stCnt(t, "بعذر");
+    var excD = stSum(t, RE_EXC);                      // مسحةٌ واحدة: لا ازدواج ولا إغفال
     var noSt = t.days - stD, denom = stD - excD;
     if (t.days && find("part") && denom > 0) {
       var pres = stCnt(t, "حاضر"), late = stCnt(t, "متأخر"), remote = stCnt(t, "عن بعد");
@@ -315,6 +334,8 @@
     return safeDoc("assignidx/" + cid).then(function (d) {
       var map = {};
       ((d && d.list) || []).forEach(function (x) { var o = normTask(x); if (o.a) map[o.a] = o; });
+      // الأوراق الموجَّهة إليه وحده: تُسلَّم في صندوقه الخاص لا في فهرس الفصل (خصوصية المجموعة)
+      privTasks().forEach(function (x) { var o = normTask(x); if (o.a && !map[o.a]) map[o.a] = o; });
       // ما فتحه الطفل بنفسه من رابط معلمه (سجّلته w/index.html على الأصل نفسه)
       seenList().forEach(function (x) {
         if (String(x.cid || "") !== cid) return;
@@ -332,7 +353,15 @@
       })).then(function () { return list; });
     });
   }
-  function loadTasksSafe() { return loadTasks().catch(function () { C.tasks = C.tasks || []; return C.tasks; }); }
+  /* عناصر النوع task في صندوق الرسائل = أوراقٌ موجَّهة إليه وحده. تُقرأ من MSGS إن كانت
+     محمَّلة، وإلا يُحمَّل الصندوق مرة (وهو مستندٌ واحد). ولا تظهر في «رسائلي» — مكانها «مهامي». */
+  function privTasks() { return (MSGS || []).filter(function (x) { return x && x.k === "task" && x.a; }); }
+  function loadTasksSafe() {
+    if (MSGS) return loadTasks().catch(function () { C.tasks = C.tasks || []; return C.tasks; });
+    return loadMsgs().catch(function () { }).then(function () {
+      return loadTasks().catch(function () { C.tasks = C.tasks || []; return C.tasks; });
+    });
+  }
   function taskState(x) {
     var s = C.subs[x.a] || null;
     var due = x.due ? new Date(x.due).getTime() : 0;
@@ -478,7 +507,8 @@
   });
   function taskCard(r) {
     var x = r.x, s = r.s, sub = s.sub, pills = [], cls = "tk";
-    var meta = [MODE_T[x.mode] || "📝 ورقة", x.subj ? esc(x.subj) : "", x.n ? x.n + " أسئلة" : ""].filter(Boolean).join(" · ");
+    // الرقم ووحدته وحدةٌ واحدة: بلا nowrap كان السطر ينكسر بين «3» و«أسئلة» في كل جوال 360
+    var meta = [MODE_T[x.mode] || "📝 ورقة", x.subj ? esc(x.subj) : "", x.n ? '<span class="nb">' + x.n + " أسئلة</span>" : ""].filter(Boolean).join(" · ");
     if (sub) {
       cls += " done";
       var sc = +sub.sc || 0, mx = +sub.mx || x.n || 0, pctv = mx ? Math.round(sc / mx * 100) : 0;
@@ -785,7 +815,14 @@
   }
   /* ✅ تحقّق من فهمي — أسئلة الدرس نفسها بلا رصد ولا درجة: تصحيحٌ فوري وتفسيرٌ لطيف. */
   function lsCheck(box, d) {
-    var qs = ((d.checks || []).concat(d.questions || [])).filter(function (q) { return q && q.q && (q.opts || []).length >= 2; }).slice(0, 12);
+    /* مولّد الدروس يبني checks من أوائل questions نفسها (js/app.js)، فالدمج بلا إزالة
+       تكرارٍ كان يعرض على الطفل السؤال الأول ثلاث مرات في كل درسٍ مولَّد. */
+    var seenQ = {};
+    var qs = ((d.checks || []).concat(d.questions || [])).filter(function (q) {
+      if (!(q && q.q && (q.opts || []).length >= 2)) return false;
+      var k = String(q.q).replace(/\s+/g, " ").trim();
+      if (seenQ[k]) return false; seenQ[k] = 1; return true;
+    }).slice(0, 12);
     if (!qs.length) { box.innerHTML = lsEmpty("لا أسئلة في هذا الدرس"); return; }
     var L2 = ["أ", "ب", "ج", "د", "هـ", "و"];
     box.innerHTML = '<div class="live-stage"><div class="stage-bar"><span style="color:#fff;font-weight:800">✅ تحقّق من فهمي</span>'
@@ -1077,7 +1114,9 @@
         try {
           r.showNotification(title, {
             body: body, tag: tag || "sijil-s", icon: "../icon-192.png", badge: "../icon-192.png",
-            lang: "ar", dir: "rtl", data: { url: "./" }, vibrate: [120, 60, 120]
+            // "./" من نطاق عامل الخدمة = جذر الموقع = واجهة المعلم. بوابة الطالب هي /s/
+            //   — وحمولة الدفع من الخادم تستعمل "./s/" نفسها (tools/push_students.py).
+            lang: "ar", dir: "rtl", data: { url: "./s/" }, vibrate: [120, 60, 120]
           });
         } catch (e) { try { new Notification(title, { body: body, dir: "rtl", lang: "ar" }); } catch (e2) { } }
       }, function () { try { new Notification(title, { body: body, dir: "rtl", lang: "ar" }); } catch (e) { } });
@@ -1191,7 +1230,10 @@
   function normMsg(x) {
     if (!x || typeof x !== "object") return null;
     var i = String(x.i || "").slice(0, 24); if (!i) return null;
+    // عنصر النوع task يحمل معرّف الورقة وبياناتها — تقرؤها «مهامي» بـnormTask
     return { i: i, k: String(x.k || "free"), t: String(x.t || "رسالة").slice(0, 90),
+      a: String(x.a || ""), due: String(x.due || ""), mode: String(x.mode || "ws"),
+      n: +x.n || 0, wk: +x.wk || 0, code: String(x.code || ""), tries: (x.tries == null ? null : +x.tries),
       b: String(x.b || "").slice(0, 900), tn: String(x.tn || ""), subj: String(x.subj || ""),
       tid: String(x.tid || ""), ts: +x.ts || 0 };
   }
@@ -1205,6 +1247,7 @@
       MSGS = list; return list;
     }, function () { MSGS = []; return MSGS; });
   }
+  // غير المقروء: الرسائل وحدها (عناصر المهام لها شارة «مهامي»)
   function unreadCount(list) {
     var o = seenGet();
     return (list || []).filter(function (m) { return !o[m.i]; }).length;
@@ -1216,6 +1259,10 @@
     });
   }
   /* استماعٌ حيّ: رسالةٌ تصل والطفل في البوابة ⇒ شارة وتنبيه فوري بلا إعادة تحميل. */
+  /* MFIRST/TFIRST: «هل مرّت لقطةٌ من قبل؟» — لا «هل كانت القائمة غير فارغة؟». الشرط
+     القديم (before && …) كان يبتلع أول عنصرٍ يصل إلى صندوقٍ فارغ، وهي بالضبط حال الطفل
+     قبل أول رسالةٍ من معلمه وأول ورقةٍ تصله — فتسقط الطبقات الثلاث في اللحظة التي بُنيت لها. */
+  var MFIRST = true, TFIRST = true;
   function watchMsgs() {
     var mk = (ST.S || {}).mk;
     if (!mk || MSUB || typeof ST.sub !== "function") return;
@@ -1224,16 +1271,20 @@
       list.sort(function (a, b) { return b.ts - a.ts; });
       var before = MSGS ? MSGS.length : 0;
       MSGS = list;
-      var n = unreadCount(list);
+      var n = unreadCount(list.filter(function (m) { return m.k !== "task"; }));
       try { ST.tabCount("msg", n); } catch (e) { }
-      if (before && list.length > before) {
+      // ورقةٌ خاصة وصلت الصندوق ⇒ تُحدَّث «مهامي» وشارتها
+      if (list.some(function (m) { return m.k === "task"; })) { C.tasks = null; try { taskBadge(); } catch (e) { } }
+      if (!MFIRST && list.length > before) {
         var top = list[0] || {};
         try { ST.toast("📬 وصلتك رسالة جديدة من معلمك"); } catch (e) { }
         try { if (navigator.vibrate) navigator.vibrate(120); } catch (e) { }
         // إشعار نظامٍ حقيقي: يظهر ولو كان التبويب في الخلفية
-        nShow("📬 رسالة من معلمك", String(top.t || "افتح بوابتك لتقرأها"), "sijil-s-msg");
+        if (top.k === "task") nShow("✏️ واجب جديد من معلمك", String(top.t || ""), "sijil-s-task");
+        else nShow("📬 رسالة من معلمك", String(top.t || "افتح بوابتك لتقرأها"), "sijil-s-msg");
       }
       if (before !== list.length) { try { if (ST.S) ST.refresh(); } catch (e) { } }
+      MFIRST = false;
     });
   }
   ST.tab("msg", {
@@ -1245,6 +1296,8 @@
         watchMsgs();
         var seen = {};
         Object.keys(seenGet()).forEach(function (k) { seen[k] = 1; });
+        // عناصر المهام تُعرض في «مهامي» لا هنا
+        list = list.filter(function (m) { return m.k !== "task"; });
         var h = head("📬", "رسائلي", "رسائل معلميك — اقرأها مع أمك أو أبيك");
         if (!(ST.S || {}).mk) {
           h += '<div class="card mid"><div class="big">📪</div><h1>صندوقك ما جهز بعد</h1>'
@@ -1308,19 +1361,27 @@
       if (!C.tasks || list.length !== before) {
         var mine = {}; ST.myTeachers().forEach(function (t) { mine[t.id] = t; });
         list.forEach(function (x) { var t = mine[x.tid]; if (t) { x.tn = t.name; x.subj = t.subject; } });
-        var fresh = C.tasks ? list.filter(function (x) { return !C.tasks.some(function (y) { return y.a === x.a; }); }) : [];
+        var fresh = C.tasks ? list.filter(function (x) { return !C.tasks.some(function (y) { return y.a === x.a; }); }) : list.slice();
         C.tasks = list;
         taskBadge();
-        if (before && fresh.length) {
+        if (!TFIRST && fresh.length) {
           var one = fresh[0];
           try { ST.toast("✏️ وصلك واجب جديد"); } catch (e) { }
           nShow("✏️ واجب جديد من معلمك", String(one.t || "") + (one.subj ? " — " + one.subj : ""), "sijil-s-task");
           try { if (ST.S) ST.refresh(); } catch (e) { }
         }
       }
+      TFIRST = false;
     });
   }
-  function msgStart() { if (!ST.S) return; msgBadge(); watchMsgs(); taskBadge(); watchTasks(); }
+  /* تجديد الاشتراك: المتصفح يُدوِّر عنوان الدفع أو يُبطله، فيحذف الخادم مستنده (404/410)
+     ولا يُنشأ غيره أبداً — والبطاقة تظل تقول «مفعّلة ✅» بينما لا يصل الطفل شيء. فنُعيد
+     الاشتراك عند كل دخولٍ ما دام الإذن قائماً (nSubscribe تُعيد القائم إن وُجد). */
+  function msgStart() {
+    if (!ST.S) return;
+    msgBadge(); watchMsgs(); taskBadge(); watchTasks();
+    try { if (nOn()) nSubscribe(); } catch (e) { }
+  }
   try { window.addEventListener("sijil:student-in", msgStart); } catch (e) { }
   try { setTimeout(msgStart, 1200); } catch (e) { }
   /* ══════════════════════════ ٥) شهادتي ══════════════════════════ */
@@ -1644,12 +1705,22 @@
       for (var k = 0; k < TS.length; k++) if (String(TS[k].name || "") === String(r.t || "")) { t = TS[k]; break; }
       var key = (t ? t.id : "") || ("n:" + String(r.t || ""));
       var b = by[+r.p] || null;
-      if (!grp[key]) { grp[key] = { tid: t ? t.id : "", tn: String(r.t || ""), subj: t ? (t.subject || "") : "", ps: [], from: 0, to: 0 }; order.push(key); }
+      // spans: مدى كل حصةٍ على حدة. الاكتفاء بـ[أبكر بداية, أبعد نهاية] كان يجعل معلماً
+      //   حصّتاه الأولى والسابعة «في حصته الآن» طوال اليوم الدراسي كله.
+      if (!grp[key]) { grp[key] = { tid: t ? t.id : "", tn: String(r.t || ""), subj: t ? (t.subject || "") : "", ps: [], spans: [], from: 0, to: 0 }; order.push(key); }
       var g = grp[key];
       g.ps.push(+r.p || 0);
-      if (b) { if (!g.from || b.from < g.from) g.from = b.from; if (b.to > g.to) g.to = b.to; }
+      if (b) {
+        g.spans.push({ from: b.from, to: b.to });
+        if (!g.from || b.from < g.from) g.from = b.from; if (b.to > g.to) g.to = b.to;
+      }
     });
-    var out = order.map(function (k) { var g = grp[k]; g.ps.sort(function (a, b2) { return a - b2; }); g.p = g.ps[0]; return g; });
+    var out = order.map(function (k) {
+      var g = grp[k]; g.ps.sort(function (a, b2) { return a - b2; }); g.p = g.ps[0];
+      g.live = function (m) { return g.spans.some(function (s2) { return m >= s2.from && m < s2.to; }); };
+      g.done = function (m) { return g.spans.length > 0 && g.spans.every(function (s2) { return m >= s2.to; }); };
+      return g;
+    });
     out.sort(function (a, b2) { return a.p - b2.p; });
     return { day: day, list: out, isSchool: out.length > 0 };
   }
@@ -1668,8 +1739,9 @@
   // مجموع اليوم: حاضر في كم حصة، ومشاركاته، وواجباته، وسلوكه
   function pDaySum(dk, tids) {
     /* على معلمي اليوم وحدهم: مقامٌ من كل معلمي الفصل يقول «حاضر في 1 من 6» ليوم فيه حصتان. */
-    var out = { here: 0, off: 0, none: 0, part: 0, hwY: 0, hwN: 0, pos: 0, neg: 0 };
+    var out = { here: 0, off: 0, none: 0, part: 0, hwY: 0, hwN: 0, pos: 0, neg: 0, n: 0 };
     var T = (tids && tids.length) ? tids.map(function (id) { return { id: id }; }) : ST.myTeachers();
+    out.n = T.length;                       // المقام من المصدر الذي حُسب منه البسط نفسه
     T.forEach(function (t) {
       if (!t.id) { out.none++; return; }
       var c = pCell(t.id, dk);
@@ -1694,9 +1766,13 @@
     // الرصد والدرجات والمهام معاً، ثم رسمٌ واحد — ثم استماعٌ حيّ يعيد الرسم عند كل تغيير
     Promise.all([ST.loadRecs().then(function (r) { RECS = r; }, function () { }), loadGrades().catch(function () { }), loadTasksSafe()])
       .then(function () {
+        /* أُغلقت الشاشة قبل وصول بياناتها؟ لا نرسم ولا نفتح مستمعاً: الإسناد بعد الإغلاق
+           كان يترك PSTOP مشيراً إلى مستمعٍ لا مالك له — فلا يُلغى أبداً، ولا تفتح الفتحة
+           التالية مستمعاً (لأن !PSTOP كاذب) فتظهر الشاشة جامدة. */
+        if (POV !== ov || !document.body.contains(ov)) return;
         pDraw(box);
         if (!PSTOP && typeof ST.watchRecs === "function") {
-          PSTOP = ST.watchRecs(function () { if (POV && document.body.contains(POV)) pDraw(box); });
+          PSTOP = ST.watchRecs(function () { if (POV === ov && document.body.contains(ov)) pDraw(box); });
         }
       }, function () { box.innerHTML = '<div class="win"><div class="e">📡</div><h2>ما وصلت البيانات</h2><p>تأكد من الإنترنت.</p></div>'; });
   }
@@ -1730,7 +1806,7 @@
        (لوحة الشرف عُرفٌ معلن)، ومعها نقاط ابنه ومرتبته — لا ترتيب كل طفل في الفصل. */
     var LB = (typeof ST.liveBoard === "function") ? ST.liveBoard() : null;
     var livePer = null;
-    T.list.forEach(function (r) { if (r.from && mnow >= r.from && mnow < r.to) livePer = r; });
+    T.list.forEach(function (r) { if (r.live && r.live(mnow)) livePer = r; });
     if (LB && (LB.board.length || LB.mine)) {
       h += '<div class="psec">' + (livePer ? '🔴 الحصة الآن' : '🏆 لوحة شرف اليوم') + '<i>' + (livePer ? 'مباشر' : 'اليوم') + '</i></div>';
       h += '<div class="pcard lbc">';
@@ -1756,8 +1832,8 @@
       h += '<div class="ptl">';
       T.list.forEach(function (r) {
         var c = r.tid ? pCell(r.tid, dk) : null;
-          var live = r.from && mnow >= r.from && mnow < r.to;
-        var done = r.to && mnow >= r.to;
+        var live = !!(r.live && r.live(mnow));
+        var done = !!(r.done && r.done(mnow));
         var cls = pStateCls(c ? c.st : "");
         h += '<div class="pl ' + cls + (live ? " live" : "") + '">'
           + '<div class="pp">' + esc(r.ps && r.ps.length > 1 ? r.ps.join(" و") : String(r.p)) + '<i>' + (r.from ? esc(pHm(r.from)) : "") + '</i></div>'
@@ -1772,7 +1848,7 @@
       });
       h += '</div>';
       h += '<div class="pcard sumline">'
-        + '<span>✅ حاضر في <b>' + sum.here + '</b> من ' + T.list.length + ' ' + (T.list.length === 1 ? 'مادة' : 'مواد') + '</span>'
+        + '<span>✅ حاضر في <b>' + sum.here + '</b> من ' + arWord(sum.n || T.list.length, W_SUBJ) + '</span>'
         + (sum.off ? '<span class="bad">🚫 غياب ' + sum.off + '</span>' : "")
         + (sum.part ? '<span>🙋 مشاركات ' + sum.part + '</span>' : "")
         + (sum.hwY ? '<span>📚 واجبات ' + sum.hwY + '</span>' : "")
@@ -1783,14 +1859,15 @@
     }
     // ── تنبيهات تحتاج تدخّلاً ──
     var alerts = [];
-    if (sum.off) alerts.push({ e: "🚫", t: "غياب اليوم في " + sum.off + " حصة", k: "bad" });
-    if (sum.hwN) alerts.push({ e: "📚", t: "لم يحلّ الواجب اليوم في " + sum.hwN + " مادة", k: "warn" });
-    if (sum.neg) alerts.push({ e: "⚠️", t: sum.neg + " ملاحظة سلوكية اليوم", k: "warn" });
+    // sum.off يعدّ المعلمين لا الحصص (معلمٌ بحصتين يُعدّ مرة) — فالتمييز «مادة» لا «حصة»
+    if (sum.off) alerts.push({ e: "🚫", t: "غياب اليوم في " + arWord(sum.off, W_SUBJ), k: "bad" });
+    if (sum.hwN) alerts.push({ e: "📚", t: "لم يحلّ الواجب اليوم في " + arWord(sum.hwN, W_SUBJ), k: "warn" });
+    if (sum.neg) alerts.push({ e: "⚠️", t: arWord(sum.neg, W_NOTE) + " اليوم", k: "warn" });
     if (att != null && att < 85) alerts.push({ e: "📉", t: "نسبة حضوره " + att + "% — دون المعتاد", k: "warn" });
     var late = (C.tasks || []).filter(function (x) { var st = taskState(x); return !C.subs[x.a] && st.left !== null && st.left < 0; });
-    if (late.length) alerts.push({ e: "⏰", t: late.length + " ورقة فات موعدها ولم تُحلّ", k: "warn" });
+    if (late.length) alerts.push({ e: "⏰", t: papersWord(late.length) + " فات موعدها ولم تُحلّ", k: "warn" });
     var open2 = (C.tasks || []).filter(function (x) { return !C.subs[x.a]; }).length;
-    if (open2 && !late.length) alerts.push({ e: "✏️", t: open2 + " ورقة أو واجب في انتظاره", k: "info" });
+    if (open2 && !late.length) alerts.push({ e: "✏️", t: papersWord(open2) + " في انتظاره", k: "info" });
     gl.forEach(function (x) { if (x.g.pct < 50) alerts.push({ e: "📕", t: "مستواه في " + (x.t.subject || "مادة") + " " + Math.round(x.g.pct) + "% — يحتاج متابعة", k: "bad" }); });
     if (alerts.length) {
       h += '<div class="psec">🔔 ما يحتاج متابعتكم</div><div class="pcard alerts">'

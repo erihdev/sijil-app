@@ -215,11 +215,18 @@
       const t = s.calcStudent(cid, si, dc.recs);
       if (t.days) { out.n++; out.days += t.days; out.pts += t.pts; t.st.forEach((v, k) => out.st[k] += v); }
       // النسبة من البنود المرصودة حتى الآن (SIJIL.gradePct) لا من maxTotal الثابت: البنود التلقائية سقفها 40 من 100
-      if (s.hasGrades(cid, si, dc.grades, dc.recs)) { const p = s.gradePct(cid, si, dc.grades, dc.recs); if (p != null) out.grades.push({ tid: dc.tid, subject: dc.subject, pct: p, max: s.gradedMax(cid, si, dc.grades, dc.recs) }); }
+      if (s.hasGrades(cid, si, dc.grades, dc.recs)) {
+        const p = s.gradePct(cid, si, dc.grades, dc.recs);
+        // tot مطلوب للمعدل الموزون (SIJIL.overallPct) — والنسبة تبقى لعرض كل مادة على حدة
+        if (p != null) out.grades.push({ tid: dc.tid, subject: dc.subject, pct: p, tot: s.gradeTotal(cid, si, dc.grades, dc.recs), max: s.gradedMax(cid, si, dc.grades, dc.recs) });
+      }
     });
     out.pts = Math.round(out.pts * 10) / 10;
     out.att = attOf(out.st);
-    if (out.grades.length) out.avg = Math.round(out.grades.reduce((a, g) => a + g.pct, 0) / out.grades.length);
+    /* المعدل العام: مجموع الدرجات ÷ مجموع العظمى المرصودة — التعريف نفسه في بطاقة تقدّم
+       الطالب وفي شاشة وليّ الأمر بالبوابة. متوسط نسب المواد كان يجعل مادةً برصد بندٍ واحد
+       تزن كمادةٍ برصد سبعة، فيقرأ وليّ الأمر رقماً ويقرأ المعلم غيره تحت العنوان نفسه. */
+    if (out.grades.length) out.avg = s.overallPct(out.grades.map(g => ({ tot: g.tot, mx: g.max })));
     return out;
   }
   /* سجل فارغ (فتح بطاقة الطالب أو نافذة الحالة بلا اختيار) ليس رصداً — نفس تعريف emptyRec في app.js.
@@ -284,6 +291,31 @@
     return out.slice(0, 24);
   }
   // {ok:true, mk} أو {ok:false, err:"رسالة عربية"} — ولا يُطبع الرقم في أي سجل
+/* البصمة = sha256(الهوية|الفصل|الملح) والفصل جزءٌ منها، فطالبٌ نُقل بين الفصول تُحسب له
+   بصمةٌ جديدة عند إعادة الاستيراد لا مستند لها ⇒ مفتاح صندوقٍ جديد (فتضيع كل رسائل معلميه
+   واشتراك إشعاراته) ورمزٌ سرّي مفقود (فيدخل بوابته أيّ زميل يعرف رقم هويته — وهو الخطر
+   الذي وُضع الرمز لسدّه). فنتتبّع سلسلة فصوله (s.fromChain التي يكتبها applyMoves) ونحمل
+   منها mk وc، ثم نحذف المستند القديم. تُعيد null إن لم يوجد شيء يُحمل. */
+  async function oldPinOf(cid, si, dg) {
+    const s = S(); if (!s || !s.CLOUD || !s.fdb) return null;
+    let st = null;
+    try { st = ((s.classById(cid) || {}).students || [])[sidI(si)] || null; } catch (e) { st = null; }
+    if (!st) return null;
+    const chain = (st.fromChain && st.fromChain.length) ? st.fromChain : (st.from && st.from.cid ? [st.from] : []);
+    for (let k = chain.length - 1; k >= 0; k--) {                 // الأحدث أولاً
+      const f = chain[k]; if (!f || !f.cid || f.cid === cid) continue;
+      let h2 = null;
+      try { h2 = await s.sha256(dg + "|" + f.cid + "|" + SID_SALT); } catch (e) { h2 = null; }
+      if (!h2) continue;
+      try {
+        const d = await s.fdb.doc("spins/" + h2).get();
+        if (!d.exists) continue;
+        const v = d.data() || {};
+        return { h: h2, mk: isMkStr(v.mk) ? v.mk : "", c: (typeof v.c === "string" && v.c) ? v.c : "" };
+      } catch (e) { return null; }                                  // رفضٌ أو تعثّر: لا نخمّن
+    }
+    return null;
+  }
   async function registerStudentId(cid, si, nid) {
     const s = S();
     if (!s) return { ok: false, err: "التطبيق غير جاهز" };
@@ -297,11 +329,21 @@
     try {
       if (s.CLOUD && s.fdb) {
         // المفتاح ورمز الطالب القائمان يبقيان — إعادة التسجيل لا تُفقده صندوقه ولا رمزه
-        let pd = {}; try { const pv = await s.fdb.doc("spins/" + h).get(); if (pv.exists) pd = pv.data() || {}; } catch (e) { pd = {}; }
-        const mk = isMkStr(pd.mk) ? pd.mk : mkNew();
+        /* قراءةٌ فاشلة ≠ مستندٌ جديد: لو مضينا لَولّدنا mk جديداً فقطعنا الطالب عن صندوق
+           رسائله واشتراك إشعاراته. فنتوقف ونطلب إعادة المحاولة (والقاعدة تمنع التبديل أيضاً). */
+        let pd = null;
+        try { const pv = await s.fdb.doc("spins/" + h).get(); pd = pv.exists ? (pv.data() || {}) : {}; } catch (e) { pd = null; }
+        if (pd === null) return { ok: false, err: "تعذّرت قراءة بصمة الهوية — تحقق من الاتصال ثم أعد المحاولة" };
+        // مستندٌ جديد لطالبٍ منقول؟ نحمل مفتاحه ورمزه من بصمة فصله السابق قبل توليد أيّ جديد
+        let old = null;
+        if (!isMkStr(pd.mk)) { try { old = await oldPinOf(cid, i, dg); } catch (e) { old = null; } }
+        const mk = isMkStr(pd.mk) ? pd.mk : ((old && old.mk) ? old.mk : mkNew());
         const rec = { cid: cid, si: i, ts: Date.now(), mk: mk };
-        if (typeof pd.c === "string" && pd.c) rec.c = pd.c;
+        const cc = (typeof pd.c === "string" && pd.c) ? pd.c : ((old && old.c) ? old.c : "");
+        if (cc) rec.c = cc;
         await s.fdb.doc("spins/" + h).set(rec);
+        // البصمة القديمة تُحذف بعد نجاح الجديدة — لا قبلها، لئلا يضيع الحسابان معاً
+        if (old && old.h !== h) { try { await s.fdb.doc("spins/" + old.h).delete(); } catch (e) { } }
         // فهرس من يستطيع الدخول (اتحاد لا استبدال)
         let list = [];
         try { const d = await s.fdb.doc("sids/" + cid).get(); if (d.exists) list = ((d.data() || {}).list) || []; } catch (e) { list = []; }
@@ -342,6 +384,43 @@
        mkeys/{cid}.k    ← يُسقط مفتاح صندوقه، فلا يُرسل إليه معلمٌ رسالة
        spush/{mk}       ← يُحذف اشتراك إشعاراته، فلا يصله «واجب جديد» بعد خروجه (وهذا وحده
                           ما كان سيصل جواله فعلاً بعد الحذف) */
+  /* رقمٌ سُجّل بالخطأ: بصمته spins/{h} تبقى مفتاحاً صالحاً لحساب هذا الطالب، ولا سبيل إلى
+     معرفتها إلا بإعادة كتابة الرقم الخاطئ نفسه — فيُحسب ويُحذف مستنده. والحذف بمطالبة مدير. */
+  async function unregisterNid(cid, nid) {
+    const s = S(); if (!s) return { ok: false, err: "التطبيق غير جاهز" };
+    const dg = sidDigits(nid);
+    if (dg.length < 9 || dg.length > 12) return { ok: false, err: "رقم الهوية غير صالح" };
+    let h = null;
+    try { h = await s.sha256(dg + "|" + cid + "|" + SID_SALT); } catch (e) { h = null; }
+    if (!h) return { ok: false, err: "تعذّر حساب البصمة" };
+    try {
+      if (s.CLOUD && s.fdb) {
+        const d = await s.fdb.doc("spins/" + h).get();
+        if (!d.exists) return { ok: false, err: "لا بصمة لهذا الرقم في هذا الفصل" };
+        await s.fdb.doc("spins/" + h).delete();
+        return { ok: true, si: (d.data() || {}).si };
+      }
+      const DB = s.DB || window.DB || {};
+      if (!DB.spins || !DB.spins[h]) return { ok: false, err: "لا بصمة لهذا الرقم في هذا الفصل" };
+      const si = DB.spins[h].si;
+      delete DB.spins[h]; try { s.save("spins"); } catch (e) { }
+      return { ok: true, si: si };
+    } catch (e) { warn("unregisterNid", e && e.message); return { ok: false, err: "تعذّر الحذف — تحقق من الاتصال" }; }
+  }
+  // موضع الطالب مسجَّلٌ في فهرس الحسابات؟ (قراءةٌ واحدة بلا ذاكرة — لتُقال الحالة صادقة)
+  async function hasStudentId(cid, si) {
+    const s = S(); if (!s) return false;
+    try {
+      if (s.CLOUD && s.fdb) {
+        const d = await s.fdb.doc("sids/" + cid).get();
+        const list = d.exists ? (((d.data() || {}).list) || []) : [];
+        return list.map(sidI).indexOf(sidI(si)) >= 0;
+      }
+      const DB = s.DB || window.DB || {};
+      const l = ((DB.sids || {})[cid] || {}).list || [];
+      return l.map(sidI).indexOf(sidI(si)) >= 0;
+    } catch (e) { return false; }
+  }
   async function unregisterStudentId(cid, si) {
     const s = S(); if (!s) return { ok: false };
     const i = sidI(si); if (!(i >= 0)) return { ok: false };
@@ -392,10 +471,17 @@
   }
 
   /* ═══ تعديل بيانات طالب من المدير: sedits/{cid} = { s: { si: { p?, n? } }, tn, ts } ═══ */
+  /* حقول بيانات الطالب وأقصى طول كل حقل — الترتيب نفسه في نافذة التعديل وفي applySedits.
+     قاعدة sedits تفحص الشكل الخارجي وحده (s خريطة)، فالحدود تُفرض هنا قبل الكتابة. */
+  const SED_MAX = { n: 80, p: 20, p2: 20, rel: 12, nat: 24, noor: 20, health: 200, need: 120, note: 200 };
   async function saveSedit(cid, si, patch) {
     const s = S(), D = s.D, DB = s.DB, p = {};
-    if (typeof patch.p === "string") p.p = patch.p;
-    if (typeof patch.n === "string" && patch.n.trim()) p.n = patch.n.trim();
+    Object.keys(SED_MAX).forEach(k => {
+      if (typeof patch[k] !== "string") return;
+      const v = patch[k].replace(/\s+/g, " ").trim().slice(0, SED_MAX[k]);
+      if (k === "n" && !v) return;                 // الاسم لا يُفرَّغ
+      p[k] = v;                                    // "" يمحو الحقل قصداً
+    });
     if (!Object.keys(p).length) return false;
     if (s.CLOUD && s.fdb) {
       try { await s.fdb.doc("sedits/" + cid).set({ s: { [si]: p }, tn: s.TE.name, ts: Date.now() }, { merge: true }); } catch (e) { warn("sedits", e && e.message); return false; }
@@ -409,6 +495,20 @@
     }
     s.applySedits(D.classes, D.sedits);
     if (cache) cache.sedits = D.sedits;
+    /* الاسم المصحَّح يُنشر في snames ليصل بوابة الطالب (تقرأ sedits؟ لا — قراءتها بمطالبة معلم
+       وفيها جوالات وملاحظات صحية). فشلُ النشر لا يُبطل الحفظ: أقصى أثره اسمٌ قديم في البوابة. */
+    if (typeof p.n === "string" && p.n) {
+      try {
+        if (s.CLOUD && s.fdb) {
+          await s.fdb.doc("snames/" + cid).set({ n: { [si]: p.n }, tn: s.TE.name, ts: Date.now() }, { merge: true });
+        } else {
+          DB.snames = DB.snames || {}; DB.snames[cid] = DB.snames[cid] || { n: {} };
+          DB.snames[cid].n = DB.snames[cid].n || {}; DB.snames[cid].n[si] = p.n;
+          DB.snames[cid].ts = Date.now(); DB.snames[cid].tn = s.TE.name;
+          try { s.save("snames"); } catch (e) { }
+        }
+      } catch (e) { warn("snames", e && e.message); }
+    }
     return true;
   }
 
@@ -952,7 +1052,7 @@
     // أسماء إدارة المدرسة وسطر التواقيع
     schoolStaff, sigLine, saveStaff, validateStaff, STAFF_KEYS, STAFF_LBL,
     // تسجيل هوية طالب واحد (بوابته وصندوق رسائله)
-    registerStudentId, unregisterStudentId, sidDigits,
+    registerStudentId, oldPinOf, unregisterStudentId, unregisterNid, hasStudentId, sidDigits, SED_MAX,
     // مكتبة التقييمات ودرجاتها (cfg/assess)
     assess, defaultAssess, validateAssess, saveAssess, assessLine, assessScore,
     ASSESS_KEYS, ASSESS_WK, ASSESS_WLBL, ASSESS_COLORS, ASSESS_CLBL, ASSESS_MAX, ASSESS_LOCK

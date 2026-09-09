@@ -5,9 +5,11 @@
   var THREE = window.THREE;
   if (!THREE) return;
 
-  var UI_DIR = 'assets/intro/ui/';
-  var ATLAS_DESKTOP = 'assets/intro/lessons-atlas.webp';
-  var ATLAS_MOBILE = 'assets/intro/lessons-atlas-m.webp';
+  // مسارات الأصول تُسبق بجذر التطبيق (SIJIL_INTRO.base) لتعمل الجولة من بوابة الطالب أيضاً
+  var BASE = String((NS.base) || '');
+  var UI_DIR = BASE + 'assets/intro/ui/';
+  var ATLAS_DESKTOP = BASE + 'assets/intro/lessons-atlas.webp';
+  var ATLAS_MOBILE = BASE + 'assets/intro/lessons-atlas-m.webp';
   var ATLAS_COLS = 8, ATLAS_ROWS = 6;
   var PROC_INTERVAL = 1000 / 12, PROC_INTERVAL_IDLE = 1000 / 8;
   /* النسيج الكبير (1024) أثقل رفعاً إلى الـGPU: 9 إطارات/ثانية تكفي بصرياً، والجوال 10 */
@@ -374,7 +376,7 @@
       var done = function (m) { clipsMap = m || {}; resolve(clipsMap); };
       try {
         if (typeof fetch !== 'function') return done({});
-        fetch('assets/intro/video/manifest.json?v=38', { cache: 'no-cache' })
+        fetch(BASE + 'assets/intro/video/manifest.json?v=38', { cache: 'no-cache' })
           .then(function (r) { return r.ok ? r.json() : null; })
           .then(function (j) { done(j && j.clips ? j.clips : {}); }, function () { done({}); });
       } catch (e) { done({}); }

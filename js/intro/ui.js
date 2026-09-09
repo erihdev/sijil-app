@@ -378,7 +378,7 @@
     items.forEach(function (item, k) {
       var n = (item && typeof item.index === 'number' ? item.index : k) + 1;
       var t = stationText(item);
-      var src = (item && (item.src || item.poster)) || ('assets/intro/posters/s' + n + '.webp');
+      var src = (item && (item.src || item.poster)) || ((((window.SIJIL_INTRO || {}).base) || '') + 'assets/intro/posters/s' + n + '.webp');
       var sec = doc.createElement('section');
       sec.className = 'poster';
       sec.setAttribute('data-i', n);

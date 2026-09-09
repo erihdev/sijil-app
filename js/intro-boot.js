@@ -4,6 +4,10 @@
   'use strict';
   var W = window, D = document, V = '54';
   var NS = W.SIJIL_INTRO = W.SIJIL_INTRO || {};
+  /* base: جذر التطبيق بالنسبة للصفحة الحالية. الجولة تُفتح من index.html (base = "")
+     ومن بوابة الطالب s/index.html (base = "../") — فكل مسار أصلٍ أو وحدةٍ يُسبق به،
+     وإلا طُلبت الأصول من /s/assets فردّ الخادم 404 وسقطت الجولة إلى ملصقات فارغة. */
+  var BASE = String(NS.base || "");
   var CDN = 'https://cdnjs.cloudflare.com/ajax/libs/';
   var LIBS = [
     CDN + 'three.js/0.160.0/three.min.js',
@@ -14,11 +18,11 @@
   /* screens.js مباشرة بعد media.js: مكتبة المولّدات (39KB) تصل ضمن الدفعة المرتّبة نفسها،
      فلا تُبنى شاشة على المولّد الافتراضي ثم تُعاد من الصفر عند وصوله (rebindGens) */
   var TOUR = ['core', 'media', 'screens', 'ui', 'world', 'stations/s1', 'stations/s2', 'stations/s3', 'stations/s4',
-    'stations/s5', 'stations/s6', 'stations/s7', 'stations/s8'].map(function (n) { return 'js/intro/' + n + '.js?v=' + V; });
+    'stations/s5', 'stations/s6', 'stations/s7', 'stations/s8'].map(function (n) { return BASE + 'js/intro/' + n + '.js?v=' + V; });
   /* ميزانية زمن الوضع الكامل: بعدها تُسلَّم الملصقات المخبوزة بدل انتظار المكتبات على وصلة بطيئة */
   var LOAD_BUDGET_MS = 8000;
   /* ملصق المحطة الأولى: خلفية #intro حتى أول إطار WebGL (عنصر LCP) */
-  var FIRST_POSTER = 'assets/intro/posters/s1.webp';
+  var FIRST_POSTER = BASE + 'assets/intro/posters/s1.webp';
 
   /* الملصقات الثابتة (القسم 6) — تُستخدم في وضع posters بلا مكتبات */
   var POSTERS = [
@@ -187,14 +191,14 @@
       body.appendChild(num); body.appendChild(h); body.appendChild(t);
       sec.appendChild(body); root.appendChild(sec);
       try {
-        var url = 'assets/intro/posters/s' + (i + 1) + '.webp', img = new Image();
+        var url = BASE + 'assets/intro/posters/s' + (i + 1) + '.webp', img = new Image();
         img.onload = function () { sec.style.backgroundImage = 'url("' + url + '")'; sec.classList.add('has-img'); };
         img.src = url;
       } catch (e) { }
     });
     var last = root.lastElementChild;
     if (last) {
-      var a = D.createElement('a'); a.className = 'poster-cta'; a.href = '#view-login'; a.textContent = 'دخول';
+      var a = D.createElement('a'); a.className = 'poster-cta'; a.href = String(NS.cta || '#view-login'); a.textContent = 'دخول';
       last.querySelector('.poster-body').appendChild(a);
     }
     show(root);

@@ -457,7 +457,11 @@
   const aLIST = { st: "states", bh: "behaviors" };
   const aWHAT = { st: "الحالة", bh: "السلوك" };
   // درجات الرصد اليومي الثلاث التي تدخل فعلاً في حساب النقاط (present/absent/bad في المستند مرايا قديمة لا يقرؤها أي حساب)
-  const A_WSHOW = [["part", "🙋", "المشاركة", "لكل نقرة"], ["hw", "📚", "الواجب", "عند الحل"], ["sheets", "📄", "ورقة العمل", "لكل ورقة"]];
+  /* «ورقة العمل» لا تُعرض هنا: وزنها يضرب الحقل e.sh في السجل اليومي، وهذا الحقل **لا كاتب له**
+     في المشروع كله (يُنشأ صفراً ويبقى صفراً) — فمقبضٌ يضبطه المدير ولا يتحرّك به رقمٌ واحد أسوأ
+     من غيابه. وأوراق العمل التفاعلية تدخل الدرجة فعلاً من عمود «الأوراق» في الدرجة التلقائية
+     (autoGrade: تسليمات subs + الواجبات)، لا من هذا الوزن. والقيمة المحفوظة في المستند تبقى كما هي. */
+  const A_WSHOW = [["part", "🙋", "المشاركة", "لكل نقرة"], ["hw", "📚", "الواجب", "عند الحل"]];
   // إشارة سالبة عربية (−) لا شرطة، وصفرٌ بلا إشارة — كما في signN في app.js
   const aSgn = (v) => { const x = Math.round((+v || 0) * 10) / 10; return (x > 0 ? "+" : x < 0 ? "−" : "") + Math.abs(x); };
   const aFix = (v) => { const x = Math.round((+v || 0) * 10) / 10; return (x < 0 ? "−" : "") + Math.abs(x); };
@@ -531,7 +535,7 @@
   function aWeightsHtml() {
     return `<div class="as-hd"><span>⚖️ درجات الرصد اليومي</span></div>
       <div class="as-wg">${A_WSHOW.map(w => `<label class="f">${w[1]} ${w[2]} <small>${w[3]}</small><input type="number" class="as-wv" data-k="${w[0]}" step="0.5" min="-20" max="20" inputmode="decimal" value="${esc(aDraft.weights[w[0]])}"></label>`).join("")}</div>` +
-      H().note("درجة «الحاضر» و«الغائب» و«المخالف» من الجدولين أعلاه لا من هنا — والقيم القديمة المسمّاة بها في المستند تبقى كما هي ولا يقرؤها أي حساب.");
+      H().note("درجة «الحاضر» و«الغائب» و«المخالف» من الجدولين أعلاه لا من هنا — والقيم القديمة المسمّاة بها في المستند تبقى كما هي ولا يقرؤها أي حساب. وأوراق العمل التفاعلية تدخل الدرجة من عمود «الأوراق» في الدرجة التلقائية (تسليمات الطلاب) لا بوزنٍ هنا.");
   }
 
   /* ═══ المعاينة: بخطّ المعلم نفسه — الدمج فوق الافتراضي ثم إسقاط المخفي وترتيب المدير ═══ */
@@ -1159,6 +1163,7 @@
       sec("mg-s-sch", "🗓️ الجدول الأسبوعي", scheduleHtml(), { n: schedRows().length }) +
       sec("mg-s-mv", "🔁 حركات نقل الطلاب", movesHtml(), { n: (s.D.moves || []).length }) +
       sec("mg-s-sid", "🆔 أرقام هويات الطلاب", '<div id="mg-sids"></div>', {}) +
+      sec("mg-s-fix", "🧰 صيانة الفهارس", '<div id="mg-fix"></div>', {}) +
       sec("mg-s-lib", "🗂️ مكتبة المدرسة وشعارها", libHtml(), {}) +
       sec("mg-s-bk", "💾 النسخة الاحتياطية الشاملة", backupHtml(), { open: true }) +
       sec("mg-s-log", "🕘 سجل الإدارة", logHtml(sd), { n: (sd.adminlog || []).length }) +
@@ -1167,6 +1172,7 @@
     bind(b, sd);
     try { drawLib(b); } catch (e) { warn("lib", e); }
     try { const sb = $("#mg-sids", b); if (sb) { sb.innerHTML = ""; sidCard(sb); } } catch (e) { warn("sids", e); }
+    try { const fb = $("#mg-fix", b); if (fb) { fb.innerHTML = ""; fixCard(fb); } } catch (e) { warn("fix", e); }
   }
   const again = async () => { A().invalidate(); if (curBox) draw(curBox, await A().schoolDocs(true)); };
 
@@ -1362,6 +1368,77 @@
     }
     return done;
   }
+  /* ═══ 🧰 صيانة الفهارس: إعادة بناء assignidx من مجموعة assign ═══
+     فهرس الفصل (assignidx/{cid}) هو ما تقرؤه بوابة الطالب في «✏️ مهامي»، وهو كذلك مصدر
+     بند «أوراق العمل والواجبات» في تقدير وليّ الأمر. أما المعلم فيحسب البند من تسليمات
+     subs كلها. فأي ورقةٍ خارج الفهرس — أُرسلت قبل أن يوجد الفهرس، أو فشلت كتابته على جهاز
+     بلا مطالبة جلسة — تدخل حساب المعلم ولا تدخل حساب الطالب، فيقرأ وليّ الأمر تقديراً
+     غير الذي في دفتر المعلم. هذا الزر يعيد بناء الفهرس من المصدر: مجموعة assign كاملةً.
+     والورقة الموجَّهة (to) لا تدخل الفهرس أصلاً — تُسلَّم في صندوق كل طالبٍ الخاص. */
+  function fixCard(box) {
+    var S = window.SIJIL, A = window.SIJIL_ADMIN;
+    var wrap = document.createElement("div");
+    wrap.innerHTML = '<div class="card"><h3><span class="dot"></span>🧰 إعادة بناء فهرس الأوراق</h3>'
+      + '<div class="empty-note" style="padding:2px 2px 8px;text-align:right">'
+      + 'يقرأ كل أوراق العمل المرسلة ويعيد بناء فهرس كل فصل منها، فتظهر في «✏️ مهامي» عند الطلاب '
+      + 'كما هي عند معلميهم — ويتّحد بند «أوراق العمل» في تقدير وليّ الأمر مع دفتر المعلم. '
+      + 'لا يحذف شيئاً ولا يرسل إشعاراً، وتشغيله مرة واحدة يكفي (أو بعد أي إرسال قال إن الورقة لن تظهر).</div>'
+      + '<div class="adm-tools"><button class="btn-primary" id="fx-idx">🔁 أعد بناء الفهرس</button></div>'
+      + '<div id="fx-out" class="empty-note" style="padding:8px 2px 0;text-align:right"></div></div>';
+    box.appendChild(wrap);
+    var out = wrap.querySelector("#fx-out");
+    var say = function (h) { out.innerHTML = h; };
+    wrap.querySelector("#fx-idx").onclick = async function () {
+      var btn = wrap.querySelector("#fx-idx"); btn.disabled = true;
+      say("جارِ قراءة الأوراق…");
+      if (!S.CLOUD || !S.fdb) { say('<span style="color:var(--bad)">هذه الصيانة للنسخة السحابية فقط</span>'); btn.disabled = false; return; }
+      var snap = null;
+      try { snap = await S.fdb.collection("assign").get(); }
+      catch (e) {
+        say('<span style="color:var(--bad)">⛔ تعذّرت قراءة الأوراق: '
+          + (e && e.code === "permission-denied" ? "لم يُعتمد هذا الجهاز برقمك — اعتمده من الشريط الأعلى ثم أعد المحاولة" : "تحقق من الاتصال")
+          + "</span>");
+        btn.disabled = false; return;
+      }
+      var by = {}, skipped = 0, all = 0;
+      snap.forEach(function (d) {
+        var x = d.data() || {}; all++;
+        var cid = String(x.cid || ""); if (!cid) { skipped++; return; }
+        // الموجَّهة إلى أفرادٍ لا تدخل فهرس الفصل: قائمتها تفضح أصحابها لكل زملائهم
+        if (Array.isArray(x.to) && x.to.length) { skipped++; return; }
+        (by[cid] = by[cid] || []).push({
+          a: d.id, t: String(x.t || "ورقة").slice(0, 90), due: String(x.due || ""),
+          tid: String(x.tid || ""), mode: String(x.mode || "ws"), n: +x.n || 0, wk: +x.wk || 0,
+          code: String(x.code || ""), tries: (x.tries == null ? null : +x.tries), ts: +x.ts || 0
+        });
+      });
+      var ids = Object.keys(by), okc = 0, err = 0, added = 0;
+      for (var i = 0; i < ids.length; i++) {
+        var cid2 = ids[i], list = by[cid2];
+        try {
+          var cur = [];
+          try { var dd = await S.fdb.doc("assignidx/" + cid2).get(); if (dd.exists) cur = ((dd.data() || {}).list) || []; } catch (e2) { cur = []; }
+          var seen = {}, merged = [];
+          cur.concat(list).forEach(function (it) {
+            if (!it || !it.a || seen[it.a]) return; seen[it.a] = 1; merged.push(it);
+          });
+          added += merged.length - cur.length;
+          merged.sort(function (a2, b2) { return (+a2.ts || 0) - (+b2.ts || 0); });   // الأقدم أولاً كما يكتبها الإرسال
+          if (merged.length > 190) merged = merged.slice(merged.length - 190);
+          await S.fdb.doc("assignidx/" + cid2).set({ list: merged, tn: (S.TE || {}).name || "", ts: Date.now() });
+          okc++;
+        } catch (e3) { err++; }
+        say("جارِ البناء… " + (i + 1) + " من " + ids.length + " فصلاً");
+      }
+      say(okc
+        ? ("<b>أُعيد بناء فهرس " + okc + " فصلاً</b> من " + all + " ورقة" + (added > 0 ? (" — أُضيفت " + added + " ورقة لم تكن مفهرسة") : " — لا ناقص")
+           + (skipped ? (" · تُخطّيت " + skipped + " ورقة موجَّهة أو بلا فصل (وهي تُسلَّم في حساب كل طالبٍ وحده)") : "")
+           + (err ? (' · <span style="color:var(--bad)">تعثّر ' + err + "</span>") : ""))
+        : '<span style="color:var(--bad)">لم يُبنَ شيء' + (err ? " — تعثّرت " + err + " كتابة" : " — لا أوراق") + "</span>");
+      try { await A.adminlog("idx", "إعادة بناء فهرس الأوراق: " + okc + " فصلاً"); } catch (e4) { }
+      btn.disabled = false;
+    };
+  }
   function sidCard(box) {
     var S = window.SIJIL, A = window.SIJIL_ADMIN;
     var wrap = document.createElement("div");
@@ -1411,14 +1488,23 @@
         try {
           var h = await S.sha256(r.nid + "|" + r.cid + "|" + SID_SALT);
           // المفتاح القائم يبقى (وكذلك رمز الطالب إن ضبطه) — تبديلُه يُفقد الطالب صندوق رسائله
-          var pd = {};
-          if (S.CLOUD && S.fdb) { try { var pv = await S.fdb.doc("spins/" + h).get(); if (pv.exists) pd = pv.data() || {}; } catch (e3) { pd = {}; } }
+          // قراءةٌ فاشلة لا تُولّد مفتاحاً جديداً (تفقده صندوق رسائله) — تُحسب تعثّراً
+          var pd = {}, pdOk = true;
+          if (S.CLOUD && S.fdb) { try { var pv = await S.fdb.doc("spins/" + h).get(); pd = pv.exists ? (pv.data() || {}) : {}; } catch (e3) { pdOk = false; } }
           else { var DB0 = S.DB || window.DB || {}; pd = ((DB0.spins || {})[h]) || {}; }
-          var mk = isMk(pd.mk) ? pd.mk : mkNew();
+          if (!pdOk) throw new Error("READ_FAIL");
+          /* طالبٌ نُقل بين الفصول: بصمته تُحسب بالفصل الجديد فلا مستند لها — نحمل مفتاح
+             صندوقه ورمزه السرّي من بصمة فصله السابق (سلسلة fromChain) قبل توليد أيّ جديد،
+             ثم نحذف القديمة. بغير هذا تضيع رسائل معلميه ويصير باب بوابته بلا رمز. */
+          var old = null;
+          if (!isMk(pd.mk) && S.CLOUD && S.fdb && A.oldPinOf) { try { old = await A.oldPinOf(r.cid, r.si, r.nid); } catch (e4) { old = null; } }
+          var mk = isMk(pd.mk) ? pd.mk : ((old && old.mk) ? old.mk : mkNew());
           var recS = { cid: r.cid, si: r.si, ts: Date.now(), mk: mk };
-          if (typeof pd.c === "string" && pd.c) recS.c = pd.c;
+          var cc = (typeof pd.c === "string" && pd.c) ? pd.c : ((old && old.c) ? old.c : "");
+          if (cc) recS.c = cc;
           if (S.CLOUD && S.fdb) await S.fdb.doc("spins/" + h).set(recS);
           else { var DBx = S.DB || window.DB || {}; DBx.spins = DBx.spins || {}; DBx.spins[h] = recS; try { S.save("spins"); } catch (e2) { } }
+          if (old && old.h !== h && S.CLOUD && S.fdb) { try { await S.fdb.doc("spins/" + old.h).delete(); } catch (e5) { } }
           (byMk[r.cid] = byMk[r.cid] || {})[String(r.si)] = mk;
           okc++; (byCls[r.cid] = byCls[r.cid] || []).push(r.si);
         } catch (e) { err++; if (err === 1) lastErr = String((e && (e.code || e.message)) || e).slice(0, 90); }

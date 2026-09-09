@@ -570,7 +570,7 @@
         if (atlasTex) return atlasTex;
         try {
           if (ctx.media && typeof ctx.media.atlas === 'function') { setAtlas(ctx.media.atlas()); return atlasTex; }
-          var url = 'assets/intro/lessons-atlas' + (isMobile ? '-m' : '') + '.webp';
+          var url = (((window.SIJIL_INTRO || {}).base) || '') + 'assets/intro/lessons-atlas' + (isMobile ? '-m' : '') + '.webp';
           var t = new THREE.TextureLoader().load(url, function (tx) { tx.needsUpdate = true; }, undefined, function () {});
           t.colorSpace = THREE.SRGBColorSpace;
           t.minFilter = THREE.LinearFilter;

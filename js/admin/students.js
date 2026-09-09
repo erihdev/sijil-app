@@ -52,6 +52,9 @@
 .report-table.ads tr.hl td{background:#fdf6e3!important}
 .ads-sub{font-size:12px;color:var(--muted);margin:-4px 0 8px;line-height:1.8}
 .ads-cnt{font-size:12px;color:var(--muted);margin:8px 2px 0;line-height:1.7}
+.ads-sec{font-weight:800;color:var(--navy);font-size:13.5px;margin:12px 0 6px;padding-bottom:4px;
+  border-bottom:1.5px solid var(--line)}
+.ads-flag{font-size:12px;margin-inline-start:3px;cursor:help}
 .ads-dlw{background:#FDECEC;border:1.5px solid #f1b9b9;border-radius:12px;padding:10px 12px;font-size:12.5px;
   font-weight:700;color:#8c2b2b;line-height:1.9;margin:2px 0 8px}
 .ads-dlw ul{margin:6px 0 0;padding-inline-start:18px;font-weight:600}
@@ -143,11 +146,15 @@
   function phoneCell(st, c, i) {
     const raw = String(st.p || "").trim(), n = A().normMob(raw);
     const inner = n ? `<span dir="ltr">${esc(n)}</span>` : raw ? `<span dir="ltr">${esc(raw)}</span> ⚠️` : "— لا رقم —";
-    const tip = n ? "اضغط لتعديل الرقم" : raw ? "صيغة غير قياسية — اضغط للتصحيح" : "اضغط لإضافة رقم ولي الأمر";
+    const p2 = A().normMob(st.p2) || "";
+    const tip = (n ? "اضغط لتعديل البيانات" : raw ? "صيغة غير قياسية — اضغط للتصحيح" : "اضغط لإضافة رقم ولي الأمر") + (p2 ? " · وله رقم آخر: " + p2 : "");
     return `<span class="ads-ph${n ? "" : raw ? " bad" : " off"}" data-c="${esc(c.id)}" data-i="${i}" title="${tip}">${inner}</span>`;
   }
   const fromLabel = (st) => st.from && st.from.cid ? ` · منقول من ${esc(clsName(st.from.cid))}` : "";
-  const nameCell = (st, i, c, withClass) => `<span class="ads-nm" data-c="${esc(c.id)}" data-i="${i}" title="البطاقة الشاملة عبر كل المواد">${esc(st.n)}</span><small>${withClass ? esc(c.name) + " · " : ""}#${i + 1}${fromLabel(st)}</small>`;
+  // علامة صحية أو احتياج بجانب الاسم: المدير يراها في القائمة بلا فتح بطاقة
+  const flagsOf = (st) => (st.health ? `<span class="ads-flag" title="صحة: ${esc(st.health)}">⚕️</span>` : "")
+    + (st.need ? `<span class="ads-flag" title="احتياج: ${esc(st.need)}">♿</span>` : "");
+  const nameCell = (st, i, c, withClass) => `<span class="ads-nm" data-c="${esc(c.id)}" data-i="${i}" title="البطاقة الشاملة عبر كل المواد">${esc(st.n)}</span>${flagsOf(st)}<small>${withClass ? esc(c.name) + " · " : ""}#${i + 1}${fromLabel(st)}${st.noor ? " · نور " + esc(st.noor) : ""}</small>`;
 
   // صفوف الفصل: [{i, s, agg}] مرتبة حسب sortBy
   function classRows(sd, c) {
@@ -393,44 +400,143 @@
     });
   }
 
-  /* ═══ تعديل بيانات الطالب (الاسم + جوال ولي الأمر) → sedits/{cid} عبر SIJIL_ADMIN.saveSedit ═══ */
+  /* ═══ بيانات الطالب كاملة → sedits/{cid} عبر SIJIL_ADMIN.saveSedit ═══
+     المدير يملك بيانات الطالب كلها في مكان واحد: الاسم · جوال ولي الأمر وصفته · جوال آخر ·
+     الجنسية · رقم نور · ملاحظات صحية · احتياج خاص · ملاحظة إدارية · ومدخل بوابته (رقم هويته).
+     وكلها تُقرأ بمطالبة معلم وحدها (قاعدة sedits) — فلا تصل بوابة الطالب ولا جهازاً مجهولاً،
+     وفيها ملاحظاتٌ صحية وهذا موضعها. وما يُملأ هنا يظهر فعلاً: الصحة والاحتياج علامةً على بطاقة
+     الطالب في قائمة الحصة وشارةً في بطاقته الشاملة، والجوال الآخر زرَّ واتساب ثانياً، والجنسية
+     ورقم نور في مطبوع «بيانات الطلاب كاملة». ورقم الهوية لا يُخزَّن — تُرفع بصمته وحدها. */
+  const REL_OPTS = ["", "أب", "أم", "أخ", "أخت", "جد", "عم", "خال", "وصيّ"];
   function editSheet(cid, si, onDone) {
     const s = S(), a = A(), c = byId(cid), st = c && c.students[si];
     if (!st) { toast("تعذّر إيجاد الطالب"); return; }
-    const curP = a.normMob(st.p) || String(st.p || "").trim();
-    s.openSheet(`<h4>✏️ تعديل بيانات الطالب</h4>
-      <div style="text-align:center;color:var(--muted);font-size:13px;margin-bottom:10px">${esc(c.name)} — رقم ${si + 1}${fromLabel(st)}</div>
-      <div class="field"><label>اسم الطالب (للتصحيح الإملائي فقط)</label><input id="ads-ed-n" class="search-box" maxlength="80" value="${esc(st.n)}" autocomplete="off"></div>
-      <div class="field"><label>جوال ولي الأمر</label><input id="ads-ed-p" class="search-box" inputmode="tel" placeholder="05xxxxxxxx" value="${esc(curP)}" autocomplete="off" style="direction:ltr;text-align:right"></div>
-      <div class="empty-note" style="padding:2px 4px 6px;text-align:right;font-size:12px;min-height:0">يُقبل 05xxxxxxxx أو 9665xxxxxxxx، ويُحفظ باسمك في سجل تعديلات الفصل وينعكس لدى كل المعلمين عند فتح التطبيق. اترك الجوال فارغاً لحذف الرقم.</div>
-      <div id="ads-ed-msg" style="color:var(--bad);font-size:13px;font-weight:700;min-height:18px;text-align:right"></div>
+    const admin = !!(s.TE || {}).admin;
+    const cur = {
+      n: String(st.n || "").trim(),
+      p: a.normMob(st.p) || String(st.p || "").trim(),
+      p2: a.normMob(st.p2) || String(st.p2 || "").trim(),
+      rel: String(st.rel || ""), nat: String(st.nat || ""), noor: String(st.noor || ""),
+      health: String(st.health || ""), need: String(st.need || ""), note: String(st.note || "")
+    };
+    const fld = (id, lbl, val, extra, hint) => `<div class="field"><label>${lbl}</label>`
+      + `<input id="${id}" class="search-box" autocomplete="off" ${extra || ""} value="${esc(val)}">`
+      + (hint ? `<div class="empty-note" style="padding:2px 4px 0;text-align:right;font-size:11.5px;min-height:0">${hint}</div>` : "")
+      + `</div>`;
+    const area = (id, lbl, val, hint) => `<div class="field"><label>${lbl}</label>`
+      + `<textarea id="${id}" class="search-box" style="margin:0;height:66px;font-size:13.5px;line-height:1.8">${esc(val)}</textarea>`
+      + (hint ? `<div class="empty-note" style="padding:2px 4px 0;text-align:right;font-size:11.5px;min-height:0">${hint}</div>` : "")
+      + `</div>`;
+    s.openSheet(`<h4>✏️ بيانات الطالب</h4>
+      <div style="text-align:center;font-size:15px;font-weight:800;color:var(--navy)">${esc(st.n)}</div>
+      <div style="text-align:center;color:var(--muted);font-size:12.5px;margin-bottom:10px">${esc(c.name)} — رقم ${si + 1}${fromLabel(st)}</div>
+      <div class="ads-sec">👤 الأساسية</div>
+      ${fld("ads-ed-n", "اسم الطالب", cur.n, 'maxlength="80"', "للتصحيح الإملائي — يظهر عند كل معلميه وفي المطبوعات")}
+      ${fld("ads-ed-nat", "الجنسية", cur.nat, 'maxlength="24" list="ads-nat-l"')}
+      <datalist id="ads-nat-l"><option value="سعودي"></option><option value="يمني"></option><option value="مصري"></option><option value="سوري"></option><option value="سوداني"></option><option value="باكستاني"></option><option value="أردني"></option><option value="فلسطيني"></option></datalist>
+      ${fld("ads-ed-noor", "رقم الطالب في نور", cur.noor, 'maxlength="20" inputmode="numeric" style="direction:ltr;text-align:right"', "يُستعمل في المطبوعات ومطابقة كشوف نور")}
+      <div class="ads-sec">📞 التواصل</div>
+      ${fld("ads-ed-p", "جوال ولي الأمر", cur.p, 'inputmode="tel" placeholder="05xxxxxxxx" style="direction:ltr;text-align:right"', "اتركه فارغاً لحذف الرقم")}
+      <div class="field"><label>صفة وليّ الأمر</label><select id="ads-ed-rel" class="search-box" style="margin:0">${REL_OPTS.map(r => `<option value="${esc(r)}"${r === cur.rel ? " selected" : ""}>${r ? esc(r) : "— غير محددة —"}</option>`).join("")}</select></div>
+      ${fld("ads-ed-p2", "جوال آخر (الأم أو بديل)", cur.p2, 'inputmode="tel" placeholder="05xxxxxxxx" style="direction:ltr;text-align:right"', "يظهر زرَّ واتساب ثانياً في بطاقة الطالب — يُستعمل عند عدم الرد")}
+      <div class="ads-sec">⚕️ صحة واحتياجات</div>
+      ${area("ads-ed-health", "ملاحظات صحية", cur.health, "تظهر ⚕️ على بطاقته في قائمة الحصة ليعرفها معلمه فوراً — لا تصل بوابة الطالب ولا وليّه")}
+      ${fld("ads-ed-need", "احتياج خاص أو صعوبة تعلّم", cur.need, 'maxlength="120"', "مثال: صعوبة قراءة — يجلس في المقدمة")}
+      ${area("ads-ed-note", "ملاحظة إدارية", cur.note, "يراها معلموه في بطاقته الشاملة")}
+      <div class="ads-sec">🆔 مدخل بوابة الطالب</div>
+      <div id="ads-ed-idst" class="empty-note" style="padding:2px 4px 6px;text-align:right;font-size:12.5px;min-height:0">جارِ قراءة حالة تسجيل هويته…</div>
+      ${admin ? fld("ads-ed-id", "رقم هويته (لتسجيله أو تصحيحه)", "", 'maxlength="14" inputmode="numeric" placeholder="١٠ أرقام" style="direction:ltr;text-align:right"', "يُحسب في جهازك وتُرفع بصمته فقط — لا يُخزَّن الرقم ولا يظهر في السجل") : '<div class="empty-note" style="padding:2px 4px 6px;text-align:right">تسجيل الهويات لمدير المدرسة وحده.</div>'}
+      ${admin ? '<button class="btn-plain" id="ads-ed-badid" style="width:100%;padding:9px;font-size:12.5px">🗑 رقمٌ سُجّل بالخطأ؟ ألغِ بصمته</button>' : ""}
+      <div id="ads-ed-msg" style="font-size:13px;font-weight:700;min-height:18px;text-align:right;line-height:1.8"></div>
       <div class="sheet-actions"><button class="btn-plain" onclick="window._sheetClose()">إلغاء</button><button class="btn-primary" id="ads-ed-ok">💾 حفظ</button></div>`, (o) => {
-      const nEl = o.querySelector("#ads-ed-n"), pEl = o.querySelector("#ads-ed-p"), msg = o.querySelector("#ads-ed-msg"), ok = o.querySelector("#ads-ed-ok");
-      let busy = false;
+      const q = (id) => o.querySelector("#ads-ed-" + id);
+      const msg = q("msg"), ok = q("ok");
+      let busy = false, idReg = null;
+      const say = (t, col) => { msg.style.color = col || "var(--muted)"; msg.innerHTML = t; };
+      // حالة تسجيل الهوية تُقرأ من فهرس الحسابات (لا تُخمَّن)
+      (async () => {
+        let has = false;
+        try { has = await a.hasStudentId(cid, si); } catch (e) { has = false; }
+        idReg = has;
+        const el = q("idst"); if (!el) return;
+        el.innerHTML = has
+          ? '<b style="color:var(--ok)">✅ هويته مسجَّلة</b> — يدخل بوابته بصفّه وشعبته ورقم هويته. واكتب رقماً هنا لتصحيحه.'
+          : '<b style="color:var(--gold)">لم تُسجَّل هويته بعد</b> — لن يستطيع الدخول إلى بوابة الطالب ولا تصله أوراق ولا رسائل.';
+      })();
       ok.onclick = async () => {
         if (busy) return;
-        const n = nEl.value.trim().replace(/\s+/g, " "), pRaw = pEl.value.trim();
-        if (!n) { msg.style.color = "var(--bad)"; msg.textContent = "اسم الطالب لا يمكن أن يكون فارغاً"; return; }
-        if (n.length > 80) { msg.style.color = "var(--bad)"; msg.textContent = "الاسم طويل جداً (80 حرفاً كحد أقصى)"; return; }
-        let p = "";
-        if (pRaw) { p = a.normMob(pRaw); if (!p) { msg.style.color = "var(--bad)"; msg.textContent = "صيغة الجوال غير صحيحة — 05xxxxxxxx أو 9665xxxxxxxx"; return; } }
+        const n = q("n").value.trim().replace(/\s+/g, " ");
+        if (!n) { say("اسم الطالب لا يمكن أن يكون فارغاً", "var(--bad)"); q("n").focus(); return; }
+        if (n.length > 80) { say("الاسم طويل جداً (80 حرفاً كحد أقصى)", "var(--bad)"); return; }
+        const num2 = (el, lbl) => {
+          const raw = el.value.trim();
+          if (!raw) return "";
+          const v = a.normMob(raw);
+          if (!v) { say("صيغة " + lbl + " غير صحيحة — 05xxxxxxxx أو 9665xxxxxxxx", "var(--bad)"); el.focus(); return null; }
+          return v;
+        };
+        const p = num2(q("p"), "جوال ولي الأمر"); if (p === null) return;
+        const p2 = num2(q("p2"), "الجوال الآخر"); if (p2 === null) return;
+        if (p2 && p2 === p) { say("الجوال الآخر هو نفسه جوال ولي الأمر", "var(--bad)"); q("p2").focus(); return; }
+        const noor = a.sidDigits ? a.sidDigits(q("noor").value) : q("noor").value.replace(/\D/g, "");
+        const next = {
+          n: n, p: p, p2: p2, rel: q("rel").value,
+          nat: q("nat").value.trim().replace(/\s+/g, " "), noor: noor,
+          health: q("health").value.trim().replace(/\s+/g, " "),
+          need: q("need").value.trim().replace(/\s+/g, " "),
+          note: q("note").value.trim().replace(/\s+/g, " ")
+        };
+        const LBL = { n: "الاسم", p: "جوال ولي الأمر", p2: "الجوال الآخر", rel: "صفة وليّه", nat: "الجنسية", noor: "رقم نور", health: "ملاحظات صحية", need: "احتياج خاص", note: "ملاحظة إدارية" };
         const patch = {}, changes = [];
-        if (n !== String(st.n || "").trim()) { patch.n = n; changes.push(`الاسم: «${st.n}» ← «${n}»`); }
-        if (p !== curP) { patch.p = p; changes.push(p ? `الجوال: ${p}` : "حذف الجوال"); }
-        if (!changes.length) { s.closeSheet(); return; }
-        busy = true; ok.disabled = true; msg.style.color = "var(--muted)"; msg.textContent = "جارِ الحفظ…";
-        let saved = false;
-        try { saved = await a.saveSedit(cid, si, patch); } catch (e) { saved = false; }
-        if (!saved) { busy = false; ok.disabled = false; msg.style.color = "var(--bad)"; msg.textContent = "تعذّر الحفظ — تحقق من الاتصال ثم أعد المحاولة"; return; }
-        try { await a.adminlog("sedit", `${c.name} #${si + 1} ${n}: ${changes.join(" · ")}`); } catch (e) { }
-        s.closeSheet(); toast("✔ حُفظ التعديل");
+        Object.keys(LBL).forEach(k => {
+          const was = String(cur[k] || ""), now = String(next[k] || "").slice(0, (a.SED_MAX || {})[k] || 200);
+          if (was === now) return;
+          patch[k] = now;
+          changes.push(LBL[k] + ": " + (now ? (was ? "«" + was + "» ← «" + now + "»" : "«" + now + "»") : "حُذف"));
+        });
+        const idRaw = q("id") ? q("id").value.trim() : "";
+        const dg = idRaw ? (a.sidDigits ? a.sidDigits(idRaw) : idRaw.replace(/\D/g, "")) : "";
+        if (idRaw && (dg.length < 9 || dg.length > 12)) { say("رقم الهوية غير صالح (من ٩ إلى ١٢ رقماً)", "var(--bad)"); q("id").focus(); return; }
+        if (!changes.length && !dg) { s.closeSheet(); return; }
+        busy = true; ok.disabled = true; say("جارِ الحفظ…");
+        const done = [], warns = [];
+        if (changes.length) {
+          let saved = false;
+          try { saved = await a.saveSedit(cid, si, patch); } catch (e) { saved = false; }
+          if (!saved) { busy = false; ok.disabled = false; say("تعذّر الحفظ — تحقق من الاتصال ثم أعد المحاولة", "var(--bad)"); return; }
+          done.push("حُفظ " + changes.length + (changes.length === 1 ? " تعديل" : " تعديلات"));
+          try { await a.adminlog("sedit", c.name + " #" + (si + 1) + " " + n + ": " + changes.join(" · ")); } catch (e) { }
+        }
+        if (dg) {
+          let r = null;
+          try { r = await a.registerStudentId(cid, si, dg); } catch (e) { r = { ok: false, err: "تعذّر تسجيل الهوية" }; }
+          if (r && r.ok) {
+            done.push(idReg ? "وسُجّل رقم هويته الجديد" : "ويستطيع الدخول إلى بوابته برقم هويته");
+            try { await a.adminlog("sids", c.name + " #" + (si + 1) + " " + n + " — تسجيل هوية"); } catch (e) { }
+          } else warns.push((r && r.err) || "لم تُسجَّل الهوية");
+        }
+        try { a.invalidate(); } catch (e) { }
+        s.closeSheet();
+        toast("✔ " + (done.join(" · ") || "بلا تغيير") + (warns.length ? " — ⚠ " + warns.join(" · ") : ""));
         if (onDone) onDone();
       };
-      pEl.onkeydown = nEl.onkeydown = (e) => { if (e.key === "Enter") ok.click(); };
-      try { nEl.focus(); } catch (e) { }
+      const bad = q("badid");
+      if (bad) bad.onclick = async () => {
+        const v = prompt("اكتب رقم الهوية الذي سُجّل بالخطأ لهذا الفصل — ستُلغى بصمته فلا يفتح به أحدٌ حساب طالب:");
+        if (v == null) return;
+        const dg = a.sidDigits ? a.sidDigits(v) : String(v).replace(/\D/g, "");
+        if (dg.length < 9 || dg.length > 12) { say("رقم غير صالح", "var(--bad)"); return; }
+        say("جارِ الإلغاء…");
+        let r = null;
+        try { r = await a.unregisterNid(cid, dg); } catch (e) { r = { ok: false, err: "تعذّر الإلغاء" }; }
+        if (r && r.ok) {
+          say("✔ أُلغيت بصمة ذلك الرقم" + (r.si != null ? " (كانت لموضع رقم " + (r.si + 1) + ")" : ""), "var(--ok)");
+          try { await a.adminlog("sids", c.name + " — إلغاء بصمة رقم سُجّل بالخطأ"); } catch (e) { }
+        } else say((r && r.err) || "تعذّر الإلغاء", "var(--bad)");
+      };
+      try { q("n").focus(); } catch (e) { }
     });
   }
-
   /* ═══ الجدول ═══ */
   const COLS = ["م", { t: "الطالب", w: 150 }, { t: "جوال ولي الأمر", w: 108 }, "النقاط", "الحضور", "المواد", { t: "الإجراءات", w: 206 }];
   function actCell(c, i, st, agg, others) {

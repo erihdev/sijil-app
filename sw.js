@@ -74,17 +74,22 @@ async function sijilFocus(url) {
   let target;
   try { target = new URL(url || "./", root.href); } catch (e) { target = root; }
   if (target.origin !== root.origin) target = root;      // لا نفتح إلا صفحات هذا الموقع مهما جاء من الخادم
-  const isApp = (u) => {                                  // هل هذه النافذة هي «سجلي» نفسه؟ (نتجاهل ?demo و#hash)
-    try { const x = new URL(u); return x.origin === root.origin && (x.pathname === root.pathname || x.pathname === root.pathname + "index.html"); }
+  /* «النافذة نفسها» = نافذةٌ على وجهة الإشعار نفسها، لا نافذةٌ على جذر الموقع كيفما كان.
+     كان الاختصار يُركّز أول نافذةٍ على "/" ويرجع فوراً بلا نظرٍ إلى الوجهة — فإشعار الطفل
+     (حمولته "./s/") يفتح واجهة المعلم كلما بقيت على الجهاز نافذةٌ مفتوحة على الجذر. */
+  const norm = (p) => String(p || "").replace(/index\.html$/, "");
+  const samePage = (u) => {
+    try { const x = new URL(u); return x.origin === root.origin && norm(x.pathname) === norm(target.pathname); }
     catch (e) { return false; }
   };
   const all = await self.clients.matchAll({ type: "window", includeUncontrolled: true });
-  let other = null;
+  let other = null, exact = null;
   for (const c of all) {
-    // التطبيق مفتوح: نركّزه فقط — لا نعيد تحميله حتى لا يفقد المعلم حصته الحية أو ما لم يُحفظ
-    if (isApp(c.url)) { try { await c.focus(); } catch (e) { } return c; }
+    // الوجهة مفتوحة: نركّزها فقط — لا نعيد تحميلها حتى لا يفقد المعلم حصته الحية أو ما لم يُحفظ
+    if (!exact && samePage(c.url)) exact = c;
     if (!other) { try { if (new URL(c.url).origin === root.origin) other = c; } catch (e) { } }
   }
+  if (exact) { try { await exact.focus(); } catch (e) { } return exact; }
   if (other) {                                            // نافذة أخرى من الموقع (صفحة الطالب مثلاً): ننقلها إلى التطبيق
     try { await other.focus(); } catch (e) { }
     try { if ("navigate" in other) await other.navigate(target.href); } catch (e) { }
@@ -107,6 +112,19 @@ self.addEventListener("push", (e) => {
     data: { url: d.url || "./" }
   };
   sijilWait(e, self.registration.showNotification(String(d.title || "سجلي"), opt).catch(() => { }));
+});
+
+/* تدوير عنوان الاشتراك: كروم/FCM يُبطل العنوان بعد تحديثٍ أو تنظيف، فترجع خدمة الدفع 410
+   ويحذف الخادم مستند spush — ولا يُنشأ غيره أبداً، والبطاقة تظل تقول «مفعّلة ✅». نُعيد
+   الاشتراك هنا بالمفتاح نفسه ليصير getSubscription() حيّاً، ثم تكتبه البوابة في أول دخول
+   (nSubscribe تُنادى في msgStart ما دام الإذن قائماً). */
+self.addEventListener("pushsubscriptionchange", (e) => {
+  const old = e.oldSubscription || null;
+  const key = old && old.options ? old.options.applicationServerKey : null;
+  if (!key || !self.registration.pushManager) return;
+  sijilWait(e, self.registration.pushManager
+    .subscribe({ userVisibleOnly: true, applicationServerKey: key })
+    .catch(() => { }));
 });
 
 self.addEventListener("notificationclick", (e) => {

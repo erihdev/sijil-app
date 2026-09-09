@@ -242,8 +242,12 @@ service cloud.firestore {
       // الإنشاء: استيراد أرقام الهويات من لوحة المدير وحدها — بيانات طلاب، كـ sedits تماماً.
       allow create: if signedIn()
           && h.matches('^[0-9a-f]{64}$')
-          && request.resource.data.keys().hasOnly(['cid', 'si', 'ts', 'mk'])
+          /* c مسموحٌ في الإنشاء لأن الطالب المنقول تُحسب له بصمةٌ جديدة (الفصل جزء منها)،
+             فيُنقل إليها رمزه السرّي القديم مع مفتاح صندوقه — وإلا فُتحت بوابته بلا رمز
+             لكل من يعرف رقم هويته. والإنشاء كله بمطالبة مدير أصلاً (السطر الأخير). */
+          && request.resource.data.keys().hasOnly(['cid', 'si', 'ts', 'mk', 'c'])
           && (!('mk' in request.resource.data) || isMk(request.resource.data.mk))
+          && (!('c' in request.resource.data) || isHash(request.resource.data.c))
           && request.resource.data.cid is string
           && request.resource.data.cid.matches('^[A-Za-z0-9]{1,12}$')
           && exists(/databases/$(database)/documents/classes/$(request.resource.data.cid))
@@ -271,7 +275,11 @@ service cloud.firestore {
                   && exists(/databases/$(database)/documents/classes/$(request.resource.data.cid))
                   && request.resource.data.si is int
                   && request.resource.data.si >= 0 && request.resource.data.si < 400
-                  && request.resource.data.ts is number));
+                  && request.resource.data.ts is number
+                  /* mk لا يُبدَّل ولا يُنزع بعد ثبوته — ولو من مطالبة مدير: تبديلُه يقطع الطالب
+                     عن صندوق رسائله واشتراك إشعاراته إلى الأبد. وإعادة استيراد الهويات تُعيد
+                     كتابة المستند، فقراءةٌ فاشلة قبلها كانت تُولّد مفتاحاً جديداً بلا قصد. */
+                  && (!('mk' in resource.data) || request.resource.data.get('mk', '') == resource.data.mk)));
       // الحذف: نقل الطالب بين الفصول يُعيد حساب البصمة فتُحذف القديمة — من لوحة المدير وحدها.
       //    ولو فُتح لكل من يعرف المستند لحرم زميلٌ زميلَه من الدخول حتى يُعاد استيراده.
       allow delete: if signedIn() && isAdminClaim();
@@ -319,6 +327,19 @@ service cloud.firestore {
           && request.resource.data.ts is number;
       allow delete: if false;
     }
+    /* ── تصحيحات أسماء الطلاب snames/{cid} = {n:{"<si>":"الاسم"}, tn, ts} ──
+       المدير يصحّح الاسم في sedits، وقراءة sedits بمطالبة معلم (فيها جوالات وملاحظات صحية)،
+       فبوابة الطالب — وهي مجهولة — كانت تبقى على الاسم القديم في شهادته وبطاقته. فالأسماء
+       المصحَّحة وحدها تُنشر هنا: لا جوال ولا صحة ولا جنسية. ولا كشفَ جديد بذلك — أسماء الطلاب
+       مقروءة أصلاً في مستند الفصل الذي تقرؤه البوابة وصفحة الورقة. الكتابة بمطالبة مدير. */
+    match /snames/{cid} {
+      allow read: if signedIn();
+      allow create, update: if signedIn() && cid.matches('^[A-Za-z0-9]{1,12}$') && stamped() && isAdminClaim()
+          && request.resource.data.keys().hasOnly(['n', 'tn', 'ts'])
+          && request.resource.data.n is map && request.resource.data.n.size() <= 400;
+      allow delete: if false;
+    }
+
     match /classes/{cid}   { allow read: if signedIn(); allow write: if false; }
     // ── الجدول المدرسي schedule/all: {rows:[{t,d,p,c}], tn, ts} — يحدّثه المدير من محرّر الجدول (استبدال كامل بلا merge)، لا إنشاء ولا حذف ──
     match /schedule/{doc} {
@@ -508,14 +529,18 @@ service cloud.firestore {
           // to: فهارس الطلاب المقصودين وحدهم (واجب علاجي أو إثرائي). غيابه أو خلوّه = الفصل كله.
           //   العناصر أرقام لا تُفحص هنا (لغة القواعد لا تدور على قائمة) بل في w/index.html وبوابة
           //   الطالب: كلتاهما تُسقط ما ليس عدداً صحيحاً. والمقاس مفحوصٌ فلا يُنفخ المستند.
-          && (!('to' in request.resource.data) || (request.resource.data.to is list && request.resource.data.to.size() <= 200));
+          //   والسقف بحجم أكبر فصلٍ فعلي (٥٠) لا ٢٠٠: لغة القواعد لا تفحص العناصر، فالمقاس
+          //   وحده هو ما يلجم نفخ المستند إلى حدّ فايرستور من جهاز مجهول.
+          && (!('to' in request.resource.data) || (request.resource.data.to is list && request.resource.data.to.size() <= 50));
     }
     match /assign/{id} {
       // get وحده لا list: ورقةُ الطالب تُفتح بمعرّفها من رابطها، أما تعداد أوراق المدرسة كلها
       //   (وفيها qs[].correct وqs[].ans) فكان مفتوحاً لأي جهاز مصادَق. التعدادُ لمن أثبت رقم معلم.
       allow get: if signedIn();
       allow list: if anyClaim();
-      allow create: if signedIn() && id.matches('^[a-z0-9]{4,12}$') && stamped() && assignShape();
+      // الإنشاء لمن أثبت رقم معلم كالتحديث تماماً: أي جهاز مصادَق كان ينشئ أوراقاً باسم
+      //   أي معلم (tid حرّ في الشكل) فتظهر في «مهامي» عند الطلاب.
+      allow create: if signedIn() && id.matches('^[a-z0-9]{4,12}$') && stamped() && assignShape() && anyClaim();
       // js/app.js لا يعدّل ورقةً بعد إنشائها أبداً (يُنشئ معرّفاً جديداً في كل مرة)،
       //   والكاتب الوحيد للتحديث هو استعادة النسخة الاحتياطية من لوحة المدير. وكان أي زائر
       //   يستبدل أسئلة ورقة وصل رابطها إلى فصل كامل — أو يفرّغها — فيرى الطلاب ورقة أخرى.
@@ -530,7 +555,10 @@ service cloud.firestore {
        أحداً. فتكتب لوحة المدير هنا **الفهارس وحدها** (لا رقم ولا اسم) لحظة تسجيل الهويات،
        فتقول نافذة الإرسال للمعلم الحقيقة: «وصلت 21 حساباً · 3 لم تُسجَّل هوياتهم». */
     match /sids/{cid} {
-      allow read: if signedIn();
+      /* anyClaim لا signedIn: قارئها الوحيد نافذةُ إرسال المعلم. وبوابة الطالب تُفتح بمصادقة
+         مجهولة وclasses/{cid} مقروءة بأسماء الطلاب بالفهرس نفسه — فالسرد كان يجيب باسم كل
+         طالب عن سؤال «هل له حساب؟». وmkeys وsedits — وهي بيانات المستوى نفسه — مضيَّقة هكذا. */
+      allow read: if anyClaim();
       allow create, update: if signedIn() && cid.matches('^[A-Za-z0-9]{1,12}$') && stamped() && isAdminClaim()
           && request.resource.data.keys().hasOnly(['list', 'n', 'tn', 'ts'])
           && request.resource.data.list is list && request.resource.data.list.size() <= 400

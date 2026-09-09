@@ -14,6 +14,25 @@
 <meta name="twitter:card" content="summary_large_image">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<script>
+/* الجولة السينمائية في بوابة الطالب: **لا تبدأ تلقائياً** — الطفل يدخل ليرى مهامه لا ليشاهد
+   فيلماً، فتبقى «skip» حتى يضغط «🎬 شاهد الجولة» (يعيد الصفحة بـ?intro=1). وbase تُخبر
+   وحدات الجولة أن جذر التطبيق مجلدٌ أعلى (فأصولها في /assets لا /s/assets). */
+(function () {
+  var W = window, D = document, f = /[?&]intro=1(&|$)/.test(location.search);
+  var g = 0, r = 0, n = navigator;
+  try { var c = D.createElement("canvas"); g = !!(c.getContext("webgl2") || c.getContext("webgl")); } catch (e) { }
+  try { r = W.matchMedia("(prefers-reduced-motion: reduce)").matches; } catch (e) { }
+  var m = !f ? "skip" : ((r || !g || (n.connection && n.connection.saveData) || (n.deviceMemory && n.deviceMemory <= 2)) ? "posters" : "full");
+  var N = W.SIJIL_INTRO = W.SIJIL_INTRO || {};
+  N.mode = m; N.base = "../"; N.cta = "#app";
+  if (m !== "skip") { try { D.documentElement.classList.add("intro-bar"); } catch (e) { } }
+  if (m === "full") { var a = function () { if (D.body) { D.body.classList.add("has-intro"); return 1; } };
+    if (!a()) { try { new MutationObserver(function (x, o) { if (a()) o.disconnect(); }).observe(D.documentElement, { childList: true }); } catch (e) { } D.addEventListener("DOMContentLoaded", a); } }
+  try { var t = D.createElement("script"); t.src = "../js/intro-boot.js?v=61"; t.async = false; D.head.appendChild(t); } catch (e) { }
+})();
+</script>
+<link rel="stylesheet" href="../css/intro.css?v=61">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800;900&display=swap">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='46' fill='%230E2033'/><text x='50' y='68' font-size='52' text-anchor='middle' fill='%23D7A93F'>س</text></svg>">
 <style>
@@ -23,6 +42,11 @@
   --ok:#2e9e5b;--bad:#d64545;
   --sky:#3DA5D9;--grass:#35B37E;--grape:#8B5CF6;--peach:#FF8A5B;--sun:#FFC53D;
   --tabh:76px;
+  /* رموز الحالات: منقولةٌ من css/app.css:6-7 لأن كتلة STAGE-COPY تستعملها (‎.lsw .rl-tip‎
+     تبني حدّها بـvar(--st4)) — والمرجع غير المعرَّف يجعل التصريح Invalid At Computed-Value
+     Time فيسقط الحدّ بأسره في مسرح الطالب وحده. */
+  --st0:#2e9e5b; --st1:#d64545; --st2:#e8a23d; --st3:#7a8ca3;
+  --st4:#58a6d8; --st5:#8e6fc9; --st6:#b3541e;
 }
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html,body{margin:0;padding:0;background:var(--cream);color:var(--ink);
@@ -91,11 +115,11 @@ h2{font-size:19px;font-weight:800;color:var(--navy);margin:0 0 10px}
 .hero h1{color:#fff;font-size:23px;margin:0}
 .hero .cn{color:#B9C8D8;font-size:15px;font-weight:600}
 .hero .pts{margin-top:12px;background:rgba(255,255,255,.1);border-radius:16px;padding:10px}
-.hero .pts b{display:block;font-size:38px;line-height:1.1;color:var(--goldl);font-variant-numeric:tabular-nums}
+.hero .pts b{display:block;font-size:38px;line-height:1.1;color:var(--goldl);font-variant-numeric:tabular-nums;direction:ltr;unicode-bidi:isolate}
 .hero .pts span{font-size:14px;color:#C9D6E4}
 .grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
 .tile{background:#fff;border:1px solid var(--line);border-radius:18px;padding:14px 10px;text-align:center}
-.tile .v{font-size:27px;font-weight:900;line-height:1.2;font-variant-numeric:tabular-nums}
+.tile .v{font-size:27px;font-weight:900;line-height:1.2;font-variant-numeric:tabular-nums;direction:ltr;unicode-bidi:isolate}
 .tile .l{font-size:13.5px;color:var(--muted);font-weight:600}
 .ring{width:120px;height:120px;margin:2px auto 10px;border-radius:50%;display:flex;align-items:center;justify-content:center}
 .ring b{background:#fff;width:94px;height:94px;border-radius:50%;display:flex;flex-direction:column;
@@ -168,7 +192,7 @@ h2{font-size:19px;font-weight:800;color:var(--navy);margin:0 0 10px}
 .sj .bd{padding:12px 13px 14px}
 .mini{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
 .mini div{background:#F8F5EF;border-radius:14px;padding:9px 4px;text-align:center}
-.mini .v{font-size:21px;font-weight:900;line-height:1.25;font-variant-numeric:tabular-nums}
+.mini .v{font-size:21px;font-weight:900;line-height:1.25;font-variant-numeric:tabular-nums;direction:ltr;unicode-bidi:isolate}
 .mini .l{font-size:11.5px;color:var(--muted);font-weight:700}
 .gline{margin-top:11px}
 .gline .t{display:flex;justify-content:space-between;align-items:baseline;font-size:14px;font-weight:800;color:var(--navy)}
@@ -226,7 +250,7 @@ h2{font-size:19px;font-weight:800;color:var(--navy);margin:0 0 10px}
 .chart{display:flex;align-items:flex-end;justify-content:center;gap:11px;height:150px;padding:6px 2px 0}
 .chart .col{flex:1;max-width:62px;display:grid;grid-template-rows:auto minmax(0,1fr) auto;
   justify-items:center;align-items:end;height:100%}
-.chart .val{font-size:13.5px;font-weight:900;color:var(--navy);font-variant-numeric:tabular-nums}
+.chart .val{font-size:13.5px;font-weight:900;color:var(--navy);font-variant-numeric:tabular-nums;direction:ltr;unicode-bidi:isolate}
 .chart .bar{width:100%;align-self:end;border-radius:12px 12px 4px 4px;
   background:linear-gradient(180deg,#F0D99A,var(--gold));min-height:6px}
 .chart .col.now .bar{background:linear-gradient(180deg,#8FD8B4,var(--grass))}
@@ -261,7 +285,7 @@ h2{font-size:19px;font-weight:800;color:var(--navy);margin:0 0 10px}
 .phead .sb{font-size:12.5px;color:var(--muted);font-weight:700;margin-top:2px}
 .phead .kpis{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:11px}
 .phead .kpi{background:#fff;border:1px solid var(--line);border-radius:13px;padding:9px 4px}
-.phead .kpi .v{font-size:20px;font-weight:900;color:var(--navy);font-variant-numeric:tabular-nums}
+.phead .kpi .v{font-size:20px;font-weight:900;color:var(--navy);font-variant-numeric:tabular-nums;direction:ltr;unicode-bidi:isolate}
 .phead .kpi .l{font-size:11px;color:var(--muted);font-weight:700;margin-top:1px}
 .lvb{display:inline-block;margin-top:10px;padding:5px 15px;border-radius:99px;color:#fff;font-weight:900;font-size:13.5px}
 .lvb.sm{margin:0;padding:3px 9px;font-size:11.5px}
@@ -300,8 +324,9 @@ h2{font-size:19px;font-weight:800;color:var(--navy);margin:0 0 10px}
 .ptbl table{width:100%;border-collapse:collapse;font-size:12.5px;min-width:430px}
 .ptbl th{background:var(--navy);color:#fff;font-weight:800;padding:8px 6px;font-size:11.5px;white-space:nowrap}
 .ptbl td{padding:8px 6px;border-bottom:1px solid var(--line);text-align:center;font-weight:700;
-  font-variant-numeric:tabular-nums}
-.ptbl td.nm{text-align:right;font-weight:900;color:var(--navy)}
+  font-variant-numeric:tabular-nums;direction:ltr;unicode-bidi:isolate}
+/* خلية الاسم نصٌّ عربي فتعود إلى اتجاهها — الاتجاه يُورَّث من td أعلاه */
+.ptbl td.nm{text-align:right;font-weight:900;color:var(--navy);direction:rtl}
 .ptbl td.nm small{display:block;font-size:10.5px;color:var(--muted);font-weight:700}
 .ptbl td .bad{color:var(--bad)}
 .ptbl tr:last-child td{border-bottom:0}
@@ -309,9 +334,11 @@ h2{font-size:19px;font-weight:800;color:var(--navy);margin:0 0 10px}
 .pbars{display:flex;align-items:flex-end;gap:10px;height:130px;padding:4px 2px 0}
 .pbars .pb{flex:1;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;height:100%}
 .pbars .pb i{width:100%;max-width:46px;border-radius:8px 8px 0 0;min-height:5px}
-.pbars .pb b{font-size:12.5px;font-weight:900;color:var(--navy);margin-top:4px;font-variant-numeric:tabular-nums}
+.pbars .pb b{font-size:12.5px;font-weight:900;color:var(--navy);margin-top:4px;font-variant-numeric:tabular-nums;direction:ltr;unicode-bidi:isolate}
 .pbars .pb small{font-size:10px;color:var(--muted);font-weight:700;text-align:center;line-height:1.3}
 .pnote{font-size:11.5px;color:var(--muted);font-weight:700;text-align:center;margin-top:8px}
+/* زوج «رقم + وحدته» وحدةٌ واحدة لا ينكسر بينهما السطر: «3» ثم «أسئلة» على سطرين خطأ */
+.nb{white-space:nowrap}
 
 /* خطوات تفعيل التنبيهات على الآيفون */
 .nsteps{margin:0;padding-inline-start:20px;font-size:14px;line-height:2.05;color:var(--ink);font-weight:700}
@@ -321,21 +348,38 @@ h2{font-size:19px;font-weight:800;color:var(--navy);margin:0 0 10px}
 .lbc{background:linear-gradient(160deg,#fff,#FDF8EC);border-color:var(--goldl)}
 .lbnow{display:flex;align-items:center;gap:8px;font-weight:900;color:var(--navy);font-size:14px;
   background:#FFF3F1;border:1px solid #f3c9bf;border-radius:12px;padding:8px 11px;margin-bottom:10px}
-.lbnow span{margin-inline-start:auto;font-size:11.5px;color:#9c4b33;font-weight:800}
+/* flex:none وnowrap: العلامة عنصرٌ مرن بلا أساس، فكانت تُسحق دون عرض «الحصة 3»
+   وتنكسر سطرين على كل جوال 360 — والنصّ الذي قبلها عقدةٌ نصّية تأخذ حقّها أولاً. */
+.lbnow span{margin-inline-start:auto;font-size:11.5px;color:#9c4b33;font-weight:800;flex:none;white-space:nowrap}
 .lbme{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px}
 .lbme>div{background:#fff;border:1px solid var(--line);border-radius:13px;padding:9px 4px;text-align:center}
-.lbme b{display:block;font-size:22px;color:var(--navy);font-variant-numeric:tabular-nums}
+.lbme b{display:block;font-size:22px;color:var(--navy);font-variant-numeric:tabular-nums;direction:ltr;unicode-bidi:isolate}
 .lbme small{display:block;font-size:11px;color:var(--muted);font-weight:700}
 .lbrows{display:flex;flex-direction:column;gap:6px}
 .lbr{display:flex;align-items:center;gap:8px;background:#fff;border:1px solid var(--line);border-radius:11px;padding:7px 10px}
 .lbr.me{background:#FDF6E3;border-color:var(--gold)}
 .lbr span{font-size:16px;flex:none}
 .lbr b{flex:1;font-size:13.5px;color:var(--navy);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.lbr i{font-style:normal;font-weight:900;color:#7a5200;font-variant-numeric:tabular-nums}
+.lbr i{font-style:normal;font-weight:900;color:#7a5200;font-variant-numeric:tabular-nums;direction:ltr;unicode-bidi:isolate}
 /* سطر «نقاطك اليوم» في لوحة المسرح */
 .lsb-me{background:rgba(215,169,63,.18);border:1px solid var(--gold);border-radius:11px;padding:7px 9px;
   font-size:12px;font-weight:800;color:#F0D99A;text-align:center;line-height:1.7;margin-top:4px}
 .lsb-me b{color:#fff}
+
+/* ═══ شاشة الدخول: زر الجولة وسطرُ تعريف، وسعةٌ أوسع على الشاشات الكبيرة ═══ */
+.tour{display:block;width:100%;margin-top:14px;background:linear-gradient(135deg,#12283F,#0A1725);
+  color:var(--goldl);border:1.5px solid rgba(240,217,154,.45);border-radius:16px;padding:13px;
+  font-weight:800;font-size:16px;font-family:inherit;cursor:pointer}
+.tour:active{transform:scale(.985)}
+.lgf{margin-top:10px;font-size:12.5px;color:var(--muted);font-weight:700;line-height:1.8;text-align:center}
+@media(min-width:760px){
+  /* الشاشة الكبيرة: بطاقةٌ واحدة في الوسط وشرائح الصفوف ثلاثةً في السطر — لا عمودان
+     ضائعان في منتصف شاشةٍ عريضة كما كانت. */
+  .wrap{max-width:640px}
+  .pick{grid-template-columns:repeat(3,1fr)}
+  .pick.three{grid-template-columns:repeat(3,1fr)}
+  .card.mid .big{font-size:64px}
+}
 
 /* ═══ 🎬 مسرح الدرس: هيكل حصة المعلم نفسه (محطات · مسرح · لوحة شرف) ═══ */
 .ovg.lsg{padding:0}
@@ -366,7 +410,7 @@ h2{font-size:19px;font-weight:800;color:var(--navy);margin:0 0 10px}
 .lsb-r.me{background:rgba(215,169,63,.22);border:1px solid var(--gold)}
 .lsb-r .m{font-size:16px;flex:none}
 .lsb-r .n{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.lsb-r .p{color:var(--goldl);font-variant-numeric:tabular-nums;flex:none}
+.lsb-r .p{color:var(--goldl);font-variant-numeric:tabular-nums;flex:none;direction:ltr;unicode-bidi:isolate}
 .lsb-f{font-size:10.5px;color:#9FB0C4;text-align:center;font-weight:700;line-height:1.6;margin-top:4px}
 .lsb-e{display:flex;flex-direction:column;align-items:center;gap:6px;font-size:26px;color:var(--goldl);padding:8px 4px}
 .lsb-e span{font-size:11.5px;color:#9FB0C4;font-weight:700;text-align:center;line-height:1.6}
@@ -384,8 +428,17 @@ h2{font-size:19px;font-weight:800;color:var(--navy);margin:0 0 10px}
 .lsyt iframe{width:100%;height:100%;min-height:58vh;border:0;display:block}
 @media(max-width:820px){
   .lsw{grid-template-columns:1fr}
-  .lsb{position:static;order:2}   /* الجوال: اللوحة تحت الدرس */
+  /* اللوحة **فوق** المسرح شريطاً أفقياً واحداً: تحت درسٍ طويل لا يراها أحد، وفوقه كتلةً
+     تدفع الدرس خارج الشاشة — فصارت سطراً يُمرَّر بالإصبع (🔴 اليوم ثم 🏆 الفصل). */
+  .lsb{position:static;order:0;display:flex;flex-wrap:nowrap;overflow-x:auto;gap:6px;
+    align-items:center;padding:8px;scrollbar-width:none}
+  .lsb::-webkit-scrollbar{display:none}
   .lsc{order:1}
+  .lsb .lsb-h{flex:none;margin:0;font-size:13px;white-space:nowrap}
+  .lsb .lsb-r{flex:none;min-width:138px;margin:0}
+  .lsb .lsb-me{flex:none;margin:0;white-space:nowrap;padding:7px 11px}
+  .lsb .lsb-f{display:none}
+  .lsb .lsb-e{flex-direction:row;gap:8px;font-size:20px;padding:2px 6px}
 }
 /* ==STAGE-COPY-START== مُولَّدة من css/app.css بـscratchpad/gen_stage_css.py — لا تُحرَّر يدوياً == */
 .lsw .live-stage{flex:1; background:#0a1420; border-radius:14px; overflow:hidden; display:flex; flex-direction:column; min-height:0}
@@ -430,6 +483,10 @@ h2{font-size:19px;font-weight:800;color:var(--navy);margin:0 0 10px}
 .lsw .rl-files .rf-i{background:rgba(255,255,255,.14); color:#fff; border:1px solid rgba(255,255,255,.28); border-radius:9px; padding:6px 11px; font-size:13px; font-weight:700; cursor:pointer; font-family:inherit; max-width:230px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
 .lsw .rl-files .rf-i:hover{background:rgba(255,255,255,.24)}
 .lsw .rl-files .rf-add{margin-inline-start:auto; background:var(--gold); color:var(--navy); border:0; border-radius:9px; padding:6px 12px; font-size:13px; font-weight:800; cursor:pointer; font-family:inherit}
+/* إطارا الحركة اللذان تستعملهما ‎.lsw .story-visual‎ و‎.lsw .story-text‎ أعلاه — أصلهما
+   css/app.css:439,441. بغيرهما يُهمل المتصفح خاصية animation بلا خطأ فلا حركة إطلاقاً. */
+@keyframes stpop{0%{transform:scale(.3) rotate(-8deg);opacity:0}60%{transform:scale(1.12)}100%{transform:scale(1);opacity:1}}
+@keyframes stfade{from{opacity:0;transform:translateY(24px)}to{opacity:1;transform:none}}
 /* ==STAGE-COPY-END== */
 /* شارة التبويب: عدد ما لم يُفتح بعد */
 #tabs button{position:relative}
@@ -520,6 +577,20 @@ h2{font-size:19px;font-weight:800;color:var(--navy);margin:0 0 10px}
 
 </head>
 <body>
+
+<!-- ═══════════ الجولة السينمائية (تُعرض بالطلب وحده) ═══════════ -->
+<div id="intro" hidden>
+  <canvas id="intro-gl"></canvas>
+  <div id="intro-ui">
+    <div id="intro-texts"></div>
+    <div id="intro-counter" hidden></div>
+    <div id="intro-hint">مرّر</div>
+  </div>
+</div>
+<div id="intro-track" hidden></div>
+<div id="intro-bar" hidden><span class="brand">سجلي</span><a class="enter" href="#app">دخول</a></div>
+<div id="intro-posters" hidden></div>
+<div id="intro-stamp" hidden><div class="seal"><svg viewBox="0 0 100 100" aria-hidden="true"><path d="M50 4L61 27L84 16L73 39L96 50L73 61L84 84L61 73L50 96L39 73L16 84L27 61L4 50L27 39L16 16L39 27Z"/></svg><b>سُجِّل</b></div></div>
 <div class="bar"><div class="who"><b id="bar-t">بوابتي</b><small id="bar-s">سجلي</small></div>
   <button class="out" id="bar-out" hidden>🚪 خروج</button></div>
 <div class="demo" id="demo-strip" hidden></div>
@@ -530,7 +601,7 @@ h2{font-size:19px;font-weight:800;color:var(--navy);margin:0 0 10px}
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-check-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
-<script src="../js/fb.js?v=60"></script>
+<script src="../js/fb.js?v=61"></script>
 <script>
 /* ═══════════════════════════════════════════════════════════════════════════════════════
    سجلي — بوابة الطالب (نواة)
@@ -627,6 +698,20 @@ h2{font-size:19px;font-weight:800;color:var(--navy);margin:0 0 10px}
      (لا بالدفع) لأن بياناته رُحِّلت إليه؛ الفجوات تُملأ بعناصر شاغرة، والموضع المحجوز بطالب
      فعلي ⇒ تُهمل الحركة، والمكررة (نفس from,si) تُهمل وتستهلك موضعها. */
   const isGap = (s) => !!(s && s.gap);
+  /* الاسم المصحَّح من لوحة المدير (snames) يعلو على اسم مستند الفصل — يُطبَّق بعد حركات النقل
+     كما تفعل applySedits عند المعلم، ويلحق بالطالب المنقول عبر s.from. */
+  function applyNames() {
+    const map = D.snames || {};
+    if (!map || !Object.keys(map).length) return;
+    const of = (cid, si) => { const v = ((map[cid] || {})[si]); return (typeof v === "string" && v.trim()) ? v.trim() : ""; };
+    (D.classes || []).forEach(c => (c.students || []).forEach((s, i) => {
+      if (!s || s.gap) return;
+      const a = (s.from && s.from.cid) ? of(s.from.cid, s.from.si) : "";
+      const b = of(c.id, i);
+      const nm = b || a;
+      if (nm) s.n = nm;
+    }));
+  }
   function applyMoves(classes, moves, synth) {
     const byId = {}; (classes || []).forEach(c => { c.students = c.students || []; byId[c.id] = c; });
     const gapItem = () => ({ n: "", p: "", gap: true, moved: { to: "gap", ts: 0 } });
@@ -803,9 +888,13 @@ h2{font-size:19px;font-weight:800;color:var(--navy);margin:0 0 10px}
            غير أوزان دفتر معلمه وتُسمّي حالاته بأسماء أُلغيت. غيابهما لا يُسقط الإقلاع (catch → null). */
         /* الجدول المدرسي وأوقات الحصص: بهما تُبنى «حصص اليوم» في شاشة وليّ الأمر — لكل حصة
            مادتها ومعلمها ووقتها وحالة ابنه فيها. القراءة مسموحة لأي مصادَق، وغيابهما لا يُسقط شيئاً. */
-        const [cs, ts, ms, mv, sc, ac, sh, bl] = await withAC(() => Promise.all([fcol("classes"), fcol("teachers"), fdoc("meta/app"), fcol("moves"),
+        const [cs, ts, ms, mv, sc, ac, sh, bl, sn] = await withAC(() => Promise.all([fcol("classes"), fcol("teachers"), fdoc("meta/app"), fcol("moves"),
           fdoc("cfg/school").catch(() => null), fdoc("cfg/assess").catch(() => null),
-          fdoc("schedule/all").catch(() => null), fdoc("cfg/bell").catch(() => null)]));
+          fdoc("schedule/all").catch(() => null), fdoc("cfg/bell").catch(() => null),
+          fcol("snames").catch(() => null)]));
+        // تصحيحات الأسماء (الأسماء وحدها — sedits لا تُقرأ من جهاز مجهول)
+        D.snames = {};
+        if (sn) sn.forEach(d => { D.snames[d.id] = ((d.data() || {}).n) || {}; });
         D.schedule = (sh && sh.exists) ? (((sh.data() || {}).rows) || []) : [];
         D.bell = (bl && bl.exists) ? (bl.data() || null) : null;
         D.cfgSchool = (sc && sc.exists) ? (sc.data() || {}) : {};
@@ -817,17 +906,20 @@ h2{font-size:19px;font-weight:800;color:var(--navy);margin:0 0 10px}
         if (!D.classes.length || !D.meta.states) throw new Error("data");
       } else {
         db = demoDb;
-        await loadScript("../js/demo-data.js?v=60");
+        await loadScript("../js/demo-data.js?v=61");
         const DEMO = window.DEMO || {};
         D.classes = JSON.parse(JSON.stringify(DEMO.classes || []));
         D.teachers = JSON.parse(JSON.stringify(DEMO.teachers || []));
         D.meta = JSON.parse(JSON.stringify(DEMO.meta || {}));
-        D.moves = []; D.cfgSchool = {}; D.cfgAssess = null; D.schedule = []; D.bell = null;
+        D.moves = []; D.cfgSchool = {}; D.cfgAssess = null; D.bell = null; D.snames = {};
+        // جدول المدرسة موجود في بيانات الديمو: بلا هذا تقول شاشة وليّ الأمر «لا حصص اليوم» أبداً
+        D.schedule = JSON.parse(JSON.stringify(DEMO.schedule || []));
         if (!D.classes.length) throw new Error("data");
         const st = $("#demo-strip"); st.hidden = false;
         st.textContent = "نسخة تجريبية — بيانات وهمية على هذا الجهاز وحده";
       }
       applyMoves(D.classes, D.moves, true);
+      applyNames();
       stashPhones();
       META = D.meta || {}; assessApply();
       STATES = META.states || []; BEH = META.behaviors || []; W = META.weights || {};
@@ -856,18 +948,38 @@ h2{font-size:19px;font-weight:800;color:var(--navy);margin:0 0 10px}
   /* ═══ الوضع التجريبي: بصمات هويات ورصد مُولَّد بذرةً ثابتة ═══
      رقم الهوية التجريبي = 1 + رقم الصف + رقم الشعبة + فهرس الطالب بخانتين + 00000 */
   const demoNid = (c, si) => "1" + c.gc + (1 + "abcde".indexOf(String(c.id).slice(-1))) + pad2(si) + "00000";
+  /* بذرة الديمو: بصمة لكل طالب، ومعها **مفتاح صندوق** ورسالتان لأول طالب في كل فصل — وهو الذي
+     يُملأ رقمه بزر «✨ املأ رقماً تجريبياً». بلا ذلك يفتح المُجرِّب «📬 رسائلي» فيجد «صندوقك ما جهز
+     بعد»، وهي أول شاشة يراها مديرُ مدرسةٍ يُجرّب التطبيق. الرسائل من قوالب المعلم نفسها. */
+  const demoMk = (cid, i) => (("demo" + String(cid) + "x" + i).replace(/[^A-Za-z0-9_-]/g, "") + "0000000000000000").slice(0, 20);
   async function demoSeed() {
     const all = demoRead();
-    if (all.__seeded) return;
+    if (all.__seeded === 2) return;
+    const now = Date.now();
     for (const c of D.classes) {
       const n = (c.students || []).length;
+      let first = -1;
       for (let i = 0; i < n; i++) {
         if ((c.students[i] || {}).moved) continue;
+        if (first < 0) first = i;
         const h = await sha256(demoNid(c, i) + "|" + c.id + "|" + SALT);
-        all["spins/" + h] = { cid: c.id, si: i, ts: Date.now() };
+        all["spins/" + h] = { cid: c.id, si: i, ts: now, mk: demoMk(c.id, i) };
+      }
+      if (first >= 0) {
+        const t = (D.teachers || []).filter(x => (x.classes || []).indexOf(c.id) >= 0)[0] || { name: "معلم المادة", subject: "مادة", id: "t00" };
+        const nm = String((c.students[first] || {}).n || "ابنكم");
+        all["smsg/" + demoMk(c.id, first)] = {
+          n: 2, tn: t.name, ts: now,
+          list: [
+            { i: "demo1", k: "thanks", t: "شكرٌ وتقدير لابنكم", tid: t.id, tn: t.name, subj: t.subject, ts: now - 864e5,
+              b: "السلام عليكم ورحمة الله وبركاته\nولي أمر الطالب: " + nm + " — " + (c.name || "") + "\n\nيسرّني إبلاغكم بتميّز ابنكم في مادة " + t.subject + ": حرصه وانتظامه ومشاركته في الحصة.\n\nنسأل الله له دوام التوفيق، وشاكرين متابعتكم.\n\nمعلم المادة: " + t.name },
+            { i: "demo2", k: "level", t: "مستوى ابنكم في مادة " + t.subject, tid: t.id, tn: t.name, subj: t.subject, ts: now - 36e5,
+              b: "السلام عليكم ورحمة الله وبركاته\nولي أمر الطالب: " + nm + " — " + (c.name || "") + "\n\n📅 الحضور: منتظم\n🙋 المشاركة: جيدة\n📚 الواجبات: منجزة\n💯 الدرجة حتى الآن: من البنود المرصودة\n\nهذه رسالة في النسخة التجريبية توضّح ما يصل حساب ابنكم من معلميه.\n\nمعلم المادة: " + t.name }
+          ]
+        };
       }
     }
-    all.__seeded = 1; demoWrite(all);
+    all.__seeded = 2; demoWrite(all);
   }
   // مولّد شبه‑عشوائي ببذرة نصية: النتيجة نفسها في كل تحميل، فلا تقفز الأرقام أمام الطفل
   function seeded(str) { let h = 2166136261; for (let i = 0; i < str.length; i++) { h ^= str.charCodeAt(i); h = Math.imul(h, 16777619); } return ((h >>> 0) % 10000) / 10000; }
@@ -928,8 +1040,17 @@ h2{font-size:19px;font-weight:800;color:var(--navy);margin:0 0 10px}
     pickG = 0; pickC = "";
     const gs = [...new Set(D.classes.map(c => +c.gc || 0))].filter(Boolean).sort((a, b) => a - b);
     shell(1, `<h1>أهلاً بك 👋</h1><p class="sub">في أي صف أنت؟</p>
-      <div class="pick" id="gg">${gs.map(g => `<button class="pk" data-g="${g}"><span class="em">${GEM[g] || "📘"}</span>${esc(GS[g] || g)}</button>`).join("")}</div>`);
+      <div class="pick" id="gg">${gs.map(g => `<button class="pk" data-g="${g}"><span class="em">${GEM[g] || "📘"}</span>${esc(GS[g] || g)}</button>`).join("")}</div>
+      <button class="tour" id="tour">🎬 شاهد الجولة</button>
+      <div class="lgf">بوابة الطالب — ترى فيها نقاطك وحضورك وواجباتك ودروسك وشهادتك</div>`);
     app.querySelectorAll("[data-g]").forEach(b => b.onclick = () => { pickG = +b.dataset.g; loginSec(); });
+    // الجولة بالطلب: إعادة الصفحة بـ?intro=1 (المفتاح نفسه الذي يستعمله زر التطبيق)
+    const tb = $("#tour");
+    if (tb) tb.onclick = () => {
+      const ps = location.search.replace(/^\?/, "").split("&").filter(x => x && !/^intro=/.test(x));
+      ps.push("intro=1");
+      location.href = location.pathname + "?" + ps.join("&");
+    };
   }
   function loginSec() {
     const list = D.classes.filter(c => +c.gc === pickG);
@@ -1052,7 +1173,9 @@ h2{font-size:19px;font-weight:800;color:var(--navy);margin:0 0 10px}
     const c = clsById(pos.cid), st = c && (c.students || [])[pos.si];
     if (!c || !st || st.gap || st.moved) { lsDel(SKEY); return null; }
     H = ssGet(HKEY);
-    return { cid: pos.cid, si: pos.si, ts: s.ts };
+    // mk يعود مع الجلسة: enter تكتب الجلسة من جديد، فإسقاطه هنا يكتب "" فوق المفتاح
+    //   ويُفقد الطالب صندوق رسائله وإشعاراته إلى الأبد بعد أول إعادة تحميل.
+    return { cid: pos.cid, si: pos.si, ts: s.ts, mk: s.mk };
   }
 
   /* ═══ البوابة ═══ */
@@ -1259,16 +1382,47 @@ h2{font-size:19px;font-weight:800;color:var(--navy);margin:0 0 10px}
     });
     return any ? Math.round(p * 10) / 10 : null;
   }
+  /* تجميع نقاط اليوم لكل معلم على حدة قبل نسيان الزملاء (LIVEDAY[tid][si] = نقاط اليوم).
+     لماذا؟ كل لقطة onSnapshot تحمل مستند معلمٍ واحد، وrecs الزملاء تُمحى بعد كل لقطة —
+     فحسابُ اللوحة من RECS مباشرةً كان يعطي نقاط زميلٍ من مستندٍ واحد ونقاطَ ابن وليّ الأمر
+     كاملةً، فيقفز إلى المركز الأول كذباً. والمُخزَّن أرقامٌ مجمَّعة لا سجلات. */
+  const LIVEDAY = {};
+  let LIVEDATE = "";
+  const todayKey = () => { const d = new Date(); return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0"); };
+  function liveAbsorb() {
+    const date = todayKey();
+    if (LIVEDATE !== date) { Object.keys(LIVEDAY).forEach(k => delete LIVEDAY[k]); LIVEDATE = date; }
+    const c = clsById(S.cid); if (!c) return;
+    Object.keys(RECS || {}).forEach(tid => {
+      const day = ((RECS[tid] || {})[date]) || null;
+      if (!day) return;
+      const agg = {};
+      Object.keys(day).forEach(k => {
+        const i = +k, e = day[k];
+        if (!(i >= 0) || !e || emptyRec(e)) return;              // سجلٌّ فارغ ليس رصداً
+        let p = 0;
+        if (e.a != null && STATES[e.a]) p += (+STATES[e.a].pts || 0);
+        if (e.part) p += e.part * (+W.part || 0);
+        if (e.hw === 1) p += (+W.hw || 0);
+        if (e.sh) p += e.sh * (+W.sheets || 0);
+        (e.beh || []).forEach(bi => { const b = BEH[bi]; if (b) p += (+b.pts || 0); });
+        agg[i] = Math.round(p * 10) / 10;
+      });
+      LIVEDAY[tid] = agg;                                        // مستند هذا المعلم كاملاً كما وصل
+    });
+  }
   function liveBoardCompute() {
     const c = clsById(S.cid); if (!c) return null;
-    const d = new Date();
-    const date = d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0");
+    const sum = {};
+    Object.keys(LIVEDAY).forEach(tid => {
+      const a = LIVEDAY[tid] || {};
+      Object.keys(a).forEach(k => { sum[k] = Math.round(((sum[k] || 0) + a[k]) * 10) / 10; });
+    });
     const rows = [];
     (c.students || []).forEach((st, i) => {
       if (!st || st.moved || st.gap) return;
-      const p = dayPtsOf(i, date);
-      if (p === null) return;                       // لم يُرصد له اليوم شيء
-      rows.push({ i: i, n: bName(i), pts: p });
+      if (!(String(i) in sum)) return;                           // لم يُرصد له اليوم شيء
+      rows.push({ i: i, n: bName(i), pts: sum[String(i)] });
     });
     if (!rows.length) return null;
     rows.sort((a, b) => b.pts - a.pts);
@@ -1345,7 +1499,8 @@ h2{font-size:19px;font-weight:800;color:var(--navy);margin:0 0 10px}
   function forgetPeers() {
     if (RANK === undefined) RANK = rankCompute(S.si);          // آخر استعمال لنقاط الزملاء
     if (BOARD === undefined) BOARD = boardCompute();           // ومعها لوحة الشرف (خمسة أسماء)
-    LIVEB = liveBoardCompute();                                // لوحة اليوم: تُحدَّث في كل لقطة
+    liveAbsorb();                                              // نقاط اليوم لكل معلم — قبل المحو
+    LIVEB = liveBoardCompute();                                // ثم اللوحة من المجاميع
     const si = S.si;
     Object.keys(RECS || {}).forEach(tid => {
       const d = RECS[tid] || {};
@@ -1505,6 +1660,6 @@ h2{font-size:19px;font-weight:800;color:var(--navy);margin:0 0 10px}
   boot();
 })();
 </script>
-<script src="../js/student/content.js?v=60"></script>
+<script src="../js/student/content.js?v=61"></script>
 </body>
 </html>

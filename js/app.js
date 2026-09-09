@@ -293,7 +293,12 @@
             try { console.warn("[moves] تعارض: الموضع " + m.to + "[" + nsi + "] محجوز — أُهملت الحركة " + (m.id || "") + " للطالب " + (m.name || "")); } catch (e) { }
             return;
           }
-          const copy = Object.assign({}, s); delete copy.moved; delete copy.gap; copy.from = { cid: m.from, si: m.si, ts: m.ts };
+          /* fromChain: سلسلة المواضع التي مرّ بها الطالب من الأقدم إلى الأحدث. الاكتفاء بـfrom
+             (خطوةٌ واحدة) كان يقطع الخيط عند النقلة الثانية: جوال وليّ الأمر لا يوجد إلا في
+             sedits/{الفصل الذي كان فيه وقت الترقية}، فيختفي الرقم بلا رسالة بعد نقلتين. */
+          const copy = Object.assign({}, s); delete copy.moved; delete copy.gap;
+          copy.from = { cid: m.from, si: m.si, ts: m.ts };
+          copy.fromChain = (s.fromChain || []).concat([{ cid: m.from, si: m.si }]);
           dst.students[nsi] = copy; m.appliedSi = nsi;
         }
         if (src) s.moved = { to: m.to, ts: m.ts };
@@ -446,13 +451,28 @@
 
   /* ═══ تعديلات المدير على بيانات الطلاب: sedits/{cid} = { s: { "<si>": { p?: "05xxxxxxxx", n?: "الاسم المصحح" } }, tn, ts } ═══
      تُطبَّق بعد حركات النقل: الطالب المنقول يحمل from{cid,si} فتُطبَّق عليه تعديلات فصله الأصلي أولاً ثم تعديلات فصله الجديد (idempotent). */
+  /* حقول بيانات الطالب التي يملكها المدير (وحدها تُطبَّق — ما عداها في المستند يُهمل):
+       n الاسم · p جوال ولي الأمر · p2 جوال آخر · rel صفة وليّه · nat الجنسية · noor رقم نور
+       health ملاحظات صحية · need احتياج خاص · note ملاحظة إدارية
+     وكلها تُقرأ بمطالبة معلم وحدها (قاعدة sedits) فلا تصل بوابة الطالب ولا جهازاً مجهولاً —
+     وفيها ملاحظاتٌ صحية، وهذا موضعها الصحيح. والقيمة الفارغة تمحو الحقل قصداً (المدير يفرّغه). */
+  const SED_FIELDS = ["n", "p", "p2", "rel", "nat", "noor", "health", "need", "note"];
   function applySedits(classes, sedits) {
     if (!sedits || typeof sedits !== "object") return;
-    const one = (s, e) => { if (!e || typeof e !== "object") return; if (typeof e.p === "string") s.p = e.p; if (typeof e.n === "string" && e.n.trim()) s.n = e.n.trim(); };
+    const one = (s, e) => {
+      if (!e || typeof e !== "object") return;
+      SED_FIELDS.forEach(k => {
+        const v = e[k];
+        if (typeof v !== "string") return;
+        if (k === "n") { if (v.trim()) s.n = v.trim(); return; }   // الاسم لا يُفرَّغ أبداً
+        s[k] = v;
+      });
+    };
     const of = (cid, si) => (((sedits[cid] || {}).s || {})[si]);
     (classes || []).forEach(c => (c.students || []).forEach((s, i) => {
       if (!s || s.gap) return;
-      if (s.from && s.from.cid) one(s, of(s.from.cid, s.from.si));
+      // السلسلة من الأقدم إلى الأحدث، ثم تعديل الفصل الحالي فوقها — فتعديل اليوم يغلب دائماً
+      (s.fromChain || (s.from && s.from.cid ? [s.from] : [])).forEach(f => { if (f && f.cid) one(s, of(f.cid, f.si)); });
       one(s, of(c.id, i));
     }));
   }
@@ -460,8 +480,13 @@
   /* ═══ النقاط والدرجات ═══ */
   /* تعريف واحد لحالات الحضور تستعمله الدرجة التلقائية ونسبة الحضور في البطاقة ورسائل أولياء الأمور:
      «عن بعد» حضور كامل · «متأخر» نصف حضور · «مستأذن/غائب بعذر» خارج المقام (غياب مأذون لا يُحاسَب). */
-  const stIdx = (name) => STATES.findIndex(x => (x.name || "").includes(name));
-  const stCnt = (t, name) => { const k = stIdx(name); return k >= 0 ? (t.st[k] || 0) : 0; };
+  /* العدّ بمسحةٍ واحدة على المكتبة كلها لا بأول تطابق: المدير يُعيد تسمية الحالات بحرية من
+     لوحته (لا قيد على النصّ)، فحالتان تحملان «مستأذن» كانت تُحسب أُولاهما وحدها، وحالةٌ
+     واحدة تحمل «مستأذن بعذر» كانت تُعدّ مرتين فيهبط مقام الحضور إلى الصفر أو دونه —
+     ويتعدّى الأثر النسبة إلى الدرجة التلقائية. وهذا تعريف s/index.html نفسه. */
+  const stSum = (t, re) => STATES.reduce((n, x, k) => n + (re.test(x.name || "") ? (t.st[k] || 0) : 0), 0);
+  const stCnt = (t, name) => stSum(t, new RegExp(name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
+  const RE_EXC = /مستأذن|بعذر/;                          // غياب مأذون: خارج مقام الحضور
   /* غياب فعلي = «غائب» + «هارب» (والمأذون ليس منه) — التعريف نفسه في admin/core.js:attBucketOf===1.
      كانت المطبوعات والتقارير تقرأ st[1] وحدها فتطبع «0 غياب» لطالب هرب من حصتين. */
   const absCnt = (t) => (t.st || []).reduce((n, v, k) => {
@@ -477,7 +502,7 @@
   }
   const attPct = (t) => {
     const tot = t.st.reduce((x, y) => x + y, 0); if (!tot) return null;
-    const denom = tot - (stCnt(t, "مستأذن") + stCnt(t, "بعذر")); if (denom <= 0) return null;
+    const denom = tot - stSum(t, RE_EXC); if (denom <= 0) return null;   // مسحةٌ واحدة: لا ازدواج
     const attended = stCnt(t, "حاضر") + stCnt(t, "عن بعد") + 0.5 * stCnt(t, "متأخر");
     return Math.round(Math.min(1, attended / denom) * 100);
   };
@@ -499,13 +524,21 @@
     return out;
   }
   // صفوف بفهرس الطالب الحقيقي (calc[i]) — المنقول active:false وبلا ترتيب، والترتيب بين النشطين فقط بلا فجوة
+  /* الترتيب التنافسي: المتساوون في النقاط يأخذون الرقم نفسه (1،1،1،4…). دالةٌ واحدة
+     يستدعيها classCalc (البطاقة والشهادة ورسالة «مستوى ابنكم») وstudentText (رسالة الفترة)
+     — وكان الثاني يحسبه بموضع الاسم في المصفوفة، فيستلم وليّ الأمر رقمين لابنه في اليوم نفسه.
+     المدخل مرتَّبٌ تنازلياً بالنقاط. */
+  function rankMap(sortedRows) {
+    const rk = {}; let lastP = null, lastR = 0;
+    (sortedRows || []).forEach((r, k) => { if (lastP === null || r.pts !== lastP) { lastR = k + 1; lastP = r.pts; } rk[r.i] = lastR; });
+    return rk;
+  }
   function classCalc(cid) {
     const c = classById(cid);
     const rows = c.students.map((s, i) => ({ i, s, active: !s.moved, t: calcStudent(cid, i) }));
     const sorted = rows.filter(r => r.active).sort((a, b) => b.t.pts - a.t.pts);
     // ترتيب تنافسي: المتساوون في النقاط يأخذون الرقم نفسه (1،1،1،4…) — الترتيب يُطبع لولي الأمر فلا يكسره موضع الاسم في المصفوفة
-    const rk = {}; let lastP = null, lastR = 0;
-    sorted.forEach((r, k) => { if (lastP === null || r.t.pts !== lastP) { lastR = k + 1; lastP = r.t.pts; } rk[r.i] = lastR; });
+    const rk = rankMap(sorted.map(r => ({ i: r.i, pts: r.t.pts })));
     rows.forEach(r => r.rank = r.active ? (rk[r.i] || 0) : 0);
     return rows;
   }
@@ -531,7 +564,7 @@
        — وهو المسار الطبيعي للحصة الحية — لا حالةَ له فلا يدخل المقام؛ كان يُحسب حضوراً صفرياً
        فيقتطع 60% من البند بينما تقول البطاقة «لا حضور مرصود». */
     const stD = t.st.reduce((x, y) => x + y, 0);          // أيام رُصدت فيها حالة حضور
-    const excD = cnt("مستأذن") + cnt("بعذر");             // غياب مأذون: خارج المقام
+    const excD = stSum(t, RE_EXC);                        // غياب مأذون: خارج المقام (مسحةٌ واحدة)
     const noSt = t.days - stD;                            // أيام رصد بلا حالة حضور
     const denom = stD - excD;
     if (t.days && A("part") && denom > 0) {
@@ -876,7 +909,7 @@
       const hd = host.querySelector(".appbar");
       host.insertBefore(el, hd ? hd.nextSibling : host.firstChild);
     }
-    el.innerHTML = `<span>🔐 هذا الجهاز لم يُعتمد برقمك بعد تحديث التطبيق: الحفظ في إعدادات المدرسة والمعلمين والجدول سيُرفض (وليس سببه الإنترنت). أدخل رقمك مرة واحدة ويبقى الجهاز معتمداً.</span><button class="btn-gold" id="claim-go">🔓 اعتماد الجهاز الآن</button>`;
+    el.innerHTML = `<span>🔐 هذا الجهاز لم يُعتمد برقمك بعد تحديث التطبيق، فتُرفض عليه: <b>إرسال الأوراق إلى حسابات الطلاب</b> و<b>رسائل حساب الطالب</b> و<b>قراءة الأوراق المرسلة ونتائجها</b> والحفظ في إعدادات المدرسة والمعلمين والجدول (وليس سببه الإنترنت). أدخل رقمك مرة واحدة ويبقى الجهاز معتمداً.</span><button class="btn-gold" id="claim-go">🔓 اعتماد الجهاز الآن</button>`;
     const b = $("#claim-go"); if (b) b.onclick = () => { DB.session = null; DB.srole = null; save(); setTimeout(() => location.reload(), 250); };
   }
   /* ═══ البيانات الخاصة (sedits): جوالات أولياء الأمور وتصحيحات الأسماء ═══
@@ -1779,6 +1812,16 @@
     const comms = ((DB.comms[cid] || []).filter(x => x.si === i)).slice(-4).reverse();
     const phone = (s.p || "").replace(/\D/g, "").replace(/^0/, "966");
     const waTxt = encodeURIComponent(parentMessage(cid, i));
+    const phone2 = (s.p2 || "").replace(/\D/g, "").replace(/^0/, "966");
+    // شارات بيانات الطالب: ما ملأه المدير وحده يظهر — الصحة والاحتياج أولاً لأنهما يغيّران تعامل المعلم
+    const infoChips = [
+      s.health ? { ic: "⚕️", t: "صحة", v: s.health, c: "var(--bad)" } : null,
+      s.need ? { ic: "♿", t: "احتياج", v: s.need, c: "var(--st5)" } : null,
+      s.nat ? { ic: "🌍", t: "الجنسية", v: s.nat, c: "var(--st4)" } : null,
+      s.noor ? { ic: "🆔", t: "نور", v: s.noor, c: "var(--st3)" } : null,
+      s.rel ? { ic: "👤", t: "وليّه", v: s.rel, c: "var(--st3)" } : null,
+      s.note ? { ic: "📝", t: "ملاحظة", v: s.note, c: "var(--st6)" } : null
+    ].filter(Boolean);
     const sfl = SFILES[cid + ":" + i] || [];
     const gradeChips = ASSESS.filter(a => S.g[a.k] != null).map(a => `<span class="cc" style="background:${(DB.grades[cid] || {})[i] && (DB.grades[cid][i][a.k] != null) ? "var(--navy)" : "#6b7280"}" title="${(DB.grades[cid] || {})[i] && (DB.grades[cid][i][a.k] != null) ? "درجة يدوية" : "محسوبة تلقائياً من الرصد"}">${esc(a.n)} ${S.g[a.k]}/${a.max}</span>`).join("");
     openSheet(`
@@ -1799,7 +1842,9 @@
       <div style="border-top:1px solid var(--line);margin:12px 0 8px;padding-top:10px">
         <div style="display:flex;justify-content:space-between;align-items:center"><b style="color:var(--navy)">📞 سجل التواصل</b><button class="btn-soft" id="sc-addcomm">+ إضافة</button></div>
         <div id="sc-comms" style="margin-top:6px">${comms.length ? comms.map(x => `<div class="comm-item"><span class="tag">${esc(x.why)}</span> ${esc(x.note || "")}<div class="meta">${esc(x.via)} — ${esc(x.date)}</div></div>`).join("") : '<div class="empty-note" style="padding:10px">لا مراسلات مسجلة</div>'}</div></div>
+      ${infoChips.length ? `<div class="countchips" style="margin-top:6px">${infoChips.map(x => `<span class="cc" style="background:${x.c}" title="${esc(x.t)}: ${esc(x.v)}">${x.ic} ${esc(x.v.length > 46 ? x.v.slice(0, 46) + "…" : x.v)}</span>`).join("")}</div>` : ""}
       <a class="wa-btn ${phone ? "" : "off"}" id="sc-wa" target="_blank" rel="noopener" href="https://wa.me/${phone}?text=${waTxt}">💬 واتساب ولي الأمر${phone ? "" : " (لا رقم مسجل)"}</a>
+      ${phone2 ? `<a class="wa-btn" style="background:#128C7E;margin-top:6px" target="_blank" rel="noopener" href="https://wa.me/${phone2}?text=${waTxt}">💬 الرقم الآخر${s.rel ? ` (${esc(s.rel)})` : ""}</a>` : ""}
       <div class="empty-note" style="padding:4px 2px 0;text-align:right;font-size:12px">تُرسل رسالة كاملة (الحضور، المشاركة، الواجبات، السلوك، النقاط، الدرجات، التوصية) وتُسجَّل في سجل التواصل تلقائياً.</div>
       ${phone ? "" : askPhoneHtml(cid, i, "sc")}
       <div class="sheet-actions" style="flex-wrap:wrap">
@@ -3505,7 +3550,9 @@
       const pv = has ? (+STATES[e.a].pts || 0) : 0;
       const cls = !has ? "st-none" : pv < 0 ? "st-warn" : "st-ok";
       const ic = has ? `<div class="ric" title="${esc(STATES[e.a].name)}">${ST_ICON(STATES[e.a].name || "")}</div>` : `<div class="ric" title="لم تُرصد حالته">⭕️</div>`;
-      return `<div class="rcard ${cls}" data-i="${i}"><div class="rrk">#${calc[i].rank}</div>${ic}<div class="rn">${esc(s.n)}</div><div class="rp ${p < 0 ? "neg" : ""}">${p}</div></div>`;
+      // ⚕ ملاحظة صحية أو احتياج خاص: المعلم يحتاج معرفتها وهو ينظر إلى القائمة لا في بطاقة يفتحها
+      const flag = s.health ? `<div class="rfl" title="${esc(s.health)}">⚕️</div>` : s.need ? `<div class="rfl" title="${esc(s.need)}">♿</div>` : "";
+      return `<div class="rcard ${cls}" data-i="${i}"><div class="rrk">#${calc[i].rank}</div>${ic}${flag}<div class="rn">${esc(s.n)}</div><div class="rp ${p < 0 ? "neg" : ""}">${p}</div></div>`;
     }).join("");
     box.innerHTML = liveRosterHead(S) + `<div class="live-roster">`
       + (rows.length ? cards : `<div class="empty-note" style="grid-column:1/-1;color:#c9d5e3">لا أحد في القائمة: كل الطلاب مرصودون غياباً أو استئذاناً — اضغط «👥 تعديل الحضور» لتصحيح الحضور.</div>`)
@@ -3909,16 +3956,55 @@
      بصمة هويته، فمن لا يعرفه لا يجد المستند، وسردُ الصناديق ممنوع في القواعد. المعلم يقرأ
      المفاتيح من mkeys/{cid} بمطالبته. ولا يُلغى شيء من الطريق القديم: كل رسالة تُسجَّل في سجل
      التواصل كما هي اليوم، وزر الواتساب باقٍ لمن يريده. */
+  /* سلسلة المواضع التي مرّ بها الطالب — من الأحدث إلى الأقدم. فهرسا الحساب (sids وmkeys)
+     مبنيّان على (الفصل، الموضع) لا على هوية ثابتة، فالنقل يُبطلهما حتى يُرحَّلا. */
+  function chainOf(cid, si) {
+    const c = classById(cid), st = c ? (c.students || [])[si] : null;
+    if (!st) return [];
+    const ch = (st.fromChain && st.fromChain.length) ? st.fromChain : (st.from && st.from.cid ? [st.from] : []);
+    return ch.slice().reverse();
+  }
+  const mkeysRawCache = {};
   const mkeysCache = {};
-  async function mkeysOf(cid) {
+  /* mkDenied: رفضُ القواعد (جهاز بلا مطالبة جلسة) لا يُشبه «لا مفاتيح لهذا الفصل» — وكان
+     المعلم يُقرأ عليه «لا حساب لهؤلاء الطلاب بعد» فيرسل رسالةً إلى العدم وهو مطمئن. */
+  let mkDenied = false;
+  async function mkeysRaw(cid) {
     if (!CLOUD || !fdb || !cid) return null;
-    if (cid in mkeysCache) return mkeysCache[cid];
+    if (cid in mkeysRawCache) return mkeysRawCache[cid];
     let v = null;
     try {
       const d = await fdb.doc("mkeys/" + cid).get();
       if (d.exists) v = ((d.data() || {}).k) || {};
-    } catch (e) { v = null; }
-    mkeysCache[cid] = v; return v;
+      else v = {};
+    } catch (e) {
+      if (e && e.code === "permission-denied") mkDenied = true;
+      v = null;
+    }
+    mkeysRawCache[cid] = v; return v;
+  }
+  /* المفاتيح الفعلية للفصل: مستنده، ومعه مفتاح كل طالبٍ نُقل إليه — يُقرأ من فهرس فصله
+     السابق بموضعه هناك. المفتاح هو نفسه (صندوق الرسائل واحد لا يتبدّل بالنقل)، وبغير هذا
+     كان المعلم يُقرأ عليه «لا حساب لهؤلاء الطلاب» فيمتنع عن مراسلة طالبٍ حسابه حيّ. */
+  async function mkeysOf(cid) {
+    if (!CLOUD || !fdb || !cid) return null;
+    if (cid in mkeysCache) return mkeysCache[cid];
+    const base = await mkeysRaw(cid);
+    if (!base) { mkeysCache[cid] = null; return null; }
+    const out = Object.assign({}, base), c = classById(cid);
+    const list = c ? (c.students || []) : [];
+    for (let i = 0; i < list.length; i++) {
+      const st = list[i];
+      if (!st || st.moved || st.gap || out[String(i)]) continue;
+      const ch = chainOf(cid, i);
+      for (let k = 0; k < ch.length; k++) {
+        const f = ch[k]; if (!f || !f.cid || f.cid === cid) continue;
+        const old = await mkeysRaw(f.cid);
+        const mk = old ? old[String(f.si)] : null;
+        if (mk) { out[String(i)] = mk; break; }
+      }
+    }
+    mkeysCache[cid] = out; return out;
   }
   /* الإضافة إلى صندوق الطالب: القائمة تنمو ولا تنقص كما تشترط القاعدة، وعند بلوغ الخمسين
      تُسقط أقدم عشر. محاولتان ثم استسلام صامت — الرسالة ليست رصداً يُخشى فقده. */
@@ -3930,8 +4016,11 @@
         const snap = await ref.get();
         const cur = (snap.exists ? (snap.data() || {}).list : null) || [];
         if (cur.some(x => x && x.i === item.i)) return true;
+        /* القاعدة تسمح بإسقاط **عشرة** من أقدم القائمة لا أكثر (list[10:] ⊆ الجديدة).
+           والقصّ إلى خمسين كان يُسقط أحد عشر عند الرسالة الحادية والستين، فتُرفض الكتابة
+           ويتجمّد صندوق الطالب عند ستين رسالة إلى الأبد. */
         let list = cur.concat([item]);
-        if (list.length > 60) list = list.slice(list.length - 50);
+        if (list.length > 60) list = cur.slice(cur.length - 50).concat([item]);
         await ref.set({ list: list, n: list.length, tn: TE.name, ts: Date.now() }, { merge: false });
         return true;
       } catch (e) { if (attempt) return false; await new Promise(r => setTimeout(r, 600)); }
@@ -3963,10 +4052,14 @@
      const nx = nextLessonWith(cid);
     const when = nx ? `${nx.in === 0 ? "اليوم" : nx.in === 1 ? "غداً" : "يوم " + nx.day} — الحصة ${BELL().ord ? BELL().ord(nx.p) : nx.p}${nx.time ? " (" + nx.time + ")" : ""}` : "";
     const hwN = S.t.hwN || 0;
+    /* تسليمات الطالب لا تُدَّعى من ذاكرةٍ لم تُحمَّل: SUBS[cid] تُملأ بـloadSubs، وقبلها
+       «لا تسليمات» تعني «لا أعرف» لا «لم يحلّ». وكان يُقال لولي الأمر إن ابنه لم يحلّ شيئاً
+       وهو قد سلّم — أو على جهازٍ رُفض عليه سرد subs أصلاً. */
     const unsolved = (() => {
       try {
-        const rows = ((SUBS[cid] || {}).rows || []).filter(r => r.si === i);
-        return rows.length ? null : "لم يحلّ أي ورقة أرسلتُها";
+        const cache = SUBS[cid];
+        if (!cache || !Array.isArray(cache.rows)) return null;      // غير محمَّلة ⇒ لا ندّعي
+        return cache.rows.some(r => r.si === i) ? null : "لم يحلّ أي ورقة أرسلتُها";
       } catch (e) { return null; }
     })();
     const head = `ولي أمر الطالب: ${s.n} — ${c.name}`;
@@ -3990,6 +4083,7 @@
   function msgSheet(cid, list, opts) {
     opts = opts || {};
     if (!CLOUD || !fdb) { alert("إرسال الرسائل إلى حسابات الطلاب يحتاج النسخة السحابية"); return; }
+    if (!claimGate("إرسال رسالة إلى حساب الطالب")) return;
     const c = classById(cid); if (!c) return;
     const idx = (list || []).filter(i => c.students[i] && !c.students[i].moved);
     if (!idx.length) { alert("لا طالب محدد"); return; }
@@ -4034,8 +4128,14 @@
         fill();
       });
       keys = await mkeysOf(cid);
-      const noKey = keys ? idx.filter(i => !keys[String(i)]).length : idx.length;
-      if (noKey) $$("#mg-out").innerHTML = `<div class="as-sum warn">⚠ ${noKey === idx.length ? "لا حساب لهؤلاء الطلاب بعد" : noKey + " من الطلاب بلا حساب"} — تُسجَّل هوياتهم من لوحة المدير ← ⚙️ الإدارة ← 🆔 أرقام هويات الطلاب</div>`;
+      if (!keys && mkDenied) {
+        // رفضٌ لا نقصُ بيانات: يُقال سببه ولا يُترك المعلم يظن أن الطلاب بلا حسابات
+        $$("#mg-out").innerHTML = `<div class="as-sum bad">⛔ تعذّر قراءة حسابات الطلاب: لم يُعتمد هذا الجهاز برقمك — اعتمده من الشريط الأعلى ثم أعد المحاولة. (وليس سببه الإنترنت)</div>`;
+        const sb = $$("#mg-send"); if (sb) sb.disabled = true;
+      } else {
+        const noKey = keys ? idx.filter(i => !keys[String(i)]).length : idx.length;
+        if (noKey) $$("#mg-out").innerHTML = `<div class="as-sum warn">⚠ ${noKey === idx.length ? "لا حساب لهؤلاء الطلاب بعد" : noKey + " من الطلاب بلا حساب"} — تُسجَّل هوياتهم من لوحة المدير ← ⚙️ الإدارة ← 🆔 أرقام هويات الطلاب</div>`;
+      }
       $$("#mg-send").onclick = async () => {
         const btn = $$("#mg-send"), t = $$("#mg-t").value.trim().slice(0, 80), b = $$("#mg-b").value.trim().slice(0, 700);
         if (!t || !b) { alert("اكتب عنواناً ونصاً"); return; }
@@ -4498,6 +4598,15 @@
     return out;
   }
   const maxTotal = () => ASSESS.reduce((a, b) => a + b.max, 0);
+  /* تعريفٌ واحد لـ«المستوى العام» يستهلكه الثلاثة: بطاقة تقدّم الطالب، ولوحة المدير
+     (admin/core.js:aggStudent)، وشاشة وليّ الأمر في البوابة. موزونٌ بحجم المرصود
+     (Σtot/Σmax) لا متوسطَ نسبٍ: مادةٌ رُصد فيها بندٌ واحد لا تعادل مادةً برصد سبعة.
+     كان المعروض لوليّ الأمر رقماً وللمعلم رقماً آخر تحت العنوان نفسه. */
+  const overallPct = (rows) => {
+    let tot = 0, mx = 0;
+    (rows || []).forEach(r => { if (r && +r.mx > 0) { tot += (+r.tot || 0); mx += (+r.mx); } });
+    return mx > 0 ? Math.round(tot / mx * 100) : null;
+  };
   const pctCell = (p) => p == null ? '<td style="color:#bbb">—</td>' : `<td style="background:${p >= 90 ? "#dff5e3" : p >= 75 ? "#eef7dd" : p >= 60 ? "#fff6d6" : p >= 50 ? "#ffe9d6" : "#ffd9d9"}"><b>${Math.round(p)}</b></td>`;
   async function studentProgress(cid, i) {
     const c = classById(cid), s = c.students[i];
@@ -4506,7 +4615,7 @@
       const docs = await classDocs(cid), maxTot = maxTotal();
       const rows = docs.map(dc => { const t = calcStudent(cid, i, dc.recs); const hasG = hasGrades(cid, i, dc.grades, dc.recs); const gt = hasG ? gradeTotal(cid, i, dc.grades, dc.recs) : null; const gm = hasG ? gradedMax(cid, i, dc.grades, dc.recs) : 0; return { ...dc, t, hasG, gt, gm, pct: hasG ? gradePct(cid, i, dc.grades, dc.recs) : null, att: attPct(t), series: daySeries(dc.recs, i) }; });
       const mine = rows.find(r => TE && r.tid === TE.id) || rows[0];
-      const ps = rows.filter(r => r.pct != null).map(r => r.pct); const overall = ps.length ? Math.round(ps.reduce((a, b) => a + b, 0) / ps.length) : null;
+      const overall = overallPct(rows.filter(r => r.pct != null).map(r => ({ tot: r.gt, mx: r.gm })));
       const bars = (ser) => { const last = ser.slice(-14); const mx = Math.max(5, ...last.map(x => Math.abs(x.p))); return `<div class="pg-bars">${last.map(x => `<div class="pg-bar" title="${x.date}: ${x.p}"><div style="height:${Math.round(Math.abs(x.p) / mx * 100)}%;background:${x.p >= 0 ? "var(--ok)" : "var(--bad)"}"></div><small>${x.date.slice(5).replace("-", "/")}</small></div>`).join("")}</div>`; };
       const b = o.querySelector("#pg-body"); if (!b) return;
       if (!rows.length) {
@@ -4574,6 +4683,45 @@
   // ترحيل بيانات الطالب المنقول (رصد/درجات/تواصل) من from[si] إلى to[newSi] لكل معلم يدرّس الفصلين،
   // وللسجل المحلي إن كان المدير معلماً لهما (أو في الوضع التجريبي حيث السجل المحلي هو سجل هذا الجهاز).
   // الكتابة بالدمج والاتحاد (idempotent) فتصلح لإعادة الترحيل بعد فشل جزئي دون تكرار. بصمة المستند تبقى للمعلم صاحبه (tn) مع ts الأصلي إن وُجد.
+  /* ترحيل فهرسَي الحساب مع الحركة: sids/{cid} (من سُجّلت هويته) وmkeys/{cid} (مفتاح صندوق
+     رسائله). كلاهما مبنيٌّ على (cid, si) لا على هوية ثابتة، وكاتبهما الوحيد كان لوحة تسجيل
+     الهويات — فالنقل يُبطلهما: نافذة الإرسال تعدّ الطالب «بلا هوية مسجَّلة»، وmsgSheet تقول
+     «لا حساب لهؤلاء الطلاب» وترفض الإرسال، مع أن حساب الطالب حيّ (بصمته باقية والبوابة
+     تُدخله بمسار الفصول التي نُقل منها). المفتاح **هو نفسه** ولا يُولَّد جديداً وإلا فقد
+     صندوقه. والموضع القديم يصير moved فيخرج من activeStudents، فبقاؤه في فهرس فصله غير ضارّ
+     (والقواعد لا تسمح بالإنقاص أصلاً). فشلُ هذا الترحيل لا يُفشل الحركة. */
+  async function migrateIndex(from, to, si, nsi) {
+    if (!CLOUD || !fdb || !from || !to || to === "out") return { sids: false, mkeys: false };
+    const out = { sids: false, mkeys: false };
+    try {
+      const d = await fdb.doc("sids/" + from).get();
+      const raw = d.exists ? ((d.data() || {}).list || []) : [];
+      if (raw.map(x => +x).indexOf(si) >= 0) {
+        const cur = await fdb.doc("sids/" + to).get();
+        const seen = {}, list = [];
+        (((cur.exists ? cur.data() : {}) || {}).list || []).concat([nsi]).forEach(v => {
+          const n = +v; if (Number.isInteger(n) && n >= 0 && n < 400 && !seen[n]) { seen[n] = 1; list.push(n); }
+        });
+        list.sort((a, b) => a - b);
+        await fdb.doc("sids/" + to).set({ list, n: list.length, tn: (TE || {}).name || "", ts: Date.now() });
+        delete sidsCache[to]; delete sidsRawCache[to];
+        out.sids = true;
+      }
+    } catch (e) { }
+    try {
+      const d = await fdb.doc("mkeys/" + from).get();
+      const mk = d.exists ? (((d.data() || {}).k || {})[String(si)]) : null;
+      if (mk) {
+        const cur = await fdb.doc("mkeys/" + to).get();
+        const k = Object.assign({}, ((cur.exists ? cur.data() : {}) || {}).k || {});
+        k[String(nsi)] = mk;                              // المفتاح نفسه — لا مفتاحٌ جديد
+        await fdb.doc("mkeys/" + to).set({ k, n: Object.keys(k).length, tn: (TE || {}).name || "", ts: Date.now() });
+        delete mkeysCache[to]; delete mkeysRawCache[to];
+        out.mkeys = true;
+      }
+    } catch (e) { }
+    return out;
+  }
   async function migrateMove(m) {
     const res = { teachers: 0, failed: 0, failedNames: [] };
     if (m.to === "out") return res;
@@ -4590,6 +4738,7 @@
       save();
     }
     if (!CLOUD || !fdb) return res;
+    try { res.idx = await migrateIndex(from, to, si, nsi); } catch (e) { res.idx = null; }
     for (const t of D.teachers) {
       if (!both(t)) continue;
       const pf = t.id + "_" + from, pt = t.id + "_" + to;
@@ -4713,10 +4862,10 @@
   }
   function studentText(cid, i, from, to) {
     const c = classById(cid), s = c.students[i], recs = recsInRange(cid, from, to), t = calcStudent(cid, i, recs), maxTot = maxTotal();
-    // الترتيب بقاعدة classCalc نفسها (متسلسل بفهرس الطالب) — كان indexOf يعطي المتساوين رقماً واحداً
-    // فيستلم ولي الأمر رقمين مختلفين لابنه من البطاقة ومن رسالة الفترة في اليوم نفسه
+    // الترتيب التنافسي نفسه الذي في classCalc (rankMap): المتساوون رقمٌ واحد. وكان findIndex
+    // يعطيهم أرقاماً متسلسلة يقرّرها موضع الاسم في المصفوفة لا نقاطه.
     const ord = activeStudents(c).map(x => ({ i: x.i, pts: calcStudent(cid, x.i, recs).pts })).sort((a, b) => b.pts - a.pts);
-    const rank = ord.findIndex(x => x.i === i) + 1;
+    const rank = rankMap(ord)[i] || 0;
     const hasG = hasGrades(cid, i), gt = gradeTotal(cid, i), gm = gradedMax(cid, i), gp = gradePct(cid, i); const a = attPct(t);
     const tip = absCnt(t) > 0 ? "نرجو متابعة الحضور." : t.hwN > 0 ? "نرجو متابعة إنجاز الواجبات." : t.pts >= 10 ? "أداء مميز، بارك الله فيه." : "نأمل مزيداً من المشاركة.";
     return `السلام عليكم ورحمة الله\nولي أمر الطالب: *${s.n}* — ${c.name}\n📊 تقرير ${TE.subject} للفترة ${hLabelShort(from)} → ${hLabelShort(to)}\n` +
@@ -4855,30 +5004,55 @@
   /* فهرس الأوراق المرسلة لكل فصل: بوابة الطالب لا تستطيع سرد assign (وفتحه يسلّم الطفل
      مفاتيح إجابات كل اختبارات المدرسة)، فيُكتب لها ملخّص بلا أسئلة ولا إجابات.
      القائمة تنمو ولا تنقص كما تشترط القاعدة، وعند بلوغ السقف تُسقط الأقدم. */
+  /* تُعيد true إن كُتب الفهرس، وfalse إن رُفض أو تعثّر — وكان يبتلع الرفض صامتاً، فيقول
+     التطبيق للمعلم «وصلت إلى 21 حساباً» والورقة لا تظهر في «مهامي» أبداً ولا يصل إشعار. */
   async function idxAssign(cid, item) {
-    if (!CLOUD || !fdb || !cid || !item) return;
+    if (!CLOUD || !fdb || !cid || !item) return false;
     const ref = fdb.doc("assignidx/" + cid);
     for (let attempt = 0; attempt < 2; attempt++) {
       try {
         const snap = await ref.get();
         const cur = (snap.exists ? (snap.data() || {}).list : null) || [];
-        if (cur.some(x => x && x.a === item.a)) return;
+        if (cur.some(x => x && x.a === item.a)) return true;
         let list = cur.concat([item]);
         if (list.length > 190) list = list.slice(list.length - 190);
         await ref.set({ list: list, tn: TE.name, ts: Date.now() }, { merge: false });
-        return;
-      } catch (e) { if (attempt) return; await new Promise(r => setTimeout(r, 600)); }
+        return true;
+      } catch (e) {
+        const denied = !!(e && e.code === "permission-denied");
+        if (denied || attempt) { try { console.warn("[assignidx] " + (denied ? "مرفوض (لا مطالبة جلسة)" : "تعثّر") + " — " + cid); } catch (x) { } return false; }
+        await new Promise(r => setTimeout(r, 600));
+      }
     }
+    return false;
+  }
+  /* حارس الاعتماد: العمليات التي تشترط مطالبة الجلسة (sess) في القواعد — إرسال الأوراق
+     وفهرسها ورسائل الطلاب وقراءة النتائج. تُستدعى قبل فتح النافذة لا بعد الكتابة، فلا
+     يُنشئ المعلم ورقةً لا تصل أحداً ثم يُقال له إنها وصلت. */
+  function claimGate(what) {
+    if (!CLOUD || claimOK()) return true;
+    try { claimBar(); } catch (e) { }
+    openSheet(`<h4>🔐 اعتماد الجهاز مطلوب</h4>
+      <div style="font-size:14px;line-height:2;color:var(--ink)">هذا الجهاز لم يُعتمد برقمك بعد تحديث التطبيق، و<b>${esc(what)}</b> يحتاج اعتماداً.
+      <br><br>لو أرسلتَ الآن لأُنشئ الرابط ولم تظهر الورقة في «✏️ مهامي» عند الطلاب ولم يصلهم إشعار —
+      فالأفضل اعتماد الجهاز أولاً: تُدخل رقمك مرة واحدة ويبقى معتمداً.</div>
+      <div class="sheet-actions" style="flex-wrap:wrap"><button class="btn-plain" style="flex:1 1 46%" onclick="window._sheetClose()">لاحقاً</button>
+        <button class="btn-primary" style="flex:1 1 46%" id="cg-go">🔓 اعتماد الجهاز الآن</button></div>`, (o) => {
+      const b = o.querySelector("#cg-go");
+      if (b) b.onclick = () => { DB.session = null; DB.srole = null; save(); setTimeout(() => location.reload(), 250); };
+    });
+    return false;
   }
   const SOME_SEL = '#as-who-t [data-w="some"]';
   /* ═══ من يستطيع الدخول فعلاً: sids/{cid} ═══
      بصمات الهويات (spins) لا تُسرد بالقواعد قصداً، فلا يعرف المعلم من فتح حسابه من طلابه. تكتب
      لوحة المدير في sids فهارسَ من سُجّلت هويته (لا رقماً ولا اسماً)، فتقول نافذة الإرسال الحقيقة.
      غياب المستند = مدرسة لم تسجّل الهويات بعد: لا عدد يُذكر ولا كذب يُقال. */
+  const sidsRawCache = {};
   const sidsCache = {};
-  async function sidsOf(cid) {
+  async function sidsRaw(cid) {
     if (!CLOUD || !fdb || !cid) return null;
-    if (cid in sidsCache) return sidsCache[cid];
+    if (cid in sidsRawCache) return sidsRawCache[cid];
     let v = null;
     try {
       const d = await fdb.doc("sids/" + cid).get();
@@ -4887,7 +5061,31 @@
         v = Array.isArray(raw) ? raw.map(x => +x).filter(x => Number.isInteger(x) && x >= 0 && x < 400) : [];
       }
     } catch (e) { v = null; }
-    sidsCache[cid] = v; return v;
+    sidsRawCache[cid] = v; return v;
+  }
+  /* من سُجّلت هويته في هذا الفصل: مستنده، ومعه كل طالبٍ نُقل إليه وكانت هويته مسجَّلة في
+     فصله السابق — حسابه يعمل (البوابة تجرّب فصوله السابقة) فعدّه «بلا هوية» كذبٌ ينقص
+     سطر «تصل إلى N حساباً» واحداً في كل نقلة. */
+  async function sidsOf(cid) {
+    if (!CLOUD || !fdb || !cid) return null;
+    if (cid in sidsCache) return sidsCache[cid];
+    const base = await sidsRaw(cid);
+    if (!Array.isArray(base)) { sidsCache[cid] = base; return base; }
+    const set = {}, out = base.slice();
+    base.forEach(i => set[i] = 1);
+    const c = classById(cid), list = c ? (c.students || []) : [];
+    for (let i = 0; i < list.length; i++) {
+      const st = list[i];
+      if (!st || st.moved || st.gap || set[i]) continue;
+      const ch = chainOf(cid, i);
+      for (let k = 0; k < ch.length; k++) {
+        const f = ch[k]; if (!f || !f.cid || f.cid === cid) continue;
+        const old = await sidsRaw(f.cid);
+        if (Array.isArray(old) && old.indexOf(+f.si) >= 0) { set[i] = 1; out.push(i); break; }
+      }
+    }
+    out.sort((a, b) => a - b);
+    sidsCache[cid] = out; return out;
   }
   /* ═══ نافذة الإرسال ═══
      الورقة تصل حساب الطالب في «مهامي» لحظة إنشائها (فهرس assignidx)، فالرسالة الأولى تقول ذلك
@@ -4898,6 +5096,11 @@
   async function sendSheet(code, wk, title, qs, cid) {
     if (!CLOUD || !fdb) { alert("الإرسال للطلاب يحتاج النسخة السحابية (ليس وضع التجربة)"); return; }
     if (!qs || !qs.length) { alert("لا أسئلة في هذه الورقة"); return; }
+    /* الأسئلة الصالحة وحدها: التنقية أدناه تُسقط سؤالاً بلا خيارين أو بلا إجابة، فورقةٌ
+       كل أسئلتها ناقصة كانت تُرسل فارغة (n=0) ويُقال «وصلت إلى 21 حساباً». */
+    const okQ = (q) => !!(q && String(q.q || "").trim() && (q.t === "fill" ? String(q.ans || "").trim() : (q.opts || []).filter(Boolean).length >= 2));
+    if (!qs.filter(okQ).length) { alert("أسئلة هذه الورقة ناقصة (سؤال بلا خيارين أو بلا إجابة) — أكملها قبل الإرسال"); return; }
+    if (!claimGate("إرسال الأوراق إلى حسابات الطلاب")) return;
     const cls = myClasses(); if (!cls.length) { alert("لا فصول مسندة"); return; }
     let mode = "ws";
     const first = (cid && cls.some(c => c.id === cid)) ? cid : cls[0].id;
@@ -4933,9 +5136,11 @@
       const $$ = (q) => o.querySelector(q);
       /* سطر الوصول: الحقيقة كما هي — كم حساباً تصله الورقة، وكم طالباً لم تُسجَّل هويته فلن تصله.
          قبل الإرسال بصيغة المستقبل وبعده بصيغة الماضي، من حسابٍ واحد لا نصّين يفترقان. */
-      function reach() {
+      /* ids: الفصول المحسوبة — قبل الإرسال المحدَّدة، وبعده التي نجح فهرسها فعلاً.
+         فسطرٌ يقول «وصلت 62 حساباً» عن فصلٍ فشل إرساله أو رُفض فهرسه كذبٌ صريح. */
+      function reach(ids) {
         let accounts = 0, miss = 0, students = 0, known = true;
-        [...sel].forEach(id => {
+        [...(ids || sel)].forEach(id => {
           const c = classById(id); if (!c) return;
           const all = act(c);
           const pick = (sel.size === 1 && toSet.size) ? all.filter(i => toSet.has(i)) : all;
@@ -4944,11 +5149,12 @@
           if (Array.isArray(reg)) { const st = new Set(reg), k = pick.filter(i => st.has(i)).length; accounts += k; miss += pick.length - k; }
           else known = false;
         });
-        return { accounts, miss, students, known, cls: sel.size };
+        return { accounts, miss, students, known, cls: [...(ids || sel)].length };
       }
-      function sumHtml(past) {
+      function sumHtml(past, ids) {
         if (!sel.size) return `<div class="as-sum bad">اختر فصلاً واحداً على الأقل</div>`;
-        const r = reach(), v = past ? ["وصلت", "لم تصلهم"] : ["تصل", "لن تصلهم"];
+        if (past && ids && !ids.length) return "";
+        const r = reach(ids), v = past ? ["وصلت", "لم تصلهم"] : ["تصل", "لن تصلهم"];
         const who = r.cls > 1 ? `${cntAr(r.cls, "فصل واحد", "فصلين", "فصول", "فصلاً")} · ${r.students} طالباً` : `${r.students} طالباً${toSet.size ? " (مختارون)" : ""}`;
         if (!r.known) return `<div class="as-sum ok">📨 ${v[0]} إلى <b>${who}</b> — تظهر في «✏️ مهامي» لكل طالب سجّلت الإدارة هويته<div class="s">ومن لم يفتح حسابه بعد، أرسل له الرابط في الواتساب.</div></div>`;
         return `<div class="as-sum ok">✅ ${v[0]} إلى <b>${r.accounts} ${r.accounts === 1 ? "حساب" : "حساباً"}</b> من ${who} — تظهر لهم في «✏️ مهامي» فوراً`
@@ -5061,19 +5267,40 @@
           if (to.length) doc.to = to;
           try { await fdb.doc("assign/" + aid).set(doc); } catch (e) { failed.push(c.name); continue; }
           // الفهرس ليس شرطاً لنجاح الإرسال: فشلُه لا يمنع الرابط، وأقصى أثره ألا تظهر في حساب الطالب
-          try {
-            const item = { a: aid, t: title, due, tid: TE.id, mode, n: clean.length, wk, code, tries, ts: doc.ts };
-            if (to.length) item.to = to;
-            await idxAssign(id, item);
-          } catch (e) { }
-          made.push({ cid: id, cname: c.name, id: aid, url: ASSIGN_BASE + aid, n: clean.length, doc });
+          /* الورقة الموجَّهة **لا تدخل فهرس الفصل**: الفهرس يقرؤه كل طلاب الفصل (وأي جهاز
+             مصادَق)، وقائمة to غالباً «من هم دون 50%» أو «من لم يحلّ» — فنشرُها فضيحةٌ
+             لأصحابها. فتُسلَّم في صندوق كل طالبٍ الخاص smsg/{mk}: مستندٌ لا يُسرد ولا يجده
+             من لا يعرف مفتاحه. والورقة العامة تبقى في الفهرس كما هي. */
+          let idxOk = false, privOk = 0, privMiss = 0;
+          if (to.length) {
+            const keys = await mkeysOf(id);
+            for (const si2 of to) {
+              const mk = keys ? keys[String(si2)] : null;
+              if (!mk) { privMiss++; continue; }
+              const it = { i: "t" + aid + "_" + si2, k: "task", a: aid, t: title, due, tid: TE.id, tn: TE.name,
+                subj: TE.subject, mode, n: clean.length, wk, code, tries, ts: doc.ts };
+              let done = false;
+              try { done = await msgPush(mk, it); } catch (e) { done = false; }
+              if (done) privOk++; else privMiss++;
+            }
+            idxOk = privOk > 0;
+          } else {
+            try {
+              const item = { a: aid, t: title, due, tid: TE.id, mode, n: clean.length, wk, code, tries, ts: doc.ts };
+              idxOk = await idxAssign(id, item);
+            } catch (e) { idxOk = false; }
+          }
+          made.push({ cid: id, cname: c.name, id: aid, url: ASSIGN_BASE + aid, n: clean.length, doc, idx: idxOk, privOk, privMiss });
         }
         if (!made.length) { btn.disabled = false; btn.textContent = "📨 أرسِل إلى حسابات الطلاب"; alert("تعذّر الإرسال — تحقق من الاتصال"); return; }
         const out = $$("#as-out"); out.dataset.pv = "";
         const one = made.length === 1;
         const msg1 = one ? msgFor(classById(made[0].cid), made[0].url, made[0].n, made[0].doc) : "";
-        out.innerHTML = sumHtml(true)
-          + (to.length ? `<div class="as-sum warn">🎯 لطلاب محدَّدين: ${to.length} — لا تظهر لغيرهم</div>` : "")
+        const okIdx = made.filter(m => m.idx), noIdx = made.filter(m => !m.idx);
+        out.innerHTML = sumHtml(true, okIdx.map(m => m.cid))
+          + (noIdx.length ? `<div class="as-sum bad">⚠ ${noIdx.length === made.length ? "الورقة أُنشئت ورابطها يعمل" : `${noIdx.map(m => esc(m.cname)).join(" · ")}: الرابط يعمل`}، لكنها <b>لن تظهر في «✏️ مهامي»</b> ولن يصل إشعار — لم يُعتمد هذا الجهاز برقمك.<div class="s">أرسل الرابط في الواتساب الآن، ثم اعتمد الجهاز من الشريط الأعلى ليصل التالي إلى الحسابات.</div></div>` : "")
+          + (to.length ? `<div class="as-sum warn">🎯 لطلاب محدَّدين: ${to.length} — تُسلَّم في حساب كل واحد منهم وحده، ولا يظهر في فهرس الفصل أنها موجَّهة`
+            + (made[0] && made[0].privMiss ? `<div class="s warn">⚠ ${made[0].privMiss} منهم لم تُسجَّل هويته فلم تصله — أرسل له الرابط</div>` : "") + `</div>` : "")
           + (failed.length ? `<div class="as-sum bad">تعذّر الإرسال إلى: ${esc(failed.join(" · "))}</div>` : "")
           + (one
             ? `<div class="as-link"><code>${esc(made[0].url)}</code><button class="btn-soft" id="as-copy-url">🔗 الرابط فقط</button></div>
@@ -5096,10 +5323,13 @@
     if (!CLOUD || !fdb) { alert("يحتاج النسخة السحابية"); return; }
     openSheet(`<h4>📤 الأوراق المرسلة</h4><div id="ag-body"><div class="empty-note">جارِ التحميل…</div></div>
       <div class="sheet-actions"><button class="btn-primary" onclick="window._sheetClose()">إغلاق</button></div>`, async (o) => {
-      let list = [];
-      try { const s = await fdb.collection("assign").where("tid", "==", TE.id).get(); s.forEach(d => list.push(Object.assign({ id: d.id }, d.data()))); } catch (e) { }
+      let list = [], denied = false;
+      try { const s = await fdb.collection("assign").where("tid", "==", TE.id).get(); s.forEach(d => list.push(Object.assign({ id: d.id }, d.data()))); }
+      catch (e) { denied = !!(e && e.code === "permission-denied"); }
       list.sort((a, b) => (b.ts || 0) - (a.ts || 0));
       const body = o.querySelector("#ag-body"); if (!body) return;
+      // رفضُ السرد كان يُعرض «لم ترسل ورقة بعد» — فيظن المعلم أن أوراقه ضاعت
+      if (denied) { body.innerHTML = '<div class="empty-note" style="color:var(--bad);line-height:1.9">⛔ تعذّرت قراءة أوراقك: لم يُعتمد هذا الجهاز برقمك.<br>اعتمده من الشريط الأعلى (🔓 اعتماد الجهاز الآن) ثم أعد فتح هذه النافذة — أوراقك ونتائجها محفوظة ولم تضع.</div>'; return; }
       if (!list.length) { body.innerHTML = '<div class="empty-note">لم ترسل ورقة بعد. أرسل من «📝 ورقة تفاعلية» داخل الحصة أو من بنك أوراق العمل.</div>'; return; }
       const M = { ws: "📝 ورقة عمل", quiz: "⏱️ اختبار", race: "🏆 تحدٍّ" };
       body.innerHTML = list.slice(0, 25).map(a => `<div class="comm-item"><b>${esc(a.t)}</b>
@@ -5204,7 +5434,7 @@
     $, esc, clone, save, syncBadge, mergeComms, rec,
     classById, myClasses, activeStudents, activeCount, isActive, applyMoves, applySedits, refreshMoves, absorbMoves, moveId, migrateMove, classPointsMap, adminMoves,
     addStudent, removeStudent, isNewFrom,
-    calcStudent, classCalc, autoGrade, effGrades, gradeTotal, gradedMax, gradePct, hasGrades, levelOf, attPct, maxTotal, pctCell, daySeries, trendOf, studentSummary,
+    calcStudent, classCalc, rankMap, autoGrade, effGrades, gradeTotal, gradedMax, gradePct, hasGrades, levelOf, attPct, overallPct, maxTotal, pctCell, daySeries, trendOf, studentSummary,
     hijriLabel, hijriParts, curWeek, subjCode, loadCurr, saveCurrEdit, lessonURL,
     openSheet, closeSheet, printSheet, printDoc, printCertificate, printReport, printLetter,
     sha256, shortId, waLink,
