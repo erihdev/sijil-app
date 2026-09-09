@@ -564,7 +564,10 @@
       }).slice(0, 8);
       var canPlay = !!(d && (((d.story || []).length >= 3) || ((d.vocab || []).length >= 2)));
       if (d && d.summary) h += '<div class="gnote" style="margin:10px 0 0">' + esc(String(d.summary).slice(0, 220)) + '</div>';
-      if (base) h += '<a class="go gold small" style="text-decoration:none;text-align:center;box-sizing:border-box" target="_blank" rel="noopener" href="' + esc(base + key + ".html") + '">🚀 افتح الدرس التفاعلي</a>';
+      /* «افتح الدرس التفاعلي» يفتح مسرح الدرس داخل البوابة بهيكل حصة المعلم نفسه (محطات +
+         لوحة شرف)، والنسخة الخارجية القديمة تبقى زراً ثانياً لمن اعتادها. */
+      h += '<button class="go gold small" data-stage="1">🎬 افتح الدرس كما في الحصة</button>';
+      if (base) h += '<a class="go soft small" style="text-decoration:none;text-align:center;box-sizing:border-box;margin-top:9px" target="_blank" rel="noopener" href="' + esc(base + key + ".html") + '">🚀 النسخة الخارجية للدرس</a>';
       if (vid) h += '<a class="yt" target="_blank" rel="noopener" href="https://www.youtube.com/watch?v=' + esc(vid) + '">' +
         '<img src="https://i.ytimg.com/vi/' + esc(vid) + '/hqdefault.jpg" alt="" loading="lazy"><i>▶️</i></a>';
       files.forEach(function (f) {
@@ -577,9 +580,268 @@
       each(bd, "[data-play]", function (b) {
         b.onclick = function () { practice(b.getAttribute("data-play"), +b.getAttribute("data-pw")); };
       });
+      each(bd, "[data-stage]", function (b) {
+        b.onclick = function () { var nm = btn.querySelector("b"); lessonStage(code, wk, tid, (d && d.title) || (nm ? nm.textContent : "") || "الدرس"); };
+      });
     }, function () { bd.innerHTML = '<div class="empty">ما وصل محتوى الدرس الآن 📡</div>'; bd.setAttribute("data-done", ""); });
   }
 
+  /* ══════════════════════════ 🎬 الدرس كما في الحصة ══════════════════════════
+     الطالب ووليّه يريان **هيكل الدرس التفاعلي نفسه** الذي يعرضه المعلم على الشاشة: المحطات في
+     الأعلى، والمسرح في الوسط، ولوحة الشرف على جانبه. والقواعد المرئية (.rl-* و.story-*) مأخوذة
+     من css/app.css حرفاً بحرف (كتلة STAGE-COPY في s/index.html) فلا يختلف الشكل عن شاشة الحصة.
+     وما يخصّ المعلم لا يُنقل: لا عجلة اختيار طالب، ولا أزرار تقييم، ولا حضور، ولا إرسال أوراق. */
+  var LS = null;             // حالة المسرح المفتوح
+  var LST = [
+    { v: "lesson", ic: "▶️", t: "الدرس" },
+    { v: "story", ic: "🎬", t: "قصة الدرس" },
+    { v: "vocab", ic: "🔤", t: "المصطلحات" },
+    { v: "check", ic: "✅", t: "تحقّق من فهمي" },
+    { v: "games", ic: "🎮", t: "ألعاب" },
+    { v: "yt", ic: "📺", t: "المقطع" },
+    { v: "files", ic: "📎", t: "المرفقات" }
+  ];
+  /* لوحة الشرف بجانب المسرح: لوحة **اليوم** أولاً (وهي التي تتحرّك في الحصة) ثم لوحة الفصل
+     العامة. من ليس في الخمسة لا يُعرف موضعه — والطفل يرى نقاطه هو في «بطاقتي». */
+  function lsBoardHtml() {
+    var med = ["🥇", "🥈", "🥉", "🎖️", "🎖️"];
+    var rows = function (list) {
+      return list.map(function (x, k) {
+        return '<div class="lsb-r' + (x.me ? " me" : "") + '"><span class="m">' + med[k] + '</span>'
+          + '<span class="n">' + esc(x.n || "طالب") + (x.me ? " (أنا)" : "") + '</span>'
+          + '<span class="p">' + x.pts + '</span></div>';
+      }).join("");
+    };
+    var lb = (typeof ST.liveBoard === "function") ? ST.liveBoard() : null;
+    var b = (typeof ST.board === "function") ? ST.board() : [];
+    var h = "";
+    if (lb && lb.board.length) {
+      h += '<div class="lsb-h">🔴 لوحة اليوم</div>' + rows(lb.board);
+      if (lb.mine) h += '<div class="lsb-me">نقاطك اليوم <b>' + lb.mine.pts + '</b> · مرتبتك <b>' + lb.mine.rank + '</b> من ' + lb.of + '</div>';
+    }
+    if (b.length) h += '<div class="lsb-h"' + (h ? ' style="margin-top:11px"' : '') + '>🏆 لوحة الفصل</div>' + rows(b);
+    if (!h) return '<div class="lsb-e">🏆<span>لوحة الشرف تظهر هنا حين تُرصد نقاط الفصل</span></div>';
+    return h + '<div class="lsb-f">النقاط من الحضور والمشاركة والواجبات والسلوك</div>';
+  }
+  function lessonStage(code, wk, tid, title) {
+    var ov = document.createElement("div");
+    ov.className = "ovg lsg";
+    ov.innerHTML = '<div class="tp"><button id="ls-x">✖ خروج</button><span id="ls-t">🎬 ' + esc(title || "الدرس") + '</span>'
+      + '<button id="ls-bt" class="bt">🏆</button></div>'
+      + '<div class="lsw" id="ls-wrap">'
+      // اللوحة أولاً في التركيب ⇒ تقع يمين الشاشة في العربية، والدرس على يسارها كما طُلب
+      + '<div class="lsb" id="ls-board">' + lsBoardHtml() + '</div>'
+      + '<div class="lsc"><div class="lst" id="ls-tools">'
+      + LST.map(function (x, k) { return '<button data-v="' + x.v + '"' + (k === 0 ? ' class="on"' : "") + '>' + x.ic + ' ' + esc(x.t) + '</button>'; }).join("")
+      + '</div><div class="lsm" id="ls-main"><div class="load"><div class="spin"></div>لحظة…</div></div></div></div>';
+    document.body.appendChild(ov);
+    try { document.body.style.overflow = "hidden"; } catch (e) { }
+    LS = { ov: ov, code: code, wk: wk, tid: tid, d: null, v: "lesson", audio: null, timer: null };
+    ov.querySelector("#ls-x").onclick = lsClose;
+    ov.querySelector("#ls-bt").onclick = function () { ov.classList.toggle("noboard"); };
+    each(ov, "#ls-tools [data-v]", function (b) {
+      b.onclick = function () {
+        each(ov, "#ls-tools [data-v]", function (x) { x.classList.toggle("on", x === b); });
+        lsView(b.getAttribute("data-v"));
+      };
+    });
+    loadLesson(code, wk).then(function (d) {
+      if (!LS) return;
+      LS.d = d || null;
+      lsView("lesson");
+    }, function () { if (LS) lsView("lesson"); });
+    /* اللوحة وحدها تُعاد رسمها مع كل رصد جديد — لا المحطة، فلا تُقطع قصةٌ ولا يُعاد سؤال. */
+    if (typeof ST.watchRecs === "function") {
+      LS.stop = ST.watchRecs(function () {
+        if (!LS) return;
+        var bx = LS.ov.querySelector("#ls-board");
+        if (bx) bx.innerHTML = lsBoardHtml();
+      });
+    }
+  }
+  function lsClose() {
+    if (!LS) return;
+    lsStop();
+    try { if (LS.stop) { LS.stop(); LS.stop = null; } } catch (e) { }
+    try { document.body.removeChild(LS.ov); } catch (e) { }
+    try { document.body.style.overflow = ""; } catch (e) { }
+    LS = null;
+  }
+  function lsStop() {
+    if (!LS) return;
+    try { if (LS.audio) { LS.audio.pause(); LS.audio.src = ""; LS.audio = null; } } catch (e) { }
+    try { if (LS.timer) { clearInterval(LS.timer); LS.timer = null; } } catch (e) { }
+    try { window.speechSynthesis && window.speechSynthesis.cancel(); } catch (e) { }
+  }
+  function lsBox() { return LS ? LS.ov.querySelector("#ls-main") : null; }
+  function lsEmpty(msg) { return '<div class="lse">' + esc(msg) + '</div>'; }
+  function lsView(v) {
+    if (!LS) return;
+    lsStop();
+    LS.v = v;
+    var box = lsBox(), d = LS.d;
+    if (!box) return;
+    if (!d && v !== "yt" && v !== "files") { box.innerHTML = lsEmpty("درس هذا الأسبوع قيد الإعداد — جرّب «المقطع» أو «المرفقات»"); return; }
+    if (v === "lesson") return lsLesson(box, d);
+    if (v === "story") return lsStory(box, d);
+    if (v === "vocab") return lsVocab(box, d);
+    if (v === "check") return lsCheck(box, d);
+    if (v === "games") { var c0 = LS.code, w0 = LS.wk; lsClose(); practice(c0, w0); return; }
+    if (v === "yt") return lsYt(box);
+    if (v === "files") return lsFiles(box);
+  }
+  /* ▶️ الدرس — بمركّب renderRichLesson نفسه في js/app.js: العنوان والصورة والأهداف والتمهيد
+     والأقسام والمصطلحات والنشاط والخلاصة، بالأصناف نفسها فيخرج الشكل واحداً. */
+  function lsLesson(box, d) {
+    var secs = (d.sections || []).map(function (sc, n) {
+      return '<div class="rl-sec"><div class="rl-h"><span class="rl-n">' + (n + 1) + '</span>' + esc(sc.h || "") + '</div>'
+        + (sc.body ? '<div class="rl-body">' + esc(sc.body) + '</div>' : "")
+        + (sc.points ? '<ul class="rl-points">' + sc.points.map(function (p) { return "<li>" + esc(p) + "</li>"; }).join("") + '</ul>' : "")
+        + (sc.tip ? '<div class="rl-tip">💡 ' + esc(sc.tip) + '</div>' : "") + '</div>';
+    }).join("");
+    var hero = (d.story || []).filter(function (x) { return x && x.img; })[0];
+    box.innerHTML = '<div class="live-stage"><div class="stage-bar"><span style="color:#fff;font-weight:800">▶️ ' + esc(d.title || "") + '</span>'
+      + '<span style="color:#c9d5e3;font-size:13px;margin-inline-start:auto">' + esc(d.unit || "") + '</span></div>'
+      + '<div class="rl-scroll"><div class="rl-wrap">'
+      + '<div class="rl-title">' + esc(d.title || "") + '</div>'
+      + (hero ? '<img class="rl-hero" src="' + esc(url(hero.img)) + '" alt="">' : "")
+      + ((d.objectives || []).length ? '<div class="rl-obj"><div class="rl-obj-h">🎯 أهداف الدرس</div><ul>'
+        + d.objectives.map(function (o) { return "<li>" + esc(o) + "</li>"; }).join("") + '</ul></div>' : "")
+      + (d.intro ? '<div class="rl-intro">' + esc(d.intro) + '</div>' : "")
+      + secs
+      + ((d.vocab || []).length ? '<div class="rl-sec"><div class="rl-h"><span class="rl-n">📖</span>مصطلحات الدرس</div><div class="rl-vocab">'
+        + d.vocab.map(function (x) { return '<div class="rl-term"><b>' + esc(x.t) + '</b><span>' + esc(x.d) + '</span></div>'; }).join("") + '</div></div>' : "")
+      + (d.activity ? '<div class="rl-sec rl-act"><div class="rl-h"><span class="rl-n">✍️</span>نشاط</div><div class="rl-body">' + esc(d.activity) + '</div></div>' : "")
+      + (d.summary ? '<div class="rl-summary">🌟 ' + esc(d.summary) + '</div>' : "")
+      + '</div></div></div>';
+  }
+  /* 🎬 قصة الدرس — نفس مشاهد المعلم: صورة/رمز ونصّ، وصوتٌ مسجَّل إن وُجد لهذا الدرس،
+     وإلا خطوةً بخطوة بزرّي السابق والتالي (لا نطق آلي في جهاز طفل بلا إذن). */
+  function lsStory(box, d) {
+    var scenes = (d.story || []).filter(function (x) { return x && (x.t || x.img); });
+    if (!scenes.length) { box.innerHTML = lsEmpty("قصة هذا الدرس قيد الإعداد"); return; }
+    var i = 0, key = LS.code + "w" + LS.wk;
+    box.innerHTML = '<div class="live-stage"><div class="stage-bar"><span style="color:#fff;font-weight:800">🎬 قصة الدرس: ' + esc(d.title || "") + '</span>'
+      + '<span id="ls-sh" style="color:#9fb0c4;font-size:12px;margin-inline-start:auto"></span></div>'
+      + '<div class="story" id="ls-story"><div class="story-visual" id="ls-v">🎬</div>'
+      + '<div class="story-text" id="ls-tx"></div>'
+      + '<div class="story-player"><div class="story-seek" id="ls-seek"><div class="story-seek-fill" id="ls-fill"></div></div>'
+      + '<div class="story-ctrl"><span class="story-time" id="ls-tm" dir="ltr">—</span>'
+      + '<button class="go soft small" id="ls-prev" style="min-width:92px">◀ السابق</button>'
+      + '<button class="go gold small" id="ls-next" style="min-width:92px">التالي ▶</button>'
+      + '</div></div></div></div>';
+    var vEl = byId(box, "#ls-v"), tEl = byId(box, "#ls-tx"), fill = byId(box, "#ls-fill"), tm = byId(box, "#ls-tm");
+    function show(k) {
+      i = Math.max(0, Math.min(scenes.length - 1, k));
+      var sc = scenes[i];
+      if (sc.img) vEl.innerHTML = '<img class="story-img" src="' + esc(url(sc.img)) + '" alt="">';
+      else vEl.textContent = sc.v || "📘";
+      tEl.textContent = sc.t || "";
+      fill.style.width = Math.round((i + 1) / scenes.length * 100) + "%";
+      tm.textContent = (i + 1) + " / " + scenes.length;
+    }
+    byId(box, "#ls-prev").onclick = function () { show(i - 1); };
+    byId(box, "#ls-next").onclick = function () { show(i + 1); };
+    if (scenes.some(function (x) { return x.img; })) { var sh = byId(box, "#ls-sh"); if (sh) sh.textContent = "الصور: Pixabay"; }
+    show(0);
+    // صوتٌ مسجَّل لهذا الدرس؟ فهرسٌ واحد يُجلب مرة (كما في js/app.js:audioHas) فلا طلب فاشل
+    lsAudioHas(key).then(function (has) {
+      if (!has || !LS || LS.v !== "story") return;
+      var a = new Audio(); a.preload = "auto"; a.src = url("data/lessons/audio/" + key + ".mp3");
+      LS.audio = a;
+      var lens = scenes.map(function (x) { return Math.max(6, String(x.t || "").length); });
+      var tot = lens.reduce(function (p, c) { return p + c; }, 0), bnd = [], acc = 0;
+      lens.forEach(function (l) { bnd.push(acc / tot); acc += l; }); bnd.push(1);
+      var pb = document.createElement("button");
+      pb.className = "go gold small"; pb.style.minWidth = "112px"; pb.textContent = "▶️ اسمع القصة";
+      var ctrl = box.querySelector(".story-ctrl"); if (ctrl) ctrl.appendChild(pb);
+      a.ontimeupdate = function () {
+        var dur = a.duration || 0, cur = a.currentTime || 0, f = dur ? cur / dur : 0;
+        for (var k = 0; k < scenes.length; k++) { if (f >= bnd[k] && f < bnd[k + 1]) { if (k !== i) show(k); break; } }
+        fill.style.width = (f * 100) + "%";
+        tm.textContent = lsT(cur) + " / " + lsT(dur);
+      };
+      a.onended = function () { pb.textContent = "🔁 أعِد"; };
+      pb.onclick = function () {
+        if (a.paused) { a.play().then(function () { pb.textContent = "⏸️ إيقاف"; }, function () { }); }
+        else { a.pause(); pb.textContent = "▶️ اسمع القصة"; }
+      };
+    });
+  }
+  var LSAUD = null;
+  function lsAudioHas(key) {
+    if (!LSAUD) LSAUD = fetch(url("data/lessons/audio/index.json")).then(function (r) { return r.ok ? r.json() : []; }).catch(function () { return []; });
+    return LSAUD.then(function (l) { return Array.isArray(l) && l.indexOf(key) > -1; }).catch(function () { return false; });
+  }
+  function lsT(x) { x = Math.max(0, Math.round(x || 0)); var m = Math.floor(x / 60); return m + ":" + ("0" + (x % 60)).slice(-2); }
+  // 🔤 المصطلحات — بطاقاتٌ يقلبها الطالب
+  function lsVocab(box, d) {
+    var v = (d.vocab || []).filter(function (x) { return x && x.t; });
+    if (!v.length) { box.innerHTML = lsEmpty("لا مصطلحات في هذا الدرس"); return; }
+    box.innerHTML = '<div class="live-stage"><div class="stage-bar"><span style="color:#fff;font-weight:800">🔤 مصطلحات الدرس</span></div>'
+      + '<div class="rl-scroll"><div class="rl-wrap"><div class="rl-vocab">'
+      + v.map(function (x) { return '<div class="rl-term"><b>' + esc(x.t) + '</b><span>' + esc(x.d || "") + '</span></div>'; }).join("")
+      + '</div></div></div></div>';
+  }
+  /* ✅ تحقّق من فهمي — أسئلة الدرس نفسها بلا رصد ولا درجة: تصحيحٌ فوري وتفسيرٌ لطيف. */
+  function lsCheck(box, d) {
+    var qs = ((d.checks || []).concat(d.questions || [])).filter(function (q) { return q && q.q && (q.opts || []).length >= 2; }).slice(0, 12);
+    if (!qs.length) { box.innerHTML = lsEmpty("لا أسئلة في هذا الدرس"); return; }
+    var L2 = ["أ", "ب", "ج", "د", "هـ", "و"];
+    box.innerHTML = '<div class="live-stage"><div class="stage-bar"><span style="color:#fff;font-weight:800">✅ تحقّق من فهمي</span>'
+      + '<span style="color:#c9d5e3;font-size:13px;margin-inline-start:auto">تدريبٌ حرّ — لا تُسجَّل نتيجته</span></div>'
+      + '<div class="rl-scroll"><div class="rl-wrap">'
+      + qs.map(function (q, n) {
+        return '<div class="rl-sec" data-q="' + n + '"><div class="rl-q">' + (n + 1) + '. ' + esc(q.q) + '</div>'
+          + '<div class="lsq">' + (q.opts || []).map(function (o, k) {
+            return '<button class="lsq-b" data-q="' + n + '" data-k="' + k + '">' + (L2[k] || (k + 1)) + '. ' + esc(o) + '</button>';
+          }).join("") + '</div><div class="lsq-fb" id="lsfb' + n + '"></div></div>';
+      }).join("")
+      + '</div></div></div>';
+    each(box, ".lsq-b", function (b) {
+      b.onclick = function () {
+        var n = +b.getAttribute("data-q"), k = +b.getAttribute("data-k"), q = qs[n], ok = k === (+q.correct || 0);
+        each(box, '.lsq-b[data-q="' + n + '"]', function (x) {
+          x.disabled = true;
+          if (+x.getAttribute("data-k") === (+q.correct || 0)) x.classList.add("ok");
+          else if (x === b) x.classList.add("no");
+        });
+        var fb = byId(box, "#lsfb" + n);
+        if (fb) { fb.className = "lsq-fb " + (ok ? "ok" : "no"); fb.textContent = ok ? "✔ صحيح، أحسنت!" : "الصواب: " + ((q.opts || [])[+q.correct || 0] || ""); }
+        if (ok) { try { confetti(); } catch (e) { } }
+      };
+    });
+  }
+  // 📺 المقطع — نفس مصدر محطة المعلم (yt/{code}w{wk})
+  function lsYt(box) {
+    box.innerHTML = '<div class="load"><div class="spin"></div>لحظة…</div>';
+    loadYT(LS.code + "w" + LS.wk).then(function (raw) {
+      if (!LS || LS.v !== "yt") return;
+      var id = ytId(raw);
+      if (!id) { box.innerHTML = lsEmpty("لم يُضف معلمك مقطعاً لهذا الدرس"); return; }
+      box.innerHTML = '<div class="live-stage"><div class="stage-bar"><span style="color:#fff;font-weight:800">📺 مقطع الدرس</span></div>'
+        + '<div class="lsyt"><iframe src="https://www.youtube-nocookie.com/embed/' + esc(id) + '?rel=0&playsinline=1" '
+        + 'title="مقطع الدرس" allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture" allowfullscreen loading="lazy"></iframe></div></div>';
+    }, function () { if (LS && LS.v === "yt") box.innerHTML = lsEmpty("ما وصل المقطع — تأكد من الإنترنت"); });
+  }
+  // 📎 المرفقات — مرفقات هذا الدرس من معلمه (نفس فهرس filesidx)
+  function lsFiles(box) {
+    box.innerHTML = '<div class="load"><div class="spin"></div>لحظة…</div>';
+    loadFidx(LS.tid).then(function (fl) {
+      if (!LS || LS.v !== "files") return;
+      var files = (fl || []).filter(function (f) {
+        return f && f.scope === "lesson" && f.ref && String(f.ref.code) === String(LS.code) && String(f.ref.wk) === String(LS.wk);
+      }).slice(0, 12);
+      if (!files.length) { box.innerHTML = lsEmpty("لا مرفقات لهذا الدرس"); return; }
+      box.innerHTML = '<div class="live-stage"><div class="stage-bar"><span style="color:#fff;font-weight:800">📎 مرفقات الدرس</span></div>'
+        + '<div class="rl-scroll"><div class="rl-wrap">'
+        + files.map(function (f) {
+          return '<a class="att" target="_blank" rel="noopener" href="' + esc(url("v/?f=" + f.id)) + '">'
+            + '<span class="e">' + fIcon(f.t) + '</span>' + esc(String(f.n || "مرفق").slice(0, 60)) + '<small>افتح</small></a>';
+        }).join("")
+        + '</div></div></div>';
+    }, function () { if (LS && LS.v === "files") box.innerHTML = lsEmpty("ما وصلت المرفقات"); });
+  }
   /* ══════════════════════════ ٤) وضع التدرّب — لاعب واحد، بلا رصد ولا نقاط رسمية ══════════════════════════
      منطق الألعاب منقول عن js/app.js (memory · order · riddle) بعد نزع كل ما يخصّ المعلم:
      لا عجلة اختيار طالب، ولا أزرار تقييم، ولا لوحة شرف، ولا نقطة تُكتب في أي مكان. */
@@ -1308,6 +1570,29 @@
       + '</div>'
       + (olv ? '<div class="lvb lv' + olv.i + '">' + esc(olv.t) + '</div>' : "")
       + '</div>';
+    /* ── 🔴 الحصة الآن: لوحة شرف اليوم ونقاط ابنه ومرتبته لحظةً بلحظة ──
+       الأب يفتح البوابة وابنه داخل الحصة: هذه البطاقة تصله بها. الأسماء الخمسة الأولى وحدها
+       (لوحة الشرف عُرفٌ معلن)، ومعها نقاط ابنه ومرتبته — لا ترتيب كل طفل في الفصل. */
+    var LB = (typeof ST.liveBoard === "function") ? ST.liveBoard() : null;
+    var livePer = null;
+    T.list.forEach(function (r) { if (r.from && mnow >= r.from && mnow < r.to) livePer = r; });
+    if (LB && (LB.board.length || LB.mine)) {
+      h += '<div class="psec">' + (livePer ? '🔴 الحصة الآن' : '🏆 لوحة شرف اليوم') + '<i>' + (livePer ? 'مباشر' : 'اليوم') + '</i></div>';
+      h += '<div class="pcard lbc">';
+      if (livePer) h += '<div class="lbnow">📚 ' + esc(livePer.subj || 'حصة') + ' — ' + esc(livePer.tn || '') + '<span>الحصة ' + esc(livePer.ps && livePer.ps.length > 1 ? livePer.ps.join(' و') : String(livePer.p)) + '</span></div>';
+      if (LB.mine) {
+        h += '<div class="lbme"><div><b>' + LB.mine.pts + '</b><small>نقاط ابنكم اليوم</small></div>'
+          + '<div><b>' + LB.mine.rank + '</b><small>مرتبته اليوم من ' + LB.of + '</small></div></div>';
+      }
+      if (LB.board.length) {
+        var med2 = ['🥇', '🥈', '🥉', '🎖️', '🎖️'];
+        h += '<div class="lbrows">' + LB.board.map(function (x, k) {
+          return '<div class="lbr' + (x.me ? ' me' : '') + '"><span>' + med2[k] + '</span>'
+            + '<b>' + esc(x.n || 'طالب') + (x.me ? ' (ابنكم)' : '') + '</b><i>' + x.pts + '</i></div>';
+        }).join('') + '</div>';
+      }
+      h += '<div class="pnote">تتحدّث تلقائياً مع رصد المعلم — نقاط اليوم من الحضور والمشاركة والواجب والسلوك.</div></div>';
+    }
     // ── اليوم لحظةً بلحظة ──
     h += '<div class="psec">📅 اليوم — ' + esc(T.day) + ' ' + esc(hijri()) + '<i>يتحدّث تلقائياً</i></div>';
     if (!T.isSchool) {
@@ -1320,7 +1605,7 @@
         var done = r.to && mnow >= r.to;
         var cls = pStateCls(c ? c.st : "");
         h += '<div class="pl ' + cls + (live ? " live" : "") + '">'
-          + '<div class="pp">' + esc(r.ps && r.ps.length > 1 ? r.ps.join("·") : String(r.p)) + '<i>' + (r.from ? esc(pHm(r.from)) : "") + '</i></div>'
+          + '<div class="pp">' + esc(r.ps && r.ps.length > 1 ? r.ps.join(" و") : String(r.p)) + '<i>' + (r.from ? esc(pHm(r.from)) : "") + '</i></div>'
           + '<div class="pm"><b>' + esc(r.subj || "مادة") + '</b><small>' + esc(r.tn) + '</small></div>'
           + '<div class="pv">'
           + (c && c.st ? '<span class="tg ' + cls + '">' + esc(c.st) + '</span>' : (done ? '<span class="tg n">لم تُرصد</span>' : '<span class="tg n">' + (live ? "الحصة الآن" : "لم تبدأ") + '</span>'))
