@@ -605,6 +605,147 @@
     cfgChanged();
     return { ok: true };
   }
+  /* ═══════════ مكتبة التقييمات ودرجاتها (cfg/assess) ═══════════
+     المكتبة الأصل في meta/app وهو مقفل للكتابة في القواعد، فتحكّم المدير يُحفظ في مستند cfg/assess
+     ويُدمج فوقه في app.js قبل أول رسم (assessApply) — النمط نفسه الذي يسير عليه cfg/bell وcfg/school.
+       assess()            الإعداد الفعّال بشكل التخزين: {states:[{k,t,v,c}], behaviors:[{k,t,v}], weights:{…}}
+       defaultAssess()     المكتبة الافتراضية (زر «↺ إعادة الافتراضي») = meta/app + «النوم أثناء الحصة»
+       validateAssess(cfg) رسالة عربية أو null
+       saveAssess(cfg)     كتابة cfg/assess + adminlog + تحديث حي + حدث window «sijil:assess»
+       assessScore(a,cfg)  نقاط طالب من رصده الخام بمكتبة معيّنة — لبطاقة «أثر التغيير» قبل الحفظ
+     الحذف = إسقاط العنصر من القائمة المحفوظة لا إزاحة الفهارس: app.js يُبقيه في موضعه شاهداً off:true،
+     فلا يظهر لمعلم ولا تنكسر نقطة رُصدت به من قبل (rec.a وrec.beh أرقام في recs منذ أول يوم). */
+  const ASSESS_KEYS = ["states", "behaviors", "weights", "tn", "ts"];
+  const ITEM_KEYS = ["k", "t", "v", "c", "off"];
+  const ASSESS_WK = ["present", "part", "hw", "absent", "bad", "sheets"];
+  const ASSESS_WLBL = { present: "الحاضر", part: "المشاركة", hw: "الواجب", absent: "الغائب", bad: "المخالفة", sheets: "ورقة العمل" };
+  const ASSESS_COLORS = ["ok", "bad", "warn", "gray", "info", "violet", "brown"];
+  const ASSESS_CLBL = { ok: "أخضر", bad: "أحمر", warn: "برتقالي", gray: "رمادي", info: "أزرق", violet: "بنفسجي", brown: "بنّي" };
+  const ASSESS_MAX = 40, KMAX = 12, TMAX = 40, VMAX = 20;
+  // الحالتان اللتان يخاطبهما app.js بالفهرس (زرّا «حاضر» و«غائب» السريعان في الحصة الحية): لا تُحذفان
+  const ASSESS_LOCK = ["s0", "s1"];
+  const EMPTY_ASSESS = { states: [], behaviors: [], weights: {} };
+  const sgn = (v) => { const x = Math.round((+v || 0) * 10) / 10; return (x > 0 ? "+" : x < 0 ? "−" : "") + Math.abs(x); };
+  const half = (v) => Math.round(Number(v) * 2) / 2;
+  const assess = () => { const s = S(); return (s && typeof s.assessEff === "function") ? s.assessEff() : EMPTY_ASSESS; };
+  const defaultAssess = () => { const s = S(); return (s && typeof s.assessDefault === "function") ? s.assessDefault() : EMPTY_ASSESS; };
+  // «7 حالات · 16 سلوكاً · مشاركة +3 · واجب +5» — لسجل الإدارة وبطاقة اللوحة
+  function assessLine(cfg) {
+    const a = cfg || assess(), w = a.weights || {}, on = (l) => (l || []).filter(x => !x.off).length;
+    return `${on(a.states)} حالات · ${on(a.behaviors)} سلوكاً · مشاركة ${sgn(w.part)} · واجب ${sgn(w.hw)}`;
+  }
+  /* تحقق قبل الحفظ — يفحص ما أدخله المدير كما هو (لا المطبَّع) ويعيد رسالة عربية أو null */
+  function checkItems(a, what, wantC, lock) {
+    if (!Array.isArray(a)) return "قائمة " + what + " غير صحيحة";
+    if (!a.length) return what + ": لا يمكن ترك القائمة فارغة";
+    if (a.length > ASSESS_MAX) return what + ": لا يمكن تجاوز " + ASSESS_MAX + " عنصراً (المُدخل " + a.length + ")";
+    const seen = {};
+    for (let i = 0; i < a.length; i++) {
+      const o = a[i], at = what + " — العنصر " + (i + 1) + ": ";
+      if (!o || typeof o !== "object" || Array.isArray(o)) return at + "بيانات غير صحيحة";
+      const extra = Object.keys(o).filter(k => ITEM_KEYS.indexOf(k) < 0);
+      if (extra.length) return at + "حقل غير معروف (" + extra[0] + ")";
+      const k = String(o.k == null ? "" : o.k).trim();
+      if (!k) return at + "المفتاح مفقود";
+      if (k.length > KMAX) return at + "المفتاح طويل (" + KMAX + " محرفاً كحد أقصى، والمُدخل " + k.length + ")";
+      if (!/^[A-Za-z0-9_-]+$/.test(k)) return at + "المفتاح يقبل الحروف اللاتينية والأرقام و«_» و«-» فقط";
+      if (seen[k]) return at + "المفتاح «" + k + "» مكرر";
+      seen[k] = 1;
+      const t = String(o.t == null ? "" : o.t).trim();
+      if (!t) return at + "الاسم مفقود";
+      if (t.length > TMAX) return at + "الاسم طويل (" + TMAX + " محرفاً كحد أقصى، والمُدخل " + t.length + ")";
+      const v = Number(o.v);
+      if (o.v == null || o.v === "" || !isFinite(v)) return at + "الدرجة غير رقمية";
+      if (v < -VMAX || v > VMAX) return at + "الدرجة يجب أن تكون بين −" + VMAX + " و+" + VMAX + " (المُدخل " + v + ")";
+      if (half(v) !== v) return at + "الدرجة تتغيّر بخطوة نصف درجة (مثل 2 أو 2.5)";
+      if (wantC && o.c != null && ASSESS_COLORS.indexOf(String(o.c)) < 0) return at + "لون غير معروف (" + o.c + ")";
+      if (!wantC && o.c != null) return at + "حقل غير معروف (c)";
+      if (o.off != null && o.off !== true && o.off !== false) return at + "قيمة الإخفاء (off) يجب أن تكون true أو false";
+      if (o.off === true) delete seen[k];    // مخفي = محذوف من قوائم المعلم، فلا يسدّ مكان حالة لازمة
+      seen[k] = seen[k] || (o.off === true ? 2 : 1);
+    }
+    if (lock) {
+      const miss = lock.filter(k => seen[k] !== 1);
+      if (miss.length) {
+        const d = defaultAssess().states || [];
+        return "لا يمكن حذف «" + miss.map(k => (d.find(x => x.k === k) || {}).t || k).join("» و«") + "» — يعتمد عليها رصد الحصة الحية والتقارير بالفهرس";
+      }
+    }
+    return null;
+  }
+  function validateAssess(cfg) {
+    if (!cfg || typeof cfg !== "object" || Array.isArray(cfg)) return "لا توجد مكتبة للحفظ";
+    const extra = Object.keys(cfg).filter(k => ASSESS_KEYS.indexOf(k) < 0);
+    if (extra.length) return "حقل غير معروف في المكتبة (" + extra[0] + ")";
+    const e1 = checkItems(cfg.states, "حالات الحضور", true, ASSESS_LOCK); if (e1) return e1;
+    const e2 = checkItems(cfg.behaviors, "السلوكيات", false, null); if (e2) return e2;
+    const w = cfg.weights;
+    if (w != null) {
+      if (typeof w !== "object" || Array.isArray(w)) return "أوزان التقييم غير صحيحة";
+      const ks = Object.keys(w);
+      for (let i = 0; i < ks.length; i++) {
+        const lbl = ASSESS_WLBL[ks[i]];
+        if (!lbl) return "وزن غير معروف (" + ks[i] + ")";
+        const v = Number(w[ks[i]]);
+        if (w[ks[i]] == null || w[ks[i]] === "" || !isFinite(v)) return "درجة " + lbl + " غير رقمية";
+        if (v < -VMAX || v > VMAX) return "درجة " + lbl + " يجب أن تكون بين −" + VMAX + " و+" + VMAX + " (المُدخل " + v + ")";
+        if (half(v) !== v) return "درجة " + lbl + " تتغيّر بخطوة نصف درجة (مثل 3 أو 3.5)";
+      }
+    }
+    return null;
+  }
+  /* نقاط طالب من رصده الخام بمكتبة معيّنة — بالحساب نفسه الذي يعرضه التطبيق (calcStudent).
+     entries: مصفوفة سجلات {a, part, hw, sh, beh[]}، وcfg بشكل التخزين (أو غيابه = المكتبة الفعّالة). */
+  function assessScore(entries, cfg) {
+    const s = S(); if (!s || typeof s.assessMerge !== "function") return 0;
+    const def = s.assessDefault(), eff = (cfg && Array.isArray(cfg.states)) ? cfg : s.assessEff();
+    const st = s.assessMerge(def.states, eff.states || def.states);
+    const bh = s.assessMerge(def.behaviors, Array.isArray(eff.behaviors) ? eff.behaviors : def.behaviors);
+    const w = Object.assign({}, def.weights, eff.weights || {});
+    let p = 0;
+    (entries || []).forEach(e => {
+      if (!e) return;
+      if (e.a != null && st[e.a]) p += (+st[e.a].pts || 0);
+      if (e.part) p += (+e.part || 0) * (+w.part || 0);
+      if (e.hw === 1) p += (+w.hw || 0);
+      if (e.sh) p += (+e.sh || 0) * (+w.sheets || 0);
+      (e.beh || []).forEach(bi => { if (bh[bi]) p += (+bh[bi].pts || 0); });
+    });
+    return Math.round(p * 10) / 10;
+  }
+  /* الحفظ: cfg/assess + adminlog + تحديث فوري (الدمج فوق META وحدث sijil:assess) → {ok:true} أو {ok:false, err} */
+  async function saveAssess(cfg) {
+    const err = validateAssess(cfg); if (err) return { ok: false, err };
+    const s = S(); if (!s || !s.TE) return { ok: false, err: "لا توجد جلسة" };
+    const norm = (a, wantC) => a.map(o => {
+      const it = { k: String(o.k).trim(), t: String(o.t).trim().replace(/\s+/g, " "), v: half(o.v) };
+      if (wantC) it.c = (ASSESS_COLORS.indexOf(String(o.c)) >= 0) ? String(o.c) : "gray";
+      if (o.off === true) it.off = true;
+      return it;
+    });
+    const dw = defaultAssess().weights || {}, w = {};
+    ASSESS_WK.forEach(k => { const v = (cfg.weights || {})[k]; w[k] = (v == null || v === "") ? (+dw[k] || 0) : half(v); });
+    const rec = { states: norm(cfg.states, true), behaviors: norm(cfg.behaviors, false), weights: w, tn: s.TE.name, ts: Date.now() };
+    if (s.CLOUD && s.fdb) {
+      try { await s.fdb.doc("cfg/assess").set(rec); } catch (e) { warn("saveAssess", e && e.message); return { ok: false, err: writeErr(e, "حفظ مكتبة التقييمات") }; }
+      s.D.cfgAssess = rec;
+      try { localStorage.setItem("sijil.cloudD", JSON.stringify(s.D)); } catch (e) { }
+    } else { s.DB.cfgAssess = rec; s.D.cfgAssess = rec; s.save(); }
+    // الدمج فوق META فوراً: كل حساب لاحق يقرأ الأوزان لحظة العرض، فتتغيّر النقاط في كل شاشة بلا إعادة تحميل
+    try { if (typeof s.assessApply === "function") s.assessApply(); } catch (e) { warn("assessApply", e && e.message); }
+    await adminlog("assess", "مكتبة التقييمات: " + assessLine());
+    assessChanged();
+    return { ok: true };
+  }
+  function assessChanged() {
+    /* خريطة دلاء الحضور (attBuckets) تُبنى مرة واحدة من أسماء الحالات وتبقى في bucketMap:
+       تسميةُ حالةٍ من جديد أو إضافةُ حالة تجعلها بائتة، فتحسب اللوحة «حاضراً» ما صار «غائباً».
+       الفهارس لا تُزاح أبداً، لكن الأسماء تتغيّر — فنُبطلها عند كل حفظ. */
+    bucketMap = null;
+    try { window.dispatchEvent(new CustomEvent("sijil:assess")); } catch (e) { }
+    refresh();
+  }
+
   // الجوال: تطبيع إلى 05xxxxxxxx (يقبل 9665… و5…) أو null إن لم يصلح
   const normMob = (p) => { let d = String(p || "").replace(/[^\d]/g, ""); if (/^9665\d{8}$/.test(d)) d = "0" + d.slice(3); else if (/^5\d{8}$/.test(d)) d = "0" + d; return /^05\d{8}$/.test(d) ? d : null; };
   const waPhone = (p) => { const n = normMob(p); return n ? "966" + n.slice(1) : ""; };
@@ -675,7 +816,10 @@
     bell, defaultBell, normBell, periodsOf, periodsOnly, periodNow, breakNow, periodTime, bellLine, dayEnd, validateBell, saveBell, hm, hhmm, parseHM, ord, nPer, mins,
     get PERIODS() { return periodsOnly(); },
     // أسماء إدارة المدرسة وسطر التواقيع
-    schoolStaff, sigLine, saveStaff, validateStaff, STAFF_KEYS, STAFF_LBL
+    schoolStaff, sigLine, saveStaff, validateStaff, STAFF_KEYS, STAFF_LBL,
+    // مكتبة التقييمات ودرجاتها (cfg/assess)
+    assess, defaultAssess, validateAssess, saveAssess, assessLine, assessScore,
+    ASSESS_KEYS, ASSESS_WK, ASSESS_WLBL, ASSESS_COLORS, ASSESS_CLBL, ASSESS_MAX, ASSESS_LOCK
   };
 
   // إن كان app.js قد أعاد جلسة محفوظة قبل تحميل هذا الملف (الوضع التجريبي متزامن بلا await): هيّئ اللوحة الآن

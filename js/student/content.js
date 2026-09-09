@@ -759,6 +759,15 @@
     });
   }
 
+  /* اسم وكيل المدرسة ومديرها في الشهادة — من «🏫 أسماء الإدارة» في لوحة المدير (cfg/school).
+     الشهادة تُطبع وتُعلَّق في البيت: اسمُ من يعتمدها جزءٌ منها لا تفصيل. */
+  function sigNames() { try { return (typeof ST.staff === "function") ? ST.staff() : null; } catch (e) { return null; } }
+  function sigHtml() {
+    var st = sigNames();
+    if (!st || (!st.vice && !st.principal)) return "";
+    var cell = function (l, n) { return n ? '<span><small>' + esc(l) + '</small><b>' + esc(n) + '</b></span>' : ""; };
+    return '<div class="csig">' + cell(st.lbl[st.viceKey], st.vice) + cell(st.lbl.principal, st.principal) + '</div>';
+  }
   /* ══════════════════════════ ٥) شهادتي ══════════════════════════ */
   ST.tab("cert", {
     render: function (el) {
@@ -770,7 +779,7 @@
         var t = ST.calcAll(ST.S.si), att = ST.attPct(t), stk = ST.streak(ST.S.si);
         var solved = (C.tasks || []).filter(function (x) { return C.subs[x.a]; }).length;
         var stars = Math.max(1, Math.min(5, 1 + Math.round(Math.max(0, t.pts) / 12)));
-        var sch = ((ST.META || {}).school || {}).name || "مدرستي";
+        var sch = ((ST.META || {}).school || {}).name || "مدرستي", sg = sigHtml();
         el.innerHTML = head("🏅", "شهادتي", "احفظها أو اطبعها أو أرسلها لأهلك") +
           '<div class="printme"><div class="cert">' +
           '<div class="seal">🏆</div><div class="sch">' + esc(sch) + '</div>' +
@@ -786,7 +795,8 @@
           (solved ? '<span>✏️ ' + solved + ' ورقة</span>' : '') +
           '</div>' +
           '<div class="stars">' + new Array(stars + 1).join("★") + '</div>' +
-          '<div class="ft"><span>' + esc(hijri()) + '</span><span>إدارة المدرسة</span></div>' +
+          sg +
+          '<div class="ft"><span>' + esc(hijri()) + '</span><span>' + (sg ? '' : 'إدارة المدرسة') + '</span></div>' +
           '</div></div>' +
           '<div class="card no-print" style="margin-top:13px">' +
           '<button class="go gold" id="c-img">🖼️ احفظها صورة</button>' +
@@ -848,9 +858,22 @@
       if (kv.length) { F(700, 36); x.fillStyle = "#7a5200"; x.fillText(kv.join("   ·   "), W / 2, 792); }
       var stars = Math.max(1, Math.min(5, 1 + Math.round(Math.max(0, t.pts) / 12)));
       F(400, 56); x.fillStyle = "#D7A93F"; x.fillText(new Array(stars + 1).join("★"), W / 2, 880);
-      F(600, 30); x.fillStyle = "#7c8794";
-      x.textAlign = "right"; x.fillText(hijri(), W - 110, 1022);
-      x.textAlign = "left"; x.fillText("إدارة المدرسة", 110, 1022);
+      var sg = sigNames();
+      if (sg && (sg.vice || sg.principal)) {
+        // الاسم سطراً تحت وظيفته (لا "الوظيفة: الاسم"): النقطتان في canvas ثنائي الاتجاه تقفز
+        var side = function (align, cx, lbl, nm) {
+          x.textAlign = align;
+          F(500, 26); x.fillStyle = "#8b95a1"; x.fillText(lbl, cx, 950);
+          F(700, 32); x.fillStyle = "#3b4553"; x.fillText(String(nm).slice(0, 34), cx, 992);
+        };
+        if (sg.vice) side("right", W - 130, sg.lbl[sg.viceKey], sg.vice);
+        if (sg.principal) side("left", 130, sg.lbl.principal, sg.principal);
+        F(600, 28); x.fillStyle = "#7c8794"; x.textAlign = "center"; x.fillText(hijri(), W / 2, 1042);
+      } else {
+        F(600, 30); x.fillStyle = "#7c8794";
+        x.textAlign = "right"; x.fillText(hijri(), W - 110, 1022);
+        x.textAlign = "left"; x.fillText("إدارة المدرسة", 110, 1022);
+      }
       finish();
     }
     try {

@@ -246,6 +246,11 @@ h2{font-size:19px;font-weight:800;color:var(--navy);margin:0 0 10px}
 .cert .ft{display:flex;justify-content:space-between;font-size:12px;color:var(--muted);
   font-weight:700;margin-top:16px;border-top:1px dashed var(--goldl);padding-top:9px}
 .cert .kv{display:flex;justify-content:center;gap:9px;flex-wrap:wrap;margin-top:10px}
+/* اسم وكيل المدرسة ومديرها أسفل الشهادة */
+.cert .csig{display:flex;justify-content:space-around;gap:10px;margin-top:16px;flex-wrap:wrap}
+.cert .csig span{display:flex;flex-direction:column;gap:2px;min-width:44%}
+.cert .csig small{font-size:11.5px;color:var(--muted)}
+.cert .csig b{font-size:13.5px;color:var(--ink)}
 .cert .kv span{background:#FDF6E7;border:1px solid var(--goldl);border-radius:99px;padding:5px 12px;
   font-size:13px;font-weight:800;color:#7a5200}
 
@@ -509,6 +514,68 @@ h2{font-size:19px;font-weight:800;color:var(--navy);margin:0 0 10px}
       return await fn();
     }
   }
+  /* ═══ مكتبة التقييمات: cfg/assess فوق meta/app ═══
+     القاعدة نفسها التي في js/app.js (assessApply) وبالمفاتيح نفسها: فهرس العنصر لا يُزاح أبداً
+     لأن recs تخزّن الرقم لا الاسم، فالمحذوف يبقى في موضعه off:true والجديد يُلحق آخراً. تُقرأ هنا
+     للعرض والحساب فقط — البوابة لا تكتب في المكتبة ولا في السجلات. */
+  const ASSESS_CK = ["ok", "bad", "warn", "gray", "info", "violet", "brown"];
+  const ASSESS_WK = ["present", "part", "hw", "absent", "bad", "sheets"];
+  const ASSESS_ADD = [{ k: "sleep", t: "النوم أثناء الحصة", v: -1 }];
+  const aNum = (v) => { const x = Math.round((+v || 0) * 2) / 2; return isFinite(x) ? Math.min(20, Math.max(-20, x)) : 0; };
+  const aTxt = (v, n) => String(v == null ? "" : v).trim().replace(/\s+/g, " ").slice(0, n);
+  function assessDefault() {
+    const m = D.meta || {};
+    const states = (m.states || []).map((x, i) => ({ k: "s" + i, t: aTxt(x && x.name, 40), v: aNum(x && x.pts), c: ASSESS_CK[i] || "gray" }));
+    const behaviors = (m.behaviors || []).map((x, i) => ({ k: "b" + i, t: aTxt(x && x.name, 40), v: aNum(x && x.pts) }));
+    ASSESS_ADD.forEach(a => { if (!behaviors.some(b => b.k === a.k || b.t === a.t)) behaviors.push({ k: a.k, t: a.t, v: a.v }); });
+    const weights = {}; ASSESS_WK.forEach(k => { weights[k] = aNum((m.weights || {})[k]); });
+    return { states, behaviors, weights };
+  }
+  function assessNorm(raw, wantC) {
+    const out = [], seen = {};
+    if (!Array.isArray(raw)) return out;
+    for (let i = 0; i < raw.length && out.length < 40; i++) {
+      const x = raw[i];
+      if (!x || typeof x !== "object" || Array.isArray(x)) continue;
+      const k = aTxt(x.k, 12), t = aTxt(x.t, 40);
+      if (!k || !t || seen[k]) continue;
+      const o = { k, t, v: aNum(x.v) };
+      if (wantC) o.c = (ASSESS_CK.indexOf(String(x.c || "")) >= 0) ? String(x.c) : "gray";
+      if (x.off === true) o.off = true;
+      seen[k] = 1; out.push(o);
+    }
+    return out;
+  }
+  function assessMerge(def, eff) {
+    const by = {}; eff.forEach((x, i) => { if (!(x.k in by)) by[x.k] = { x: x, o: i }; });
+    const out = [], used = {};
+    def.forEach(d => {
+      const h = by[d.k];
+      if (h) { used[d.k] = 1; out.push({ k: d.k, name: h.x.t, pts: h.x.v, c: h.x.c || d.c, o: h.o, off: !!h.x.off }); }
+      else out.push({ k: d.k, name: d.t, pts: d.v, c: d.c, o: 1e6 + out.length, off: true });
+    });
+    eff.forEach((x, i) => { if (!used[x.k]) { used[x.k] = 1; out.push({ k: x.k, name: x.t, pts: x.v, c: x.c, o: i, off: !!x.off }); } });
+    return out;
+  }
+  function assessApply() {
+    if (!META) return;
+    const def = assessDefault(), raw = D.cfgAssess;
+    const ok = raw && typeof raw === "object" && !Array.isArray(raw);
+    const st = (ok && Array.isArray(raw.states)) ? assessNorm(raw.states, true) : def.states;
+    const bh = (ok && Array.isArray(raw.behaviors)) ? assessNorm(raw.behaviors, false) : def.behaviors;
+    const wt = {}; ASSESS_WK.forEach(k => { const v = ok ? (raw.weights || {})[k] : null; wt[k] = (v == null || !isFinite(+v)) ? def.weights[k] : aNum(v); });
+    META.states = assessMerge(def.states, st.length ? st : def.states);
+    META.behaviors = assessMerge(def.behaviors, bh);
+    META.weights = Object.assign({}, def.weights, wt);
+  }
+  /* أسماء الإدارة للشهادة: الوكيل = الشؤون التعليمية وإلا شؤون الطلاب */
+  const STAFF_LBL = { principal: "مدير المدرسة", vice: "وكيل الشؤون التعليمية", agent: "وكيل شؤون الطلاب", counselor: "المرشد الطلابي" };
+  function staff() {
+    const c = D.cfgSchool || {}, out = {};
+    Object.keys(STAFF_LBL).forEach(k => { const v = String(c[k] == null ? "" : c[k]).trim().slice(0, 80); if (v) out[k] = v; });
+    const vk = (!out.vice && out.agent) ? "agent" : "vice";
+    return { names: out, viceKey: vk, vice: out[vk] || "", principal: out.principal || "", lbl: STAFF_LBL };
+  }
   /* ═══ الإقلاع ═══ */
   async function boot() {
     try {
@@ -518,7 +585,13 @@ h2{font-size:19px;font-weight:800;color:var(--navy);margin:0 0 10px}
         await acReady();
         await withTimeout(firebase.auth().signInAnonymously());
         db = firebase.firestore();
-        const [cs, ts, ms, mv] = await withAC(() => Promise.all([fcol("classes"), fcol("teachers"), fdoc("meta/app"), fcol("moves")]));
+        /* cfg/school وcfg/assess مع القراءات الأولى: الأولى تضع اسم الوكيل والمدير في الشهادة،
+           والثانية مكتبة التقييمات التي ضبطها المدير — بلا دمجها تحسب البوابة نقاط الطالب بأوزان
+           غير أوزان دفتر معلمه وتُسمّي حالاته بأسماء أُلغيت. غيابهما لا يُسقط الإقلاع (catch → null). */
+        const [cs, ts, ms, mv, sc, ac] = await withAC(() => Promise.all([fcol("classes"), fcol("teachers"), fdoc("meta/app"), fcol("moves"),
+          fdoc("cfg/school").catch(() => null), fdoc("cfg/assess").catch(() => null)]));
+        D.cfgSchool = (sc && sc.exists) ? (sc.data() || {}) : {};
+        D.cfgAssess = (ac && ac.exists) ? (ac.data() || null) : null;
         D.classes = []; cs.forEach(d => D.classes.push(Object.assign({ id: d.id }, d.data())));
         D.teachers = []; ts.forEach(d => D.teachers.push(Object.assign({ id: d.id }, d.data())));
         D.moves = []; mv.forEach(d => D.moves.push(Object.assign({ id: d.id }, d.data())));
@@ -531,14 +604,15 @@ h2{font-size:19px;font-weight:800;color:var(--navy);margin:0 0 10px}
         D.classes = JSON.parse(JSON.stringify(DEMO.classes || []));
         D.teachers = JSON.parse(JSON.stringify(DEMO.teachers || []));
         D.meta = JSON.parse(JSON.stringify(DEMO.meta || {}));
-        D.moves = [];
+        D.moves = []; D.cfgSchool = {}; D.cfgAssess = null;
         if (!D.classes.length) throw new Error("data");
         const st = $("#demo-strip"); st.hidden = false;
         st.textContent = "نسخة تجريبية — بيانات وهمية على هذا الجهاز وحده";
       }
       applyMoves(D.classes, D.moves, true);
       stashPhones();
-      META = D.meta || {}; STATES = META.states || []; BEH = META.behaviors || []; W = META.weights || {};
+      META = D.meta || {}; assessApply();
+      STATES = META.states || []; BEH = META.behaviors || []; W = META.weights || {};
       D.classes.sort((a, b) => ((a.gc || 0) - (b.gc || 0)) || String(a.id).localeCompare(String(b.id)));
       $("#bar-s").textContent = (META.school && META.school.name) || "سجلي";
       if (!CLOUD) await demoSeed();
@@ -1104,6 +1178,7 @@ h2{font-size:19px;font-weight:800;color:var(--navy);margin:0 0 10px}
     get STATES() { return STATES; }, get BEH() { return BEH; }, get W() { return W; },
     fdoc, fcol, withTimeout, esc, ord, arNum, sha256, applyMoves, resolvePos, clsById, secOf,
     myTeachers, loadRecs, loadGrades, calcOne, calcAll, attPct, streak, rank: rankOf,
+    staff,
     tab(id, def) { REG[id] = def; if (CURTAB === id && S) showTab(id); },
     badges(fn) { BADGES = fn; if (CURTAB === "card" && S) showTab("card"); },
     today(fn) { TODAY = fn; if (CURTAB === "card" && S) showTab("card"); },

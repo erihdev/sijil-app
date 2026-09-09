@@ -4,6 +4,9 @@
    (1ب) ⏰ أوقات الحصص والفسح (جدول الأجراس، مستند cfg/bell) — بداية الدوام ومدة الحصة وعددها وحتى أربع فسح،
         بمعاينة حية ونهاية دوام وطباعة صفحة واحدة وإرسال واتساب وإعادة الافتراضي. كل حساب للوقت في core.js
         (bell/periodsOf/dayEnd/bellLine/validateBell/saveBell) ولا يُحسب وقت في هذا الملف ولا يُثبَّت فيه.
+   (1ج) 🎛️ مكتبة التقييمات ودرجاتها (مستند cfg/assess) — جدولا حالات الحضور والسلوكيات (اسم · درجة · لون · ترتيب · حذف)
+        ودرجات المشاركة والواجب وورقة العمل، بمعاينة كما يراها المعلم، وسطر «أثر التغيير» بمثال محسوب من رصد المدرسة،
+        وطباعة ورقة واحدة. كل تحقق وحفظ وحساب في core.js (assess/validateAssess/saveAssess/assessScore).
    (2) 👨‍🏫 المعلمون — بطاقة لكل معلم: المادة/الفصول/الجوال/آخر رصد (من schoolDocs)/حالة الدخول (pinHash) + 📞 تواصل (SIJIL.waLink).
    (3) 🏫 الفصول — الصف، النشطون، المنقولون، معلموه ومواده، ورائد الفصل (teachers[].lead).
    (4) 🗓️ الجدول الأسبوعي الكامل — مصفوفة (اليوم×الحصة) × الفصول + طباعة أفقية بصفحة واحدة.
@@ -23,7 +26,7 @@
   const DAYS5 = ["الأحد", "الإثنين", "الثلاثاء", "الأربعاء", "الخميس"];
   const pad2 = (n) => String(n).padStart(2, "0");
   const isDemo = () => !(S().CLOUD && S().fdb);
-  const ACTS = { pin: "🔑 رقم دخول", edit: "✏️ تعديل", add: "➕ إضافة معلم", lead: "🎖️ رائد فصل", schedule: "🗓️ الجدول", move: "🔁 نقل طالب", sedit: "👤 بيانات طالب", backup: "⬇️ نسخة احتياطية", restore: "⬆️ استعادة", bell: "⏰ أوقات الحصص", school: "🏫 أسماء الإدارة" };
+  const ACTS = { pin: "🔑 رقم دخول", edit: "✏️ تعديل", add: "➕ إضافة معلم", lead: "🎖️ رائد فصل", schedule: "🗓️ الجدول", move: "🔁 نقل طالب", sedit: "👤 بيانات طالب", backup: "⬇️ نسخة احتياطية", restore: "⬆️ استعادة", bell: "⏰ أوقات الحصص", school: "🏫 أسماء الإدارة", assess: "🎛️ مكتبة التقييمات" };
   let curBox = null, logAll = false, busy = false, lastRestore = null;
 
   /* ═══ CSS الوحدة (مرة واحدة) ═══ */
@@ -101,6 +104,37 @@
 .bl-tb tr.brk td{background:#fdf6e3;color:#7a6520;font-weight:700}
 .mg-bd .adm-tools>a.bl-wa{text-decoration:none;text-align:center;color:var(--navy)}
 .bl-wa.off{opacity:.5;pointer-events:none}
+.as-hd{display:flex;align-items:center;gap:8px;margin:12px 0 8px;font-weight:800;color:var(--navy);font-size:14px}
+.as-hd b{color:var(--gold)}
+.as-hd .off{color:var(--muted);font-weight:700;font-size:11.5px}
+.as-hd button{margin-inline-start:auto;flex:0 0 auto;padding:8px 12px;font-size:13px}
+.as-hd button:disabled{opacity:.45;cursor:not-allowed}
+.as-it{border:1.5px solid var(--line);border-radius:12px;padding:7px 9px;background:#fbf9f4;margin-bottom:7px}
+.as-it .hd{display:flex;align-items:center;gap:7px}
+.as-it .hd input{flex:1;min-width:0;padding:9px 10px;border:1.5px solid var(--line);border-radius:10px;font-family:inherit;font-size:14px;font-weight:700;background:#fff;color:var(--navy)}
+.as-it .ct{display:flex;align-items:flex-end;gap:6px;margin-top:6px;flex-wrap:wrap}
+.as-it .ct .f{display:block;font-size:11.5px;font-weight:700;color:var(--muted);flex:1 1 84px;min-width:72px}
+.as-it .ct .f input,.as-it .ct .f select{width:100%;margin-top:3px;padding:9px 4px;border:1.5px solid var(--line);border-radius:10px;font-family:inherit;font-size:14px;text-align:center;background:#fff;color:var(--navy)}
+.as-it .ac{display:flex;gap:5px;flex:0 0 auto;margin-inline-start:auto}
+.as-it .ac button{min-width:40px;min-height:40px;border:1.5px solid var(--line);background:#fff;border-radius:9px;font-size:15px;line-height:1;cursor:pointer;color:var(--navy)}
+.as-it .ac button:disabled{opacity:.3;cursor:not-allowed}
+.as-it .ac .as-del:hover:not(:disabled){border-color:var(--bad);background:#fff5f5}
+.as-it.off{background:#f4f5f7;border-style:dashed}
+.as-it.off .nm{font-size:13px;font-weight:800;color:var(--muted);text-decoration:line-through}
+.as-it.off .hb{font-size:11px;font-weight:800;color:var(--muted)}
+.as-it.off .as-on{margin-inline-start:auto;flex:0 0 auto;border:1.5px solid var(--line);background:#fff;border-radius:9px;min-height:38px;padding:6px 10px;font-size:12.5px;font-weight:800;cursor:pointer;color:var(--navy)}
+.as-wg{display:grid;grid-template-columns:1fr 1fr 1fr;gap:7px}
+.as-wg .f{display:block;font-size:11.5px;font-weight:700;color:var(--muted)}
+.as-wg .f small{color:#b08d3c;font-weight:700}
+.as-wg .f input{width:100%;margin-top:3px;padding:9px 4px;border:1.5px solid var(--line);border-radius:10px;font-family:inherit;font-size:15px;font-weight:800;text-align:center;background:#fff;color:var(--navy)}
+.as-pv{margin-top:10px;border:1.5px solid var(--line);border-radius:12px;padding:9px 10px;background:#fff}
+.as-pv .hd{display:flex;flex-wrap:wrap;gap:3px 8px;align-items:baseline;font-weight:800;color:var(--navy);font-size:13.5px}
+.as-pv .hd .ln{font-weight:400;color:var(--muted);font-size:12px}
+.as-pv .hd .un{color:var(--bad);font-weight:800;font-size:12px}
+.as-pv .lb{font-size:11.5px;font-weight:800;color:var(--muted);margin:8px 0 4px}
+.as-pv .kchip{display:inline-flex;align-items:center;gap:4px}
+.as-pv .kchip .dt{width:9px;height:9px;border-radius:50%;flex:0 0 auto}
+@media(max-width:379px){.as-wg{grid-template-columns:1fr 1fr}.as-it .ct .f{flex:1 1 66px;min-width:62px}.as-it .ac button{min-width:38px}}
 @media print{.mg-sec>summary .ar,.mg-it .wa{display:none!important}}`;
     document.head.appendChild(st);
   }
@@ -405,6 +439,302 @@
     const t = setInterval(() => { if (go() || ++n > 14) clearInterval(t); }, 150);
   }
 
+  /* ═══ (1ج) 🎛️ مكتبة التقييمات ودرجاتها — حالات الحضور والسلوكيات ودرجات الرصد (cfg/assess) ═══
+     مسودة التحرير aDraft = {states:[{k,t,v,c,off}], behaviors:[{k,t,v,off}], weights:{…}} تُبنى من
+     SIJIL_ADMIN.assess() (المكتبة الفعّالة بترتيب المدير). لا يُحسب في هذا الملف شيء: التحقق
+     validateAssess والحفظ saveAssess ونقاط الطالب assessScore كلها في core.js، والمعاينة تمرّ
+     بخطّ المعلم نفسه (SIJIL.assessMerge ← SIJIL.assessView) فما تُظهره البطاقة هو ما سيراه المعلم.
+     و🗑 لا تحذف العنصر من المصفوفة أبداً بل تضع عليه off:true: rec.a وrec.beh أرقام مخزَّنة في recs
+     منذ أول يوم، فإسقاط عنصر يُزيح فهارس ما بعده ويُفسد كل رصد سابق. والمخفي يبقى في البطاقة
+     بزر «↩ إرجاع»، ونقاطه المرصودة سابقاً تبقى كما هي.
+     «↺ إعادة الافتراضي» تُخفي ما أضافه المدير ولا تُسقطه — لو أُسقط لانزاح ما بعده من إضافاته. */
+  let aDraft = null, aBase = "", aSd = null, aTimer = null, aCache = null;
+  const aLIST = { st: "states", bh: "behaviors" };
+  const aWHAT = { st: "الحالة", bh: "السلوك" };
+  // درجات الرصد اليومي الثلاث التي تدخل فعلاً في حساب النقاط (present/absent/bad في المستند مرايا قديمة لا يقرؤها أي حساب)
+  const A_WSHOW = [["part", "🙋", "المشاركة", "لكل نقرة"], ["hw", "📚", "الواجب", "عند الحل"], ["sheets", "📄", "ورقة العمل", "لكل ورقة"]];
+  // إشارة سالبة عربية (−) لا شرطة، وصفرٌ بلا إشارة — كما في signN في app.js
+  const aSgn = (v) => { const x = Math.round((+v || 0) * 10) / 10; return (x > 0 ? "+" : x < 0 ? "−" : "") + Math.abs(x); };
+  const aFix = (v) => { const x = Math.round((+v || 0) * 10) / 10; return (x < 0 ? "−" : "") + Math.abs(x); };
+  // أيقونة حالة الحضور — مرآة ST_ICON في app.js (زينة المعاينة وحدها؛ الأصل هناك)
+  const aIcon = (n) => /حاضر/.test(n) ? "✅" : /متأخر/.test(n) ? "⏰" : /مستأذن/.test(n) ? "🚪" : /بعذر/.test(n) ? "📄" : /بعد/.test(n) ? "💻" : /هارب/.test(n) ? "🏃" : "❌";
+  /* قيمة الدرجة كما في النموذج: رقماً إن صلحت (فلا تُحسب «3» تغييراً عن 3) وإلا نصاً كما كتبه المدير
+     ليشرحه validateAssess بالعربية — لا يُصحَّح مدخل المستخدم صامتاً ولا يُبتلع. */
+  const aVal = (raw) => { const t = String(raw == null ? "" : raw).trim(); if (t === "") return ""; const x = Number(t); return isFinite(x) ? x : t; };
+  const aColors = () => (A().ASSESS_COLORS || ["ok", "bad", "warn", "gray", "info", "violet", "brown"]);
+  const aClbl = () => (A().ASSESS_CLBL || {});
+  const aLocked = (k) => (A().ASSESS_LOCK || []).indexOf(String(k)) >= 0;
+  const aMax = () => (+A().ASSESS_MAX || 40);
+  const aOn = (l) => (l || []).filter(x => x && !x.off).length;
+  const aBadge = () => { const c = A().assess() || {}; return (aOn(c.states) + aOn(c.behaviors)) + " بنداً"; };
+
+  function aNewDraft() {
+    const c = A().assess() || {};
+    return {
+      states: (c.states || []).map(x => ({ k: x.k, t: x.t, v: x.v, c: x.c || "gray", off: x.off === true })),
+      behaviors: (c.behaviors || []).map(x => ({ k: x.k, t: x.t, v: x.v, off: x.off === true })),
+      weights: Object.assign({}, c.weights || {})
+    };
+  }
+  // الشكل الذي يُمرَّر إلى validateAssess/saveAssess (لا حقل زائد: القواعد ترفض المستند بحقل مجهول)
+  function aCfgOf(d) {
+    const it = (x, wantC) => { const o = { k: x.k, t: x.t, v: x.v }; if (wantC) o.c = x.c; if (x.off) o.off = true; return o; };
+    return {
+      states: (d.states || []).map(x => it(x, true)),
+      behaviors: (d.behaviors || []).map(x => it(x, false)),
+      weights: Object.assign({}, d.weights || {})
+    };
+  }
+  const aErr = () => { try { return A().validateAssess(aCfgOf(aDraft)); } catch (e) { warn("validateAssess", e); return "تعذّر التحقق من المكتبة"; } };
+  const aDirty = () => JSON.stringify(aCfgOf(aDraft)) !== aBase;
+  // مفتاح جديد لا يشبه مستعملاً ولا مخفياً ولا افتراضياً (المخفي يبقى شاهداً في المصفوفة فلا يُعاد استعماله)
+  function aNewKey() {
+    const used = {}, add = (l) => (l || []).forEach(x => { if (x) used[String(x.k)] = 1; });
+    add(aDraft.states); add(aDraft.behaviors);
+    const d = A().defaultAssess() || {}; add(d.states); add(d.behaviors);
+    for (let n = 1; n < 900; n++) { const k = "c" + n; if (!used[k]) return k; }
+    return "c" + (Date.now() % 100000);
+  }
+
+  /* ═══ صفوف الجدولين ═══ */
+  function aRowHtml(x, i, L, last) {
+    if (x.off) return `<div class="as-it off" data-l="${L}" data-i="${i}">
+      <div class="hd"><span class="nm">${esc(x.t || "—")} <b>${esc(aSgn(x.v))}</b></span><span class="hb">مخفي عن المعلمين</span>
+      <button class="as-on" data-l="${L}" data-i="${i}">↩ إرجاع</button></div></div>`;
+    const lock = L === "st" && aLocked(x.k);
+    const cSel = L === "st"
+      ? `<label class="f">اللون<select class="as-c" data-l="${L}" data-i="${i}">${aColors().map(c => `<option value="${c}"${x.c === c ? " selected" : ""}>${esc(aClbl()[c] || c)}</option>`).join("")}</select></label>`
+      : "";
+    return `<div class="as-it" data-l="${L}" data-i="${i}">
+      <div class="hd"><input class="as-t" data-l="${L}" data-i="${i}" maxlength="40" value="${esc(x.t)}" placeholder="اسم ${esc(aWHAT[L])} كما يظهر للمعلم" autocomplete="off"></div>
+      <div class="ct">
+        <label class="f">الدرجة<input type="number" class="as-v" data-l="${L}" data-i="${i}" step="0.5" min="-20" max="20" inputmode="decimal" value="${esc(x.v)}"></label>
+        ${cSel}
+        <div class="ac">
+          <button class="as-mv" data-l="${L}" data-i="${i}" data-d="-1" title="نقل لأعلى" aria-label="نقل لأعلى"${i === 0 ? " disabled" : ""}>↑</button>
+          <button class="as-mv" data-l="${L}" data-i="${i}" data-d="1" title="نقل لأسفل" aria-label="نقل لأسفل"${i >= last ? " disabled" : ""}>↓</button>
+          <button class="as-del" data-l="${L}" data-i="${i}" title="${lock ? "لا تُحذف: يعتمد عليها رصد الحصة الحية والتقارير" : "حذف — يُخفى عن المعلمين وتبقى نقاطه المرصودة سابقاً"}" aria-label="حذف"${lock ? " disabled" : ""}>🗑️</button>
+        </div>
+      </div></div>`;
+  }
+  function aBoxHtml(L) {
+    const l = aDraft[aLIST[L]] || [], nOff = l.length - aOn(l), h = H();
+    return `<div class="as-hd"><span>${L === "st" ? "📌 حالات الحضور" : "⭐ السلوكيات"} <b>${aOn(l)}</b>${nOff ? ` <span class="off">+${nOff} مخفي</span>` : ""}</span>
+      <button class="btn-plain as-add" data-l="${L}"${l.length >= aMax() ? " disabled" : ""}>➕ ${L === "st" ? "حالة جديدة" : "سلوك جديد"}</button></div>` +
+      (l.length ? l.map((x, i) => aRowHtml(x, i, L, l.length - 1)).join("") : h.note("لا عناصر — اضغط زر الإضافة."));
+  }
+  function aWeightsHtml() {
+    return `<div class="as-hd"><span>⚖️ درجات الرصد اليومي</span></div>
+      <div class="as-wg">${A_WSHOW.map(w => `<label class="f">${w[1]} ${w[2]} <small>${w[3]}</small><input type="number" class="as-wv" data-k="${w[0]}" step="0.5" min="-20" max="20" inputmode="decimal" value="${esc(aDraft.weights[w[0]])}"></label>`).join("")}</div>` +
+      H().note("درجة «الحاضر» و«الغائب» و«المخالف» من الجدولين أعلاه لا من هنا — والقيم القديمة المسمّاة بها في المستند تبقى كما هي ولا يقرؤها أي حساب.");
+  }
+
+  /* ═══ المعاينة: بخطّ المعلم نفسه — الدمج فوق الافتراضي ثم إسقاط المخفي وترتيب المدير ═══ */
+  function aViewOf(d) {
+    const s = S();
+    if (!s || typeof s.assessMerge !== "function" || typeof s.assessView !== "function" || typeof s.assessDefault !== "function") return null;
+    const def = s.assessDefault();
+    return { st: s.assessView(s.assessMerge(def.states, d.states || [])), bh: s.assessView(s.assessMerge(def.behaviors, d.behaviors || [])) };
+  }
+  function aPrevHtml() {
+    const h = H(), err = aErr();
+    if (err) return `<div class="as-pv">` + h.alert("⚠️ " + esc(err) + '<br><span style="color:var(--muted)">صحّح المدخلات لتظهر المعاينة وأثر التغيير.</span>', "bad") + `</div>`;
+    const v = aViewOf(aDraft); if (!v) return "";
+    const C = S().ASSESS_C || {}, w = aDraft.weights;
+    const chip = (ic, nm, pts, col) => `<span class="kchip${(+pts || 0) < 0 ? " neg" : ""}">${col ? `<i class="dt" style="background:${col}"></i>` : ""}${ic} ${esc(nm)} <b>${esc(aSgn(pts))}</b></span>`;
+    const st = v.st.map(x => chip(aIcon(x.name || ""), x.name, x.pts, C[x.c] || C.gray)).join("");
+    const bh = v.bh.map(x => chip((+x.pts || 0) < 0 ? "⚠" : "⭐", x.name, x.pts, "")).join("");
+    const wc = A_WSHOW.map(k => chip(k[1], k[2] + " (" + k[3] + ")", w[k[0]], "")).join("");
+    return `<div class="as-pv">
+      <div class="hd"><span>👁️ المعاينة كما يراها المعلم</span><span class="ln">${esc(A().assessLine(aCfgOf(aDraft)))}</span>${aDirty() ? '<span class="un">● تغييرات غير محفوظة</span>' : ""}</div>
+      <div class="lb">📌 حالات الحضور — نافذة «التحضير» (${v.st.length})</div><div class="kchips">${st}</div>
+      <div class="lb">⭐ السلوكيات — نافذة «⭐ السلوك» في الحصة الحية (${v.bh.length})</div><div class="kchips">${bh}</div>
+      <div class="lb">⚖️ درجات الرصد اليومي</div><div class="kchips">${wc}</div>
+    </div>`;
+  }
+
+  /* ═══ أثر التغيير: مثال محسوب من رصد المدرسة نفسه لا رقماً مفترضاً ═══
+     رصد الطالب الخام من schoolDocs (كل معلميه)، ثم نقاطه بالمكتبة المحفوظة وبالمسودة عبر
+     SIJIL_ADMIN.assessScore (حساب calcStudent نفسه). المثال المعروض = أكبر فرق، ويُقدَّم الطالب
+     النشط على المنقول. القائمة تُبنى مرة واحدة لكل لقطة schoolDocs (aCache). */
+  function aStudents() {
+    const sd = aSd; if (!sd || !sd.recs) return [];
+    if (aCache && aCache.sd === sd) return aCache.list;
+    const s = S(), Ad = A(), by = {};
+    Object.keys(sd.recs).forEach(id => {
+      const cid = Ad.splitKey(id).cid; if (!cid) return;
+      const days = sd.recs[id] || {};
+      Object.keys(days).forEach(dt => {
+        const day = days[dt] || {};
+        Object.keys(day).forEach(si => {
+          const e = day[si];
+          if (!e || typeof e !== "object" || Ad.emptyRec(e)) return;
+          (by[cid + "|" + si] = by[cid + "|" + si] || []).push(e);
+        });
+      });
+    });
+    const list = [];
+    Object.keys(by).forEach(key => {
+      const p = key.split("|"), cid = p[0], si = +p[1];
+      const c = s.classById(cid), st = (c && c.students) ? c.students[si] : null;
+      if (!st || st.gap) return;                       // فراغ في قائمة الفصل ليس طالباً
+      list.push({ name: st.n || "طالب", cls: (c && c.name) || cid, moved: !!st.moved, e: by[key] });
+    });
+    aCache = { sd: sd, list: list };
+    return list;
+  }
+  function aImpact() {
+    const Ad = A(), list = aStudents();
+    if (!list.length) return { none: true, n: 0, nCh: 0, best: null };
+    let cfg = null; try { cfg = aCfgOf(aDraft); } catch (e) { return { none: true, n: 0, nCh: 0, best: null }; }
+    let best = null, nCh = 0;
+    list.forEach(x => {
+      let a = 0, b = 0;
+      try { a = Ad.assessScore(x.e); b = Ad.assessScore(x.e, cfg); } catch (e) { return; }
+      const d = Math.round((b - a) * 10) / 10, ad = Math.abs(d);
+      if (d) nCh++;
+      // أكبر فرق أولاً، ثم الطالب النشط، ثم أكبر رصيد — حتى لا يُضرب المثال بطالب منقول أو بلا نقاط
+      if (!best || ad > best.ad || (ad === best.ad && ((best.moved && !x.moved) || (best.moved === x.moved && Math.abs(a) > Math.abs(best.a)))))
+        best = { name: x.name, cls: x.cls, moved: x.moved, a: a, b: b, d: d, ad: ad };
+    });
+    return { none: false, n: list.length, nCh: nCh, best: best };
+  }
+  function aImpHtml() {
+    const h = H();
+    if (aErr()) return "";
+    const w = "<b>أثر التغيير:</b> تغيير الدرجات يُعيد حساب نقاط الطلاب في كل التقارير والمطبوعات ورسائل أولياء الأمور من أول الفصل، لا في الرصد الجديد وحده. والرصد نفسه لا يتغيّر.";
+    let im = null; try { im = aImpact(); } catch (e) { warn("impact", e); }
+    if (!im || im.none) return h.alert("⚠️ " + w + '<br><span style="color:var(--muted)">لا رصد في المدرسة بعد، فلا مثال يُحسب.</span>');
+    const b = im.best;
+    if (!im.nCh) return h.alert("✔ <b>أثر التغيير:</b> لا تتغيّر نقاط أي طالب من " + im.n + " لهم رصد" + (b ? ` — مثال: <b>${esc(b.name)}</b> (${esc(b.cls)}) نقاطه <b>${esc(aFix(b.a))}</b> وتبقى كما هي.` : "."), "ok");
+    return h.alert("⚠️ " + w +
+      `<br>📊 مثال محسوب من رصد مدرستك: <b>${esc(b.name)}</b> (${esc(b.cls)}) — نقاطه اليوم <b>${esc(aFix(b.a))}</b> تصير <b>${esc(aFix(b.b))}</b> (${esc(aSgn(b.d))})` +
+      `<br><span style="color:var(--muted)">يتغيّر رصيد ${im.nCh} من ${im.n} طالباً لهم رصد.</span>`, "bad");
+  }
+
+  /* ═══ الطباعة: ورقة واحدة للمعلمين — الجدولان جنباً إلى جنب ثم درجات الرصد ═══ */
+  function printAssess() {
+    const Ad = A(), err = aErr();
+    if (err) { Ad.toast("⚠️ " + err, 3200); return; }
+    const v = aViewOf(aDraft); if (!v) { Ad.toast("⚠️ تعذّر بناء المكتبة للطباعة", 3000); return; }
+    const C = S().ASSESS_C || {}, cl = aClbl(), w = aDraft.weights;
+    const sw = (c) => `<span style="display:inline-block;width:11px;height:11px;border-radius:3px;vertical-align:-1px;background:${C[c] || C.gray}"></span>`;
+    const st = v.st.map((x, i) => `<tr><td>${i + 1}</td><td class="nm">${esc(x.name)}</td><td>${esc(aSgn(x.pts))}</td><td>${sw(x.c)} ${esc(cl[x.c] || "")}</td></tr>`).join("");
+    const bh = v.bh.map((x, i) => `<tr><td>${i + 1}</td><td class="nm">${esc(x.name)}</td><td>${esc(aSgn(x.pts))}</td></tr>`).join("");
+    Ad.printHtml("مكتبة التقييمات ودرجاتها",
+      `<div style="display:flex;gap:12px;align-items:flex-start">
+        <table class="compact" style="flex:1 1 0;margin:0"><tr><th colspan="4">📌 حالات الحضور (${v.st.length})</th></tr><tr><th>م</th><th>الحالة</th><th>الدرجة</th><th>اللون</th></tr>${st}</table>
+        <table class="compact" style="flex:1 1 0;margin:0"><tr><th colspan="3">⭐ السلوكيات (${v.bh.length})</th></tr><tr><th>م</th><th>السلوك</th><th>الدرجة</th></tr>${bh}</table>
+      </div>
+      <table class="compact" style="margin-top:10px"><tr><th colspan="3">⚖️ درجات الرصد اليومي</th></tr>` +
+      `<tr>${A_WSHOW.map(k => `<th>${k[1]} ${k[2]}</th>`).join("")}</tr>` +
+      `<tr>${A_WSHOW.map(k => `<td><b>${esc(aSgn(w[k[0]]))}</b> <span style="color:#666">${k[3]}</span></td>`).join("")}</tr></table>` +
+      `<div class="note">حالة الحضور تُحسب مرة واحدة في اليوم لكل مادة، والسلوك بعدد مرات رصده، والمشاركة بعدد النقرات بلا سقف.</div>` +
+      (aDirty() ? `<div class="note">هذه معاينة غير محفوظة — اضغط «💾 حفظ المكتبة» لاعتمادها في التطبيق.</div>` : ""),
+      { sub: "⚙️ الإدارة — مكتبة التقييمات", cls: "compact", sig: ["vice", "principal"] });
+  }
+
+  function assessHtml(sd) {
+    const h = H();
+    aSd = sd || aSd;
+    // إعادة رسم التبويب لسبب آخر (سجل الإدارة، حفظ الأجراس، العودة للتبويب) لا تُضيّع تحريراً غير محفوظ
+    const base = JSON.stringify(aCfgOf(aNewDraft()));
+    if (!(aDraft && aBase === base && aDirty())) { aDraft = aNewDraft(); aBase = base; }
+    return h.note("هذه المكتبة هي كل ما يرصده المعلم على الطالب ودرجة كل بند: حالات الحضور في «التحضير»، والسلوكيات في «⭐ السلوك»، ودرجات المشاركة والواجب وورقة العمل. اضبطها مرة واحدة لمدرستك.") +
+      `<div id="as-b-st">${aBoxHtml("st")}</div>
+       <div id="as-b-bh">${aBoxHtml("bh")}</div>
+       <div id="as-b-w">${aWeightsHtml()}</div>
+       <div id="as-prev">${aPrevHtml()}</div>
+       <div id="as-imp">${aImpHtml()}</div>
+       <div class="login-err" id="as-err" style="margin-top:4px"></div>` +
+      h.tools(`${h.btn("💾 حفظ المكتبة", 'id="as-save"')}${h.btn("🖨️ طباعة المكتبة", 'id="as-print"', "btn-plain")}${h.btn("↺ إعادة الافتراضي", 'id="as-def"', "btn-plain")}`);
+  }
+
+  /* ربط النموذج: الكتابة تحدّث المسودة والمعاينة وحدها (بلا إعادة رسم يفقد التركيز)، والإضافة
+     والحذف والترتيب تعيد بناء الجدول المعني فقط. أثر التغيير يُحسب متأخراً 220ms (237 طالباً). */
+  function bindAssess(b) {
+    const Ad = A(), q = (id) => $("#" + id, b);
+    const upImp = () => { const el = q("as-imp"); if (el) el.innerHTML = aImpHtml(); };
+    const upPrev = () => {
+      const pv = q("as-prev"); if (pv) pv.innerHTML = aPrevHtml();
+      const er = q("as-err"); if (er) er.textContent = "";
+      clearTimeout(aTimer); aTimer = setTimeout(() => { try { upImp(); } catch (e) { warn("impact", e); } }, 220);
+    };
+    const upBox = (L) => { const el = q("as-b-" + L); if (el) { el.innerHTML = aBoxHtml(L); bindRows(); } upPrev(); };
+    const itemOf = (el) => { const L = el.dataset.l, l = aDraft[aLIST[L]] || []; return { L: L, l: l, i: +el.dataset.i, x: l[+el.dataset.i] }; };
+    function bindRows() {
+      ["st", "bh"].forEach(L => {
+        const box = q("as-b-" + L); if (!box) return;
+        box.querySelectorAll(".as-t").forEach(inp => inp.oninput = () => { const o = itemOf(inp); if (o.x) { o.x.t = inp.value.slice(0, 40); upPrev(); } });
+        box.querySelectorAll(".as-v").forEach(inp => inp.oninput = () => { const o = itemOf(inp); if (o.x) { o.x.v = aVal(inp.value); upPrev(); } });
+        box.querySelectorAll(".as-c").forEach(sel => sel.onchange = () => { const o = itemOf(sel); if (o.x) { o.x.c = sel.value; upPrev(); } });
+        box.querySelectorAll(".as-mv").forEach(bt => bt.onclick = () => {
+          const o = itemOf(bt), j = o.i + (+bt.dataset.d);
+          if (!o.x || j < 0 || j >= o.l.length) return;
+          o.l[o.i] = o.l[j]; o.l[j] = o.x; upBox(o.L);
+        });
+        box.querySelectorAll(".as-del").forEach(bt => bt.onclick = async () => {
+          const o = itemOf(bt); if (!o.x) return;
+          const go = await Ad.confirm("🗑️ حذف " + aWHAT[o.L] + "؟", `<b>${esc(o.x.t || "—")}</b> ${esc(aSgn(o.x.v))} — يُخفى عن كل المعلمين ولا يظهر في قوائم الرصد.<br><span style="color:var(--muted)">ما رُصد به سابقاً يبقى محفوظاً بدرجته، ويمكنك إرجاعه من هذه البطاقة متى شئت.</span>`, { ok: "أخفيه", no: "إلغاء", danger: true });
+          if (!go) return;
+          const o2 = itemOf(bt); if (!o2.x) return;
+          o2.x.off = true; upBox(o2.L);
+        });
+        box.querySelectorAll(".as-on").forEach(bt => bt.onclick = () => { const o = itemOf(bt); if (!o.x) return; o.x.off = false; upBox(o.L); });
+        box.querySelectorAll(".as-add").forEach(bt => bt.onclick = () => {
+          const L = bt.dataset.l, l = aDraft[aLIST[L]] || [];
+          if (l.length >= aMax()) { Ad.toast("⚠️ لا يمكن تجاوز " + aMax() + " عنصراً في القائمة (المخفي محسوب لأن فهارس الرصد تُحفظ به)", 3600); return; }
+          const it = { k: aNewKey(), t: "", v: 0, off: false };
+          if (L === "st") it.c = "info";
+          l.push(it); upBox(L);
+          const box2 = q("as-b-" + L); if (box2) { const fs = box2.querySelectorAll(".as-t"); const el = fs[fs.length - 1]; if (el) { try { el.focus(); } catch (e) { } } }
+        });
+      });
+      const wb = q("as-b-w");
+      if (wb) wb.querySelectorAll(".as-wv").forEach(inp => inp.oninput = () => { aDraft.weights[inp.dataset.k] = aVal(inp.value); upPrev(); });
+    }
+    bindRows();
+    const pr = q("as-print"); if (pr) pr.onclick = printAssess;
+    const df = q("as-def"); if (df) df.onclick = async () => {
+      const d = Ad.defaultAssess() || {};
+      const extra = (l, def) => (l || []).filter(x => x && !(def || []).some(y => y.k === x.k));
+      const nEx = extra(aDraft.states, d.states).length + extra(aDraft.behaviors, d.behaviors).length;
+      const go = await Ad.confirm("↺ إعادة الافتراضي", "تُستعاد أسماء البنود ودرجاتها الافتراضية في النموذج" + (nEx ? `، و<b>${nEx}</b> من البنود التي أضفتها تُخفى ولا تُحذف (فهارس الرصد محفوظة بها)` : "") + `.<br><span style="color:var(--muted)">لا شيء يُحفظ قبل أن تضغط «💾 حفظ المكتبة».</span>`, { ok: "أعِد الافتراضي", no: "إلغاء" });
+      if (!go) return;
+      const keep = (l, def, wantC) => (def || []).map(x => { const o = { k: x.k, t: x.t, v: x.v, off: false }; if (wantC) o.c = x.c || "gray"; return o; })
+        .concat(extra(l, def).map(x => { const o = { k: x.k, t: x.t, v: x.v, off: true }; if (wantC) o.c = x.c || "gray"; return o; }));
+      aDraft = { states: keep(aDraft.states, d.states, true), behaviors: keep(aDraft.behaviors, d.behaviors, false), weights: Object.assign({}, d.weights || {}) };
+      upBox("st"); upBox("bh");
+      const wb = q("as-b-w"); if (wb) { wb.innerHTML = aWeightsHtml(); bindRows(); }
+      upPrev(); upImp();
+      Ad.toast("↺ أُعيدت المكتبة الافتراضية في النموذج — اضغط «💾 حفظ المكتبة» لاعتمادها", 3800);
+    };
+    const sv = q("as-save"); if (sv) sv.onclick = async () => {
+      if (busy) return;
+      const er = q("as-err"), err = aErr();
+      if (err) { if (er) er.textContent = "⚠️ " + err; Ad.toast("⚠️ " + err, 3600); return; }
+      if (!aDirty()) { Ad.toast("لا تغييرات لحفظها", 2200); return; }
+      clearTimeout(aTimer);
+      let im = null; try { im = aImpact(); } catch (e) { warn("impact", e); }
+      if (im && im.nCh && im.best) {
+        const go = await Ad.confirm("⚠️ إعادة حساب نقاط الطلاب", `سيتغيّر رصيد <b>${im.nCh}</b> من <b>${im.n}</b> طالباً لهم رصد، في كل التقارير والمطبوعات ورسائل أولياء الأمور من أول الفصل.<br>مثال: <b>${esc(im.best.name)}</b> (${esc(im.best.cls)}) — من <b>${esc(aFix(im.best.a))}</b> إلى <b>${esc(aFix(im.best.b))}</b>.<br><span style="color:var(--muted)">الرصد نفسه لا يتغيّر، والبنود المخفية تبقى محفوظة بدرجاتها.</span>`, { ok: "أحفظ المكتبة", no: "أعود للتعديل" });
+        if (!go) { if (er) er.textContent = ""; return; }
+      }
+      busy = true; sv.disabled = true; const lbl = sv.textContent; sv.textContent = "⏳ جارِ الحفظ…";
+      let r = null;
+      try { r = await Ad.saveAssess(aCfgOf(aDraft)); }
+      catch (e) { warn("saveAssess", e); r = { ok: false, err: (e && e.message) || String(e) }; }
+      busy = false;
+      if (r && r.ok) Ad.toast("✔ حُفظت مكتبة التقييمات — تظهر للمعلمين عند فتح التطبيق", 3600);
+      else {
+        const m = (r && r.err) || "تعذّر الحفظ";
+        const er2 = $("#as-err", b); if (er2) er2.textContent = "⚠️ " + m;
+        Ad.toast("⚠️ " + m, 3600);
+      }
+      const sv2 = $("#as-save", b); if (sv2) { sv2.disabled = false; sv2.textContent = lbl; }
+    };
+    upPrev();
+  }
   /* ═══ (2) 👨‍🏫 المعلمون ═══ */
   function teachersHtml(sd) {
     const s = S(), h = H(), Ad = A(), last = lastMap(sd);
@@ -514,9 +844,11 @@
       teachers, classes: s.D.classes || [], schedule: s.D.schedule || [],
       recs: sd.recs || {}, grades: sd.grades || {}, comms: sd.comms || {},
       moves: sd.moves || [], assign: sd.assign || [], subs, sedits: sd.sedits || {}, adminlog: sd.adminlog || [],
-      // إعدادات المدرسة الجديدتان: بدونهما تعود المدرسة بعد الاستعادة إلى جرس 7:00 · 45د · 7 حصص وإلى نقاط بدل أسماء الإدارة في كل مطبوع
+      /* إعدادات المدرسة الثلاث: بدونها تعود المدرسة بعد الاستعادة إلى جرس 7:00 · 45د · 7 حصص، وإلى نقاط
+         بدل أسماء الإدارة في كل مطبوع، وإلى درجات meta/app الافتراضية فتُحسب نقاط كل الطلاب من جديد. */
       bell: (s.D && s.D.bell) || (s.DB && s.DB.bell) || null,
-      cfgSchool: (s.D && s.D.cfgSchool) || (s.DB && s.DB.cfgSchool) || null
+      cfgSchool: (s.D && s.D.cfgSchool) || (s.DB && s.DB.cfgSchool) || null,
+      cfgAssess: (s.D && s.D.cfgAssess) || (s.DB && s.DB.cfgAssess) || null
     };
     const txt = JSON.stringify(out);
     download(txt, `نسخة سجلي الشاملة - ${s.META.school.name} - ${hijStamp()} - ${Ad.isoDate()}.json`);
@@ -535,6 +867,23 @@
     if (c.lens && Object.keys(c.lens).length) rec.lens = c.lens;
     if (c.days && Object.keys(c.days).length) rec.days = c.days;
     return rec;
+  }
+  /* مكتبة التقييمات داخل النسخة: تمرّ على validateAssess كاملة قبل أن تُكتب — ملف قديم أو محرَّر
+     يدوياً قد يحمل مكتبة معطوبة، وكتابتها تُزيح فهارس الرصد وتُفسد نقاط المدرسة كلها. */
+  function assessRec(b, tn) {
+    const Ad = A(), src = b && b.cfgAssess;
+    if (!src || typeof src !== "object" || Array.isArray(src) || typeof Ad.validateAssess !== "function") return null;
+    const it = (o, wantC) => { const x = o || {}, y = { k: String(x.k == null ? "" : x.k).trim(), t: String(x.t == null ? "" : x.t).trim().replace(/\s+/g, " "), v: Number(x.v) }; if (wantC) y.c = String(x.c == null ? "gray" : x.c); if (x.off === true) y.off = true; return y; };
+    const cfg = {};
+    if (Array.isArray(src.states)) cfg.states = src.states.map(o => it(o, true));
+    if (Array.isArray(src.behaviors)) cfg.behaviors = src.behaviors.map(o => it(o, false));
+    const dw = (Ad.defaultAssess() || {}).weights || {}, w = {}, sw = (src.weights && typeof src.weights === "object" && !Array.isArray(src.weights)) ? src.weights : {};
+    (Ad.ASSESS_WK || []).forEach(k => { const raw = (sw[k] == null || sw[k] === "") ? dw[k] : sw[k], x = Number(raw); w[k] = isFinite(x) ? Math.round(x * 2) / 2 : 0; });
+    cfg.weights = w;
+    const err = Ad.validateAssess(cfg);
+    if (err) { warn("assessRec", err); return null; }
+    cfg.tn = String(tn || "").slice(0, 80); cfg.ts = Date.now();
+    return cfg;
   }
   function staffRec(b, tn) {
     const Ad = A(), src = b && b.cfgSchool;
@@ -562,7 +911,7 @@
       (Array.isArray(b.schedule) ? 1 : 0) +
       ((Array.isArray(b.classes) && b.classes.length) ? b.classes.length : 0) +
       ((Array.isArray(b.teachers) && b.teachers.length) ? b.teachers.length : 0) +
-      (bellRec(b) ? 1 : 0) + (staffRec(b) ? 1 : 0);
+      (bellRec(b) ? 1 : 0) + (staffRec(b) ? 1 : 0) + (assessRec(b) ? 1 : 0);
   }
   function summarize(b) {
     return {
@@ -587,6 +936,7 @@
       ${line("تعديلات بيانات الطلاب", sm.sedits + " فصلاً")}
       ${line("⏰ أوقات الحصص والفسح", bellRec(b) ? "مشمولة — ستُستبدل الأوقات الحالية" : "<span style=\"color:var(--muted)\">غير مشمولة في هذا الملف — تبقى الأوقات الحالية</span>")}
       ${line("🏫 أسماء إدارة المدرسة", staffRec(b) ? "مشمولة — ستُستبدل أسماء التواقيع" : "<span style=\"color:var(--muted)\">غير مشمولة في هذا الملف — تبقى الأسماء الحالية</span>")}
+      ${line("🎛️ مكتبة التقييمات ودرجاتها", assessRec(b) ? "مشمولة — ستُستبدل الدرجات وتُعاد نقاط الطلاب في كل التقارير" : "<span style=\"color:var(--muted)\">غير مشمولة في هذا الملف (أو غير صالحة) — تبقى المكتبة الحالية</span>")}
     </div>`;
   }
   // بناء مهام الكتابة السحابية (مستند لكل مهمة) — القواعد تمنع classes/meta وتمنع تعديل moves القديمة
@@ -615,10 +965,17 @@
     if (bl) push("أوقات الحصص", async () => { await s.fdb.doc("cfg/bell").set(bl); s.D.bell = bl; cacheD(s); bellEvent(); });
     const sc = staffRec(b, tn);
     if (sc) push("أسماء الإدارة", async () => { await s.fdb.doc("cfg/school").set(sc); s.D.cfgSchool = sc; cacheD(s); bellEvent(); });
+    const as = assessRec(b, tn);
+    if (as) push("مكتبة التقييمات", async () => { await s.fdb.doc("cfg/assess").set(as); s.D.cfgAssess = as; cacheD(s); assessEvent(); });
     return T;
   }
   const cacheD = (s) => { try { localStorage.setItem("sijil.cloudD", JSON.stringify(s.D)); } catch (e) { } };
   const bellEvent = () => { try { window.dispatchEvent(new CustomEvent("sijil:bell")); } catch (e) { } };
+  // مكتبة التقييمات المستعادة تُدمج فوق META فوراً (assessApply) ثم يُعلن الحدث — وتبقى دلاء الحضور في core على أسماء الحالات السابقة حتى إعادة التحميل
+  const assessEvent = () => {
+    try { const s = S(); if (typeof s.assessApply === "function") s.assessApply(); } catch (e) { warn("assessApply", e); }
+    try { window.dispatchEvent(new CustomEvent("sijil:assess")); } catch (e) { }
+  };
   // الوضع التجريبي: كتابة كاملة في DB المحلية + D الحية (بلا إعادة تطبيق الحركات — اللقطة مطبَّقة أصلاً)
   function restoreDemo(b) {
     const s = S(), D = s.D, DB = s.DB, Ad = A(), done = {};
@@ -651,8 +1008,10 @@
     const tn = String((s.TE && s.TE.name) || "الإدارة").slice(0, 80);
     const bl = bellRec(b, tn); if (bl) { DB.bell = bl; D.bell = bl; done["أوقات الحصص"] = 1; }
     const sc = staffRec(b, tn); if (sc) { DB.cfgSchool = sc; D.cfgSchool = sc; done["أسماء الإدارة"] = 1; }
+    const as = assessRec(b, tn); if (as) { DB.cfgAssess = as; D.cfgAssess = as; done["مكتبة التقييمات"] = 1; }
     s.save();
     if (bl || sc) bellEvent();
+    if (as) assessEvent();
     try { if (typeof Ad.refreshHeader === "function") Ad.refreshHeader(); } catch (e) { }
     // العدد نفسه المعروض في التأكيد (demoDocs) — مستند لكل فصل/معلم + مستند الجدول
     return { done, docs: demoDocs(b) };
@@ -666,7 +1025,9 @@
       const r = restoreDemo(b), detail = Object.keys(r.done).map(k => `${k} ${r.done[k]}`).join(" · ");
       set(100, "✔ اكتملت الاستعادة محلياً");
       await Ad.adminlog("restore", `استعادة نسخة (${b.hijri || ""}): ` + detail);
-      return { ok: r.docs, fail: 0, notes: ["الوضع التجريبي: كل البيانات على هذا الجهاز فقط", detail] };
+      const nt = ["الوضع التجريبي: كل البيانات على هذا الجهاز فقط", detail];
+      if (assessRec(b)) nt.push("🎛️ استُعيدت مكتبة التقييمات — أعد تحميل الصفحة مرة واحدة لتنطبق على كل الشاشات");
+      return { ok: r.docs, fail: 0, notes: nt };
     }
     const T = tasks || cloudTasks(b);
     if (!T.length) { set(100, "لا شيء لاستعادته"); return { ok: 0, fail: 0, notes: ["لا مستندات قابلة للكتابة في هذه النسخة"] }; }
@@ -679,13 +1040,14 @@
     }
     set(100, `✔ ${ok} مستنداً` + (fail ? ` · ⚠️ ${fail} فشل` : ""));
     const notes = ["الفصول وبيانات المدرسة الأساسية لا تُكتب سحابياً (قواعد الأمان)", "سجل الإدارة القديم لا يُستعاد (سجل للإنشاء فقط)"];
+    if (assessRec(b) && !failSec["مكتبة التقييمات"]) notes.push("🎛️ استُعيدت مكتبة التقييمات — أعد تحميل الصفحة مرة واحدة لتنطبق على كل الشاشات");
     Object.keys(failSec).forEach(k => notes.push(`تعذّرت كتابة ${failSec[k]} مستنداً في «${k}»`));
     await Ad.adminlog("restore", `استعادة نسخة (${b.hijri || ""}): ${ok} مستنداً${fail ? ` — ${fail} فشل` : ""}`);
     return { ok, fail, notes };
   }
   function backupHtml() {
     const h = H();
-    return h.note("نسخة واحدة بصيغة JSON تضم: المعلمين (بلا أرقام الدخول)، الفصول والطلاب، الجدول، الرصد اليومي، الدرجات، سجل التواصل، حركات النقل، الأوراق التفاعلية وتسليماتها، تعديلات بيانات الطلاب، وسجل الإدارة، وأوقات الحصص والفسح، وأسماء إدارة المدرسة.") +
+    return h.note("نسخة واحدة بصيغة JSON تضم: المعلمين (بلا أرقام الدخول)، الفصول والطلاب، الجدول، الرصد اليومي، الدرجات، سجل التواصل، حركات النقل، الأوراق التفاعلية وتسليماتها، تعديلات بيانات الطلاب، وسجل الإدارة، وأوقات الحصص والفسح، وأسماء إدارة المدرسة، ومكتبة التقييمات ودرجاتها.") +
       h.tools(`${h.btn("⬇️ تصدير نسخة شاملة", 'id="mg-bk"')}${h.btn("⬆️ استعادة من ملف", 'id="mg-rs"', "btn-plain")}`) +
       `<input type="file" id="mg-file" accept="application/json,.json" style="display:none">` +
       `<div class="mg-prog hidden" id="mg-prog"><div class="bar"><i></i></div><div class="tx"></div></div>` +
@@ -786,6 +1148,7 @@
     b.innerHTML =
       `<div id="mg-profile"></div>` +
       sec("mg-s-bell", "⏰ أوقات الحصص والفسح", bellHtml(), { open: true, n: nPer(A().bell().n) }) +
+      sec("mg-s-as", "🎛️ مكتبة التقييمات ودرجاتها", assessHtml(sd), { n: aBadge() }) +
       sec("mg-s-tch", "👨‍🏫 المعلمون", teachersHtml(sd), { open: true, n: tch.length }) +
       sec("mg-s-cls", "🏫 الفصول", classesHtml(), { open: true, n: cls.length }) +
       sec("mg-s-sch", "🗓️ الجدول الأسبوعي", scheduleHtml(), { n: schedRows().length }) +
@@ -807,6 +1170,8 @@
     const on = (id, fn) => { const el = $("#" + id, b); if (el) el.onclick = fn; };
     // ⏰ أوقات الحصص والفسح
     try { bindBell(b); } catch (e) { warn("bell", e); }
+    // 🎛️ مكتبة التقييمات ودرجاتها
+    try { bindAssess(b); } catch (e) { warn("assess", e); }
     // طباعة المعلمين
     on("mg-p-tch", () => {
       const last = lastMap(sd);

@@ -287,6 +287,7 @@ service cloud.firestore {
     // ── إعدادات المدرسة cfg/{doc}: يضبطها المدير من لوحته وتُقرأ عند إقلاع كل جهاز (meta/app غير قابل للكتابة) ──
     //    cfg/bell   جدول الأجراس: {start, len, n, breaks[], lens?, days?, tn, ts}
     //    cfg/school أسماء الإدارة: {principal?, vice?, agent?, counselor?, tn, ts}
+    //    cfg/assess مكتبة التقييمات ودرجاتها: {states:[{k,t,v,c}], behaviors:[{k,t,v}], weights:{…}, tn, ts}
     function bellShape() {
       return request.resource.data.keys().hasOnly(['start', 'len', 'n', 'breaks', 'lens', 'days', 'tn', 'ts'])
           && request.resource.data.start is int && request.resource.data.start >= 0 && request.resource.data.start <= 1439
@@ -304,12 +305,35 @@ service cloud.firestore {
       return request.resource.data.keys().hasOnly(['principal', 'vice', 'agent', 'counselor', 'tn', 'ts'])
           && nameField('principal') && nameField('vice') && nameField('agent') && nameField('counselor');
     }
+    /* مكتبة التقييمات: قائمتان مرقّمتان بالفهرس تُقرآن في كل شاشة رصد ومطبوع.
+       حدود العنصر الواحد (k ≤ 12 محرفاً، t ≤ 40، v بين −20 و+20، والألوان المعروفة) لا تُفحص هنا:
+       لغة القواعد لا تدور على عناصر قائمة أصلاً — وهو حال breaks في bellShape() نفسه. فتُفحص العناصر
+       قبل الكتابة في validateAssess() (js/admin/core.js)، وتُقصّ عند القراءة في assessNorm()/aNum()
+       (js/app.js) فلا يُفسد مستندٌ مكتوب يدوياً شاشةً ولا نقطة. والمقاس والمفاتيح والأوزان تُفحص هنا. */
+    function wRange(f) {
+      return !(f in request.resource.data.weights)
+          || (request.resource.data.weights[f] is number
+              && request.resource.data.weights[f] >= -20 && request.resource.data.weights[f] <= 20);
+    }
+    function assessShape() {
+      return request.resource.data.keys().hasOnly(['states', 'behaviors', 'weights', 'tn', 'ts'])
+          && request.resource.data.keys().hasAll(['states', 'behaviors', 'weights'])
+          && request.resource.data.states is list
+          && request.resource.data.states.size() >= 2 && request.resource.data.states.size() <= 40
+          && request.resource.data.behaviors is list
+          && request.resource.data.behaviors.size() >= 1 && request.resource.data.behaviors.size() <= 40
+          && request.resource.data.weights is map
+          && request.resource.data.weights.keys().hasOnly(['present', 'part', 'hw', 'absent', 'bad', 'sheets'])
+          && wRange('present') && wRange('part') && wRange('hw')
+          && wRange('absent') && wRange('bad') && wRange('sheets');
+    }
     match /cfg/{doc} {
       allow read: if signedIn();
       // تُقرأ في كل مطبوعات المدرسة وفي مواقيت كل حصة — فتحريفها من زائر يفسدها كلها.
       //   لا استبدال لها إلا من جهاز أثبت رقم دخول معلم (مطالبة sess).
       allow create, update: if signedIn() && stamped() && anyClaim()
-          && ((doc == 'bell' && bellShape()) || (doc == 'school' && schoolShape()));
+          && ((doc == 'bell' && bellShape()) || (doc == 'school' && schoolShape())
+              || (doc == 'assess' && assessShape()));
       allow delete: if false;
     }
 

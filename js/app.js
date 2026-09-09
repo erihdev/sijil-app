@@ -221,8 +221,8 @@
      الشرح الوحيد قبل هذا كان في خاصية title ولا تظهر على الجوال أبداً، و📚 تدور بين ثلاث حالات
      بلا إعلان: من ينقر مرتين ظنّاً أنه يتراجع يضع على الطالب «لم يحلّ الواجب». */
   function keysHelpHTML() {
-    const stChips = STATES.map(x => `<span class="kchip">${ST_ICON(x.name || "")} ${esc(x.name)} <b>${signN(x.pts || 0)}</b></span>`).join("");
-    const bhChips = BEH.map(b => `<span class="kchip ${(+b.pts || 0) < 0 ? "neg" : ""}">${(+b.pts || 0) < 0 ? "⚠" : "⭐"} ${esc(b.name)} <b>${signN(b.pts || 0)}</b></span>`).join("");
+    const stChips = assessView(STATES).map(x => `<span class="kchip">${ST_ICON(x.name || "")} ${esc(x.name)} <b>${signN(x.pts || 0)}</b></span>`).join("");
+    const bhChips = assessView(BEH).map(b => `<span class="kchip ${(+b.pts || 0) < 0 ? "neg" : ""}">${(+b.pts || 0) < 0 ? "⚠" : "⭐"} ${esc(b.name)} <b>${signN(b.pts || 0)}</b></span>`).join("");
     return `<h4>❔ مفتاح الرصد والتراجع</h4><div class="keyhelp">
       <p><b>🙋 المشاركة</b> — نقرة = <b>${signN(W.part)}</b> لكل مرة بلا سقف، والرقم على الزر عدّاد اليوم. و<b>ضغطة مطوّلة</b> على الزر تُصفّر العدّاد.</p>
       <p><b>📚 الواجب</b> — ثلاث حالات تدور بالنقر: <b>📚 لم يُرصد</b> ← <b>✅ حلّ (${signN(W.hw)})</b> ← <b>❌ لم يحلّ (0)</b> ← ثم تعود. فنقرتان <u>لا</u> تتراجعان بل تضعان «لم يحلّ».</p>
@@ -549,6 +549,91 @@
   window._printSheet = printSheet;
   window._sheetClose = closeSheet;
 
+  /* ═══════════ مكتبة التقييمات: cfg/assess فوق meta/app ═══════════
+     meta/app مقفل للكتابة في القواعد، فتحكّم المدير في الدرجات يُحفظ في مستند cfg/assess ويُدمج
+     فوقه هنا قبل أول رسم (كما يفعل cfg/bell وcfg/school). شكل التخزين:
+       { states:[{k,t,v,c}], behaviors:[{k,t,v}], weights:{present,part,hw,absent,bad,sheets}, tn, ts }
+     غياب المستند = ما في meta/app حرفياً (زائد الإضافات أدناه)، فلا تتغير مدرسة لم يضبطها مديرها.
+     وأهمّ قاعدة هنا: فهرس العنصر لا يُزاح أبداً — rec.a وrec.beh مخزَّنان في recs بالرقم منذ أول يوم،
+     فحذف سلوك يُبقيه هنا في موضعه شاهداً off:true (لا يظهر في أي قائمة اختيار، وتبقى نقاطه المرصودة
+     سابقاً كما هي)، والجديد يُلحق في آخر المصفوفة. و🗑 في اللوحة تكتب off:true على العنصر (فتُحفظ
+     درجته الأخيرة)؛ وإسقاطه من القائمة المحفوظة رأساً يُبقيه مخفياً كذلك لكن بدرجته في meta/app. وترتيب المدير يُحمل في o
+     ويُطبَّق عند العرض وحده (assessView) لا في الفهارس. */
+  const ASSESS_C = { ok: "var(--st0)", bad: "var(--st1)", warn: "var(--st2)", gray: "var(--st3)", info: "var(--st4)", violet: "var(--st5)", brown: "var(--st6)" };
+  const ASSESS_CK = ["ok", "bad", "warn", "gray", "info", "violet", "brown"];
+  const ASSESS_WK = ["present", "part", "hw", "absent", "bad", "sheets"];
+  const ASSESS_MAX = 40;
+  // إضافات صدرت بعد meta/app وهو مقفل لا يُعدَّل: تُلحق بالافتراضي فتظهر لكل مدرسة لم تضبط شيئاً
+  const ASSESS_ADD = [{ k: "sleep", t: "النوم أثناء الحصة", v: -1 }];
+  const aNum = (v) => { const x = Math.round((+v || 0) * 2) / 2; return isFinite(x) ? Math.min(20, Math.max(-20, x)) : 0; };
+  const aTxt = (v, n) => String(v == null ? "" : v).trim().replace(/\s+/g, " ").slice(0, n);
+  // المكتبة الافتراضية بشكل التخزين — مفاتيح ثابتة s0…/b0… مشتقة من ترتيب meta/app نفسه
+  function assessDefault() {
+    const m = (D && D.meta) || {};
+    const states = (m.states || []).map((x, i) => ({ k: "s" + i, t: aTxt(x && x.name, 40), v: aNum(x && x.pts), c: ASSESS_CK[i] || "gray" }));
+    const behaviors = (m.behaviors || []).map((x, i) => ({ k: "b" + i, t: aTxt(x && x.name, 40), v: aNum(x && x.pts) }));
+    // بالمفتاح وبالاسم كليهما: مدرسة زُرع في meta/app لديها السلوك نفسه بمفتاح آخر لا يُكرَّر عليها
+    ASSESS_ADD.forEach(a => { if (!behaviors.some(b => b.k === a.k || b.t === a.t)) behaviors.push({ k: a.k, t: a.t, v: a.v }); });
+    const weights = {}; ASSESS_WK.forEach(k => { weights[k] = aNum((m.weights || {})[k]); });
+    return { states, behaviors, weights };
+  }
+  function assessItem(x, wantC) {
+    if (!x || typeof x !== "object" || Array.isArray(x)) return null;
+    const k = aTxt(x.k, 12), t = aTxt(x.t, 40);
+    if (!k || !t) return null;
+    const o = { k, t, v: aNum(x.v) };
+    if (wantC) o.c = (ASSESS_CK.indexOf(String(x.c || "")) >= 0) ? String(x.c) : "gray";
+    if (x.off === true) o.off = true;      // مخفي: حذفه المدير من القوائم وبقيت درجته لما رُصد به سابقاً
+    return o;
+  }
+  // تطبيع قائمة مخزَّنة: يُسقط ما لا يصلح والمكرر وما يتجاوز 40 (مستند مكتوب يدوياً قد يمرّ من القواعد)
+  function assessNorm(raw, wantC) {
+    const out = [], seen = {};
+    if (!Array.isArray(raw)) return out;
+    for (let i = 0; i < raw.length && out.length < ASSESS_MAX; i++) {
+      const it = assessItem(raw[i], wantC);
+      if (!it || seen[it.k]) continue;
+      seen[it.k] = 1; out.push(it);
+    }
+    return out;
+  }
+  // الإعداد الفعّال بشكل التخزين وبترتيب المدير — كائن جديد في كل نداء، آمن لتعديل المستدعي
+  function assessEff() {
+    const def = assessDefault(), raw = (D && D.cfgAssess) || null;
+    if (!raw || typeof raw !== "object" || Array.isArray(raw)) return def;
+    const st = Array.isArray(raw.states) ? assessNorm(raw.states, true) : def.states;
+    const bh = Array.isArray(raw.behaviors) ? assessNorm(raw.behaviors, false) : def.behaviors;
+    const weights = {}; ASSESS_WK.forEach(k => { const v = (raw.weights || {})[k]; weights[k] = (v == null || !isFinite(+v)) ? def.weights[k] : aNum(v); });
+    return { states: st.length ? st : def.states, behaviors: bh, weights };
+  }
+  // الدمج بترتيب المواضع (الافتراضي أولاً في مواضعه، ثم الجديد) → [{k, name, pts, c, o, off}]
+  function assessMerge(def, eff) {
+    const by = {}; eff.forEach((x, i) => { if (!(x.k in by)) by[x.k] = { x: x, o: i }; });
+    const out = [], used = {};
+    def.forEach(d => {
+      const h = by[d.k];
+      if (h) { used[d.k] = 1; out.push({ k: d.k, name: h.x.t, pts: h.x.v, c: h.x.c || d.c, o: h.o, off: !!h.x.off }); }
+      else out.push({ k: d.k, name: d.t, pts: d.v, c: d.c, o: 1e6 + out.length, off: true });
+    });
+    eff.forEach((x, i) => { if (!used[x.k]) { used[x.k] = 1; out.push({ k: x.k, name: x.t, pts: x.v, c: x.c, o: i, off: !!x.off }); } });
+    return out;
+  }
+  /* يُنادى قبل أول رسم وبعد كل حفظ: يعيد بناء META.states/behaviors/weights وSTATES/BEH/W والألوان.
+     لا يمسّ D.meta أبداً (META نسخة سطحية): النسخة الاحتياطية في لوحة المدير تحفظ D.meta الخام. */
+  function assessApply() {
+    if (!META) return;
+    const def = assessDefault(), eff = assessEff();
+    META.states = assessMerge(def.states, eff.states);
+    META.behaviors = assessMerge(def.behaviors, eff.behaviors);
+    META.weights = Object.assign({}, def.weights, eff.weights);
+    STCOLORS.length = 0;
+    META.states.forEach(x => STCOLORS.push(ASSESS_C[x.c] || ASSESS_C.gray));
+    W = META.weights; STATES = META.states; BEH = META.behaviors;
+  }
+  /* عناصر المكتبة للعرض: بترتيب المدير، بلا المحذوف، ومع الفهرس الحقيقي i الذي تُخزَّن به السجلات */
+  const assessView = (list) => (list || []).map((x, i) => ({ i: i, k: x.k, name: x.name, pts: +x.pts || 0, c: x.c, o: (x.o == null ? i : x.o), off: !!x.off }))
+    .filter(x => !x.off).sort((a, b) => (a.o - b.o) || (a.i - b.i));
+
   /* ═══ اتصال ═══ */
   async function bootCloud() {
     firebase.initializeApp(window.FIREBASE_CONFIG);
@@ -576,14 +661,18 @@
     let sedits = {};
     try { const se = await fdb.collection("sedits").get(); se.forEach(d2 => sedits[d2.id] = d2.data() || {}); } catch (e) { sedits = {}; }
     applySedits(classes, sedits);
-    // إعدادات المدرسة: cfg/bell (جدول الأجراس) وcfg/school (أسماء الإدارة) — غيابهما أو تعذّر قراءتهما = الافتراضي ولا يُفشل الإقلاع
-    let bellCfg = null, schoolCfg = null;
-    try { const [bs, ss] = await Promise.all([fdb.doc("cfg/bell").get(), fdb.doc("cfg/school").get()]); if (bs.exists) bellCfg = bs.data() || null; if (ss.exists) schoolCfg = ss.data() || null; }
+    // إعدادات المدرسة: cfg/bell (جدول الأجراس) وcfg/school (أسماء الإدارة) وcfg/assess (مكتبة التقييمات ودرجاتها)
+    //   — غيابها أو تعذّر قراءتها = الافتراضي ولا يُفشل الإقلاع
+    let bellCfg = null, schoolCfg = null, assessCfg = null;
+    try {
+      const [bs, ss, as] = await Promise.all([fdb.doc("cfg/bell").get(), fdb.doc("cfg/school").get(), fdb.doc("cfg/assess").get()]);
+      if (bs.exists) bellCfg = bs.data() || null; if (ss.exists) schoolCfg = ss.data() || null; if (as.exists) assessCfg = as.data() || null;
+    }
     catch (e) {
       // فشل القراءة (قاعدة غير منشورة أو App Check أو انقطاع) ≠ «لم يضبط المدير شيئاً»: نُبقي آخر إعداد محفوظ
       // على الجهاز حتى لا ترتدّ المدرسة كلها إلى الأوقات الافتراضية بصمت، ونترك أثراً في الكونسول.
-      try { const old = JSON.parse(localStorage.getItem("sijil.cloudD") || "null"); if (old) { bellCfg = old.bell || null; schoolCfg = old.cfgSchool || null; } } catch (x) { }
-      try { console.warn("[سجلي] تعذّرت قراءة إعدادات المدرسة (cfg/bell وcfg/school) — استُعملت النسخة المحفوظة على الجهاز إن وُجدت:", (e && e.message) || e); } catch (x) { }
+      try { const old = JSON.parse(localStorage.getItem("sijil.cloudD") || "null"); if (old) { bellCfg = old.bell || null; schoolCfg = old.cfgSchool || null; assessCfg = old.cfgAssess || null; } } catch (x) { }
+      try { console.warn("[سجلي] تعذّرت قراءة إعدادات المدرسة (cfg/bell وcfg/school وcfg/assess) — استُعملت النسخة المحفوظة على الجهاز إن وُجدت:", (e && e.message) || e); } catch (x) { }
     }
     /* meta/app هو أصل كل شيء (الأوزان والحالات والسلوكيات واسم المدرسة). كان يُمرَّر
        metaS.data() كما هو، فإن لم يوجد المستند أو رُفضت قراءته صار undefined ثم انفجر
@@ -596,7 +685,7 @@
       try { console.warn("[سجلي] تعذّرت قراءة meta/app — " + (meta ? "استُعملت النسخة المحفوظة على الجهاز" : "لا نسخة محفوظة")); } catch (e) { }
     }
     if (!meta) throw new Error("META_UNAVAILABLE");
-    D = { meta, teachers, classes, schedule: (schS.data() || {}).rows || [], moves, sedits, bell: bellCfg, cfgSchool: schoolCfg };
+    D = { meta, teachers, classes, schedule: (schS.data() || {}).rows || [], moves, sedits, bell: bellCfg, cfgSchool: schoolCfg, cfgAssess: assessCfg };
     try { localStorage.setItem("sijil.cloudD", JSON.stringify(D)); } catch (e) { }
   }
   function bootOffline() {
@@ -619,9 +708,12 @@
       applyMoves(D.classes, DB.moves); D.moves = DB.moves;
       if (!DB.sedits || typeof DB.sedits !== "object" || Array.isArray(DB.sedits)) DB.sedits = {};
       applySedits(D.classes, DB.sedits); D.sedits = DB.sedits;
-      D.bell = DB.bell || null; D.cfgSchool = DB.cfgSchool || null;   // الوضع التجريبي: إعدادات المدرسة على هذا الجهاز
+      D.bell = DB.bell || null; D.cfgSchool = DB.cfgSchool || null; D.cfgAssess = DB.cfgAssess || null;   // الوضع التجريبي: إعدادات المدرسة على هذا الجهاز
     }
-    META = D.meta || {}; META.school = META.school || { name: "مدرستي", term_lbl: "" };
+    /* META نسخة سطحية من D.meta لا هو نفسه: دمج مكتبة التقييمات يكتب states/behaviors/weights،
+       ولو كتبها في D.meta لسرت المكتبة المدموجة إلى sijil.cloudD وإلى النسخة الاحتياطية بدل الأصل. */
+    META = Object.assign({}, D.meta || {}); META.school = META.school || { name: "مدرستي", term_lbl: "" };
+    assessApply();                       // cfg/assess فوق META.states/behaviors/weights — قبل أول رسم
     W = META.weights || {}; STATES = META.states || []; BEH = META.behaviors || [];
     ASSESS = (META.assess && META.assess.length) ? META.assess : DEFAULT_ASSESS;
     TERM = (META.school.term_lbl || "").includes("الثاني") ? "t2" : "t1";
@@ -768,6 +860,20 @@
   // أيام الدراسة من المحرك (الأحد…الخميس) — نفس مصدر لوحة المدير حتى لا يقول الشريط «الحصة الثالثة» يوم الجمعة
   const SDAYS = () => { const A = window.SIJIL_ADMIN; try { if (A && typeof A.schoolDays === "function") { const d = A.schoolDays(); if (Array.isArray(d) && d.length) return d; } } catch (e) { } return DAYS.slice(0, 5); };
   const sigLine = (roles) => { const A = window.SIJIL_ADMIN; return (A && typeof A.sigLine === "function") ? A.sigLine(roles) : FALLBACK.sigLine(roles); };
+  /* ═══ اسم وكيل المدرسة ومديرها في الشهادات ═══
+     الشهادة ورقةٌ يعلّقها البيت ويوقّعها المدير: سطرُ تواقيعها يحمل الاسمين المضبوطين في «🏫 أسماء
+     الإدارة» لا نقاطاً فارغة. والوكيل = وكيل الشؤون التعليمية، وإن لم يُضبط فوكيل شؤون الطلاب. */
+  const staffCfg = () => { const A = window.SIJIL_ADMIN; try { if (A && typeof A.schoolStaff === "function") return A.schoolStaff() || {}; } catch (e) { } return (D && D.cfgSchool) || {}; };
+  const viceKey = () => { const c = staffCfg(); return (!c.vice && c.agent) ? "agent" : "vice"; };
+  // سطر تواقيع الشهادة المطبوعة: معلم المادة · الوكيل · المدير
+  const certSig = () => sigLine([{ l: "معلم المادة", v: TE ? TE.name : "" }, viceKey(), "principal"]);
+  // الاسمان أسفل الشهادة على الشاشة ("" إن لم يضبط المدير شيئاً فيبقى «إدارة المدرسة» كما كان)
+  function certStaffHtml() {
+    const c = staffCfg(), vk = viceKey(), v = c[vk] || "", p = c.principal || "";
+    if (!v && !p) return "";
+    const cell = (l, n) => n ? `<span><small>${esc(l)}</small><b>${esc(n)}</b></span>` : "";
+    return `<div class="certsig">${cell(SIG_LBL[vk], v)}${cell(SIG_LBL.principal, p)}</div>`;
+  }
 
   /* ═══ تبويبات المعلم ═══ */
   // لوحة المدير فعّالة؟ مدير + النواة محمَّلة + لم يختر «واجهتي كمعلم» (localStorage sijil.adminView === 'teacher')
@@ -1314,7 +1420,7 @@
   const undoReg = (lbl, cid, dt, i, snap) => undoBar(lbl, () => { restoreRec(cid, dt, i, snap); if (regClass === cid && regDate === dt && document.getElementById("reg-list")) drawRows(); });
   function stateSheet(i) {
     const c = classById(regClass), cur = rec(regClass, regDate, i, false) || {};
-    openSheet(`<h4>${esc(c.students[i].n)} — حالة الحضور</h4><div class="stategrid">${STATES.map((s, k) => `<button style="background:${STCOLORS[k]}" class="${cur.a === k ? "sel" : ""}" data-k="${k}">${esc(s.name)} <small>(${s.pts >= 0 ? "+" : ""}${s.pts})</small></button>`).join("")}<button style="background:#c9cfd6" data-k="-1">مسح الحالة</button></div>`,
+    openSheet(`<h4>${esc(c.students[i].n)} — حالة الحضور</h4><div class="stategrid">${assessView(STATES).map(s => `<button style="background:${STCOLORS[s.i]}" class="${cur.a === s.i ? "sel" : ""}" data-k="${s.i}">${esc(s.name)} <small>(${s.pts >= 0 ? "+" : ""}${s.pts})</small></button>`).join("")}<button style="background:#c9cfd6" data-k="-1">مسح الحالة</button></div>`,
       (o) => o.querySelectorAll("[data-k]").forEach(b => b.onclick = () => {
         const k = +b.dataset.k, cid = regClass, dt = regDate, snap = snapRec(cid, dt, i), nm = firstName(classById(cid).students[i].n);
         // «مسح الحالة» يمحو السجل إن لم يبقَ فيه رصد — وإلا بقي يوماً وهمياً يخفض الحضور والدرجة التلقائية
@@ -1332,7 +1438,7 @@
     const orig = (cur.beh || []).slice(), cnt = {};
     orig.forEach(k => cnt[k] = (cnt[k] || 0) + 1);
     const sel = new Set(orig), rep = Object.keys(cnt).some(k => cnt[k] > 1);
-    openSheet(`<h4>${esc(c.students[i].n)} — السلوك والتقييم</h4><div class="behgrid">${BEH.map((b, k) => `<button data-k="${k}" class="${sel.has(k) ? "sel" : ""}">${esc(b.name)}${cnt[k] > 1 ? `<span class="x">×${cnt[k]}</span>` : ""} <span class="p ${b.pts >= 0 ? "pos" : "neg"}">${b.pts >= 0 ? "+" : ""}${b.pts}</span></button>`).join("")}</div>${rep ? `<div class="empty-note" style="padding:2px 4px 6px;text-align:right;font-size:12px">×العدد = مرات رُصدت في الحصة الحية، وتبقى كما هي بعد الحفظ.</div>` : ""}<textarea class="note" id="bh-note" rows="2" placeholder="ملاحظة (اختياري)…">${esc(cur.note || "")}</textarea><div class="sheet-actions"><button class="btn-plain" id="bh-x">إغلاق</button><button class="btn-primary" id="bh-ok">تم</button></div>`,
+    openSheet(`<h4>${esc(c.students[i].n)} — السلوك والتقييم</h4><div class="behgrid">${assessView(BEH).map(b => `<button data-k="${b.i}" class="${sel.has(b.i) ? "sel" : ""}">${esc(b.name)}${cnt[b.i] > 1 ? `<span class="x">×${cnt[b.i]}</span>` : ""} <span class="p ${b.pts >= 0 ? "pos" : "neg"}">${b.pts >= 0 ? "+" : ""}${b.pts}</span></button>`).join("")}</div>${rep ? `<div class="empty-note" style="padding:2px 4px 6px;text-align:right;font-size:12px">×العدد = مرات رُصدت في الحصة الحية، وتبقى كما هي بعد الحفظ.</div>` : ""}<textarea class="note" id="bh-note" rows="2" placeholder="ملاحظة (اختياري)…">${esc(cur.note || "")}</textarea><div class="sheet-actions"><button class="btn-plain" id="bh-x">إغلاق</button><button class="btn-primary" id="bh-ok">تم</button></div>`,
       (o) => {
         o.querySelectorAll("[data-k]").forEach(b => b.onclick = () => { const k = +b.dataset.k; if (sel.has(k)) sel.delete(k); else sel.add(k); b.classList.toggle("sel"); });
         o.querySelector("#bh-x").onclick = closeSheet;
@@ -1762,7 +1868,7 @@
       <div class="who">${esc(s.n)}</div>
       <div class="ctr">من ${esc(c.name)}، تقديراً لتميّزه وحرصه وتفاعله المستمر،<br>حيث جمع <b>${esc(ptsAr(pts))}</b>. فله منّا كل الفخر، ونسأل الله له دوام التوفيق والعلا.</div>
       <div class="stars">${stars}</div>
-      ${sigLine([{ l: "معلم المادة", v: TE ? TE.name : "" }, "principal"])}
+      ${certSig()}
       <div class="ctr" style="color:#888;font-size:12px;margin-top:14px">${esc(hijriLabel())}</div>`, { land: true });
   }
   function printReport(cid, i) {
@@ -1938,8 +2044,8 @@
         <div style="display:flex;gap:8px"><button class="btn-gold" id="bk-out" style="flex:1;text-align:center">⬇️ تصدير بياناتي</button><button class="btn-gold" id="bk-in" style="flex:1;text-align:center">⬆️ استعادة نسخة</button><input type="file" id="bk-file" accept=".json" class="hidden"></div>
         <div class="empty-note" style="padding:10px 4px 0">${CLOUD ? "بياناتك محفوظة سحابياً تلقائياً — التصدير نسخة إضافية بيدك" : "ملف JSON يُحفظ أو يُرسل واتساب ثم يُستعاد على أي جهاز"}</div></div>
       <div class="card"><h3><span class="dot"></span>مكتبة التقييمات</h3>
-        <div class="countchips">${STATES.map((s, k) => `<span class="cc" style="background:${STCOLORS[k]}">${esc(s.name)} ${s.pts >= 0 ? "+" : ""}${s.pts}</span>`).join("")}</div>
-        <div class="countchips">${BEH.map(b => `<span class="cc" style="background:${b.pts >= 0 ? "var(--ok)" : "var(--bad)"}">${esc(b.name)} ${b.pts >= 0 ? "+" : ""}${b.pts}</span>`).join("")}</div></div>
+        <div class="countchips">${assessView(STATES).map(s => `<span class="cc" style="background:${STCOLORS[s.i]}">${esc(s.name)} ${s.pts >= 0 ? "+" : ""}${s.pts}</span>`).join("")}</div>
+        <div class="countchips">${assessView(BEH).map(b => `<span class="cc" style="background:${b.pts >= 0 ? "var(--ok)" : "var(--bad)"}">${esc(b.name)} ${b.pts >= 0 ? "+" : ""}${b.pts}</span>`).join("")}</div></div>
       <div class="card"><h3><span class="dot"></span>عن البرنامج</h3><div style="font-size:13.5px;line-height:2;color:var(--muted)">سجلي — سجل المتابعة الرقمي — ${CLOUD ? "النسخة السحابية المشتركة ☁️" : "نسخة تجريبية محلية"}.<br>يعمل على أي جهاز: جوال، تابلت، وكمبيوتر.<br><b>المطوّر:</b> أ. ضيف الله أحمد محمد مشني</div></div>`;
     // 👤 بياناتي (js/admin/teachers.js) — بطاقة الحساب وتغيير رقم الدخول للمعلم داخل «المزيد».
     // في لوحة المدير تظهر داخل «⚙️ الإدارة» — فلا نكررها هنا (تفادي تكرار معرّفات #me-*)
@@ -2316,8 +2422,8 @@
 
   /* ═══════════ وضع الحصة الحية (العرض) ═══════════ */
   const behIndex = (sub, positive) => {
-    let k = BEH.findIndex(b => b.name.includes(sub));
-    if (k < 0) k = BEH.findIndex(b => positive ? (+b.pts > 0) : (+b.pts < 0));
+    let k = BEH.findIndex(b => !b.off && b.name.includes(sub));
+    if (k < 0) k = BEH.findIndex(b => !b.off && (positive ? (+b.pts > 0) : (+b.pts < 0)));
     return k;
   };
   let liveCid = null, livePrevTop = null, liveDate = null, liveLesson = "";
@@ -2353,6 +2459,7 @@
         <button class="live-btn" id="live-exit">✕ إنهاء</button>
         <div class="live-title">🎬 ${esc(c.name)}${pastDay ? `<span class="live-day">📅 رصد يوم ${esc(liveDate)}</span>` : ""} <small id="live-sub"></small></div>
         <div style="display:flex;gap:6px">
+          <button class="live-btn" id="live-att" title="تعديل الحضور — لمن دخل متأخراً بعد ربع ساعة">👥<span class="lbl"> الحضور</span></button>
           <button class="live-btn live-tchip" id="live-tchip" hidden title="مؤقّت النشاط — اضغط للعودة إليه">⏱ 00:00</button>
           <button class="live-btn" id="live-tools-t" title="إخفاء/إظهار الأدوات">🎛️ <span class="lbl">إخفاء الأدوات</span><span class="sh">إخفاء</span></button>
           <button class="live-btn" id="live-board-t" title="إخفاء/إظهار لوحة الشرف">🏆 <span class="lbl">إخفاء اللوحة</span><span class="sh">إخفاء</span></button>
@@ -2393,6 +2500,8 @@
     const togLbl = (id, ic, h, what) => { const b = $(id); if (!b) return; b.classList.toggle("off", h); b.innerHTML = `${ic} <span class="lbl">${h ? "إظهار" : "إخفاء"} ${what}</span><span class="sh">${h ? "إظهار" : "إخفاء"}</span>`; };
     $("#live-board-t").onclick = () => togLbl("#live-board-t", "🏆", V.classList.toggle("board-hidden"), "اللوحة");
     $("#live-tools-t").onclick = () => togLbl("#live-tools-t", "🎛️", V.classList.toggle("tools-hidden"), "الأدوات");
+    // 👥 في رأس الحصة: يفتح شاشة الحضور السريعة نفسها لمن دخل بعد ربع ساعة، ثم يعود إلى محطته
+    const attB = $("#live-att"); if (attB) attB.onclick = () => attSheet();
     const tchip = $("#live-tchip"); if (tchip) tchip.onclick = () => { const b = V.querySelector('.live-tools button[data-v="timer"]'); if (b) b.click(); };
     V.querySelectorAll(".live-tools button").forEach(b => b.onclick = () => {
       V.querySelectorAll(".live-tools button").forEach(x => x.classList.toggle("on", x === b));
@@ -2418,6 +2527,9 @@
     const tb = V.querySelector('.live-tools button[data-v="' + startView + '"]');
     if (tb) { V.querySelectorAll(".live-tools button").forEach(x => x.classList.toggle("on", x === tb)); }
     liveView(startView); drawLiveBoard(true);
+    /* شاشة الحضور السريعة: مرة واحدة عند فتح حصة لفصل لم يُرصد حضوره في هذا اليوم.
+       بعد الرسم لا قبله، حتى تُبنى فوق حصة ظاهرة لا فوق شاشة فارغة. */
+    setTimeout(attAsk, 60);
   }
   let liveMainView = "roster", liveViewSeq = 0;
   /* محطات الدرس والقصة والألعاب تنتظر ملفات الدرس من الشبكة ثم تكتب في #live-main.
@@ -3126,12 +3238,128 @@
   const liveRec = (i) => ((DB.recs[liveCid] || {})[liveDate] || {})[i] || {};
   // «مرصود» = حالة حضور مسجَّلة فعلاً (لا مجرّد غياب سجل) — عليها يقوم استبعادُ العجلة
   const liveMarked = (i) => { const e = liveRec(i); return e.a != null && !!STATES[e.a]; };
-  function liveAttBar() {
-    const K = classDayMark(liveCid, liveDate), left = Math.max(0, K.total - K.done);
-    const ab = K.absent ? ` · غياب ${K.absent}` : "";
-    if (!K.done) return `<div class="liveatt none"><span class="t">⚠️ الحضور لم يُسجَّل لهذه الحصة</span><button type="button" class="ab" id="lv-allp">✓ الكل حاضر (${K.total})</button><button type="button" class="qb" id="lv-help" title="مفتاح الرصد والتراجع">❔</button></div>`;
-    if (K.done < K.total) return `<div class="liveatt part"><span class="t">⚠️ رُصد ${K.done}/${K.total}${ab}</span><button type="button" class="ab" id="lv-allp">✓ أكمل الباقي (${left})</button><button type="button" class="qb" id="lv-help" title="مفتاح الرصد والتراجع">❔</button></div>`;
-    return `<div class="liveatt full"><span class="t">✅ رُصد ${K.done}/${K.total}${ab}</span><button type="button" class="qb" id="lv-help" title="مفتاح الرصد والتراجع">❔</button></div>`;
+  /* ═══ الحاضرون فقط ═══
+     قائمة الحصة الحية = من هو في الفصل الآن: الحاضر والمتأخر وعن بعد، ومن لم تُرصد حالته بعد.
+     الغائب والمستأذن والغائب بعذر والهارب لا تظهر بطاقاتهم إطلاقاً — بطاقةُ من ليس في الفصل هي
+     رصدٌ ينتظر ضغطة إبهام خاطئة، ومصدرُ «لماذا لأحمد مشاركة اليوم وهو غائب؟».
+     ورأس القائمة يقول «21 حاضراً · 3 غياب» حتى يعرف المعلم أنهم مُستبعدون قصداً لا أنهم ضاعوا. */
+  function liveSplit() {
+    const c = classById(liveCid), here = [], away = [], none = [];
+    activeStudents(c).forEach(o => {
+      const e = liveRec(o.i);
+      if (e.a == null || !STATES[e.a]) none.push(o);
+      else if (liveAway(o.i)) away.push(o);
+      else here.push(o);
+    });
+    return { c, here, away, none };
+  }
+  function liveRosterHead(S) {
+    /* أخضر = رُصد الكل وفي الفصل أحد. أحمر = لم يُرصد أحد. كهرماني = رصدٌ ناقص، أو
+       رُصد الكل ولا حاضر واحد (فصلٌ كامل غائب: حالةٌ تستحق نظرةً لا شارةً خضراء). */
+    const kls = S.none.length ? ((S.here.length || S.away.length) ? "part" : "none") : (S.here.length ? "full" : "part");
+    const bits = [`<b>✅ ${cntAr(S.here.length, "حاضر واحد", "حاضران", "حاضرين", "حاضراً")}</b>`];
+    if (S.away.length) bits.push(`🚫 ${cntAr(S.away.length, "غائب واحد", "غائبان", "غائبين", "غائباً")}`);
+    if (S.none.length) bits.push(`⭕️ ${S.none.length} بلا حالة`);
+    const note = S.away.length ? "<small>الغائب والمستأذن والهارب مستبعدون من هذه القائمة قصداً</small>" : "";
+    return `<div class="liveatt lvhead ${kls}"><span class="t">${bits.join(" · ")}${note}</span>`
+      + (S.none.length ? `<button type="button" class="ab" id="lv-allp">✓ ${(S.here.length || S.away.length) ? "أكمل الباقي" : "الكل حاضر"} (${S.none.length})</button>` : "")
+      + `<button type="button" class="ab2" id="lv-att">👥 تعديل الحضور</button>`
+      + `<button type="button" class="qb" id="lv-help" title="مفتاح الرصد والتراجع">❔</button></div>`;
+  }
+  /* ═══ شاشة الحضور السريعة ═══
+     المعلم الذي يبدأ يومه من «🎬 ابدأ حصة تفاعلية» لا يفتح ورقة التحضير أبداً، فكانت الحصة تمرّ
+     كاملة بلا حالة حضور واحدة: تسقط من الدرجة التلقائية، ولا يصل غيابٌ إلى بيت، ويخرج تقرير الحضور
+     الذي يوقّعه المدير ناقصاً. وبما أن قائمة الحصة صارت «الحاضرون فقط» فلا بدّ من هذه الثواني أولاً.
+     تظهر مرة واحدة لكل (فصل|يوم) وفقط إن لم يُرصد شيء، ولا تعود — ويبقى زر 👥 في الرأس لمن تأخّر. */
+  const attAsked = new Set();
+  const attOff = (st) => !!st && /غائب|مستأذن|بعذر|هارب/.test(String(st.name || ""));
+  // حالات الشاشة السريعة بالاسم لا بالفهرس (المدير يعدّل المكتبة ويعيد ترتيبها)، والمُعاد فهرسُ التخزين i
+  function attStates() {
+    const v = assessView(STATES);
+    const by = (re, not) => v.find(x => re.test(String(x.name || "")) && !(not && not.test(String(x.name || ""))));
+    const p = by(/حاضر/, /غائب/) || v[0] || null;
+    const a = by(/غائب/, /بعذر/) || v.find(x => x.pts < 0 && (!p || x.i !== p.i)) || null;
+    const cyc = [p, a, by(/متأخر/), by(/مستأذن/)]
+      .filter((x, k, arr) => x && arr.findIndex(y => y && y.i === x.i) === k);
+    return { p, a, cyc };
+  }
+  function attSheet(after) {
+    const A = attStates();
+    if (!A.p || A.cyc.length < 2) { if (after) after(); return; }   // مكتبة بلا «حاضر» أو بلا بديل له: لا شاشة
+    const cid = liveCid, dt = liveDate, c = classById(cid); if (!c) { if (after) after(); return; }
+    const list = activeStudents(c), snap = snapDay(cid, dt), pick = {};
+    list.forEach(({ i }) => { const e = liveRec(i); if (e.a != null && STATES[e.a]) pick[i] = e.a; });
+    const had = Object.keys(pick).length;                          // رصدٌ سابق (من التحضير أو من زر 👥)
+    // النقرة الأولى تعني «غائب» — هي المقصودة في عامة النقرات، ثم تدور: متأخر ← مستأذن ← حاضر
+    const nx = (cur) => {
+      if (cur == null) return (A.a || A.cyc[1]).i;
+      const k = A.cyc.findIndex(x => x.i === cur);
+      return k < 0 ? (A.a || A.cyc[1]).i : A.cyc[(k + 1) % A.cyc.length].i;
+    };
+    const kls = (st, off) => !st ? "n" : off ? "x" : ((+st.pts || 0) < 0 ? "w" : "y");   // «متأخر» حاضرٌ بدرجة سالبة
+    const chip = (i, s) => {
+      const st = pick[i] != null ? STATES[pick[i]] : null, off = attOff(st);
+      return `<button type="button" class="atc ${kls(st, off)}" data-i="${i}"><span class="ai">${st ? ST_ICON(st.name || "") : "⭕️"}</span><span class="an">${esc(s.n)}</span><span class="as">${st ? esc(st.name) : "لم تُرصد"}</span></button>`;
+    };
+    const setChip = (b) => { const i = +b.dataset.i; const st = pick[i] != null ? STATES[pick[i]] : null, off = attOff(st);
+      b.className = "atc " + kls(st, off);
+      b.querySelector(".ai").textContent = st ? ST_ICON(st.name || "") : "⭕️";
+      b.querySelector(".as").textContent = st ? st.name : "لم تُرصد";
+    };
+    const tally = () => { let h = 0, w = 0, n = 0; list.forEach(({ i }) => { const st = pick[i] != null ? STATES[pick[i]] : null; if (!st) n++; else if (attOff(st)) w++; else h++; }); return { h, w, n }; };
+    const commit = () => {
+      const T = tally();
+      let ch = 0;
+      Object.keys(pick).forEach(k => { const i = +k; if (pick[i] == null) return; const e = rec(cid, dt, i, true); if (e.a !== pick[i]) { e.a = pick[i]; ch++; } });
+      if (ch) save("recs:" + cid);
+      closeLiveBox();
+      const redraw = () => {
+        if (liveCid !== cid || liveDate !== dt) return;
+        if (liveMainView === "roster") drawLiveRoster(); else if (liveMainView === "wheel") liveView("wheel");
+        drawLiveBoard(true);
+      };
+      redraw();
+      if (regClass === cid && regDate === dt && document.getElementById("reg-list")) drawRows();
+      if (ch) undoBar(`👥 حضور ${c.name} — ${cntAr(T.h, "حاضر واحد", "حاضران", "حاضرين", "حاضراً")}${T.w ? " · " + cntAr(T.w, "غائب واحد", "غائبان", "غائبين", "غائباً") : ""}`, () => {
+        restoreDay(cid, dt, snap); redraw();
+        if (regClass === cid && regDate === dt && document.getElementById("reg-list")) drawRows();
+      });
+      if (after) after();
+    };
+    const T0 = tally();
+    openLiveBox(`<button type="button" class="lx" id="at-x" title="إغلاق">✕</button>
+      <h4>👥 ${had ? "تعديل الحضور" : "سجّل الحضور أولاً"}</h4>
+      <div class="cur"><b>${esc(c.name)}</b> · ${had ? "انقر الاسم ليدور: ❌ غائب ← ⏰ متأخر ← 🚪 مستأذن ← ✅ حاضر" : "اضغط «✓ الكل حاضر» ثم انقر الغائبين — ولن تعود هذه الشاشة"}</div>
+      <div class="attsum"><span class="y" id="at-h">✅ ${T0.h}</span><span class="x" id="at-w">🚫 ${T0.w}</span><span class="n" id="at-n">⭕️ ${T0.n} بلا حالة</span>
+        <button type="button" class="ab" id="at-all">✓ ${had ? "أكمل الباقي حاضرين" : "الكل حاضر"} (${T0.n})</button></div>
+      <div class="attgrid">${list.map(o => chip(o.i, o.s)).join("")}</div>
+      <div class="grid" style="margin-top:10px"><button type="button" class="act g" id="at-ok" style="grid-column:1/-1">✅ تم — ابدأ الحصة</button></div>`,
+      (o) => {
+        const paint = () => {
+          const T = tally();
+          const hEl = o.querySelector("#at-h"), wEl = o.querySelector("#at-w");
+          hEl.textContent = "✅ " + T.h + " حاضر"; hEl.hidden = !T.h;
+          wEl.textContent = "🚫 " + T.w + " غياب"; wEl.hidden = !T.w;
+          const nEl = o.querySelector("#at-n"), all = o.querySelector("#at-all");
+          nEl.textContent = "⭕️ " + T.n + " بلا حالة"; nEl.hidden = !T.n;
+          all.hidden = !T.n; all.textContent = "✓ " + ((T.h || T.w) ? "أكمل الباقي حاضرين" : "الكل حاضر") + " (" + T.n + ")";
+        };
+        // تحديثٌ في موضعه لا إعادة رسم: قائمة 24 اسماً تُمرَّر، وإعادة الرسم تُرجع التمرير إلى أعلى بعد كل نقرة
+        o.querySelectorAll(".atc").forEach(b => b.onclick = () => { const i = +b.dataset.i; pick[i] = nx(pick[i]); setChip(b); paint(); });
+        // يملأ غير المرصود وحده دائماً: معلمٌ نقر الغائبين أولاً ثم ضغط هذا الزر كان يفقد نقراته كلها
+        o.querySelector("#at-all").onclick = () => { list.forEach(({ i }) => { if (pick[i] == null) pick[i] = A.p.i; }); o.querySelectorAll(".atc").forEach(setChip); paint(); };
+        o.querySelector("#at-ok").onclick = commit;
+        o.querySelector("#at-x").onclick = commit;   // ✕ يحفظ ما نُقر فعلاً: نقرةُ المعلم بيانات، وشريط التراجع يغطّيها
+        paint();
+      }, true);
+  }
+  function attAsk() {
+    if (!liveCid || !$("#view-live") || $("#view-live").classList.contains("hidden")) return;
+    const k = liveCid + "|" + liveDate;
+    if (attAsked.has(k)) return;                                   // ظهرت في هذه الجلسة: لا تعود
+    if (classDayMark(liveCid, liveDate).done) return;               // مرصود من التحضير: لا تظهر إطلاقاً
+    attAsked.add(k);
+    attSheet();
   }
   function liveMarkAllPresent() {
     const cid = liveCid, dt = liveDate, c = classById(cid), snap = snapDay(cid, dt);
@@ -3160,15 +3388,20 @@
   }
   function drawLiveRoster() {
     if (liveMainView !== "roster") return;
-    const c = classById(liveCid), calc = classCalc(liveCid), box = $("#live-main"); if (!box) return;
-    box.innerHTML = liveAttBar() + `<div class="live-roster">` + activeStudents(c).map(({ s, i }) => {
+    const S = liveSplit(), c = S.c, calc = classCalc(liveCid), box = $("#live-main"); if (!box) return;
+    const rows = S.here.concat(S.none).sort((a, b) => a.i - b.i);   // ترتيب الفصل نفسه، بلا بطاقات الغائبين
+    const cards = rows.map(({ s, i }) => {
       const p = calc[i].t.pts, e = liveRec(i), has = e.a != null && !!STATES[e.a];
-      const away = has && liveAway(i), pv = has ? (+STATES[e.a].pts || 0) : 0;
-      const cls = !has ? "st-none" : away ? "st-away" : pv < 0 ? "st-warn" : "st-ok";
-      const ic = has ? `<div class="ric" title="${esc(STATES[e.a].name)}">${ST_ICON(STATES[e.a].name || "")}</div>` : "";
+      const pv = has ? (+STATES[e.a].pts || 0) : 0;
+      const cls = !has ? "st-none" : pv < 0 ? "st-warn" : "st-ok";
+      const ic = has ? `<div class="ric" title="${esc(STATES[e.a].name)}">${ST_ICON(STATES[e.a].name || "")}</div>` : `<div class="ric" title="لم تُرصد حالته">⭕️</div>`;
       return `<div class="rcard ${cls}" data-i="${i}"><div class="rrk">#${calc[i].rank}</div>${ic}<div class="rn">${esc(s.n)}</div><div class="rp ${p < 0 ? "neg" : ""}">${p}</div></div>`;
-    }).join("") + `</div><div class="btip">اضغط الاسم للتقييم · <b>ضغطة مطوّلة = غائب</b> مباشرة</div>`;
+    }).join("");
+    box.innerHTML = liveRosterHead(S) + `<div class="live-roster">`
+      + (rows.length ? cards : `<div class="empty-note" style="grid-column:1/-1;color:#c9d5e3">لا أحد في القائمة: كل الطلاب مرصودون غياباً أو استئذاناً — اضغط «👥 تعديل الحضور» لتصحيح الحضور.</div>`)
+      + `</div>` + (rows.length ? `<div class="btip">اضغط الاسم للتقييم · <b>ضغطة مطوّلة = غائب</b> (يخرج من القائمة فوراً)</div>` : "");
     const ap = box.querySelector("#lv-allp"); if (ap) ap.onclick = liveMarkAllPresent;
+    const at = box.querySelector("#lv-att"); if (at) at.onclick = () => attSheet();
     const hb = box.querySelector("#lv-help"); if (hb) hb.onclick = () => keysHelp(true);
     box.querySelectorAll(".rcard").forEach(bindRosterCard);
   }
@@ -3201,14 +3434,14 @@
   /* الافتراضي = الأربعة المدفونة خلف الطيّ (مميز · مخالف · غائب · متأخر) لا 🙋 و📚:
      هذان في القسم المفتوح دائماً فوقهما، وتكرارهما في الصفّ يضيّع نصف الصفّ بلا فائدة. */
   function favDefault() {
-    const bp = BEH[behIndex("مميز", true)] || null, bn = BEH[behIndex("مخالف", false)] || null;
-    const sa = STATES.find(x => /غائب/.test(x.name || "")) || STATES[1] || null;
-    const sl = STATES.find(x => /متأخر/.test(x.name || "")) || null;
+    const v = assessView(BEH);
     const out = [];
-    if (bp) out.push("beh|" + bp.name);
-    if (bn && (!bp || bn.name !== bp.name)) out.push("beh|" + bn.name);
-    if (sa) out.push("state|" + sa.name);
-    if (sl && (!sa || sl.name !== sa.name)) out.push("state|" + sl.name);
+    const add = (b) => { if (!b) return; const t = "beh|" + b.name; if (out.length < 4 && out.indexOf(t) < 0) out.push(t); };
+    ["مميز", "مخالف", "حفظ", "التحدث أثناء الشرح"].forEach(n => add(v.find(x => x.name === n)));
+    if (out.length < 4) {                                  // مكتبة عدّلها المدير: أعلى الموجب ثم أدنى السالب
+      v.slice().sort((a, b) => b.pts - a.pts).forEach(b => { if (b.pts > 0) add(b); });
+      v.slice().sort((a, b) => a.pts - b.pts).forEach(b => { if (b.pts < 0) add(b); });
+    }
     return out.length ? out.slice(0, 4) : ["part", "hw"];
   }
   function favGet() {
@@ -3222,8 +3455,7 @@
     return [{ t: "part", lbl: "🙋 مشاركة", pts: W.part, cls: "g" },
       { t: "hw", lbl: "📚 واجب ✓", pts: W.hw, cls: "b" },
       { t: "hwno", lbl: "📚 لم يحلّ", pts: 0, cls: "r" }]
-      .concat(STATES.map(x => ({ t: "state|" + x.name, lbl: ST_ICON(x.name || "") + " " + x.name, pts: +x.pts || 0, cls: (+x.pts || 0) > 0 ? "b" : (+x.pts || 0) < 0 ? "r" : "n" })),
-        BEH.map(b => ({ t: "beh|" + b.name, lbl: ((+b.pts || 0) < 0 ? "⚠ " : "⭐ ") + b.name, pts: +b.pts || 0, cls: (+b.pts || 0) > 0 ? "g" : (+b.pts || 0) < 0 ? "r" : "n" })));
+      .concat(assessView(BEH).map(b => ({ t: "beh|" + b.name, lbl: ((+b.pts || 0) < 0 ? "⚠ " : "⭐ ") + b.name, pts: +b.pts || 0, cls: (+b.pts || 0) > 0 ? "g" : (+b.pts || 0) < 0 ? "r" : "n" })));
   }
   const favFind = (tok) => favAll().find(x => x.t === tok) || null;
   // رمز ⇒ (k, idx) اللذين تفهمهما applyLive
@@ -3257,45 +3489,41 @@
   }
   /* ═══ نافذة التقييم ═══
      كانت 1015px فيها 26 زراً بلا ✕ ولا صفٍّ سريع: زر الإغلاق يحتاج تمريراً داخل نافذة يفتحها
-     المعلم عشرين مرة في الحصة. الآن: ✕ ثابت، وأربعة أزرار مثبَّتة في الأعلى، والقسمان الطويلان مطويّان. */
+     المعلم عشرين مرة في الحصة. الآن: ✕ ثابت، وأربعة أزرار مثبَّتة في الأعلى.
+     وثلاثة أقسام فقط: 🙋 المشاركة · 📚 الواجب · ⭐ السلوك. لا قسم حضور ولا حالةٌ في «الأكثر استعمالاً»:
+     الحضور صار له شاشته السريعة وزر 👥 في رأس الحصة، والقائمة هنا للحاضرين وحدهم فلا معنى لخانة غياب
+     في نافذة طالبٍ حاضر — وكانت أطول قسم في النافذة وأكثر ما يُنقر خطأً بجوار السلوكيات. */
   function liveActions(i, ev) {
     const c = classById(liveCid), calc = classCalc(liveCid);
     const e = liveRec(i);
     const favs = favGet().map(t => ({ t, x: favFind(t), a: favArgs(t) })).filter(o => o.x && o.a);
     const favHtml = favs.map(o => `<button class="act ${o.x.cls}" data-k="${esc(o.a.k)}"${o.a.idx != null ? ` data-i="${o.a.idx}"` : ""}>${esc(o.x.lbl)} <small>${signN(o.x.pts)}</small></button>`).join("");
-    const states = STATES.map((st, k) => `<button class="act ${(+st.pts || 0) > 0 ? "b" : (+st.pts || 0) < 0 ? "r" : "n"} ${e.a === k ? "on" : ""}" data-k="state" data-i="${k}">${ST_ICON(st.name || "")} ${esc(st.name)} <small>${signN(st.pts || 0)}</small></button>`).join("");
-    const behs = BEH.map((b, k) => `<button class="act ${(+b.pts || 0) > 0 ? "g" : (+b.pts || 0) < 0 ? "r" : "n"}" data-k="beh" data-i="${k}">${(+b.pts || 0) > 0 ? "⭐" : (+b.pts || 0) < 0 ? "⚠" : "•"} ${esc(b.name)} <small>${signN(b.pts || 0)}</small></button>`).join("");
+    const behs = assessView(BEH).map(b => `<button class="act ${(+b.pts || 0) > 0 ? "g" : (+b.pts || 0) < 0 ? "r" : "n"}" data-k="beh" data-i="${b.i}">${(+b.pts || 0) > 0 ? "⭐" : (+b.pts || 0) < 0 ? "⚠" : "•"} ${esc(b.name)} <small>${signN(b.pts || 0)}</small></button>`).join("");
     const stCur = e.a != null && STATES[e.a] ? `${ST_ICON(STATES[e.a].name || "")} ${esc(STATES[e.a].name)}` : "لم تُرصد";
     openLiveBox(`<button type="button" class="lx" data-k="x" title="إغلاق">✕</button><h4>${esc(c.students[i].n)}</h4>
       <div class="cur">النقاط ${calc[i].t.pts} · الترتيب ${calc[i].rank} · الحالة: ${stCur}${e.part ? ` · مشاركات اليوم ${e.part}` : ""}</div>
       ${favHtml ? `<div class="lsec favh">📌 الأكثر استعمالاً <button type="button" class="favedit" id="fav-edit">تعديل</button></div><div class="grid favrow">${favHtml}</div>` : ""}
-      <div class="lsec">🙋 المشاركة والواجب</div>
+      <div class="lsec">🙋 المشاركة</div>
+      <div class="grid"><button class="act g" data-k="part" style="grid-column:1/-1">🙋 شارك <small>${signN(W.part)}</small></button></div>
+      <div class="lsec">📚 الواجب</div>
       <div class="grid">
-        <button class="act g" data-k="part">🙋 مشاركة <small>${signN(W.part)}</small></button>
-        <button class="act ${e.hw === 1 ? "on " : ""}b" data-k="hw">📚 واجب ✓ <small>${signN(W.hw)}</small></button>
-        <button class="act ${e.hw === 0 ? "on " : ""}r" data-k="hwno">📚 لم يحلّ الواجب <small>0</small></button>
+        <button class="act ${e.hw === 1 ? "on " : ""}b" data-k="hw">📚 حلّ الواجب ✓ <small>${signN(W.hw)}</small></button>
+        <button class="act ${e.hw === 0 ? "on " : ""}r" data-k="hwno">📚 لم يحلّ <small>0</small></button>
       </div>
-      <button type="button" class="lsec fold" data-sec="st">📌 الحالة <span class="cv">▾</span></button>
-      <div class="grid g3 hidden" data-body="st">${states}</div>
-      <button type="button" class="lsec fold" data-sec="bh">⭐ بقية السلوكيات <span class="cv">▾</span></button>
-      <div class="grid g3 hidden" data-body="bh">${behs}</div>
-      <div class="grid" style="margin-top:8px"><button class="act close" data-k="x" style="grid-column:1/-1">تم</button></div>`,
+      <div class="lsec">⭐ السلوك</div>
+      <div class="grid g3">${behs}</div>
+      <div class="grid" style="margin-top:10px"><button class="act close" data-k="x" style="grid-column:1/-1">تم</button></div>`,
       (o) => {
         o.querySelectorAll("[data-k]").forEach(b => b.onclick = () => { applyLive(i, b.dataset.k, b.dataset.i != null ? +b.dataset.i : null); closeLiveBox(); });
-        o.querySelectorAll("[data-sec]").forEach(b => b.onclick = () => {
-          const body = o.querySelector(`[data-body="${b.dataset.sec}"]`); if (!body) return;
-          const open = body.classList.toggle("hidden") === false;
-          b.classList.toggle("open", open);
-          if (open) try { body.scrollIntoView({ block: "nearest" }); } catch (x) { }
-        });
         const fe = o.querySelector("#fav-edit"); if (fe) fe.onclick = () => favSheet(i);
       });
   }
-  function openLiveBox(html, mount) {
+  // sticky: نقرةُ الخلفية لا تُغلق — شاشة الحضور السريعة لا يجوز أن تُصرَف بلمسة طائشة قبل تسجيل الحضور
+  function openLiveBox(html, mount, sticky) {
     closeLiveBox();                              // نافذةٌ تفتح فوق نافذة (تعديل «الأكثر استعمالاً» ثم العودة) كانت تترك عنصرين بالمعرّف نفسه
-    const d = document.createElement("div"); d.className = "live-act"; d.id = "live-act";
+    const d = document.createElement("div"); d.className = "live-act" + (sticky ? " sticky" : ""); d.id = "live-act";
     d.innerHTML = `<div class="box">${html}</div>`;
-    d.addEventListener("click", (e) => { if (e.target === d) closeLiveBox(); });
+    if (!sticky) d.addEventListener("click", (e) => { if (e.target === d) closeLiveBox(); });
     // ملء الشاشة لا يرسم إلا عنصر الملء وأبناءه: نافذة التقييم المُلحقة بـ body تصير غير مرئية وتبتلع النقرات
     (document.fullscreenElement || document.body).appendChild(d); if (mount) mount(d);
   }
@@ -4558,119 +4786,18 @@
     }
   }
 
-  /* ═══════════ بوابة الطالب ═══════════ */
-  async function renderStudent(sid) {
-    const [cid, si] = sid.split(":"); const i = +si;
-    const c = classById(cid); const s = c && c.students[i];
-    if (!c || !s || s.moved) { DB.session = null; DB.srole = null; save(); location.reload(); return; }
-    $("#view-login").classList.add("hidden");
-    const V = $("#view-student"); V.classList.remove("hidden");
-    V.innerHTML = `<div class="st-hero"><button class="btn-ghost out" id="st-out">خروج</button><div class="medal">🎒</div><div class="nm">${esc(s.n)}</div><div class="cl">${esc(c.name)} — ${esc(META.school.name)}</div></div>
-      <div class="seg"><button data-s="card" class="on">بطاقتي</button><button data-s="lessons">دروسي</button><button data-s="cert">شهادتي</button></div>
-      <div id="st-body"><div class="empty-note">جارِ التحميل…</div></div>`;
-    V.querySelector("#st-out").onclick = () => { DB.session = null; DB.srole = null; save(); setTimeout(() => location.reload(), 200); };
-    V.querySelectorAll(".seg button").forEach(b => b.onclick = () => { V.querySelectorAll(".seg button").forEach(x => x.classList.toggle("on", x === b)); stSection(b.dataset.s); });
-
-    // اجمع بيانات الطالب عبر كل معلميه + نقاط كل زملائه للترتيب ولوحة الشرف
-    const agg = { pts: 0, st: STATES.map(() => 0), part: 0, hwY: 0, days: 0, beh: {}, grades: [], rank: 0, board: [] };
-    const classPts = c.students.map(() => 0);
-    function addPts(e) {
-      let p = 0;
-      if (e.a != null && STATES[e.a]) p += (+STATES[e.a].pts || 0);
-      if (e.part) p += e.part * W.part;
-      if (e.hw === 1) p += W.hw;
-      if (e.sh) p += e.sh * W.sheets;
-      (e.beh || []).forEach(bi => { const b = BEH[bi]; if (b) p += (+b.pts || 0); });
-      return p;
-    }
-    async function gather() {
-      let recDocs = [], grDocs = [];
-      if (CLOUD && fdb) {
-        try {
-          const [rs, gs] = await Promise.all([fdb.collection("recs").get(), fdb.collection("grades").get()]);
-          rs.forEach(d2 => { if (d2.id.endsWith("_" + cid)) recDocs.push({ tid: d2.id.split("_")[0], d: (d2.data() || {}).d || {} }); });
-          gs.forEach(d2 => { if (d2.id.endsWith("_" + cid)) grDocs.push({ tid: d2.id.split("_")[0], g: (d2.data() || {}).g || {} }); });
-        } catch (e) { }
-      } else {
-        if (DB.recs[cid]) recDocs.push({ tid: "local", d: DB.recs[cid] });
-        if (DB.grades[cid]) grDocs.push({ tid: "local", g: DB.grades[cid] });
-      }
-      recDocs.forEach(rd => {
-        Object.values(rd.d).forEach(day => {
-          Object.keys(day).forEach(idx => { const e = day[idx]; if (e) classPts[idx] += addPts(e); });
-          const e = day[i]; if (!e) return; agg.days++;
-          if (e.a != null && STATES[e.a]) agg.st[e.a]++;
-          if (e.part) agg.part += e.part;
-          if (e.hw === 1) agg.hwY++;
-          (e.beh || []).forEach(bi => { if (BEH[bi]) agg.beh[bi] = (agg.beh[bi] || 0) + 1; });
-        });
-      });
-      classPts.forEach((v, k) => classPts[k] = Math.round(v * 10) / 10);
-      agg.pts = classPts[i];
-      const actK = activeStudents(c).map(x => x.i);
-      agg.rank = 1 + actK.filter(k => classPts[k] > classPts[i]).length;
-      agg.board = actK.map(k => ({ n: c.students[k].n, pts: classPts[k], k })).filter(x => x.pts > 0).sort((a, b) => b.pts - a.pts).slice(0, 5);
-      const maxTot = ASSESS.reduce((a, b) => a + b.max, 0);
-      grDocs.forEach(gd => {
-        const g = gd.g[i]; if (!g || !Object.keys(g).length) return;
-        let sum = 0; ASSESS.forEach(a => { const v = +g[a.k]; if (!isNaN(v)) sum += Math.min(v, a.max); });
-        const teacher = D.teachers.find(t => t.id === gd.tid);
-        agg.grades.push({ subj: teacher ? teacher.subject : "مادة", tot: Math.round(sum * 10) / 10, max: maxTot });
-      });
-    }
-    await gather();
-    // أظهر ترتيب الطالب في الترويسة
-    const cl = V.querySelector(".st-hero .cl");
-    if (cl && agg.rank && classPts.some(v => v > 0)) cl.innerHTML += ` · ترتيبي: <b style="color:var(--goldl)">${agg.rank}</b> من ${activeCount(c)}`;
-
-    function stSection(sec) {
-      const body = $("#st-body");
-      if (sec === "card") {
-        body.innerHTML = `<div class="kpis" style="margin:12px"><div class="kpi"><div class="v">${agg.pts}</div><div class="l">نقاطي</div></div><div class="kpi"><div class="v">${agg.st[0]}</div><div class="l">أيام حضوري</div></div><div class="kpi"><div class="v">${agg.hwY}</div><div class="l">واجباتي ✓</div></div></div>
-          <div class="card" style="margin:12px"><h3><span class="dot"></span>حضوري وسلوكي</h3>
-            <div class="countchips">${STATES.map((st, k) => agg.st[k] ? `<span class="cc" style="background:${STCOLORS[k]}">${esc(st.name)} ${agg.st[k]}</span>` : "").filter(Boolean).join("") || '<span style="color:var(--muted);font-size:13px">لا رصد بعد</span>'}</div>
-            <div class="countchips">${Object.keys(agg.beh).map(bi => `<span class="cc" style="background:${BEH[bi].pts >= 0 ? "var(--ok)" : "var(--bad)"}">${esc(BEH[bi].name)} ×${agg.beh[bi]}</span>`).join("")}</div></div>
-          <div class="card" style="margin:12px"><h3><span class="dot"></span>درجاتي</h3>${agg.grades.length ? `<div class="table-scroll"><table class="report-table"><tr><th>المادة</th><th>الدرجة</th><th>من</th></tr>${agg.grades.map(g => `<tr><td class="nm">${esc(g.subj)}</td><td><b>${g.tot}</b></td><td>${g.max}</td></tr>`).join("")}</table></div>` : '<div class="empty-note">لم تُرصد درجات بعد</div>'}</div>
-          <div class="card" style="margin:12px"><h3><span class="dot"></span>🏆 لوحة شرف فصلي</h3>${agg.board.length ? agg.board.map((b, k) => `<div class="al" style="${b.k === i ? "background:#fdf6e3;border-radius:10px;padding:6px 8px" : "padding:6px 2px"}"><span><b style="font-size:16px">${["🥇", "🥈", "🥉", "🎖️", "🎖️"][k]}</b> ${esc(b.n)}${b.k === i ? " <b style=\"color:var(--gold)\">(أنت)</b>" : ""}</span><span class="pts" style="color:var(--ok)">${b.pts}</span></div>`).join("") : '<div class="empty-note">كن أول المتميزين في فصلك 🌟</div>'}</div>`;
-      } else if (sec === "lessons") {
-        body.innerHTML = `<div class="empty-note">جارِ تحميل دروس هذا الأسبوع…</div>`;
-        loadStudentLessons(c, body);
-      } else {
-        const rank = "—", stars = "★".repeat(Math.max(1, Math.min(5, Math.round(agg.pts > 0 ? Math.min(5, agg.pts / 10 + 1) : 1))));
-        body.innerHTML = `<div class="cert"><div class="seal">🏆</div><div class="t">شهادة إنجاز</div>
-          <div class="body">تشهد ${esc(META.school.name)} بأن الطالب</div>
-          <div class="who">${esc(s.n)}</div>
-          <div class="body">من ${esc(c.name)} قد أظهر تفاعلاً وحرصاً في دروسه،<br>وجمع <b>${agg.pts}</b> نقطة. نسأل الله له دوام التوفيق والتميّز.</div>
-          <div class="stars" style="color:var(--gold)">${stars}</div>
-          <div class="foot"><span>${esc(hijriLabel())}</span><span>إدارة المدرسة</span></div>
-          <button class="btn-gold no-print" style="margin-top:14px" id="st-cert-print">🖨️ طباعة الشهادة (تصميم فاخر)</button></div>`;
-        const pb = body.querySelector("#st-cert-print"); if (pb) pb.onclick = () => printCertificate(cid, i, agg.pts);
-      }
-    }
-    stSection("card");
-  }
-  async function loadStudentLessons(c, body) {
-    const wk = curWeek();
-    // مواد فصله = مواد المعلمين الذين يدرّسونه
-    const subs = [...new Set(D.teachers.filter(t => (t.classes || []).includes(c.id)).map(t => t.subject))];
-    let html = `<div style="text-align:center;margin:12px"><span class="weekpill">دروس الأسبوع ${wk}</span></div>`;
-    let any = false;
-    for (const subj of subs) {
-      const sc = subjCode(subj); if (!sc) continue;
-      const code = sc + c.gc + TERM, rows = (await loadCurr(code)).filter(r => r.w === wk);
-      const main = rows.find(r => r.lesson && !String(r.lesson).includes("تابع")) || rows[0];
-      if (!main) continue;
-      const nm = main.lesson, off = String(nm).includes("إجازة"); any = true;
-      html += `<div class="lesson-card"><div class="sj">${esc(subj)}</div><div class="ls">${esc(nm)}</div>${off ? '<span style="color:var(--muted)">إجازة</span>' : `<a class="btn-gold" target="_blank" rel="noopener" href="${lessonURL(code, wk)}">🚀 ابدأ الدرس التفاعلي</a>`}</div>`;
-    }
-    body.innerHTML = any ? html : '<div class="empty-note">لا دروس تفاعلية متاحة لهذا الأسبوع</div>';
-  }
+  /* بوابة الطالب صارت صفحة مستقلة s/ (دخول بالهوية، خمسة تبويبات، شهادة تُحفظ صورةً).
+     وشاشتها القديمة داخل هذا الملف (renderStudent وloadStudentLessons) كانت شاشةً ميتة: لا نداء
+     لها في المشروع، وسطر الإقلاع يمحو أي جلسة srole==="student" أصلاً — فحُذفت بشهادتها المكرّرة
+     كي لا تُصان شهادتان ولا تفترق إحداهما عن الأخرى. الشهادة المطبوعة هنا: printCertificate. */
 
   /* ═══ واجهة عامة للوحدات الخارجية (js/admin/*.js): الحالة الحية عبر getters — لا تُنسخ القيم وقت التحميل ═══ */
   window.SIJIL = {
     get D() { return D; }, get DB() { return DB; }, get TE() { return TE; }, set TE(v) { TE = v; }, get fdb() { return fdb; },
     get META() { return META; }, get ASSESS() { return ASSESS; }, get STATES() { return STATES; }, get BEH() { return BEH; }, get W() { return W; }, get TERM() { return TERM; },
     get MOVES_OK() { return MOVES_OK; }, MOVE_CONFLICTS, CLOUD, SALT, KEY, DAYS, GNAME, STCOLORS, SUBS, DEFAULT_ASSESS, PRINT_CSS,
+    // مكتبة التقييمات (cfg/assess): النموذج هنا، والتحقق والحفظ في js/admin/core.js
+    assessDefault, assessEff, assessApply, assessView, assessMerge, ASSESS_C, ASSESS_CK, ASSESS_WK, ASSESS_MAX,
     $, esc, clone, save, syncBadge, mergeComms, rec,
     classById, myClasses, activeStudents, activeCount, isActive, applyMoves, applySedits, refreshMoves, absorbMoves, moveId, migrateMove, classPointsMap, adminMoves,
     calcStudent, classCalc, autoGrade, effGrades, gradeTotal, gradedMax, gradePct, hasGrades, levelOf, attPct, maxTotal, pctCell, daySeries, trendOf, studentSummary,
