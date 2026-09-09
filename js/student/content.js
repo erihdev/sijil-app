@@ -701,7 +701,7 @@
     if (!LS) return;
     try { if (LS.audio) { LS.audio.pause(); LS.audio.src = ""; LS.audio = null; } } catch (e) { }
     try { if (LS.timer) { clearInterval(LS.timer); LS.timer = null; } } catch (e) { }
-    try { window.speechSynthesis && window.speechSynthesis.cancel(); } catch (e) { }
+    try { window.speechSynthesis && window.speechSynthesis.cancel(); } catch (e) { }   // ويوقف سرد القصة أيضاً
   }
   function lsBox() { return LS ? LS.ov.querySelector("#ls-main") : null; }
   function lsEmpty(msg) { return '<div class="lse">' + esc(msg) + '</div>'; }
@@ -757,10 +757,14 @@
       + '<div class="story-text" id="ls-tx"></div>'
       + '<div class="story-player"><div class="story-seek" id="ls-seek"><div class="story-seek-fill" id="ls-fill"></div></div>'
       + '<div class="story-ctrl"><span class="story-time" id="ls-tm" dir="ltr">—</span>'
+      + '<button class="story-rate" id="ls-rate" title="سرعة السرد"></button>'
       + '<button class="go soft small" id="ls-prev" style="min-width:92px">◀ السابق</button>'
       + '<button class="go gold small" id="ls-next" style="min-width:92px">التالي ▶</button>'
       + '</div></div></div></div>';
     var vEl = byId(box, "#ls-v"), tEl = byId(box, "#ls-tx"), fill = byId(box, "#ls-fill"), tm = byId(box, "#ls-tm");
+    var rateBtn = byId(box, "#ls-rate"), rate = narrRate();
+    function paintRate() { if (rateBtn) rateBtn.textContent = NARR_LBL[String(rate)] || (rate + "×"); }
+    paintRate();
     function show(k) {
       i = Math.max(0, Math.min(scenes.length - 1, k));
       var sc = scenes[i];
@@ -776,9 +780,14 @@
     show(0);
     // صوتٌ مسجَّل لهذا الدرس؟ فهرسٌ واحد يُجلب مرة (كما في js/app.js:audioHas) فلا طلب فاشل
     lsAudioHas(key).then(function (has) {
-      if (!has || !LS || LS.v !== "story") return;
+      if (!LS || LS.v !== "story") return;
+      /* لا تسجيل لهذا الدرس؟ يقرؤه صوت المتصفح. التسجيلات موجودة في مادةٍ واحدة من إحدى
+         عشرة، فكان الطفل في بقية المواد يفتح القصة صامتة تماماً. */
+      if (!has) { lsSpeak(box, scenes, show, fill, tm); return; }
       var a = new Audio(); a.preload = "auto"; a.src = url("data/lessons/audio/" + key + ".mp3");
+      a.volume = NARR_VOL; a.playbackRate = rate;          // المتصفح يحفظ طبقة الصوت
       LS.audio = a;
+      if (rateBtn) rateBtn.onclick = function () { rate = narrNext(rate); narrSet(rate); a.playbackRate = rate; paintRate(); };
       var lens = scenes.map(function (x) { return Math.max(6, String(x.t || "").length); });
       var tot = lens.reduce(function (p, c) { return p + c; }, 0), bnd = [], acc = 0;
       lens.forEach(function (l) { bnd.push(acc / tot); acc += l; }); bnd.push(1);
@@ -797,6 +806,80 @@
         else { a.pause(); pb.textContent = "▶️ اسمع القصة"; }
       };
     });
+  }
+  /* ═══ سرد القصة ═══
+     السرعة تُحفظ في الجهاز ويشترك فيها الصوت المسجَّل وصوت المتصفح — والافتراضي أهدأ من
+     الطبيعي: هذه قصةٌ تُروى لطفل. ونصّ النطق غير نصّ الشاشة: الإيموجي تُقرأ أسماءً طويلة،
+     والرموز تُقرأ حرفاً حرفاً، والجملة بلا نقطةٍ تُوصل بما بعدها بلا وقفة. والتشكيل — إن
+     وُجد في البيانات — هو ما يضبط النطق فلا يُمسّ (وحقل n المشكول يسبق نصّ الشاشة t). */
+  var NARR_KEY = "sijil.narr.rate";
+  var NARR_STEPS = [0.7, 0.85, 1, 1.15];
+  var NARR_LBL = { "0.7": "🐢 بطيء", "0.85": "🚶 هادئ", "1": "▶️ عادي", "1.15": "🐇 سريع" };
+  var NARR_VOL = 0.9;
+  function narrRate() {
+    var v = 0.85;
+    try { var r = parseFloat(localStorage.getItem(NARR_KEY)); if (r >= 0.6 && r <= 1.3) v = r; } catch (e) { }
+    return v;
+  }
+  function narrSet(v) { try { localStorage.setItem(NARR_KEY, String(v)); } catch (e) { } }
+  function narrNext(v) { var i = NARR_STEPS.indexOf(v); return NARR_STEPS[(i < 0 ? 1 : i + 1) % NARR_STEPS.length]; }
+  var TTS_SYM = [[/\u066A|%/g, " بالمئة "], [/=/g, " يساوي "], [/\+/g, " زائد "],
+    [/×|\*/g, " ضرب "], [/÷/g, " على "], [/(\d)\s*\/\s*(\d)/g, "$1 على $2"],
+    [/&/g, " و "], [/<|>/g, " "], [/[_~^|]/g, " "]];
+  function ttsText(x) {
+    var t = String((x && typeof x === "object") ? (x.n || x.t || "") : (x || ""));
+    t = t.replace(/[\u{1F000}-\u{1FAFF}\u{2600}-\u{27BF}\u{FE0F}\u{2190}-\u{21FF}]/gu, " ");
+    TTS_SYM.forEach(function (p) { t = t.replace(p[0], p[1]); });
+    t = t.replace(/\s+/g, " ").trim();
+    if (t && !/[.؟!،؛:]$/.test(t)) t += ".";
+    return t;
+  }
+  function arVoice() {
+    try {
+      var vs = window.speechSynthesis.getVoices() || [];
+      var ar = vs.filter(function (v) { return (v.lang || "").toLowerCase().indexOf("ar") === 0; });
+      if (!ar.length) return null;
+      var score = function (v) {
+        var n = ((v.name || "") + " " + (v.lang || "")).toLowerCase(), sc = 0;
+        if (/ar-sa/.test((v.lang || "").toLowerCase())) sc += 6;
+        if (/hamed|naayf|zariyah|salma|saudi/.test(n)) sc += 4;
+        if (/online|natural|neural/.test(n)) sc += 5;
+        return sc;
+      };
+      return ar.slice().sort(function (a, b) { return score(b) - score(a); })[0];
+    } catch (e) { return null; }
+  }
+  /* قراءة القصة كاملةً بصوت المتصفح: مقطعٌ واحد متصل (لا جملةً جملة، فالوقفات بينها
+     مزعجة)، والصورة تتقدّم مع موضع القارئ عبر onboundary حيث يتوفّر. */
+  function lsSpeak(box, scenes, show, fill, tm) {
+    if (!("speechSynthesis" in window)) { var t0 = byId(box, "#ls-tm"); if (t0) t0.textContent = "—"; return; }
+    var full = scenes.map(ttsText).filter(Boolean).join(" ");
+    if (!full) return;
+    var rateBtn = byId(box, "#ls-rate"), rate = narrRate(), playing = false;
+    var pb = document.createElement("button");
+    pb.className = "go gold small"; pb.style.minWidth = "112px"; pb.textContent = "▶️ اسمع القصة";
+    var ctrl = box.querySelector(".story-ctrl"); if (ctrl) ctrl.appendChild(pb);
+    var v = arVoice();
+    var sh = byId(box, "#ls-sh");
+    if (sh && !sh.textContent) sh.textContent = v ? "🎙️ يقرؤها جهازك" : "لأنقى صوت افتح في Edge";
+    function speak() {
+      try { window.speechSynthesis.cancel(); } catch (e) { }
+      var u = new SpeechSynthesisUtterance(full);
+      u.lang = "ar-SA"; if (v) u.voice = v; u.rate = rate; u.pitch = 0.95; u.volume = NARR_VOL;
+      u.onboundary = function (ev) {
+        var f = full.length ? (ev.charIndex || 0) / full.length : 0;
+        var k = Math.min(scenes.length - 1, Math.floor(f * scenes.length));
+        show(k); if (fill) fill.style.width = Math.round(f * 100) + "%";
+      };
+      u.onend = function () { playing = false; pb.textContent = "🔁 أعِد"; if (fill) fill.style.width = "100%"; };
+      try { window.speechSynthesis.speak(u); } catch (e) { }
+    }
+    pb.onclick = function () {
+      if (!playing) { playing = true; pb.textContent = "⏸️ إيقاف"; show(0); speak(); }
+      else { playing = false; pb.textContent = "▶️ اسمع القصة"; try { window.speechSynthesis.cancel(); } catch (e) { } }
+    };
+    // تغيير السرعة أثناء القراءة يُعيدها من أولها: المحرّك لا يقبل تعديلها جارية
+    if (rateBtn) rateBtn.onclick = function () { rate = narrNext(rate); narrSet(rate); if (playing) speak(); };
   }
   var LSAUD = null;
   function lsAudioHas(key) {

@@ -2989,6 +2989,36 @@
     if (d.summary) s.push({ v: "🌟", t: d.summary });
     return s;
   }
+  /* ═══ سرعة السرد وصوته ═══
+     المعلم اشتكى أن الصوت أسرع وأعلى مما ينبغي لطفلٍ في الثامنة. فالافتراضي صار 0.85
+     (أهدأ من الطبيعي بوضوح) والصوت 0.9، ومفتاحٌ في شريط المشغّل يغيّرها ويحفظها لهذا
+     الجهاز — يتبعه الصوت المسجَّل وصوت المتصفح معاً. */
+  const NARR_KEY = "sijil.narr.rate";
+  const NARR_STEPS = [0.7, 0.85, 1, 1.15];
+  const NARR_LBL = { 0.7: "🐢 بطيء", 0.85: "🚶 هادئ", 1: "▶️ عادي", 1.15: "🐇 سريع" };
+  function narrRate() {
+    let v = 0.85;
+    try { const raw = parseFloat(localStorage.getItem(NARR_KEY)); if (raw >= 0.6 && raw <= 1.3) v = raw; } catch (e) { }
+    return v;
+  }
+  function narrSet(v) { try { localStorage.setItem(NARR_KEY, String(v)); } catch (e) { } }
+  function narrNext(v) { const i = NARR_STEPS.indexOf(v); return NARR_STEPS[(i < 0 ? 1 : i + 1) % NARR_STEPS.length]; }
+  const NARR_VOL = 0.9;
+  /* نصّ النطق ≠ نصّ الشاشة: محرّك النطق يقرأ الرموز والإيموجي حرفاً حرفاً، ويصل الجُمل
+     بلا وقفة إن لم تنتهِ بنقطة. والتشكيل — إن وُجد في البيانات — يُترك كما هو لأنه هو
+     ما يضبط النطق (حقل n في المشهد يحمل النصّ المشكول حين يُضاف، وإلا فنصّ الشاشة). */
+  const TTS_SYM = [[/\u066A|%/g, " بالمئة "], [/=/g, " يساوي "], [/\+/g, " زائد "],
+    [/×|\*/g, " ضرب "], [/÷/g, " على "], [/(\d)\s*\/\s*(\d)/g, "$1 على $2"],
+    [/&/g, " و "], [/<|>/g, " "], [/[_~^|]/g, " "]];
+  function ttsText(x) {
+    let t = String((x && typeof x === "object") ? (x.n || x.t || "") : (x || ""));
+    // الإيموجي ورموز الترقيم المكررة: تُقرأ أسماءً طويلة أو تُربك الوقفات
+    t = t.replace(/[\u{1F000}-\u{1FAFF}\u{2600}-\u{27BF}\u{FE0F}\u{2190}-\u{21FF}]/gu, " ");
+    TTS_SYM.forEach(p => { t = t.replace(p[0], p[1]); });
+    t = t.replace(/\s+/g, " ").trim();
+    if (t && !/[.؟!،؛:]$/.test(t)) t += ".";        // وقفة في آخر كل مشهد
+    return t;
+  }
   const STORY_RATE = 1.12;
   function arVoice() {
     try {
@@ -3038,12 +3068,17 @@
           <div class="story-seek" id="st-seek"><div class="story-seek-fill" id="st-fill"></div></div>
           <div class="story-ctrl">
             <span class="story-time" id="st-time" dir="ltr">0:00 / 0:00</span>
+            <button class="story-rate" id="st-rate" title="سرعة السرد">🚶 هادئ</button>
             <button class="btn-primary" id="st-play" style="min-width:130px">▶️ تشغيل</button>
           </div>
         </div>
       </div></div>`;
     const vEl = box.querySelector("#story-v"), tEl = box.querySelector("#story-t");
     const fillEl = box.querySelector("#st-fill"), timeEl = box.querySelector("#st-time"), playBtn = box.querySelector("#st-play");
+    const rateBtn = box.querySelector("#st-rate");
+    let rate = narrRate();
+    const paintRate = () => { if (rateBtn) rateBtn.textContent = NARR_LBL[rate] || (rate + "×"); };
+    paintRate();
     // حدود المشاهد بحسب طول النص (لمزامنة الصورة مع الصوت الواحد)
     const lens = scenes.map(s => Math.max(6, (s.t || "").length));
     const totalLen = lens.reduce((a, b) => a + b, 0);
@@ -3062,6 +3097,9 @@
     if (scenes.some(s => s.img)) { const vh = box.querySelector("#st-vhint"); if (vh) vh.textContent = "الصور: Pixabay"; }
     if (hasAudio) {
       storyAudio.src = url;
+      storyAudio.volume = NARR_VOL;
+      storyAudio.playbackRate = rate;                 // المتصفح يحافظ على طبقة الصوت
+      if (rateBtn) rateBtn.onclick = () => { rate = narrNext(rate); narrSet(rate); storyAudio.playbackRate = rate; paintRate(); };
       const sync = () => {
         const dur = storyAudio.duration || 0, cur = storyAudio.currentTime || 0;
         const frac = dur ? cur / dur : 0;
@@ -3080,7 +3118,7 @@
     } else {
       // احتياط: قراءة القصة كاملة بصوت المتصفح كمقطع واحد متصل (بلا توقف بين الجمل)
       box.querySelector("#st-seek").style.display = "none";
-      const fullText = scenes.map(s => s.t).join(" ");
+      const fullText = scenes.map(ttsText).filter(Boolean).join(" ");
       let playing = false;
       const vhint = box.querySelector("#st-vhint");
       const v = arVoice();
@@ -3088,7 +3126,8 @@
       const speakAll = () => {
         try { window.speechSynthesis.cancel(); } catch (e) { }
         const u = new SpeechSynthesisUtterance(fullText);
-        u.lang = "ar-SA"; if (v) u.voice = v; u.rate = 1.0; u.pitch = 1;
+        // أهدأ وأخفض قليلاً: هذه قصةٌ تُروى لطفلٍ في الثامنة لا نشرةُ أخبار
+        u.lang = "ar-SA"; if (v) u.voice = v; u.rate = rate; u.pitch = 0.95; u.volume = NARR_VOL;
         // مزامنة الصورة عبر onboundary إن توفّر
         u.onboundary = (ev) => { const frac = fullText.length ? (ev.charIndex || 0) / fullText.length : 0; showScene(sceneAt(frac)); fillEl.style.width = (frac * 100) + "%"; };
         u.onend = () => { playing = false; playBtn.textContent = "↺ إعادة"; fillEl.style.width = "100%"; confetti(); };
@@ -3097,6 +3136,11 @@
       playBtn.onclick = () => {
         if (!playing) { playing = true; playBtn.textContent = "⏸ إيقاف"; showScene(0); speakAll(); }
         else { playing = false; playBtn.textContent = "▶️ تشغيل"; try { window.speechSynthesis.cancel(); } catch (e) { } }
+      };
+      // تغيير السرعة أثناء القراءة يُعيد النطق من أوله: محرّك المتصفح لا يقبل تعديلها جارية
+      if (rateBtn) rateBtn.onclick = () => {
+        rate = narrNext(rate); narrSet(rate); paintRate();
+        if (playing) speakAll();
       };
       showScene(0);
     }
@@ -4237,6 +4281,23 @@
     const scenes = (d && d.story) || [];
     const imgs = []; const seenCap = new Set();
     scenes.forEach(s => { if (s.img && s.cap && !seenCap.has(s.cap)) { seenCap.add(s.cap); imgs.push({ img: s.img, cap: s.cap, t: s.t }); } });
+    /* صور مرفقات الدرس: صور الدروس الجاهزة موجودة في المهارات الرقمية وحدها (51 درساً من
+       782)، فكانت «خمّن الصورة» معطَّلة عند كل معلمٍ آخر بلا سبب معلن. والمرفقات موجودة
+       أصلاً لكل درس (📎) وترفع صورها بيد المعلم — فتصير مصدراً ثانياً للّعبتين، واسم الملف
+       (بلا امتداده) هو الجواب. تُقرأ من الجهاز فلا طلب شبكة لكل صورة. */
+    const fileImgs = [], FF = (typeof FILES === "function") ? FILES() : (window.SIJIL_FILES || null);
+    try {
+      const arr = FF ? await FF.list("lesson", { code, wk }) : [];
+      const pics = (arr || []).filter(x => x && /^image\//.test(x.t || "")).slice(0, 8);
+      for (const r of pics) {
+        try {
+          const g = await FF.blobOf(r.id, r);
+          fileImgs.push({ img: URL.createObjectURL(g.blob), cap: String(r.n || "صورة").replace(/\.[a-z0-9]{2,5}$/i, "").slice(0, 40) });
+        } catch (e) { }
+      }
+    } catch (e) { }
+    if (!liveFresh(seq)) { fileImgs.forEach(x => { try { URL.revokeObjectURL(x.img); } catch (e) { } }); return; }
+    fileImgs.forEach(x => { if (!seenCap.has(x.cap)) { seenCap.add(x.cap); imgs.push(x); } });
     const hero = imgs[0];
     const L = ["أ", "ب", "ج", "د"];
     const bar = (title, extra) => `<div class="stage-bar"><button class="live-btn" id="gm-back">◀ الألعاب</button><span style="color:#fff;font-weight:800">${title}</span>${extra || ""}</div>`;
@@ -4286,16 +4347,19 @@
     }
     function menu() {
       stopGame();
-      const card = (g, ic, t, sub, on) => `<button class="gm-card" data-g="${g}" ${on ? "" : "disabled"}><span class="gm-ic">${ic}</span><b>${t}</b><small>${sub}</small></button>`;
-      box.innerHTML = `<div class="live-stage"><div class="stage-bar"><span style="color:#fff;font-weight:800">🎮 ألعاب الدرس${d ? ": " + esc(d.title) : ""}</span><span style="color:#9fb0c4;font-size:12px;margin-inline-start:auto">من صور الدرس ومصطلحاته وقصته</span></div>
+      /* البطاقة المعطَّلة تقول ما ينقصها: كان المعلم يرى بطاقةً رمادية لا تستجيب ولا تشرح،
+         فيظنّ اللعبة معطوبة. والسبب دائماً نقصُ محتوى، وله حلٌّ بيده. */
+      const card = (g, ic, t, sub, on, why) => `<button class="gm-card" data-g="${g}" ${on ? "" : "disabled"}><span class="gm-ic">${ic}</span><b>${t}</b><small>${on ? sub : "🔒 " + why}</small></button>`;
+      const NEED_IMG = "تحتاج صورتين — ارفعهما في 📎 المرفقات ويصير اسم الملف هو الجواب";
+      box.innerHTML = `<div class="live-stage"><div class="stage-bar"><span style="color:#fff;font-weight:800">🎮 ألعاب الدرس${d ? ": " + esc(d.title) : ""}</span><span style="color:#9fb0c4;font-size:12px;margin-inline-start:auto">${imgs.length ? "من صور الدرس ومصطلحاته وقصته" : "ارفع صور الدرس في 📎 المرفقات لتنفتح ألعاب الصور"}</span></div>
         <div class="gm-menu" ${hero ? `style="background-image:linear-gradient(rgba(10,20,32,.8),rgba(10,20,32,.96)),url('${hero.img}')"` : ""}>
-          ${card("guess", "🖼️", "خمّن الصورة", "تنكشف الصورة قطعة قطعة… من يعرفها أولاً يفوز بأكثر النقاط", imgs.length >= 2)}
-          ${card("memory", "🧠", "الذاكرة المصوّرة", "أربع بطاقات سريعة: طابق الصورة باسمها", imgs.length >= 2 || scenes.filter(x => x && x.img).length >= 2 || vocab.length >= 2)}
-          ${card("riddle", "🔤", "من أنا؟", "لغز المصطلح: تعريف وحروف مخفية… خمّن قبل أن تُكشف الحروف", vocab.length >= 3)}
-          ${card("order", "🧩", "رتّب القصة", "مشهد واحد في كل خطوة: أيّها أولاً؟ ثم ماذا بعده؟", scenes.length >= 3)}
-          ${card("teams", "⚔️", "تحدّي الفرق", "الفريق الأخضر ضد الذهبي: مؤقّت، سرقة السؤال، وعجلة تختار المجيب", bank.length >= 4)}
-          ${card("match", "🔗", "مطابقة المصطلحات", "صِل كل مصطلح بتعريفه ضد الساعة", vocab.length >= 3)}
-          ${card("ladder", "🪜", "سلّم المليون", "اصعد بالإجابات الصحيحة ومعك مساعدة 50:50", bank.length >= 3)}
+          ${card("guess", "🖼️", "خمّن الصورة", "تنكشف الصورة قطعة قطعة… من يعرفها أولاً يفوز بأكثر النقاط", imgs.length >= 2, NEED_IMG)}
+          ${card("memory", "🧠", "الذاكرة المصوّرة", imgs.length >= 2 ? "أربع بطاقات سريعة: طابق الصورة باسمها" : "أربع بطاقات سريعة: طابق المصطلح بتعريفه", imgs.length >= 2 || vocab.length >= 2, "تحتاج مصطلحين في الدرس أو صورتين في 📎 المرفقات")}
+          ${card("riddle", "🔤", "من أنا؟", "لغز المصطلح: تعريف وحروف مخفية… خمّن قبل أن تُكشف الحروف", vocab.length >= 3, "تحتاج ثلاثة مصطلحات في الدرس")}
+          ${card("order", "🧩", "رتّب القصة", "مشهد واحد في كل خطوة: أيّها أولاً؟ ثم ماذا بعده؟", scenes.length >= 3, "تحتاج قصةً من ثلاثة مشاهد")}
+          ${card("teams", "⚔️", "تحدّي الفرق", "الفريق الأخضر ضد الذهبي: مؤقّت، سرقة السؤال، وعجلة تختار المجيب", bank.length >= 4, "تحتاج أربعة أسئلة في بنك الدرس")}
+          ${card("match", "🔗", "مطابقة المصطلحات", "صِل كل مصطلح بتعريفه ضد الساعة", vocab.length >= 3, "تحتاج ثلاثة مصطلحات في الدرس")}
+          ${card("ladder", "🪜", "سلّم المليون", "اصعد بالإجابات الصحيحة ومعك مساعدة 50:50", bank.length >= 3, "تحتاج ثلاثة أسئلة في بنك الدرس")}
         </div>${!d ? '<div class="empty-note" style="color:#c9d5e3">لا محتوى لهذا الدرس بعد</div>' : ""}</div>`;
       box.querySelectorAll(".gm-card").forEach(b => b.onclick = () => ({ guess, memory, riddle, order, teams, match, ladder })[b.dataset.g]());
     }

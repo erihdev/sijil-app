@@ -29,10 +29,10 @@
   if (m !== "skip") { try { D.documentElement.classList.add("intro-bar"); } catch (e) { } }
   if (m === "full") { var a = function () { if (D.body) { D.body.classList.add("has-intro"); return 1; } };
     if (!a()) { try { new MutationObserver(function (x, o) { if (a()) o.disconnect(); }).observe(D.documentElement, { childList: true }); } catch (e) { } D.addEventListener("DOMContentLoaded", a); } }
-  try { var t = D.createElement("script"); t.src = "../js/intro-boot.js?v=61"; t.async = false; D.head.appendChild(t); } catch (e) { }
+  try { var t = D.createElement("script"); t.src = "../js/intro-boot.js?v=62"; t.async = false; D.head.appendChild(t); } catch (e) { }
 })();
 </script>
-<link rel="stylesheet" href="../css/intro.css?v=61">
+<link rel="stylesheet" href="../css/intro.css?v=62">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800;900&display=swap">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='46' fill='%230E2033'/><text x='50' y='68' font-size='52' text-anchor='middle' fill='%23D7A93F'>س</text></svg>">
 <style>
@@ -445,16 +445,18 @@ h2{font-size:19px;font-weight:800;color:var(--navy);margin:0 0 10px}
 .lsw .live-stage iframe{flex:1; width:100%; border:0; background:#fff}
 .lsw .stage-bar{background:rgba(255,255,255,.08); padding:8px 10px; display:flex; gap:8px; align-items:center; flex-wrap:wrap}
 .lsw .stage-bar input{flex:1; min-width:140px; padding:9px 12px; border-radius:8px; border:1px solid rgba(255,255,255,.3); background:rgba(255,255,255,.12); color:#fff; font-family:inherit; font-size:14px}
-.lsw .story{flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; position:relative; overflow:hidden; padding:24px; text-align:center; background:radial-gradient(900px 500px at 50% 0%,#1d3a5f,#0a1420)}
-.lsw .story-visual{font-size:min(30vw,190px); line-height:1; filter:drop-shadow(0 8px 20px rgba(0,0,0,.4)); display:flex; align-items:center; justify-content:center}
+.lsw .story{flex:1; display:flex; flex-direction:column; align-items:center; justify-content:flex-start; position:relative; overflow:hidden; padding:24px 24px 16px; text-align:center; background:radial-gradient(900px 500px at 50% 0%,#1d3a5f,#0a1420)}
+.lsw .story-visual{font-size:min(30vw,190px); line-height:1; filter:drop-shadow(0 8px 20px rgba(0,0,0,.4)); display:flex; align-items:center; justify-content:center; flex:0 1 auto; min-height:0; overflow:hidden; margin-top:auto}
 .lsw .story-img{max-height:min(48vh,360px); max-width:92%; border-radius:16px; box-shadow:0 10px 30px rgba(0,0,0,.5); object-fit:contain; background:#fff}
 .lsw .story-visual{animation:stpop .55s ease}
-.lsw .story-text{font-size:min(5.2vw,36px); font-weight:800; color:#eaf1f8; margin-top:26px; max-width:860px; line-height:1.85; animation:stfade .5s ease}
-.lsw .story-player{position:absolute; bottom:16px; left:16px; right:16px; display:flex; flex-direction:column; gap:10px; align-items:center}
+.lsw .story-text{font-size:min(5.2vw,36px); font-weight:800; color:#eaf1f8; margin:26px 0 auto; max-width:860px; line-height:1.85; animation:stfade .5s ease; max-height:38vh; overflow-y:auto; overscroll-behavior:contain; flex:0 1 auto; min-height:0}
+.lsw .story-player{position:static; width:100%; flex:none; margin-top:14px; display:flex; flex-direction:column; gap:10px; align-items:center}
 .lsw .story-seek{width:min(680px,92%); height:12px; background:rgba(255,255,255,.18); border-radius:8px; cursor:pointer; overflow:hidden}
 .lsw .story-seek-fill{height:100%; width:0; background:linear-gradient(90deg,var(--gold),var(--goldl)); border-radius:8px; transition:width .2s linear}
 .lsw .story-ctrl{display:flex; gap:10px; align-items:center; flex-wrap:wrap; justify-content:center}
 .lsw .story-time{color:#c9d5e3; font-size:13px; font-variant-numeric:tabular-nums; min-width:92px; text-align:center; direction:ltr; unicode-bidi:isolate}
+.lsw .story-rate{background:rgba(255,255,255,.12); color:#eaf1f8; border:1px solid rgba(255,255,255,.25); border-radius:10px; padding:7px 11px; font-family:inherit; font-size:13px; font-weight:800; cursor:pointer; white-space:nowrap}
+.lsw .story-rate:hover{background:rgba(255,255,255,.2)}
 .lsw .rl-scroll{flex:1; overflow-y:auto; background:#0a1420; border-radius:0 0 14px 14px}
 .lsw .rl-wrap{max-width:860px; margin:0 auto; padding:22px 20px 40px; color:#eaf1f8}
 .lsw .rl-title{font-size:min(6vw,38px); font-weight:800; color:var(--goldl); text-align:center; margin-bottom:16px}
@@ -483,10 +485,8 @@ h2{font-size:19px;font-weight:800;color:var(--navy);margin:0 0 10px}
 .lsw .rl-files .rf-i{background:rgba(255,255,255,.14); color:#fff; border:1px solid rgba(255,255,255,.28); border-radius:9px; padding:6px 11px; font-size:13px; font-weight:700; cursor:pointer; font-family:inherit; max-width:230px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
 .lsw .rl-files .rf-i:hover{background:rgba(255,255,255,.24)}
 .lsw .rl-files .rf-add{margin-inline-start:auto; background:var(--gold); color:var(--navy); border:0; border-radius:9px; padding:6px 12px; font-size:13px; font-weight:800; cursor:pointer; font-family:inherit}
-/* إطارا الحركة اللذان تستعملهما ‎.lsw .story-visual‎ و‎.lsw .story-text‎ أعلاه — أصلهما
-   css/app.css:439,441. بغيرهما يُهمل المتصفح خاصية animation بلا خطأ فلا حركة إطلاقاً. */
-@keyframes stpop{0%{transform:scale(.3) rotate(-8deg);opacity:0}60%{transform:scale(1.12)}100%{transform:scale(1);opacity:1}}
 @keyframes stfade{from{opacity:0;transform:translateY(24px)}to{opacity:1;transform:none}}
+@keyframes stpop{0%{transform:scale(.3) rotate(-8deg);opacity:0}60%{transform:scale(1.12)}100%{transform:scale(1);opacity:1}}
 /* ==STAGE-COPY-END== */
 /* شارة التبويب: عدد ما لم يُفتح بعد */
 #tabs button{position:relative}
@@ -601,7 +601,7 @@ h2{font-size:19px;font-weight:800;color:var(--navy);margin:0 0 10px}
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-check-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
-<script src="../js/fb.js?v=61"></script>
+<script src="../js/fb.js?v=62"></script>
 <script>
 /* ═══════════════════════════════════════════════════════════════════════════════════════
    سجلي — بوابة الطالب (نواة)
@@ -906,7 +906,7 @@ h2{font-size:19px;font-weight:800;color:var(--navy);margin:0 0 10px}
         if (!D.classes.length || !D.meta.states) throw new Error("data");
       } else {
         db = demoDb;
-        await loadScript("../js/demo-data.js?v=61");
+        await loadScript("../js/demo-data.js?v=62");
         const DEMO = window.DEMO || {};
         D.classes = JSON.parse(JSON.stringify(DEMO.classes || []));
         D.teachers = JSON.parse(JSON.stringify(DEMO.teachers || []));
@@ -1660,6 +1660,6 @@ h2{font-size:19px;font-weight:800;color:var(--navy);margin:0 0 10px}
   boot();
 })();
 </script>
-<script src="../js/student/content.js?v=61"></script>
+<script src="../js/student/content.js?v=62"></script>
 </body>
 </html>
