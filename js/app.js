@@ -4357,6 +4357,24 @@
   const shuffleQ = (a) => { a = a.slice(); for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
 
   // نافذة الإرسال — تُستدعى بأسئلة جاهزة (بنك الدرس أو ورقة المعلم)
+  /* فهرس الأوراق المرسلة لكل فصل: بوابة الطالب لا تستطيع سرد assign (وفتحه يسلّم الطفل
+     مفاتيح إجابات كل اختبارات المدرسة)، فيُكتب لها ملخّص بلا أسئلة ولا إجابات.
+     القائمة تنمو ولا تنقص كما تشترط القاعدة، وعند بلوغ السقف تُسقط الأقدم. */
+  async function idxAssign(cid, item) {
+    if (!CLOUD || !fdb || !cid || !item) return;
+    const ref = fdb.doc("assignidx/" + cid);
+    for (let attempt = 0; attempt < 2; attempt++) {
+      try {
+        const snap = await ref.get();
+        const cur = (snap.exists ? (snap.data() || {}).list : null) || [];
+        if (cur.some(x => x && x.a === item.a)) return;
+        let list = cur.concat([item]);
+        if (list.length > 190) list = list.slice(list.length - 190);
+        await ref.set({ list: list, tn: TE.name, ts: Date.now() }, { merge: false });
+        return;
+      } catch (e) { if (attempt) return; await new Promise(r => setTimeout(r, 600)); }
+    }
+  }
   async function sendSheet(code, wk, title, qs, cid) {
     if (!CLOUD || !fdb) { alert("الإرسال للطلاب يحتاج النسخة السحابية (ليس وضع التجربة)"); return; }
     if (!qs || !qs.length) { alert("لا أسئلة في هذه الورقة"); return; }
@@ -4420,6 +4438,13 @@
           retry: (+o.querySelector("#as-tries").value || 0) !== 1
         };
         try { await fdb.doc("assign/" + id).set(doc); } catch (e) { btn.disabled = false; btn.textContent = "🔗 أنشئ الرابط"; alert("تعذّر الإنشاء — تحقق من الاتصال"); return; }
+        // الفهرس ليس شرطاً لنجاح الإرسال: فشلُه لا يمنع الرابط، وأقصى أثره أن الورقة لا تظهر في بوابة الطالب
+        try {
+          await idxAssign(cur, {
+            a: id, t: title, due: doc.due || "", tid: TE.id, mode: mode,
+            n: clean.length, wk: wk, code: code, tries: doc.tries, ts: doc.ts
+          });
+        } catch (e) { }
         const url = ASSIGN_BASE + id;
         const due = doc.due ? new Date(doc.due).toLocaleString("ar-SA", { weekday: "long", hour: "numeric", minute: "2-digit" }) : "";
         const kind = mode === "ws" ? "ورقة عمل تفاعلية" : mode === "quiz" ? "اختبار قصير تفاعلي" : "سباق أسئلة";
