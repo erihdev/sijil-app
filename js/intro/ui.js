@@ -401,7 +401,8 @@
     });
     var cta = doc.createElement('a');
     cta.className = 'poster-enter';
-    cta.href = '#view-login';
+    // نهاية الجولة تُسلّم إلى المزايا والسعر، ومنهما إلى الدخول (ترتيب التمرير نفسه)
+    cta.href = '#view-pitch';
     cta.textContent = 'دخول';
     host.appendChild(cta);
     host.hidden = false;

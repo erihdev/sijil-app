@@ -316,6 +316,39 @@
     }
     return null;
   }
+/* ═══ إنشاء الفصول وتسميتها ═══
+   لا تعمل إلا في مساحة مدرسةٍ (window.SIJIL_SPACE): مدرستنا الأولى فصولها مزروعةٌ
+   بسكربت ومقفلةٌ للكتابة في القواعد، فإظهار الزر فيها وعدٌ لا يُنجَز. */
+  const canEditClasses = () => !!(window.SIJIL_SPACE);
+  const CLS_RE = /^[A-Za-z0-9]{1,12}$/;
+  async function saveClass(cid, rec) {
+    const s = S();
+    if (!s) return { ok: false, err: "التطبيق غير جاهز" };
+    if (!canEditClasses()) return { ok: false, err: "فصول هذه المدرسة تُدار من الإدارة العامة" };
+    if (!CLS_RE.test(String(cid || ""))) return { ok: false, err: "معرّف الفصل حروفٌ وأرقام إنجليزية (حتى ١٢)" };
+    const name = String(rec.name || "").trim();
+    if (!name || name.length > 40) return { ok: false, err: "اسم الفصل مطلوب (حتى ٤٠ حرفاً)" };
+    const gc = +rec.gc;
+    if (!(gc >= 1 && gc <= 12)) return { ok: false, err: "اختر الصف" };
+    const cur = s.classById(cid);
+    // الطلاب لا يُمسّون هنا أبداً: التسمية تُعيد كتابة المستند، وإسقاطهم يمحو فصلاً كاملاً
+    const students = (cur && Array.isArray(cur.students)) ? cur.students.map(x => ({ n: String((x || {}).n || ""), p: String((x || {}).p || "") })) : [];
+    const doc = { name: name, grade: String(rec.grade || (s.GNAME[gc] ? "الصف " + s.GNAME[gc] : "")).slice(0, 40),
+                  gc: gc, students: students, tn: (s.TE || {}).name || "", ts: Date.now() };
+    try {
+      if (s.CLOUD && s.fdb) await s.fdb.doc("classes/" + cid).set(doc);
+      const D = s.D; D.classes = D.classes || [];
+      const i = D.classes.findIndex(x => x.id === cid);
+      const local = Object.assign({ id: cid }, doc);
+      if (i >= 0) D.classes[i] = Object.assign({}, D.classes[i], local); else D.classes.push(local);
+      try { s.save(); } catch (e) { }
+      invalidate();
+      return { ok: true };
+    } catch (e) {
+      warn("saveClass", e && e.message);
+      return { ok: false, err: (e && e.code === "permission-denied") ? "لم يُعتمد هذا الجهاز برقمك — اعتمده من الشريط الأعلى" : "تعذّر الحفظ — تحقق من الاتصال" };
+    }
+  }
   async function registerStudentId(cid, si, nid) {
     const s = S();
     if (!s) return { ok: false, err: "التطبيق غير جاهز" };
@@ -1052,6 +1085,7 @@
     // أسماء إدارة المدرسة وسطر التواقيع
     schoolStaff, sigLine, saveStaff, validateStaff, STAFF_KEYS, STAFF_LBL,
     // تسجيل هوية طالب واحد (بوابته وصندوق رسائله)
+    saveClass, canEditClasses,
     registerStudentId, oldPinOf, unregisterStudentId, unregisterNid, hasStudentId, sidDigits, SED_MAX,
     // مكتبة التقييمات ودرجاتها (cfg/assess)
     assess, defaultAssess, validateAssess, saveAssess, assessLine, assessScore,

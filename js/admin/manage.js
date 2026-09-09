@@ -771,7 +771,13 @@
   /* ═══ (3) 🏫 الفصول ═══ */
   function classesHtml() {
     const s = S(), h = H(), Ad = A(), cls = Ad.sortedClasses();
-    if (!cls.length) return h.empty("لا فصول");
+    if (!cls.length) {
+      // مدرسةٌ جديدة تماماً: البداية من هنا، لا رسالة فراغٍ صمّاء
+      return (Ad.canEditClasses && Ad.canEditClasses())
+        ? '<div class="empty-note" style="text-align:right;line-height:2">مدرستك بلا فصول بعد. أنشئ فصولك أولاً، ثم أضف معلميك وأسند لكل معلم فصوله، ثم اكتب جدولك الأسبوعي.</div>'
+          + h.tools('<button class="btn-primary" id="mg-cls-add">➕ فصل جديد</button>')
+        : h.empty("لا فصول");
+    }
     const cards = cls.map(c => {
       const ts = (s.D.teachers || []).filter(t => (t.classes || []).includes(c.id));
       const ld = leaderOf(c.id), mv = nMoved(c);
@@ -779,11 +785,15 @@
         <div class="hd"><div><span class="t">${esc(c.name)}</span><span class="s">${esc(s.GNAME[c.gc] ? "الصف " + s.GNAME[c.gc] : c.id)} · ${esc(c.id)}</span></div><span class="b cc" style="background:var(--navy);padding:2px 9px;font-size:11px">${nActive(c)} طالباً</span></div>
         <div class="mt"><span>👥 نشط: <b>${nActive(c)}</b></span><span>🔁 منقول/خارج: <b>${mv}</b></span><span>📚 مواد: <b>${new Set(ts.map(t => t.subject).filter(Boolean)).size}</b></span><span>🎖️ الرائد: <b>${ld ? esc(ld.name) : "—"}</b></span></div>
         <div class="ch">${ts.length ? ts.map(t => `<span class="cc" style="background:var(--navy2)">${esc(shortName(t.name))} · ${esc(t.subject || "—")}</span>`).join("") : '<span style="color:#bbb;font-size:12px">لا معلمين</span>'}</div>
+        ${(Ad.canEditClasses && Ad.canEditClasses()) ? `<div style="margin-top:8px"><button class="btn-soft" style="padding:6px 12px;font-size:12.5px" data-clsedit="${esc(c.id)}">✏️ تعديل الفصل</button></div>` : ""}
       </div>`;
     }).join("");
     const tot = cls.reduce((a, c) => a + nActive(c), 0), totM = cls.reduce((a, c) => a + nMoved(c), 0);
+    // ➕ فصل جديد: للمدرسة التي تُدير فصولها بنفسها (مدرستنا الأولى مزروعةٌ بسكربت ومقفلة)
+    const canCls = !!(Ad.canEditClasses && Ad.canEditClasses());
     return h.kpis([{ v: cls.length, l: "فصلاً" }, { v: tot, l: "طالباً نشطاً" }, { v: totM, l: "منقولاً/خارجاً" }]) +
-      `<div class="mg-cards">${cards}</div>` + h.tools(h.printBtn("mg-p-cls", "🖨️ طباعة الفصول"));
+      `<div class="mg-cards">${cards}</div>` +
+      h.tools((canCls ? '<button class="btn-primary" id="mg-cls-add">➕ فصل جديد</button>' : "") + h.printBtn("mg-p-cls", "🖨️ طباعة الفصول"));
   }
 
   /* ═══ (4) 🗓️ الجدول الأسبوعي الكامل ═══ */
@@ -1172,6 +1182,8 @@
     bind(b, sd);
     try { drawLib(b); } catch (e) { warn("lib", e); }
     try { const sb = $("#mg-sids", b); if (sb) { sb.innerHTML = ""; sidCard(sb); } } catch (e) { warn("sids", e); }
+    try { const ab = $("#mg-cls-add", b); if (ab) ab.onclick = () => classSheet(null); } catch (e) { warn("clsadd", e); }
+    try { b.querySelectorAll("[data-clsedit]").forEach(x => x.onclick = () => classSheet(x.dataset.clsedit)); } catch (e) { warn("clsedit", e); }
     try { const fb = $("#mg-fix", b); if (fb) { fb.innerHTML = ""; fixCard(fb); } } catch (e) { warn("fix", e); }
   }
   const again = async () => { A().invalidate(); if (curBox) draw(curBox, await A().schoolDocs(true)); };
@@ -1438,6 +1450,43 @@
       try { await A.adminlog("idx", "إعادة بناء فهرس الأوراق: " + okc + " فصلاً"); } catch (e4) { }
       btn.disabled = false;
     };
+  }
+  /* ═══ ➕ فصل جديد / ✏️ تسميته ═══
+     المعرّف حروفٌ وأرقام إنجليزية لأنه يدخل في مسارات المستندات كلها (recs/{tid}_{cid}
+     وsids/{cid} وغيرها)، ولا يُغيَّر بعد إنشائه أبداً — تغييرُه ييتّم كل ما بُني عليه.
+     والاسم المعروض عربيٌّ حرّ ويُعدَّل متى شاء المدير. */
+  const GNUM = ["", "الأول", "الثاني", "الثالث", "الرابع", "الخامس", "السادس", "السابع", "الثامن", "التاسع", "العاشر", "الحادي عشر", "الثاني عشر"];
+  function classSheet(cid) {
+    const s = S(), Ad = A(), cur = cid ? s.classById(cid) : null;
+    const gOpts = GNUM.map((g, i) => i ? `<option value="${i}"${cur && +cur.gc === i ? " selected" : ""}>الصف ${g}</option>` : "").join("");
+    s.openSheet(`<h4>${cur ? "✏️ تعديل الفصل" : "➕ فصل جديد"}</h4>
+      <div class="field"><label>الصف</label><select id="cs-gc">${gOpts}</select></div>
+      <div class="field"><label>اسم الفصل كما يُعرض</label><input id="cs-name" maxlength="40" value="${cur ? s.esc(cur.name) : ""}" placeholder="مثال: أول (أ)"></div>
+      <div class="field"><label>معرّف الفصل (إنجليزي، لا يتغيّر بعد الإنشاء)</label>
+        <input id="cs-id" maxlength="12" value="${cur ? s.esc(cur.id) : ""}" placeholder="c1a"${cur ? " disabled" : ""}></div>
+      <div id="cs-out" class="empty-note" style="padding:6px 2px 0;text-align:right"></div>
+      <div class="sheet-actions"><button class="btn-plain" onclick="window._sheetClose()">إلغاء</button><button class="btn-primary" id="cs-go">💾 حفظ</button></div>`,
+    (o) => {
+      const out = o.querySelector("#cs-out"), go = o.querySelector("#cs-go");
+      const gc = o.querySelector("#cs-gc"), nm = o.querySelector("#cs-name"), id = o.querySelector("#cs-id");
+      // اقتراحٌ لطيف: أول فصلٍ في الصف الثالث ⇒ c3a واسمه «ثالث (أ)»
+      const AR = ["أ", "ب", "ج", "د", "هـ", "و", "ز", "ح"];
+      const suggest = () => {
+        if (cur) return;
+        const g = +gc.value || 1;
+        const same = (s.D.classes || []).filter(c => +c.gc === g).length;
+        if (!id.value.trim()) id.value = "c" + g + String.fromCharCode(97 + Math.min(same, 25));
+        if (!nm.value.trim()) nm.value = (GNUM[g] || "").replace("ال", "") + " (" + (AR[same] || (same + 1)) + ")";
+      };
+      gc.onchange = suggest; suggest();
+      go.onclick = async () => {
+        go.disabled = true; out.textContent = "جارِ الحفظ…";
+        const r = await Ad.saveClass((cur ? cur.id : (id.value || "").trim()), { name: nm.value, gc: +gc.value });
+        if (!r.ok) { go.disabled = false; out.innerHTML = '<span style="color:var(--bad)">' + s.esc(r.err || "تعذّر الحفظ") + '</span>'; return; }
+        try { await Ad.adminlog("class", (cur ? "تعديل فصل " : "فصل جديد ") + (nm.value || "")); } catch (e) { }
+        s.closeSheet(); again();
+      };
+    });
   }
   function sidCard(box) {
     var S = window.SIJIL, A = window.SIJIL_ADMIN;

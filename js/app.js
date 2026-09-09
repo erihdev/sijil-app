@@ -765,6 +765,8 @@
     await firebase.auth().signInAnonymously();
     // مساحة المدرسة: كل مسارٍ يُسبق بها (js/fb.js) — ومدرستنا الأولى في الجذر بلا بادئة
     fdb = (window.sijilSpaceDb ? window.sijilSpaceDb(firebase.firestore()) : firebase.firestore());
+    // مستند المساحة: اسم المدرسة وخطتها ومتى تنتهي تجربتها — قراءةٌ واحدة عند الإقلاع
+    try { await loadSpace(); } catch (e) { }
     const [metaS, teachS, clsS, schS] = await Promise.all([
       fdb.doc("meta/app").get(), fdb.collection("teachers").get(),
       fdb.collection("classes").get(), fdb.doc("schedule/all").get()]);
@@ -857,6 +859,13 @@
   const weakSeenKey = () => "sijil.pinweak.off." + ((TE && TE.id) || "");
   function initLogin() {
     $("#lg-school").textContent = META.school.name;
+    /* مدخل «مدرسة جديدة»: يظهر سحابياً لكل من يقف على شاشة الدخول — الزائر يؤسّس مدرسته
+       في ثوانٍ، ومعلمو مدرستنا لا يعنيهم فهو سطرٌ صغير أسفل البطاقة. */
+    const nb = $("#lg-new");
+    if (nb && CLOUD) { nb.hidden = false; nb.onclick = () => signupSchool(); }
+    const pb = $("#pt-start");
+    if (pb) pb.onclick = () => { if (CLOUD) signupSchool(); else alert("التجربة تحتاج النسخة السحابية"); };
+    try { trialBar(); } catch (e) { }
     const sel = $("#lg-teacher");
     sel.innerHTML = '<option value="">— اختر اسمك —</option>' +
       D.teachers.filter(t => (t.classes || []).length || t.admin || t.reg === true).map(t => `<option value="${t.id}">${esc(t.name)}${t.admin ? " (المدير)" : ""}</option>`).join("");
@@ -938,6 +947,8 @@
   async function enter(t) {
     TE = t;
     $("#view-login").classList.add("hidden");
+    // قسم المزايا والسعر يُخفى معها: هو للزائر لا لمن دخل
+    try { const pt = $("#view-pitch"); if (pt) pt.classList.add("hidden"); } catch (e) { }
     $("#view-app").classList.remove("hidden");
     $("#ab-who").textContent = t.name + " — " + (t.admin ? "مدير المدرسة" : t.subject);
     // 🎖️ شارة «رائد فصل» بجانب الاسم (js/admin/teachers.js) — بعد كتابة النص لأنها تستبدل محتوى #ab-who
@@ -5155,6 +5166,133 @@
     out.sort((a, b) => a - b);
     sidsCache[cid] = out; return out;
   }
+
+  /* ═══════════════ تأسيس مدرسة جديدة (تجربة ٧ أيام) ═══════════════
+     المدير يكتب ثلاثة أشياء: اسم مدرسته واسمه ورقم دخوله. فتُكتب أربعة مستندات بالترتيب،
+     كلٌّ منها يفتح الذي بعده ثم يُغلق على نفسه (انظر sp/{space} في firestore.rules):
+       sp/{code}                ← اسم المدرسة وخطتها ونهاية تجربتها، ومعرّف مديرها وبصمة رقمه
+       sp/{code}/teachers/t01   ← حساب المدير (وهو الوحيد الذي يُنشأ بصلاحية مدير)
+       sp/{code}/pins/{ph}      ← رقم دخوله
+       sp/{code}/meta/app       ← اسم المدرسة وسنتها ومكتبة التقييمات الافتراضية
+     ثم يُحفظ الرمز في الجهاز ويُعاد تحميل التطبيق داخل مدرسته الجديدة، فارغةً تماماً:
+     لا معلم غيره ولا فصل ولا طالب — يضيفهم من لوحته كما تفعل كل مدرسة. */
+  const TRIAL_DAYS = 7;
+  const SP_ALPHA = "abcdefghijklmnopqrstuvwxyz0123456789";
+  function spCode() {
+    let out = "";
+    try {
+      const a = new Uint8Array(8); crypto.getRandomValues(a);
+      for (const x of a) out += SP_ALPHA[x % SP_ALPHA.length];
+    } catch (e) { for (let i = 0; i < 8; i++) out += SP_ALPHA[Math.floor(Math.random() * SP_ALPHA.length)]; }
+    return out;
+  }
+  const spLink = (code) => location.origin + location.pathname.replace(/[^/]*$/, "") + "?s=" + code;
+  /* الأصل الخام بلا بادئة المساحة: التأسيس يكتب في مساحةٍ لم تُختر بعد */
+  function rawDb() {
+    if (fdb && fdb.__raw) return fdb.__raw;
+    try { return firebase.firestore(); } catch (e) { return null; }
+  }
+  async function signupSchool() {
+    if (!CLOUD) { alert("تسجيل مدرسة جديدة يحتاج النسخة السحابية"); return; }
+    openSheet(`<h4>🏫 مدرسة جديدة — تجربة ٧ أيام مجاناً</h4>
+      <div style="font-size:13.5px;color:var(--muted);line-height:1.9;margin-bottom:10px">تبدأ مدرستك فارغة تماماً: تضيف معلميك وفصولك وجدولك المعتمد، ويضيف كل معلم طلابه. بياناتك لا ترتبط بأي مدرسة أخرى.</div>
+      <div class="field"><label>اسم المدرسة</label><input id="ns-school" maxlength="80" placeholder="مثال: مدرسة النور الابتدائية"></div>
+      <div class="field"><label>اسمك (مدير المدرسة)</label><input id="ns-name" maxlength="80" placeholder="مثال: خالد بن محمد"></div>
+      <div class="field"><label>رقم دخولك (٦ أرقام تختارها وتحفظها)</label><input id="ns-pin" type="password" inputmode="numeric" maxlength="6" placeholder="••••••" autocomplete="off"></div>
+      <div class="field"><label>أعد رقم الدخول</label><input id="ns-pin2" type="password" inputmode="numeric" maxlength="6" placeholder="••••••" autocomplete="off"></div>
+      <div id="ns-out" class="empty-note" style="padding:6px 2px 0;text-align:right"></div>
+      <div class="sheet-actions"><button class="btn-plain" onclick="window._sheetClose()">إلغاء</button><button class="btn-primary" id="ns-go">🚀 أنشئ مدرستي</button></div>`, (o) => {
+      const out = o.querySelector("#ns-out"), go = o.querySelector("#ns-go");
+      const say = (t, bad) => { out.innerHTML = bad ? `<span style="color:var(--bad)">${t}</span>` : t; };
+      go.onclick = async () => {
+        const school = (o.querySelector("#ns-school").value || "").trim();
+        const name = (o.querySelector("#ns-name").value || "").trim();
+        const pin = (o.querySelector("#ns-pin").value || "").replace(/\D/g, "");
+        const pin2 = (o.querySelector("#ns-pin2").value || "").replace(/\D/g, "");
+        if (school.length < 3) return say("اكتب اسم المدرسة كاملاً", true);
+        if (name.length < 3) return say("اكتب اسمك كاملاً", true);
+        if (pin.length !== 6) return say("رقم الدخول ستة أرقام", true);
+        if (pin !== pin2) return say("الرقمان غير متطابقين", true);
+        go.disabled = true; say("جارِ إنشاء مدرستك…");
+        const db = rawDb();
+        if (!db) { go.disabled = false; return say("تعذّر الاتصال — أعد المحاولة", true); }
+        const code = spCode(), now = Date.now();
+        let ph = "";
+        try { ph = await sha256(pin + "|t01|" + SALT); } catch (e) { ph = ""; }
+        if (!/^[0-9a-f]{64}$/.test(ph)) { go.disabled = false; return say("تعذّر حساب البصمة على هذا المتصفح", true); }
+        const base = "sp/" + code + "/";
+        try {
+          await db.doc("sp/" + code).set({ name: school, plan: "trial", exp: now + TRIAL_DAYS * 864e5, ts: now, adm: "t01", ph: ph });
+          await db.doc(base + "teachers/t01").set({ name: name, subject: "الإدارة", classes: [], admin: true, reg: false, ts: now });
+          await db.doc(base + "pins/" + ph).set({ tid: "t01", ts: now });
+          await db.doc(base + "meta/app").set(newSchoolMeta(school));
+        } catch (e) {
+          go.disabled = false;
+          return say("تعذّر إنشاء المدرسة: " + ((e && (e.code || e.message)) || "خطأ غير معروف") + " — تحقق من الاتصال ثم أعد المحاولة", true);
+        }
+        try { localStorage.setItem("sijil.space", code); } catch (e) { }
+        closeSheet();
+        openSheet(`<h4>✅ جاهزة! مدرستك: ${esc(school)}</h4>
+          <div style="font-size:14px;line-height:2;color:var(--ink)">رمز مدرستك — احفظه، وبه يدخل معلموك وطلابك:</div>
+          <div class="spcode">${esc(code)}</div>
+          <div style="font-size:13px;color:var(--muted);line-height:1.9">رابط الدخول لمدرستك (أرسله لمعلميك):<br>
+            <b style="word-break:break-all;direction:ltr;unicode-bidi:isolate;display:inline-block">${esc(spLink(code))}</b></div>
+          <div class="as-sum" style="margin-top:10px">🔑 ادخل باسمك <b>${esc(name)}</b> وبالرقم الذي اخترته — ثم أضف معلميك وفصولك من ⚙️ الإدارة.</div>
+          <div class="sheet-actions" style="flex-wrap:wrap">
+            <button class="btn-plain" style="flex:1 1 46%" id="ns-copy">📋 نسخ الرابط</button>
+            <button class="btn-primary" style="flex:1 1 46%" id="ns-enter">ادخل مدرستي الآن</button></div>`, (o2) => {
+          const cp = o2.querySelector("#ns-copy");
+          if (cp) cp.onclick = () => { try { navigator.clipboard.writeText(spLink(code)); cp.textContent = "✔ نُسخ"; } catch (e) { } };
+          const en = o2.querySelector("#ns-enter");
+          if (en) en.onclick = () => { location.href = spLink(code); };
+        });
+      };
+    });
+  }
+  /* المدرسة الجديدة تبدأ بمكتبة التقييمات الافتراضية نفسها التي في مدرستنا — يعدّلها
+     مديرها بعدها من ⚙️ الإدارة ← مكتبة التقييمات (cfg/assess) بلا لمس هذا المستند. */
+  function newSchoolMeta(school) {
+    const hy = hijriParts ? hijriParts() : null;
+    const yr = hy && hy.y ? (hy.y + " / " + (hy.y + 1)) : "";
+    return {
+      school: { name: school, year: yr, term_lbl: "الفصل الأول" },
+      states: [{ name: "حاضر", pts: 3 }, { name: "غائب", pts: -5 }, { name: "متأخر", pts: -1 },
+               { name: "مستأذن", pts: 0 }, { name: "غائب بعذر", pts: 0 }, { name: "عن بعد", pts: 2 },
+               { name: "هارب", pts: -4 }],
+      behaviors: [{ name: "ملتزم", pts: 0 }, { name: "مخالف", pts: -3 }, { name: "حفظ", pts: 2 },
+                  { name: "مميز", pts: 1 }, { name: "مؤدب", pts: 1 }, { name: "تطبيق عملي", pts: 2 },
+                  { name: "إنجاز مشروع", pts: 3 }],
+      weights: { part: 1, hw: 2, sheets: 1 },
+      assess: DEFAULT_ASSESS ? clone(DEFAULT_ASSESS) : [],
+      term: "t1",
+      ts: Date.now()
+    };
+  }
+  /* ═══ شريط التجربة ═══ يقرأ مستند المساحة مرة عند الإقلاع فيعرف كم بقي. */
+  let SPACE_DOC = null;
+  async function loadSpace() {
+    if (!SPACE || !CLOUD || !fdb) return null;
+    try {
+      const d = await (fdb.__raw || fdb).doc("sp/" + SPACE).get();
+      SPACE_DOC = d.exists ? (d.data() || {}) : null;
+    } catch (e) { SPACE_DOC = null; }
+    return SPACE_DOC;
+  }
+  function trialBar() {
+    if (!SPACE_DOC || SPACE_DOC.plan !== "trial") return;
+    const left = Math.ceil(((+SPACE_DOC.exp || 0) - Date.now()) / 864e5);
+    let el = $("#trial-bar");
+    if (!el) {
+      el = document.createElement("div"); el.id = "trial-bar"; el.className = "trialbar";
+      document.body.insertBefore(el, document.body.firstChild);
+    }
+    el.className = "trialbar" + (left <= 0 ? " over" : "");
+    el.innerHTML = left > 0
+      ? `<span>🎁 تجربة ${esc(SPACE_DOC.name || "مدرستك")} — بقي <b>${arNum(left)}</b> ${left === 1 ? "يوم" : left === 2 ? "يومان" : left <= 10 ? "أيام" : "يوماً"}</span><button class="tb-a" id="tb-buy">اشترك الآن</button>`
+      : `<span>⏳ انتهت تجربة ${esc(SPACE_DOC.name || "مدرستك")} — بياناتك محفوظة كما هي، وتعود بالاشتراك</span><button class="tb-a" id="tb-buy">اشترك الآن</button>`;
+    const b = el.querySelector("#tb-buy");
+    if (b) b.onclick = () => { try { window.open("https://wa.me/966?text=" + encodeURIComponent("أرغب الاشتراك في «سجلي» — رمز مدرستي: " + SPACE), "_blank"); } catch (e) { } };
+  }
   /* ═══ نافذة الإرسال ═══
      الورقة تصل حساب الطالب في «مهامي» لحظة إنشائها (فهرس assignidx)، فالرسالة الأولى تقول ذلك
      بعدد الحسابات لا «أنشئ الرابط»، والواتساب خيارٌ ثانٍ لمن لم يفتح بوابته. وثلاثة أشياء تُختار:
@@ -5502,6 +5640,7 @@
     $, esc, clone, save, syncBadge, mergeComms, rec,
     classById, myClasses, activeStudents, activeCount, isActive, applyMoves, applySedits, refreshMoves, absorbMoves, moveId, migrateMove, classPointsMap, adminMoves,
     addStudent, removeStudent, isNewFrom,
+    signupSchool, trialBar,
     calcStudent, classCalc, rankMap, autoGrade, effGrades, gradeTotal, gradedMax, gradePct, hasGrades, levelOf, attPct, overallPct, maxTotal, pctCell, daySeries, trendOf, studentSummary,
     hijriLabel, hijriParts, curWeek, subjCode, loadCurr, saveCurrEdit, lessonURL,
     openSheet, closeSheet, printSheet, printDoc, printCertificate, printReport, printLetter,

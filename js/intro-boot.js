@@ -198,7 +198,7 @@
     });
     var last = root.lastElementChild;
     if (last) {
-      var a = D.createElement('a'); a.className = 'poster-cta'; a.href = String(NS.cta || '#view-login'); a.textContent = 'دخول';
+      var a = D.createElement('a'); a.className = 'poster-cta'; a.href = String(NS.cta || '#view-pitch'); a.textContent = 'دخول';
       last.querySelector('.poster-body').appendChild(a);
     }
     show(root);
