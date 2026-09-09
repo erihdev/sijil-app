@@ -5291,7 +5291,7 @@
       ? `<span>🎁 تجربة ${esc(SPACE_DOC.name || "مدرستك")} — بقي <b>${arNum(left)}</b> ${left === 1 ? "يوم" : left === 2 ? "يومان" : left <= 10 ? "أيام" : "يوماً"}</span><button class="tb-a" id="tb-buy">اشترك الآن</button><button class="tb-a" id="tb-out" style="background:transparent;color:inherit;border:1px solid currentColor">↩ خروج من هذه المدرسة</button>`
       : `<span>⏳ انتهت تجربة ${esc(SPACE_DOC.name || "مدرستك")} — بياناتك محفوظة كما هي، وتعود بالاشتراك</span><button class="tb-a" id="tb-buy">اشترك الآن</button><button class="tb-a" id="tb-out" style="background:transparent;color:inherit;border:1px solid currentColor">↩ خروج من هذه المدرسة</button>`;
     const b = el.querySelector("#tb-buy");
-    if (b) b.onclick = () => { try { window.open("https://wa.me/966?text=" + encodeURIComponent("أرغب الاشتراك في «سجلي» — رمز مدرستي: " + SPACE), "_blank"); } catch (e) { } };
+    if (b) b.onclick = () => { try { window.open("https://wa.me/966599363888?text=" + encodeURIComponent("أرغب الاشتراك في «سجلي» — رمز مدرستي: " + SPACE), "_blank"); } catch (e) { } };
     /* مخرجٌ ظاهر: من فتح رابط مدرسةٍ أخرى بالخطأ يبقى فيها (الرمز محفوظ في جهازه) ولا
        يعرف كيف يعود. و?s= الفارغة تُفرّغه — فيُعرض زراً لا سرّاً. */
     const x = el.querySelector("#tb-out");

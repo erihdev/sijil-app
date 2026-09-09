@@ -12,7 +12,8 @@
 """
 import io, os, re, sys
 
-REPO = r"C:\Users\denin\AppData\Local\Temp\claude\sijil-app"
+# جذر المستودع من موضع السكربت نفسه: يعمل محلياً وفي GitHub Actions بلا تعديل
+REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SRC = os.path.join(REPO, "firestore.rules")
 
 START = "  match /databases/{database}/documents {"

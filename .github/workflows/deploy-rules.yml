@@ -1,0 +1,107 @@
+# ═══════════════════════════════════════════════════════════════════════════════
+# سجلي — نشر قواعد Firestore بضغطة واحدة
+#
+# لماذا؟ نشرُ القواعد من الجهاز يحتاج `firebase login --reauth` كل مرة تنتهي جلسة
+# جوجل (وحساب الوركسبيس يطلب إعادة مصادقةٍ متصفحية لا سبيل إلى تجاوزها برمجياً).
+# فالنشر من هنا بحساب الخدمة نفسه المضبوط أصلاً للإشعارات (SA_JSON) — بلا أي سرٍّ جديد.
+#
+# التشغيل: تبويب Actions ← «نشر قواعد Firestore» ← Run workflow.
+#   • dry_run = true  (الافتراضي): يفحص التصريف ويطبع الفروق ولا ينشر شيئاً.
+#   • dry_run = false: ينشر فعلاً.
+#
+# إن ردّ «PERMISSION_DENIED» فحساب الخدمة يحتاج صلاحية «Firebase Rules Admin»:
+#   كونسول جوجل كلاود ← IAM ← حساب الخدمة نفسه ← Add role ← Firebase Rules Admin.
+# ═══════════════════════════════════════════════════════════════════════════════
+
+name: نشر قواعد Firestore
+
+on:
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "فحصٌ بلا نشر (اتركه مفعّلاً أول مرة)"
+        type: boolean
+        default: true
+
+permissions:
+  contents: read
+
+concurrency:
+  group: deploy-rules
+  cancel-in-progress: false
+
+jobs:
+  rules:
+    name: نشر القواعد
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+
+      # القواعد المنشورة يجب أن تطابق المولَّد: نسخة المساحة sp/{space} تُولَّد من
+      #   القواعد الجذرية، فلو حُرِّرت يدوياً وانحرفت لصارت مدرسةٌ بقواعد ومدرسةٌ بأخرى.
+      - name: التحقق أن نسخة المساحة مطابقة للمولِّد
+        shell: bash
+        run: |
+          cp firestore.rules /tmp/rules.before
+          python3 tools/gen_space_rules.py
+          if ! diff -q /tmp/rules.before firestore.rules >/dev/null; then
+            echo "::error::firestore.rules لا تطابق مخرج tools/gen_space_rules.py — شغّل المولّد والتزم بنتيجته"
+            diff -u /tmp/rules.before firestore.rules | head -60
+            exit 1
+          fi
+          echo "✔ نسخة المساحة مطابقة للمولِّد"
+
+      - name: هل السرّ مضبوط؟
+        id: gate
+        shell: bash
+        env:
+          SA_JSON: ${{ secrets.SA_JSON }}
+        run: |
+          if [ -z "$SA_JSON" ]; then
+            echo "ready=no" >> "$GITHUB_OUTPUT"
+            echo "### ⚠️ لا SA_JSON في أسرار المستودع — راجع docs/PUSH_SETUP.md" >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "ready=yes" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: كتابة مفتاح حساب الخدمة
+        if: steps.gate.outputs.ready == 'yes'
+        shell: bash
+        env:
+          SA_JSON: ${{ secrets.SA_JSON }}
+        run: |
+          printf '%s' "$SA_JSON" > "$RUNNER_TEMP/sa.json"
+          python3 -c "import json,sys;d=json.load(open(sys.argv[1],encoding='utf-8'));print('project:',d.get('project_id'));print('client:',d.get('client_email'))" "$RUNNER_TEMP/sa.json"
+
+      - name: فحص التصريف والفروق (بلا نشر)
+        if: steps.gate.outputs.ready == 'yes'
+        shell: bash
+        env:
+          GOOGLE_APPLICATION_CREDENTIALS: ${{ runner.temp }}/sa.json
+        run: |
+          set -o pipefail
+          npx --yes firebase-tools@15 deploy --only firestore:rules \
+            --project sijil-app-de556 --dry-run --non-interactive 2>&1 | tee dry.log
+          {
+            echo "### فحص القواعد (بلا نشر)"
+            echo '```'
+            tail -40 dry.log
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: النشر
+        if: steps.gate.outputs.ready == 'yes' && inputs.dry_run == false
+        shell: bash
+        env:
+          GOOGLE_APPLICATION_CREDENTIALS: ${{ runner.temp }}/sa.json
+        run: |
+          set -o pipefail
+          npx --yes firebase-tools@15 deploy --only firestore:rules \
+            --project sijil-app-de556 --non-interactive 2>&1 | tee out.log
+          {
+            echo "### ✅ نُشرت القواعد"
+            echo '```'
+            tail -30 out.log
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
