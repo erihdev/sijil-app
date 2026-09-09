@@ -790,6 +790,7 @@
       sec("mg-s-cls", "🏫 الفصول", classesHtml(), { open: true, n: cls.length }) +
       sec("mg-s-sch", "🗓️ الجدول الأسبوعي", scheduleHtml(), { n: schedRows().length }) +
       sec("mg-s-mv", "🔁 حركات نقل الطلاب", movesHtml(), { n: (s.D.moves || []).length }) +
+      sec("mg-s-sid", "🆔 أرقام هويات الطلاب", '<div id="mg-sids"></div>', {}) +
       sec("mg-s-lib", "🗂️ مكتبة المدرسة وشعارها", libHtml(), {}) +
       sec("mg-s-bk", "💾 النسخة الاحتياطية الشاملة", backupHtml(), { open: true }) +
       sec("mg-s-log", "🕘 سجل الإدارة", logHtml(sd), { n: (sd.adminlog || []).length }) +
@@ -797,6 +798,7 @@
     drawProfile($("#mg-profile", b));
     bind(b, sd);
     try { drawLib(b); } catch (e) { warn("lib", e); }
+    try { const sb = $("#mg-sids", b); if (sb) { sb.innerHTML = ""; sidCard(sb); } } catch (e) { warn("sids", e); }
   }
   const again = async () => { A().invalidate(); if (curBox) draw(curBox, await A().schoolDocs(true)); };
 
@@ -885,6 +887,130 @@
   }
 
   /* ═══ التسجيل والتصدير ═══ */
+    /* ═══ 🆔 أرقام هويات الطلاب — مدخل بوابة الطالب ═══
+     البصمة sha256(الهوية|الفصل|الملح) تُحسب في المتصفح، والرقم الخام لا يُرفع ولا يُخزَّن
+     ولا يُطبع في سجل الإدارة. مجموعة spins لا تُسرد بالقواعد، فالعدّ يجري بـ get لكل بصمة
+     يحسبها المتصفح من اللصقة نفسها — لا استعلام. */
+  var SID_SALT = "sijil1448";
+  function sidNorm(t) {
+    return String(t || "").replace(/[\u064B-\u0652\u0640]/g, "")
+      .replace(/[أإآ]/g, "ا").replace(/ى/g, "ي").replace(/ة/g, "ه")
+      .replace(/\s+/g, " ").trim();
+  }
+  function sidDigits(t) {
+    var ar = { "٠": "0", "١": "1", "٢": "2", "٣": "3", "٤": "4", "٥": "5", "٦": "6", "٧": "7", "٨": "8", "٩": "9" };
+    return String(t || "").replace(/[٠-٩]/g, function (d) { return ar[d]; }).replace(/\D/g, "");
+  }
+  function sidParse(text) {
+    var out = [], lines = String(text || "").split(/\r?\n/);
+    for (var i = 0; i < lines.length; i++) {
+      var ln = lines[i].trim(); if (!ln) continue;
+      var parts = ln.split(/\t|,|;|\s{2,}/).map(function (x) { return x.trim(); }).filter(Boolean);
+      if (parts.length < 2) {
+        var m = ln.match(/^(.*?)[\s,;]+([0-9٠-٩][0-9٠-٩\s-]{7,})$/);
+        if (!m) { out.push({ raw: ln, bad: "سطر غير مفهوم" }); continue; }
+        parts = [m[1], m[2]];
+      }
+      var nid = sidDigits(parts[parts.length - 1]);
+      var name = parts.slice(0, parts.length - 1).join(" ");
+      if (nid.length < 9 || nid.length > 12) { out.push({ raw: ln, name: name, bad: "رقم غير صالح" }); continue; }
+      out.push({ name: name, nid: nid });
+    }
+    return out;
+  }
+  function sidIndex() {
+    var S = window.SIJIL, map = {}, cls = (S.D.classes || []);
+    for (var c = 0; c < cls.length; c++) {
+      var st = cls[c].students || [];
+      for (var i = 0; i < st.length; i++) {
+        if (!st[i] || st[i].moved || st[i].gap) continue;
+        var k = sidNorm(st[i].n);
+        (map[k] = map[k] || []).push({ cid: cls[c].id, si: i, cname: cls[c].name });
+      }
+    }
+    return map;
+  }
+  function sidCard(box) {
+    var S = window.SIJIL, A = window.SIJIL_ADMIN;
+    var wrap = document.createElement("div");
+    wrap.innerHTML = '<div class="card"><h3><span class="dot"></span>🆔 أرقام هويات الطلاب</h3>'
+      + '<div class="empty-note" style="padding:2px 2px 8px;text-align:right">مدخل بوابة الطالب: الطالب يختار صفه وشعبته ثم يكتب رقم هويته. '
+      + 'الصق من نور أو إكسل سطراً لكل طالب: <b>الاسم ثم رقم الهوية</b>. '
+      + 'يُحسب الرقم في جهازك وتُرفع بصمته فقط — الرقم نفسه لا يُرفع ولا يُخزَّن ولا يظهر في السجل.</div>'
+      + '<textarea id="sid-paste" class="search-box" style="margin:0;height:130px;font-size:13px;line-height:1.8" placeholder="محمد أحمد الزهراني&#9;1012345678"></textarea>'
+      + '<div class="adm-tools" style="margin-top:8px"><button class="btn-primary" id="sid-check">🔎 طابِق الأسماء</button>'
+      + '<button class="btn-gold" id="sid-save" disabled>💾 سجّل الهويات</button>'
+      + '<button class="btn-soft" id="sid-count">📊 كم مسجّل؟</button></div>'
+      + '<div id="sid-out" class="empty-note" style="padding:8px 2px 0;text-align:right"></div></div>';
+    box.appendChild(wrap);
+    var ready = null;
+    var out = wrap.querySelector("#sid-out");
+    function say(h) { out.innerHTML = h; }
+    wrap.querySelector("#sid-check").onclick = function () {
+      var rows = sidParse(wrap.querySelector("#sid-paste").value), idx = sidIndex();
+      var ok = [], dup = [], miss = [], bad = [], seen = {};
+      for (var i = 0; i < rows.length; i++) {
+        var r = rows[i];
+        if (r.bad) { bad.push(r); continue; }
+        var hits = idx[sidNorm(r.name)] || [];
+        if (hits.length === 1) {
+          var key = hits[0].cid + ":" + hits[0].si;
+          if (seen[key]) { dup.push(r); continue; }
+          seen[key] = 1; ok.push({ name: r.name, nid: r.nid, cid: hits[0].cid, si: hits[0].si, cname: hits[0].cname });
+        } else if (hits.length > 1) dup.push({ name: r.name, n: hits.length });
+        else miss.push(r);
+      }
+      ready = ok;
+      var h = "<b>طابق " + ok.length + "</b> من " + rows.length;
+      if (dup.length) h += " · مكرر أو متشابه " + dup.length;
+      if (miss.length) h += " · غير موجود " + miss.length;
+      if (bad.length) h += " · أسطر غير مفهومة " + bad.length;
+      if (miss.length) h += '<div style="margin-top:6px;color:var(--bad)">لم تُطابق: ' + miss.slice(0, 12).map(function (x) { return A.esc ? A.esc(x.name) : x.name; }).join(" · ") + (miss.length > 12 ? " …" : "") + "</div>";
+      if (dup.length) h += '<div style="margin-top:6px;color:var(--gold)">متشابهة الأسماء تحتاج تمييزاً يدوياً: ' + dup.slice(0, 8).map(function (x) { return (A.esc ? A.esc(x.name) : x.name); }).join(" · ") + "</div>";
+      say(h);
+      wrap.querySelector("#sid-save").disabled = !ok.length;
+    };
+    wrap.querySelector("#sid-save").onclick = async function () {
+      if (!ready || !ready.length) return;
+      var btn = wrap.querySelector("#sid-save"); btn.disabled = true;
+      var okc = 0, err = 0, lastErr = "";
+      for (var i = 0; i < ready.length; i++) {
+        var r = ready[i];
+        try {
+          var h = await S.sha256(r.nid + "|" + r.cid + "|" + SID_SALT);
+          if (S.CLOUD && S.fdb) await S.fdb.doc("spins/" + h).set({ cid: r.cid, si: r.si, ts: Date.now() });
+          else { var DBx = S.DB || window.DB || {}; DBx.spins = DBx.spins || {}; DBx.spins[h] = { cid: r.cid, si: r.si, ts: Date.now() }; try { S.save("spins"); } catch (e2) { } }
+          okc++;
+        } catch (e) { err++; if (err === 1) lastErr = String((e && (e.code || e.message)) || e).slice(0, 90); }
+        if (i % 20 === 0) say("جارِ التسجيل… " + (i + 1) + " من " + ready.length);
+      }
+      say(okc ? ("<b>سُجّل " + okc + "</b>" + (err ? " · تعثّر " + err : "") + " — يستطيع هؤلاء الدخول الآن من «بوابة الطالب» برقم هويتهم.")
+        : ("<span style=\"color:var(--bad)\">لم يُسجَّل أحد — تعثّرت " + err + " محاولة" + (lastErr ? ": " + (A.esc ? A.esc(lastErr) : lastErr) : "") + "</span>"));
+      try { await A.adminlog("sids", "تسجيل هويات " + okc + " طالباً"); } catch (e) { }
+      btn.disabled = false;
+    };
+    wrap.querySelector("#sid-count").onclick = async function () {
+      var b = wrap.querySelector("#sid-count"); b.disabled = true; say("جارِ العدّ…");
+      var rows = sidParse(wrap.querySelector("#sid-paste").value);
+      if (!rows.length) { say("الصق القائمة أولاً ثم اضغط «كم مسجّل؟» — العدّ يقارن قائمتك بما هو مسجّل فعلاً."); b.disabled = false; return; }
+      var idx = sidIndex(), have = 0, tried = 0;
+      for (var i = 0; i < rows.length; i++) {
+        var r = rows[i]; if (r.bad) continue;
+        var hits = idx[sidNorm(r.name)] || []; if (hits.length !== 1) continue;
+        tried++;
+        try {
+          var h = await S.sha256(r.nid + "|" + hits[0].cid + "|" + SID_SALT);
+          var d = (S.CLOUD && S.fdb) ? await S.fdb.doc("spins/" + h).get() : { exists: !!(((S.DB || window.DB || {}).spins || {})[h]) };
+          if (d.exists) have++;
+        } catch (e) { }
+      }
+      var total = 0, cls = (S.D.classes || []);
+      for (var c = 0; c < cls.length; c++) total += (cls[c].students || []).filter(function (x) { return x && !x.moved && !x.gap; }).length;
+      say("<b>مسجّل " + have + "</b> من " + tried + " في قائمتك · وطلاب المدرسة " + total);
+      b.disabled = false;
+    };
+  }
+
   A().register("manage", render);
   Object.assign(window.SIJIL_ADMIN, { backupAll, restoreSummary: summarize, openBell });
 })();
