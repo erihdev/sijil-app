@@ -986,3 +986,5 @@ button.period:active{transform:scale(.97)}
   background:linear-gradient(135deg,#2e9e5b,#1e6b3f); color:#fff; font-weight:800; font-size:15px; text-decoration:none;
   box-shadow:0 6px 18px rgba(46,158,91,.25)}
 .stu-link:active{transform:translateY(1px)}
+.ios-steps{margin:8px 4px 0; padding-inline-start:22px; color:var(--ink); font-size:13.5px; line-height:2}
+.ios-steps li{margin:0} .ios-steps li::marker{color:var(--gold); font-weight:800}

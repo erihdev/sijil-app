@@ -79,6 +79,29 @@
     return typeof window !== "undefined" && "Notification" in window && "serviceWorker" in navigator;
   }
   function secure() { return LS(function () { return window.isSecureContext !== false; }, true); }
+  /* آيفون وآيباد: أبل لا تمنح إشعارات الويب إلا للتطبيق المثبّت على الشاشة الرئيسية (iOS 16.4+).
+     في تبويب سفاري العادي لا يوجد كائن Notification أصلاً، فالرسالة العامة تُوهم المعلم أن جهازه
+     لا يدعمها أبداً — وهو يدعمها بعد التثبيت. نكشف الحالة ونعطيه الخطوات. */
+  function isApple() {
+    return LS(function () {
+      var ua = navigator.userAgent || "";
+      var ipad = /Macintosh/.test(ua) && (navigator.maxTouchPoints || 0) > 1;   // آيباد يتنكّر ماكاً
+      return /iPhone|iPad|iPod/.test(ua) || ipad;
+    }, false);
+  }
+  function installed() {
+    return LS(function () {
+      return (window.navigator && window.navigator.standalone === true) ||
+             (window.matchMedia && window.matchMedia("(display-mode: standalone)").matches);
+    }, false);
+  }
+  function iosNeedsInstall() { return isApple() && !installed() && !("Notification" in window); }
+  var IOS_STEPS = [
+    "اضغط زر المشاركة في أسفل سفاري",
+    "اختر «إضافة إلى الشاشة الرئيسية»",
+    "أغلق سفاري وافتح «سجلي» من أيقونته الجديدة",
+    "ثم: المزيد ← تنبيهات الحصص ← تفعيل التنبيهات"
+  ];
   /* حالة الإذن: Notification.permission هي المصدر، ومعها Permissions API لأن بعض المتصفحات
      (ومتصفح الاختبار الآلي) تُبقي Notification.permission على "denied" رغم السماح الفعلي. */
   var permCache = null;
@@ -141,7 +164,9 @@
     var pushOn = LS(function () { return !!localStorage.getItem("sijil.notify.ep"); }, false);
     var ready = sup && sec && pm === "granted" && on;
     var msg;
-    if (!sup) msg = "هذا المتصفح لا يدعم التنبيهات — جرّب متصفح جوالك أو ثبّت «سجلي» على الشاشة الرئيسية";
+    var iosInst = iosNeedsInstall();
+    if (iosInst) msg = "لتصلك التنبيهات على الآيفون ثبّت «سجلي» على شاشتك الرئيسية أولاً — أبل لا تسمح بها من سفاري";
+    else if (!sup) msg = "هذا المتصفح لا يدعم التنبيهات — جرّب متصفح جوالك أو ثبّت «سجلي» على الشاشة الرئيسية";
     else if (!sec) msg = "التنبيهات تعمل على العنوان الآمن للموقع فقط";
     else if (pm === "denied") msg = "التنبيهات ممنوعة لهذا الموقع — اسمح بها من إعدادات المتصفح ثم أعد المحاولة";
     else if (!on) msg = "التنبيهات متوقفة — فعّلها لتصلك رسالة قبل كل حصة بـ " + minsAr(leadMin());
@@ -151,7 +176,8 @@
     else msg = "التنبيهات مفعّلة — سيصلك تذكير قبل كل حصة بـ " + minsAr(leadMin()) + " ما دام «سجلي» مفتوحاً؛ وإن كان مغلقاً فقد يصل قبلها بقليل";
     return {
       supported: sup, secure: sec, permission: pm, enabled: on, ready: ready,
-      push: pushOn, lead: leadMin(), message: msg
+      push: pushOn, lead: leadMin(), message: msg,
+      iosInstall: iosInst, steps: iosInst ? IOS_STEPS.slice() : null
     };
   }
 
@@ -437,6 +463,8 @@
       (st.ready ? "🔕 إيقاف التنبيهات" : "🔔 تفعيل التنبيهات") + "</button>" +
       '<div class="empty-note" style="padding:10px 4px 0">' + esc(st.message) +
       (st.ready ? "<br>" + esc(line) : "") + "</div>" +
+      /* آيفون بلا تثبيت: خطوات مرقّمة بدل رسالة عامة لا تدلّ على شيء */
+      (st.steps ? '<ol class="ios-steps">' + st.steps.map(function (x) { return '<li>' + esc(x) + '</li>'; }).join("") + '</ol>' : "") +
       '<div class="empty-note" id="nt-msg" style="padding:6px 4px 0;color:var(--gold)"></div></div>';
     var b = host.querySelector("#nt-btn");
     if (b) b.onclick = function () {
