@@ -20,6 +20,8 @@ service cloud.firestore {
     // ── دوال مشتركة لأرقام الدخول (pins / pinreq / teachers.reg / teachers.pt) ──
     //    exists()/get() داخل القواعد لا تخضع لقواعد القراءة، فيصحّ استعمالها على مجموعة ممنوعة القراءة.
     function isHash(x) { return x is string && x.matches('^[0-9a-f]{64}$'); }
+    // مفتاح صندوق رسائل الطالب: عشوائيٌّ تولّده لوحة المدير، ولا يُعرف إلا بمعرفة رقم الهوية
+    function isMk(x) { return x is string && x.matches('^[A-Za-z0-9_-]{16,32}$'); }
     function tHas(tid)  { return exists(/databases/$(database)/documents/teachers/$(tid)); }
     function tDoc(tid)  { return get(/databases/$(database)/documents/teachers/$(tid)).data; }
     function pinHas(h)  { return exists(/databases/$(database)/documents/pins/$(h)); }
@@ -240,7 +242,8 @@ service cloud.firestore {
       // الإنشاء: استيراد أرقام الهويات من لوحة المدير وحدها — بيانات طلاب، كـ sedits تماماً.
       allow create: if signedIn()
           && h.matches('^[0-9a-f]{64}$')
-          && request.resource.data.keys().hasOnly(['cid', 'si', 'ts'])
+          && request.resource.data.keys().hasOnly(['cid', 'si', 'ts', 'mk'])
+          && (!('mk' in request.resource.data) || isMk(request.resource.data.mk))
           && request.resource.data.cid is string
           && request.resource.data.cid.matches('^[A-Za-z0-9]{1,12}$')
           && exists(/databases/$(database)/documents/classes/$(request.resource.data.cid))
@@ -252,13 +255,16 @@ service cloud.firestore {
       //          ولا يمرّ إن كان في المستند رمزٌ من قبل.
       //          (ب) لوحة المدير: إعادة ضبط الرمز بنزعه، أو تصحيح الفصل/الفهرس عند إعادة الاستيراد.
       allow update: if signedIn()
-          && request.resource.data.keys().hasOnly(['cid', 'si', 'ts', 'c'])
+          && request.resource.data.keys().hasOnly(['cid', 'si', 'ts', 'c', 'mk'])
+          && (!('mk' in request.resource.data) || isMk(request.resource.data.mk))
           && (!('c' in request.resource.data) || isHash(request.resource.data.c))
           && ((isHash(request.resource.data.get('c', ''))
                && !('c' in resource.data)
                && request.resource.data.cid == resource.data.cid
                && request.resource.data.si == resource.data.si
-               && request.resource.data.ts == resource.data.ts)
+               && request.resource.data.ts == resource.data.ts
+               // مفتاح الرسائل لا يمسّه جهاز الطالب: تغييره يفتح صندوقاً آخر أو يُفقده صندوقه
+               && request.resource.data.get('mk', '') == resource.data.get('mk', ''))
               || (isAdminClaim()
                   && request.resource.data.cid is string
                   && request.resource.data.cid.matches('^[A-Za-z0-9]{1,12}$')
@@ -271,6 +277,48 @@ service cloud.firestore {
       allow delete: if signedIn() && isAdminClaim();
     }
 
+    /* ═══ قناة الرسائل الخاصة: mkeys · smsg · sack ═══
+       بوابة الطالب تفتح بحساب **مجهول**، فالقواعد لا تعرف من الطالب — إنما يُثبت الدخول بمعرفة
+       رقم الهوية (بصمة spins). فالرسالة الشخصية (استدعاء · مستوى الابن) لا يجوز أن تُخزَّن في
+       مستند فصلٍ يقرؤه كل طلابه. الحل: مفتاح mk عشوائي لكل طالب داخل بصمته، وصندوقٌ باسمه:
+         smsg/{mk} — get مسموح (فمن لا يعرف mk لا يجد المستند) و**list ممنوع**، والكتابة بمطالبة معلم.
+         mkeys/{cid} — فهرس المفاتيح للمعلمين، قراءته بمطالبة معلم لا لأي جهاز مصادَق.
+         sack/{mk} — «قرأها»: يكتبها جهاز الطالب (يعرف mk) في مستندٍ منفصل، فلا يمسّ نصّ رسالة. */
+    match /mkeys/{cid} {
+      allow read: if anyClaim();
+      allow create, update: if signedIn() && cid.matches('^[A-Za-z0-9]{1,12}$') && stamped() && isAdminClaim()
+          && request.resource.data.keys().hasOnly(['k', 'n', 'tn', 'ts'])
+          && request.resource.data.k is map && request.resource.data.k.size() <= 400
+          && request.resource.data.n is int && request.resource.data.n >= 0 && request.resource.data.n <= 400;
+      allow delete: if false;
+    }
+    match /smsg/{mk} {
+      allow get: if signedIn();
+      allow list: if false;                       // سردُ الصناديق = قراءة استدعاءات المدرسة كلها
+      allow create: if signedIn() && isMk(mk) && stamped() && anyClaim()
+          && request.resource.data.keys().hasOnly(['list', 'n', 'tn', 'ts'])
+          && request.resource.data.list is list && request.resource.data.list.size() <= 60;
+      // القائمة تنمو ولا تنقص (كما في comms وfilesidx): وإلا محا معلمٌ صندوق طالب بكتابة واحدة.
+      //   وعند بلوغ السقف تُسقط أقدم عشرة.
+      allow update: if signedIn() && isMk(mk) && stamped() && anyClaim()
+          && request.resource.data.keys().hasOnly(['list', 'n', 'tn', 'ts'])
+          && request.resource.data.list is list && request.resource.data.list.size() <= 60
+          && (request.resource.data.list.hasAll(resource.data.get('list', []))
+              || (request.resource.data.list.size() >= 50
+                  && resource.data.get('list', []).size() >= 50
+                  && request.resource.data.list.hasAll(resource.data.list[10:resource.data.list.size()])));
+      allow delete: if false;
+    }
+    match /sack/{mk} {
+      allow get: if signedIn();
+      allow list: if anyClaim();                  // المعلم يرى من قرأ رسائله (لا يُسرد لجهاز مجهول)
+      // يكتبه من يعرف mk — أي الطالب نفسه. مقيَّدٌ بخريطة seen وحدها فلا يبلغ نصَّ رسالة.
+      allow create, update: if signedIn() && isMk(mk)
+          && request.resource.data.keys().hasOnly(['seen', 'ts'])
+          && request.resource.data.seen is map && request.resource.data.seen.size() <= 60
+          && request.resource.data.ts is number;
+      allow delete: if false;
+    }
     match /classes/{cid}   { allow read: if signedIn(); allow write: if false; }
     // ── الجدول المدرسي schedule/all: {rows:[{t,d,p,c}], tn, ts} — يحدّثه المدير من محرّر الجدول (استبدال كامل بلا merge)، لا إنشاء ولا حذف ──
     match /schedule/{doc} {

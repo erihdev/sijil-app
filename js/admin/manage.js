@@ -176,9 +176,14 @@
     Object.keys(sd.recs || {}).forEach(id => { const k = Ad.splitKey(id), d = Ad.lastRecDate(sd.recs[id]); if (d && (!out[k.tid] || d > out[k.tid])) out[k.tid] = d; });
     return out;
   }
+  /* ما فتحه المدير يبقى مفتوحاً بعد إعادة الرسم: كل حفظ في هذا التبويب يعيد بناءه كاملاً
+     (again/refresh)، وكانت البطاقة التي يعمل فيها تُطبَق عليه لحظة الحفظ — يحفظ مكتبة
+     التقييمات فلا يرى أثر حفظه ولا زر «🖨️ طباعة المكتبة» إلا بفتح البطاقة من جديد. */
+  const mgOpen = {};
   const sec = (id, title, bodyHtml, opts) => {
     opts = opts || {};
-    return `<details class="card mg-sec" id="${id}"${opts.open ? " open" : ""}><summary><span class="dot"></span><span class="t">${title}</span>${opts.n != null ? `<span class="n">${opts.n}</span>` : '<span class="n" style="background:none"></span>'}<span class="ar">▾</span></summary><div class="mg-bd">${bodyHtml}</div></details>`;
+    const isOpen = (mgOpen[id] == null) ? !!opts.open : !!mgOpen[id];
+    return `<details class="card mg-sec" id="${id}"${isOpen ? " open" : ""}><summary><span class="dot"></span><span class="t">${title}</span>${opts.n != null ? `<span class="n">${opts.n}</span>` : '<span class="n" style="background:none"></span>'}<span class="ar">▾</span></summary><div class="mg-bd">${bodyHtml}</div></details>`;
   };
 
   /* ═══ (1) 👤 بياناتي ═══ */
@@ -1168,6 +1173,8 @@
   function bind(b, sd) {
     const s = S(), Ad = A();
     const on = (id, fn) => { const el = $("#" + id, b); if (el) el.onclick = fn; };
+    // ما فتحه المدير أو طواه يُحفظ ليُعاد في الرسم القادم (mgOpen فوق sec)
+    b.querySelectorAll("details.mg-sec").forEach(d => { if (d.id) d.addEventListener("toggle", () => { mgOpen[d.id] = d.open; }); });
     // ⏰ أوقات الحصص والفسح
     try { bindBell(b); } catch (e) { warn("bell", e); }
     // 🎛️ مكتبة التقييمات ودرجاتها
@@ -1320,6 +1327,41 @@
     }
     return done;
   }
+  /* مفتاح صندوق رسائل الطالب: عشوائيٌّ ٢٤ محرفاً يُخزَّن داخل بصمة هويته (spins) وفي فهرس
+     المعلمين (mkeys). الرسالة الشخصية — استدعاء أو مستوى ابن — لا يجوز أن تُخزَّن في مستند
+     فصلٍ يقرؤه كل طلابه، فصندوقُها smsg/{mk}: من لا يعرف المفتاح لا يجد المستند، والسرد ممنوع.
+     والمفتاح **لا يُبدَّل** عند إعادة الاستيراد وإلا فقد الطالب صندوقه. */
+  function mkNew() {
+    var CH = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789', out = '';
+    try {
+      var a = new Uint8Array(24); (window.crypto || window.msCrypto).getRandomValues(a);
+      for (var i = 0; i < a.length; i++) out += CH[a[i] % CH.length];
+    } catch (e) { out = ''; }
+    while (out.length < 24) out += CH[Math.floor(Math.random() * CH.length)];
+    return out.slice(0, 24);
+  }
+  const isMk = (v) => typeof v === 'string' && /^[A-Za-z0-9_-]{16,32}$/.test(v);
+  // فهرس المفاتيح للمعلمين — دمجٌ لا استبدال (المدير يلصق الهويات على دفعات)
+  async function mkeysWrite(byClass) {
+    var S = window.SIJIL, ids = Object.keys(byClass), done = 0;
+    for (var n = 0; n < ids.length; n++) {
+      var cid = ids[n], add = byClass[cid] || {};
+      if (!Object.keys(add).length) continue;
+      try {
+        var cur = {};
+        if (S.CLOUD && S.fdb) {
+          var d = await S.fdb.doc('mkeys/' + cid).get();
+          if (d.exists) cur = ((d.data() || {}).k) || {};
+        } else { var DBx = S.DB || window.DB || {}; cur = ((DBx.mkeys || {})[cid] || {}).k || {}; }
+        var k = Object.assign({}, cur, add);
+        var rec = { k: k, n: Object.keys(k).length, tn: (S.TE || {}).name || '', ts: Date.now() };
+        if (S.CLOUD && S.fdb) await S.fdb.doc('mkeys/' + cid).set(rec);
+        else { var DBy = S.DB || window.DB || {}; DBy.mkeys = DBy.mkeys || {}; DBy.mkeys[cid] = rec; try { S.save('mkeys'); } catch (e2) { } }
+        done++;
+      } catch (e) { }
+    }
+    return done;
+  }
   function sidCard(box) {
     var S = window.SIJIL, A = window.SIJIL_ADMIN;
     var wrap = document.createElement("div");
@@ -1363,13 +1405,21 @@
     wrap.querySelector("#sid-save").onclick = async function () {
       if (!ready || !ready.length) return;
       var btn = wrap.querySelector("#sid-save"); btn.disabled = true;
-      var okc = 0, err = 0, lastErr = "", byCls = {};
+      var okc = 0, err = 0, lastErr = "", byCls = {}, byMk = {};
       for (var i = 0; i < ready.length; i++) {
         var r = ready[i];
         try {
           var h = await S.sha256(r.nid + "|" + r.cid + "|" + SID_SALT);
-          if (S.CLOUD && S.fdb) await S.fdb.doc("spins/" + h).set({ cid: r.cid, si: r.si, ts: Date.now() });
-          else { var DBx = S.DB || window.DB || {}; DBx.spins = DBx.spins || {}; DBx.spins[h] = { cid: r.cid, si: r.si, ts: Date.now() }; try { S.save("spins"); } catch (e2) { } }
+          // المفتاح القائم يبقى (وكذلك رمز الطالب إن ضبطه) — تبديلُه يُفقد الطالب صندوق رسائله
+          var pd = {};
+          if (S.CLOUD && S.fdb) { try { var pv = await S.fdb.doc("spins/" + h).get(); if (pv.exists) pd = pv.data() || {}; } catch (e3) { pd = {}; } }
+          else { var DB0 = S.DB || window.DB || {}; pd = ((DB0.spins || {})[h]) || {}; }
+          var mk = isMk(pd.mk) ? pd.mk : mkNew();
+          var recS = { cid: r.cid, si: r.si, ts: Date.now(), mk: mk };
+          if (typeof pd.c === "string" && pd.c) recS.c = pd.c;
+          if (S.CLOUD && S.fdb) await S.fdb.doc("spins/" + h).set(recS);
+          else { var DBx = S.DB || window.DB || {}; DBx.spins = DBx.spins || {}; DBx.spins[h] = recS; try { S.save("spins"); } catch (e2) { } }
+          (byMk[r.cid] = byMk[r.cid] || {})[String(r.si)] = mk;
           okc++; (byCls[r.cid] = byCls[r.cid] || []).push(r.si);
         } catch (e) { err++; if (err === 1) lastErr = String((e && (e.code || e.message)) || e).slice(0, 90); }
         if (i % 20 === 0) say("جارِ التسجيل… " + (i + 1) + " من " + ready.length);
@@ -1378,6 +1428,7 @@
         : ("<span style=\"color:var(--bad)\">لم يُسجَّل أحد — تعثّرت " + err + " محاولة" + (lastErr ? ": " + (A.esc ? A.esc(lastErr) : lastErr) : "") + "</span>"));
       // فهرس من يستطيع الدخول — يقرأه المعلم في نافذة الإرسال (ولا يمنع فشلُه نجاح التسجيل)
       var nc = 0; try { nc = await sidsWrite(byCls); } catch (e) { nc = 0; }
+      try { await mkeysWrite(byMk); } catch (e) { }
       if (okc && nc) say(((wrap.querySelector("#sid-out") || {}).innerHTML || "") + '<div style="margin-top:6px">📇 حُدِّث فهرس ' + nc + ' فصلاً — يظهر لمعلميهم عدد الحسابات في نافذة إرسال الأوراق.</div>');
       try { await A.adminlog("sids", "تسجيل هويات " + okc + " طالباً"); } catch (e) { }
       btn.disabled = false;

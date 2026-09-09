@@ -1718,6 +1718,7 @@
       <div class="sheet-actions" style="flex-wrap:wrap">
         <button class="btn-plain" style="flex:1 1 46%" id="sc-report">📄 تقرير للطباعة</button>
         <button class="btn-plain" style="flex:1 1 46%" id="sc-letter">✉️ إشعار ولي الأمر</button>
+        <button class="btn-gold" style="flex:1 1 100%" id="sc-msg">📬 رسالة إلى حسابه ووليّه</button>
         <button class="btn-gold" style="flex:1 1 100%" id="sc-prog">📈 تقدّم الطالب في كل المواد</button>
         <button class="btn-gold" style="flex:1 1 100%" id="sc-cert">🎓 شهادة تميّز (طباعة فاخرة)</button>
         <button class="btn-primary" style="flex:1 1 100%" onclick="window._sheetClose()">إغلاق</button></div>`,
@@ -1732,6 +1733,7 @@
           () => loadStudentFiles(cid, i, () => studentCard(cid, i)));   // إغلاق نافذة المرفقات يعيد فتح بطاقة الطالب
         o.querySelectorAll("[data-fopen]").forEach(b => b.onclick = () => { const F = FILES(); if (F) { try { F.open(b.dataset.fopen); } catch (e) { } } });
         o.querySelector("#sc-report").onclick = () => printReport(cid, i);
+        { const mb = o.querySelector("#sc-msg"); if (mb) mb.onclick = () => msgSheet(cid, [i], { after: () => { if (cardOpen(i)) studentCard(cid, i); } }); }
         o.querySelector("#sc-letter").onclick = () => printLetter(cid, i);
         o.querySelector("#sc-cert").onclick = () => printCertificate(cid, i);
         o.querySelector("#sc-prog").onclick = () => studentProgress(cid, i);
@@ -3814,6 +3816,163 @@
         bindAskPhone(ov, cid, i, "ps", () => { refresh(); });
       });
   }
+  /* ═══════════ ✉️ رسالة إلى حساب الطالب ووليّه (smsg) ═══════════
+     الواتساب يصل ولي أمرٍ سجّل رقمه، والقروب يصل الجميع بلا خصوصية. والرسالة الشخصية —
+     استدعاء أو مستوى ابن — تحتاج صندوقاً لطالبٍ واحد: smsg/{mk} حيث mk مفتاحٌ عشوائي داخل
+     بصمة هويته، فمن لا يعرفه لا يجد المستند، وسردُ الصناديق ممنوع في القواعد. المعلم يقرأ
+     المفاتيح من mkeys/{cid} بمطالبته. ولا يُلغى شيء من الطريق القديم: كل رسالة تُسجَّل في سجل
+     التواصل كما هي اليوم، وزر الواتساب باقٍ لمن يريده. */
+  const mkeysCache = {};
+  async function mkeysOf(cid) {
+    if (!CLOUD || !fdb || !cid) return null;
+    if (cid in mkeysCache) return mkeysCache[cid];
+    let v = null;
+    try {
+      const d = await fdb.doc("mkeys/" + cid).get();
+      if (d.exists) v = ((d.data() || {}).k) || {};
+    } catch (e) { v = null; }
+    mkeysCache[cid] = v; return v;
+  }
+  /* الإضافة إلى صندوق الطالب: القائمة تنمو ولا تنقص كما تشترط القاعدة، وعند بلوغ الخمسين
+     تُسقط أقدم عشر. محاولتان ثم استسلام صامت — الرسالة ليست رصداً يُخشى فقده. */
+  async function msgPush(mk, item) {
+    if (!CLOUD || !fdb || !mk || !item) return false;
+    const ref = fdb.doc("smsg/" + mk);
+    for (let attempt = 0; attempt < 2; attempt++) {
+      try {
+        const snap = await ref.get();
+        const cur = (snap.exists ? (snap.data() || {}).list : null) || [];
+        if (cur.some(x => x && x.i === item.i)) return true;
+        let list = cur.concat([item]);
+        if (list.length > 60) list = list.slice(list.length - 50);
+        await ref.set({ list: list, n: list.length, tn: TE.name, ts: Date.now() }, { merge: false });
+        return true;
+      } catch (e) { if (attempt) return false; await new Promise(r => setTimeout(r, 600)); }
+    }
+    return false;
+  }
+  // حصة المعلم القادمة مع هذا الفصل — لتعبئة موعد الاستدعاء بلا كتابة
+  function nextLessonWith(cid) {
+    try {
+      const B = BELL(), days = SDAYS();
+      const rows = (D.schedule || []).filter(r => r.c === cid && String(r.t || "") === TE.name);
+      if (!rows.length) return null;
+      const now = new Date(), todayK = days[now.getDay() === 6 ? 0 : now.getDay()] || days[0];
+      for (let add = 0; add < 7; add++) {
+        const d = new Date(now.getTime() + add * 864e5), dk = DAYS[d.getDay()];
+        if (days.indexOf(dk) < 0) continue;
+        const cand = rows.filter(r => r.d === dk).sort((a, b) => (+a.p || 0) - (+b.p || 0));
+        for (const r of cand) {
+          const tm = B.periodTime(+r.p, dk);
+          if (add === 0) { const pn = B.periodNow(now); if (pn && +r.p <= pn) continue; }
+          return { day: dk, p: +r.p, time: tm, in: add };
+        }
+      }
+    } catch (e) { }
+    return null;
+  }
+  function msgTemplates(cid, i) {
+    const S = studentSummary(cid, i), s = S.s, c = S.c;
+     const nx = nextLessonWith(cid);
+    const when = nx ? `${nx.in === 0 ? "اليوم" : nx.in === 1 ? "غداً" : "يوم " + nx.day} — الحصة ${BELL().ord ? BELL().ord(nx.p) : nx.p}${nx.time ? " (" + nx.time + ")" : ""}` : "";
+    const hwN = S.t.hwN || 0;
+    const unsolved = (() => {
+      try {
+        const rows = ((SUBS[cid] || {}).rows || []).filter(r => r.si === i);
+        return rows.length ? null : "لم يحلّ أي ورقة أرسلتُها";
+      } catch (e) { return null; }
+    })();
+    const head = `ولي أمر الطالب: ${s.n} — ${c.name}`;
+    const foot = `\n\nمعلم المادة: ${TE.name}\n${META.school.name}`;
+    return [
+      { k: "level", ic: "📊", n: "مستوى ابنكم", t: `مستوى ابنكم في مادة ${TE.subject}`, b: parentMessage(cid, i) },
+      { k: "call", ic: "📣", n: "استدعاء", t: `استدعاء لمقابلة معلم ${TE.subject}`,
+        b: `السلام عليكم ورحمة الله وبركاته\n${head}\n\nنرجو تشريفكم لمقابلة معلم المادة لمناقشة مستوى ابنكم${when ? `\n📅 الموعد المقترح: ${when}` : ""}\n\nوإن لم يوافقكم الموعد فأخبرونا بالمناسب لكم.${foot}` },
+      { k: "thanks", ic: "🌟", n: "شكر وتقدير", t: "شكرٌ وتقدير لابنكم",
+        b: `السلام عليكم ورحمة الله وبركاته\n${head}\n\nيسرّني إبلاغكم بتميّز ابنكم في مادة ${TE.subject}: ${S.pos.length ? S.pos.join("، ") : "حرصه وانتظامه"}${S.rank <= 3 ? `\n🏅 ترتيبه ${S.rank} في الفصل` : ""}\n\nنسأل الله له دوام التوفيق، وشاكرين متابعتكم.${foot}` },
+      { k: "hw", ic: "📚", n: "تنبيه واجب", t: `الواجبات في مادة ${TE.subject}`,
+        b: `السلام عليكم ورحمة الله وبركاته\n${head}\n\nنودّ إبلاغكم بأن ابنكم ${hwN ? `لم يُنجز ${hwN} ${hwN === 1 ? "واجباً" : "واجبات"}` : "يحتاج متابعةً في واجباته"}${unsolved ? `\n📝 ${unsolved}` : ""}\n\nنرجو متابعته في المنزل — وأوراقه وواجباته كلها في حسابه على بوابة الطالب.${foot}` },
+      { k: "beh", ic: "⚠️", n: "تنبيه سلوك", t: `ملاحظة سلوكية في حصة ${TE.subject}`,
+        b: `السلام عليكم ورحمة الله وبركاته\n${head}\n\nنودّ إبلاغكم بملاحظة على سلوك ابنكم في الحصة: ${S.neg.length ? S.neg.join("، ") : "يحتاج تنبيهاً وتوجيهاً"}\n\nنرجو توجيهه، وشاكرين تعاونكم.${foot}` },
+      { k: "free", ic: "✍️", n: "نص حر", t: `رسالة من معلم ${TE.subject}`,
+        b: `السلام عليكم ورحمة الله وبركاته\n${head}\n\n${foot}` }
+    ];
+  }
+  /* نافذة الرسالة: طالب واحد أو مجموعة. قوالبٌ تُعبَّأ من سجل المعلم نفسه، ونصٌّ قابل للتعديل
+     قبل الإرسال، وتسجيلٌ في سجل التواصل، وزر واتساب لمن يريد الطريقين. */
+  function msgSheet(cid, list, opts) {
+    opts = opts || {};
+    if (!CLOUD || !fdb) { alert("إرسال الرسائل إلى حسابات الطلاب يحتاج النسخة السحابية"); return; }
+    const c = classById(cid); if (!c) return;
+    const idx = (list || []).filter(i => c.students[i] && !c.students[i].moved);
+    if (!idx.length) { alert("لا طالب محدد"); return; }
+    const one = idx.length === 1 ? idx[0] : null;
+    const tpl = one != null ? msgTemplates(cid, one) : null;
+    let pick = opts.kind || (tpl ? "level" : "free");
+    let keys = null;
+    const cur = () => (tpl ? (tpl.find(x => x.k === pick) || tpl[0]) : null);
+    const groupBody = (k) => {
+      const T = { call: ["استدعاء لمقابلة معلم " + TE.subject, "نرجو تشريفكم لمقابلة معلم المادة لمناقشة مستوى ابنكم."],
+        hw: ["الواجبات في مادة " + TE.subject, "نرجو متابعة ابنكم في واجباته — وأوراقه كلها في حسابه على بوابة الطالب."],
+        thanks: ["شكرٌ وتقدير", "نشكر لابنكم حرصه وانتظامه في مادة " + TE.subject + "."],
+        beh: ["ملاحظة سلوكية", "نرجو توجيه ابنكم إلى الالتزام في الحصة."],
+        level: ["متابعة مستوى ابنكم", "نرجو متابعة مستوى ابنكم في مادة " + TE.subject + " من حسابه على بوابة الطالب."],
+        free: ["رسالة من معلم " + TE.subject, ""] }[k] || ["رسالة من معلم " + TE.subject, ""];
+      return { t: T[0], b: `السلام عليكم ورحمة الله وبركاته\n\n${T[1]}\n\nمعلم المادة: ${TE.name}\n${META.school.name}` };
+    };
+    const who = one != null ? esc(c.students[one].n) : `${idx.length} طالباً من ${esc(c.name)}`;
+    const chips = (tpl || [{ k: "level", ic: "📊", n: "متابعة المستوى" }, { k: "call", ic: "📣", n: "استدعاء" },
+      { k: "thanks", ic: "🌟", n: "شكر" }, { k: "hw", ic: "📚", n: "واجب" }, { k: "beh", ic: "⚠️", n: "سلوك" },
+      { k: "free", ic: "✍️", n: "نص حر" }]);
+    openSheet(`<h4>✉️ رسالة إلى حساب ${one != null ? "الطالب ووليّه" : "الطلاب وأوليائهم"}</h4>
+      <div style="font-size:13px;color:var(--muted);margin-bottom:8px">${who} — تظهر في «📬 رسائلي» داخل حسابه على بوابة الطالب، ويراها وليّ أمره معه.</div>
+      <div class="field"><label>القالب</label><div class="msg-tpl" id="mg-tpl">${chips.map(x => `<button class="as-mode ${x.k === pick ? "on" : ""}" data-k="${x.k}"><span>${x.ic}</span>${x.n}</button>`).join("")}</div></div>
+      <div class="field"><label>العنوان</label><input class="search-box" id="mg-t" style="margin:0" maxlength="80"></div>
+      <div class="field"><label>النص</label><textarea class="search-box" id="mg-b" style="margin:0;height:190px;font-size:13.5px;line-height:1.9" maxlength="700"></textarea>
+        <div class="empty-note" style="padding:4px 2px 0;text-align:right"><span id="mg-len">0</span>/700 محرف — عدّله كما تشاء قبل الإرسال</div></div>
+      <div id="mg-out"></div>
+      <div class="sheet-actions" style="flex-wrap:wrap"><button class="btn-plain" style="flex:1 1 46%" onclick="window._sheetClose()">إلغاء</button>
+        <button class="btn-primary" style="flex:1 1 46%" id="mg-send">📬 أرسِل إلى الحساب</button></div>`, async (o) => {
+      const $$ = (q) => o.querySelector(q);
+      const fill = () => {
+        const v = one != null ? cur() : groupBody(pick);
+        $$("#mg-t").value = v.t; $$("#mg-b").value = v.b;
+        $$("#mg-len").textContent = String(v.b.length);
+      };
+      fill();
+      $$("#mg-b").oninput = () => { $$("#mg-len").textContent = String($$("#mg-b").value.length); };
+      o.querySelectorAll("#mg-tpl [data-k]").forEach(b => b.onclick = () => {
+        pick = b.dataset.k;
+        o.querySelectorAll("#mg-tpl [data-k]").forEach(x => x.classList.toggle("on", x === b));
+        fill();
+      });
+      keys = await mkeysOf(cid);
+      const noKey = keys ? idx.filter(i => !keys[String(i)]).length : idx.length;
+      if (noKey) $$("#mg-out").innerHTML = `<div class="as-sum warn">⚠ ${noKey === idx.length ? "لا حساب لهؤلاء الطلاب بعد" : noKey + " من الطلاب بلا حساب"} — تُسجَّل هوياتهم من لوحة المدير ← ⚙️ الإدارة ← 🆔 أرقام هويات الطلاب</div>`;
+      $$("#mg-send").onclick = async () => {
+        const btn = $$("#mg-send"), t = $$("#mg-t").value.trim().slice(0, 80), b = $$("#mg-b").value.trim().slice(0, 700);
+        if (!t || !b) { alert("اكتب عنواناً ونصاً"); return; }
+        btn.disabled = true; btn.textContent = "جارِ الإرسال…";
+        if (!keys) keys = await mkeysOf(cid);
+        let ok = 0, miss = 0, fail = 0;
+        for (const i of idx) {
+          const mk = keys ? keys[String(i)] : null;
+          if (!mk) { miss++; continue; }
+          const item = { i: shortId() + shortId().slice(0, 2), k: pick, t: t, b: b, tid: TE.id, tn: TE.name, subj: TE.subject, ts: Date.now() };
+          const done = await msgPush(mk, item);
+          if (done) { ok++; try { logComm(cid, i, MSG_WHY[pick] || "رسالة", "حساب الطالب", t); } catch (e) { } }
+          else fail++;
+        }
+        $$("#mg-out").innerHTML = `<div class="as-sum ${ok ? "ok" : "bad"}">${ok ? `✅ وصلت إلى <b>${ok} ${ok === 1 ? "حساب" : "حساباً"}</b> — تظهر في «📬 رسائلي» عندهم` : "لم تصل أي رسالة"}`
+          + (miss ? `<div class="s warn">⚠ ${miss} بلا حساب مسجَّل</div>` : "")
+          + (fail ? `<div class="s warn">تعثّر الإرسال إلى ${fail} — أعد المحاولة</div>` : "") + `</div>`;
+        btn.textContent = ok ? "✔ أُرسلت" : "📬 أرسِل إلى الحساب";
+        btn.disabled = !!ok;
+        if (ok && opts.after) { try { opts.after(); } catch (e) { } }
+      };
+    });
+  }
+  const MSG_WHY = { level: "تقرير متابعة", call: "استدعاء", thanks: "إشعار تميّز", hw: "متابعة واجب", beh: "ملاحظة سلوك", free: "رسالة" };
   // سطر «💬 أبلغ ولي الأمر» داخل صف الطالب بعد غائب/متأخر/هارب
   function parentAlert(cid, dt, i) {
     const e = ((DB.recs[cid] || {})[dt] || {})[i] || {};
@@ -4964,6 +5123,7 @@
     studentProgress, studentCard, adminLevels, schoolSummary, classDocs, loadSubs,
     switchTab, rerenderTab, renderToday, renderReg, renderGrades, renderRep, renderMore,
     toolCurriculum, toolSessions, toolPlans, toolCalc, toolSheets, toolAssign, sendSheet, liveSession, enter,
+    msgSheet, msgTemplates, mkeysOf,
     loadLogo, filesSheet, nextClassOf, notifyLead, paintNotifyCard,
     // مطالبة الجلسة: تُتيح للوحة المدير أن تشرح الرفض قبل وقوعه بدل نسبته إلى الإنترنت
     claimOK, claimBar, attBucketAbs: absCnt, lastAwayOf, arNum

@@ -676,6 +676,10 @@ button.period:active{transform:scale(.97)}
 
 /* 📤 إرسال الأوراق التفاعلية */
 .as-modes{display:grid; grid-template-columns:repeat(3,1fr); gap:7px}
+/* قوالب رسالة حساب الطالب — ستة أزرار في ثلاثة أعمدة */
+.msg-tpl{display:grid; grid-template-columns:repeat(3,1fr); gap:7px}
+.msg-tpl .as-mode{font-size:12.5px; padding:9px 3px}
+.msg-tpl .as-mode span{font-size:18px}
 .as-mode{background:#fff; border:1.5px solid var(--line); border-radius:12px; padding:10px 4px;
   font-family:inherit; font-size:12.5px; color:var(--ink); cursor:pointer; text-align:center; line-height:1.5}
 .as-mode span{display:block; font-size:20px; margin-bottom:2px}

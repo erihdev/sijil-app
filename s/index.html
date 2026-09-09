@@ -246,6 +246,21 @@ h2{font-size:19px;font-weight:800;color:var(--navy);margin:0 0 10px}
 .cert .ft{display:flex;justify-content:space-between;font-size:12px;color:var(--muted);
   font-weight:700;margin-top:16px;border-top:1px dashed var(--goldl);padding-top:9px}
 .cert .kv{display:flex;justify-content:center;gap:9px;flex-wrap:wrap;margin-top:10px}
+/* شارة التبويب: عدد ما لم يُفتح بعد */
+#tabs button{position:relative}
+#tabs .tn{position:absolute;top:3px;left:calc(50% - 26px);min-width:17px;height:17px;line-height:17px;
+  background:var(--bad);color:#fff;border-radius:99px;font-size:10.5px;font-weight:900;font-style:normal;
+  padding:0 4px;box-shadow:0 1px 4px rgba(0,0,0,.25)}
+/* رسائلي */
+.msgc{background:#fff;border:1.5px solid var(--line);border-radius:16px;padding:13px;margin-bottom:10px}
+.msgc.new{border-color:var(--gold);background:#FFFDF6;box-shadow:0 2px 10px rgba(215,169,63,.18)}
+.msgc.call{border-color:#e07a5f;background:#FFF6F3}
+.msgc .hd{display:flex;align-items:center;gap:8px;font-weight:900;color:var(--navy);font-size:15px}
+.msgc .hd .e{font-size:20px}
+.msgc .mt{font-size:12px;color:var(--muted);margin:3px 0 8px}
+.msgc .bd{white-space:pre-wrap;font-size:14px;line-height:1.95;color:var(--ink);text-align:right}
+.msgc .nw{display:inline-block;background:var(--bad);color:#fff;border-radius:99px;padding:1px 8px;font-size:11px;font-weight:900;margin-inline-start:auto}
+
 /* اسم وكيل المدرسة ومديرها أسفل الشهادة */
 .cert .csig{display:flex;justify-content:space-around;gap:10px;margin-top:16px;flex-wrap:wrap}
 .cert .csig span{display:flex;flex-direction:column;gap:2px;min-width:44%}
@@ -818,13 +833,16 @@ h2{font-size:19px;font-weight:800;color:var(--navy);margin:0 0 10px}
   }
   function finish(r, offerCode) {
     lockClear(); H = r.h; ssSet(HKEY, r.h);
-    const sess = { cid: r.cid, si: r.si, ts: Date.now() };
+    /* mk مفتاح صندوق رسائله: يأتي داخل بصمة هويته ولا يُعرف بغيرها، ويُحفظ مع الجلسة على جهازه
+       لأن الجلسة المستأنفة لا تعيد قراءة البصمة. من لا مفتاح له = مدرسة سجّلت هوياتها قبل الميزة. */
+    const sess = { cid: r.cid, si: r.si, ts: Date.now(), mk: String((r.doc || {}).mk || "") };
     lsSet(SKEY, JSON.stringify(sess));
     enter(sess, offerCode && !r.doc.c);
   }
   function restore() {
     let s = null; try { s = JSON.parse(lsGet(SKEY) || "null"); } catch (e) { }
     if (!s || !s.cid || !(s.si >= 0)) return null;
+    s.mk = String(s.mk || "");
     if (!(+s.ts > 0) || Date.now() - s.ts > SMAX) { lsDel(SKEY); return null; }
     const pos = resolvePos(s.cid, s.si);
     if (pos.out) { lsDel(SKEY); return null; }
@@ -840,30 +858,36 @@ h2{font-size:19px;font-weight:800;color:var(--navy);margin:0 0 10px}
     S = {
       cid: sess.cid, si: sess.si, name: String(st.n || "طالب"), first: String(st.n || "طالب").split(" ")[0],
       cname: c.name || "", gc: +c.gc || 0, gname: GNAME[+c.gc] || "", sec: secOf(c),
+      mk: String(sess.mk || ""),
       parent: (PH && PH[sess.cid + ":" + sess.si]) || ""      // جوال ولي أمره هو وحده
     };
     PH = null; forgetNames();      // بقية المدرسة تُنسى هنا: لا اسم زميل ولا جوال ولي أمره
-    lsSet(SKEY, JSON.stringify({ cid: S.cid, si: S.si, ts: Date.now() }));
+    lsSet(SKEY, JSON.stringify({ cid: S.cid, si: S.si, ts: Date.now(), mk: S.mk }));
     $("#bar-t").textContent = S.first;
     $("#bar-s").textContent = S.cname;
     $("#bar-out").hidden = false;
     $("#bar-out").onclick = askOut;
     app.className = "wrap";
     paintTabs(); showTab(CURTAB);
+    // زملاء المحتوى ينتظرون الجلسة (شارة الرسائل والاستماع الحيّ) — الحدث بعد أول رسم
+    try { window.dispatchEvent(new CustomEvent("sijil:student-in")); } catch (e) { }
     if (offerCode) setTimeout(codeSheet, 700);
   }
   const TABS = [
-    { id: "card", ic: "🪪", t: "بطاقتي" }, { id: "subj", ic: "📚", t: "موادي" },
-    { id: "task", ic: "✏️", t: "مهامي" }, { id: "less", ic: "🎒", t: "دروسي" },
-    { id: "cert", ic: "🏅", t: "شهادتي" }
+    { id: "card", ic: "🪪", t: "بطاقتي" }, { id: "msg", ic: "📬", t: "رسائلي" },
+    { id: "task", ic: "✏️", t: "مهامي" }, { id: "subj", ic: "📚", t: "موادي" },
+    { id: "less", ic: "🎒", t: "دروسي" }, { id: "cert", ic: "🏅", t: "شهادتي" }
   ];
+  /* شارات التبويبات: عددُ ما لم يُفتح بعد (رسالة جديدة أو ورقة لم تُحلّ). يضبطها زميل المحتوى
+     بـST.tabCount، فيرى الطفل أن عنده جديداً قبل أن يفتح التبويب. */
+  const TABN = {};
   const REG = {};       // تبويبات يسجّلها زملاء المحتوى: REG[id] = {render(el)}
   /* ﴿إضافة زميل المحتوى﴾ شريحة ثالثة في «بطاقتي» تحت الشارات: التقدّم أسبوعاً بأسبوع وزر «لوالديّ».
      أُضيفت بلا مساس بما قبلها — الشريحة الفارغة لا تطبع شيئاً، والنواة تعمل كما كانت بدونها. */
   let BADGES = null, TODAY = null, EXTRA = null;
   function paintTabs() {
     const tb = $("#tabs"); tb.hidden = false;
-    tb.innerHTML = TABS.map(t => `<button data-t="${t.id}" class="${t.id === CURTAB ? "on" : ""}"><span class="ic">${t.ic}</span>${esc(t.t)}</button>`).join("");
+    tb.innerHTML = TABS.map(t => `<button data-t="${t.id}" class="${t.id === CURTAB ? "on" : ""}"><span class="ic">${t.ic}</span>${esc(t.t)}${TABN[t.id] ? `<i class="tn">${TABN[t.id] > 9 ? "9+" : TABN[t.id]}</i>` : ""}</button>`).join("");
     tb.querySelectorAll("[data-t]").forEach(b => b.onclick = () => showTab(b.dataset.t));
   }
   function showTab(id) {
@@ -1180,6 +1204,15 @@ h2{font-size:19px;font-weight:800;color:var(--navy);margin:0 0 10px}
     myTeachers, loadRecs, loadGrades, calcOne, calcAll, attPct, streak, rank: rankOf,
     staff,
     tab(id, def) { REG[id] = def; if (CURTAB === id && S) showTab(id); },
+    // شارة تبويب: العدد فوق الأيقونة (٠ يُزيلها)
+    tabCount(id, n) { const v = Math.max(0, +n || 0); if (TABN[id] === v) return; TABN[id] = v; if (S) paintTabs(); },
+    /* استماعٌ حيّ لمستند واحد: به تظهر الرسالة الجديدة والورقة الجديدة بلا إعادة تحميل — وهو
+       أيضاً إشعار الطفل داخل البوابة. سحابياً فقط (الوضع التجريبي بلا onSnapshot)، ولا يرمي أبداً. */
+    sub(path, cb) {
+      if (!CLOUD || !db || !path || typeof cb !== "function") return null;
+      try { return db.doc(path).onSnapshot((d) => { try { cb(d && d.exists ? (d.data() || {}) : null); } catch (e) { } }, () => { }); }
+      catch (e) { return null; }
+    },
     badges(fn) { BADGES = fn; if (CURTAB === "card" && S) showTab("card"); },
     today(fn) { TODAY = fn; if (CURTAB === "card" && S) showTab("card"); },
     extra(fn) { EXTRA = fn; if (CURTAB === "card" && S) showTab("card"); },

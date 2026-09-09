@@ -772,6 +772,140 @@
     var cell = function (l, n) { return n ? '<span><small>' + esc(l) + '</small><b>' + esc(n) + '</b></span>' : ""; };
     return '<div class="csig">' + cell(st.lbl[st.viceKey], st.vice) + cell(st.lbl.principal, st.principal) + '</div>';
   }
+  /* ══════════════════════════ ٦) 📬 رسائلي — صندوق الطالب ووليّه ══════════════════════════
+     يقرأ smsg/{mk} حيث mk مفتاح صندوقه داخل بصمة هويته: مستندٌ لطالبٍ واحد، لا يُسرد بالقواعد
+     ولا يجده من لا يعرف المفتاح. فالاستدعاء ومستوى الابن لا يمرّان بمستند فصلٍ يقرؤه كل طلابه.
+     غير المقروء يُحسب على جهاز الطفل (localStorage) وتُكتب نسخةٌ منه في sack/{mk} ليعرف المعلم
+     أن رسالته قُرئت. والاستماع الحيّ يُظهر الجديد بلا إعادة تحميل — وهو إشعاره داخل البوابة. */
+  var MSGS = null, MSUB = null, MSEEN = null;
+  var MKIND = { level: ["📊", "مستوى ابنكم"], call: ["📣", "استدعاء"], thanks: ["🌟", "شكر وتقدير"],
+    hw: ["📚", "متابعة واجب"], beh: ["⚠️", "ملاحظة سلوك"], free: ["✉️", "رسالة"] };
+  function seenKey() { return "sijil.s.msgseen." + ((ST.S || {}).cid || "") + "." + ((ST.S || {}).si || 0); }
+  function seenGet() {
+    if (MSEEN) return MSEEN;
+    var o = {};
+    try { var raw = localStorage.getItem(seenKey()); if (raw) { var a = JSON.parse(raw); if (a && typeof a === "object") o = a; } } catch (e) { o = {}; }
+    MSEEN = o; return o;
+  }
+  function seenPut(ids) {
+    var o = seenGet(), now = Date.now(), ch = 0;
+    (ids || []).forEach(function (i) { if (i && !o[i]) { o[i] = now; ch++; } });
+    if (!ch) return false;
+    // لا تنمو بلا حدّ: أحدث ستين يكفي (سقف الصندوق نفسه)
+    var ks = Object.keys(o);
+    if (ks.length > 60) { ks.sort(function (a, b) { return o[a] - o[b]; }).slice(0, ks.length - 60).forEach(function (k) { delete o[k]; }); }
+    try { localStorage.setItem(seenKey(), JSON.stringify(o)); } catch (e) { }
+    MSEEN = o;
+    // «قرأها» للمعلم — مستندٌ منفصل لا يمسّ نصّ الرسالة، وفشلُه لا يُهمّ الطفل
+    try {
+      var mk = (ST.S || {}).mk;
+      if (mk && ST.CLOUD && ST.db) ST.db.doc("sack/" + mk).set({ seen: o, ts: Date.now() }, { merge: true });
+    } catch (e) { }
+    return true;
+  }
+  // متى وصلت: اليوم/أمس/قبل كذا — لا ساعة دقيقة، فالطفل لا يحتاجها
+  function msgWhen(ts) {
+    if (!ts) return "";
+    var d = Math.floor((Date.now() - ts) / 864e5);
+    if (d <= 0) return "اليوم";
+    if (d === 1) return "أمس";
+    return "قبل " + daysWord(d);
+  }
+  function normMsg(x) {
+    if (!x || typeof x !== "object") return null;
+    var i = String(x.i || "").slice(0, 24); if (!i) return null;
+    return { i: i, k: String(x.k || "free"), t: String(x.t || "رسالة").slice(0, 90),
+      b: String(x.b || "").slice(0, 900), tn: String(x.tn || ""), subj: String(x.subj || ""),
+      tid: String(x.tid || ""), ts: +x.ts || 0 };
+  }
+  function loadMsgs() {
+    var mk = (ST.S || {}).mk;
+    if (!mk) { MSGS = []; return Promise.resolve(MSGS); }
+    if (MSGS) return Promise.resolve(MSGS);
+    return safeDoc("smsg/" + mk).then(function (d) {
+      var list = (((d || {}).list) || []).map(normMsg).filter(Boolean);
+      list.sort(function (a, b) { return b.ts - a.ts; });
+      MSGS = list; return list;
+    }, function () { MSGS = []; return MSGS; });
+  }
+  function unreadCount(list) {
+    var o = seenGet();
+    return (list || []).filter(function (m) { return !o[m.i]; }).length;
+  }
+  function msgBadge() {
+    return loadMsgs().then(function (list) {
+      try { ST.tabCount("msg", unreadCount(list)); } catch (e) { }
+      return list;
+    });
+  }
+  /* استماعٌ حيّ: رسالةٌ تصل والطفل في البوابة ⇒ شارة وتنبيه فوري بلا إعادة تحميل. */
+  function watchMsgs() {
+    var mk = (ST.S || {}).mk;
+    if (!mk || MSUB || typeof ST.sub !== "function") return;
+    MSUB = ST.sub("smsg/" + mk, function (data) {
+      var list = (((data || {}).list) || []).map(normMsg).filter(Boolean);
+      list.sort(function (a, b) { return b.ts - a.ts; });
+      var before = MSGS ? MSGS.length : 0;
+      MSGS = list;
+      var n = unreadCount(list);
+      try { ST.tabCount("msg", n); } catch (e) { }
+      if (before && list.length > before) {
+        try { ST.toast("📬 وصلتك رسالة جديدة من معلمك"); } catch (e) { }
+        try { if (navigator.vibrate) navigator.vibrate(120); } catch (e) { }
+      }
+      if (before !== list.length) { try { if (ST.S) ST.refresh(); } catch (e) { } }
+    });
+  }
+  ST.tab("msg", {
+    render: function (el) {
+      var ok = guard();
+      loading(el);
+      loadMsgs().then(function (list) {
+        if (!ok()) return;
+        watchMsgs();
+        var seen = {};
+        Object.keys(seenGet()).forEach(function (k) { seen[k] = 1; });
+        var h = head("📬", "رسائلي", "رسائل معلميك — اقرأها مع أمك أو أبيك");
+        if (!(ST.S || {}).mk) {
+          h += '<div class="card mid"><div class="big">📪</div><h1>صندوقك ما جهز بعد</h1>'
+            + '<p class="sub" style="margin:0">اطلب من إدارة المدرسة تحديث تسجيل هويتك، فيصلك بريد معلميك هنا.</p></div>';
+          el.innerHTML = h; return;
+        }
+        if (!list.length) {
+          h += '<div class="card mid"><div class="big">📭</div><h1>ما وصلك شيء</h1>'
+            + '<p class="sub" style="margin:0">حين يرسل لك معلمك رسالة أو استدعاءً أو تقريراً عن مستواك، تجدها هنا 🌱</p></div>';
+          el.innerHTML = h; ST.tabCount("msg", 0); return;
+        }
+        h += list.map(function (m) {
+          var K = MKIND[m.k] || MKIND.free, isNew = !seen[m.i];
+          return '<div class="msgc ' + (m.k === "call" ? "call" : (isNew ? "new" : "")) + '">'
+            + '<div class="hd"><span class="e">' + K[0] + '</span><span>' + esc(m.t) + '</span>'
+            + (isNew ? '<span class="nw">جديدة</span>' : "") + '</div>'
+            + '<div class="mt">' + esc(K[1]) + (m.tn ? " · " + esc(m.tn) : "") + (m.subj ? " · " + esc(m.subj) : "")
+            + (m.ts ? " · " + esc(msgWhen(m.ts)) : "") + '</div>'
+            + '<div class="bd">' + esc(m.b) + '</div></div>';
+        }).join("");
+        h += '<div class="card no-print" style="margin-top:4px">'
+          + '<button class="go soft" id="m-share">💬 أرسل آخر رسالة لوالديّ</button></div>';
+        el.innerHTML = h;
+        // فتحُ التبويب = قراءةٌ: الشارة تنزل، ويعرف المعلم أنها قُرئت
+        seenPut(list.map(function (m) { return m.i; }));
+        try { ST.tabCount("msg", 0); } catch (e) { }
+        var sb = byId(el, "#m-share");
+        if (sb) sb.onclick = function () {
+          var m = list[0], txt = m.t + "\n\n" + m.b;
+          try { if (navigator.share) { navigator.share({ text: txt }).then(function () { }, function () { }); return; } } catch (e) { }
+          try { navigator.clipboard.writeText(txt); ST.toast("نُسخت الرسالة ✅"); } catch (e) { ST.toast("انسخها يدوياً 🙂"); }
+        };
+      }, function () { if (ok()) oops(el); });
+    }
+  });
+  // الشارة تُحسب مع الدخول لا عند فتح التبويب — وإلا لم يعرف الطفل أن عنده جديداً
+  /* تُحسب الشارة عند الدخول (حدثٌ تُطلقه النواة) لا بمؤقّت أعمى: الطفل قد يمكث في شاشة الدخول
+     دقيقةً، ومؤقّتٌ يسبق جلسته يمرّ بلا شيء فلا يرى شارة إلا إن فتح التبويب بنفسه. */
+  function msgStart() { if (!ST.S) return; msgBadge(); watchMsgs(); }
+  try { window.addEventListener("sijil:student-in", msgStart); } catch (e) { }
+  try { setTimeout(msgStart, 1200); } catch (e) { }
   /* ══════════════════════════ ٥) شهادتي ══════════════════════════ */
   ST.tab("cert", {
     render: function (el) {
