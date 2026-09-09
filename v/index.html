@@ -153,6 +153,20 @@ h1{font-size:19px;font-weight:800;color:var(--navy);margin:0 0 4px;line-height:1
     <div class="foot">سجلي — سجل المتابعة الرقمي · <a href="https://erihdev.com">ERIHDEV.COM</a></div>`;
   }
 
+  /* رمز App Check لا يكون جاهزاً لحظة activate: أول قراءة قد تُرفض بـ permission-denied
+     رغم صحة القواعد (رأيناها فعلياً على بوابة الطالب: أول تحميل يفشل والثاني ينجح).
+     ننتظر الرمز أولاً، ونعيد المحاولة مرة واحدة بعد مهلة قصيرة إن رُفضت. */
+  async function acReady() {
+    try { if (firebase.appCheck) await Promise.race([firebase.appCheck().getToken(), new Promise(r => setTimeout(r, 6000))]); } catch (e) { }
+  }
+  async function withAC(fn) {
+    try { return await fn(); }
+    catch (e) {
+      if (!e || e.code !== "permission-denied") throw e;
+      await acReady(); await new Promise(r => setTimeout(r, 700));
+      return await fn();
+    }
+  }
   async function boot() {
     if (!FID || !/^[A-Za-z0-9_-]{2,24}$/.test(FID)) return fail("رابط غير مكتمل", "اطلب من المعلم إرسال الرابط كاملاً.");
     const slow = setTimeout(() => { const el = $("#ld"); if (el) el.textContent = "الاتصال يستغرق وقتاً أطول من المعتاد…"; }, 5000);
@@ -163,6 +177,7 @@ h1{font-size:19px;font-weight:800;color:var(--navy);margin:0 0 4px;line-height:1
         if (!window.firebase) throw new Error("sdk");
         firebase.initializeApp(window.FIREBASE_CONFIG);
         try { if (firebase.appCheck && window.APPCHECK_SITE_KEY) firebase.appCheck().activate(new firebase.appCheck.ReCaptchaEnterpriseProvider(window.APPCHECK_SITE_KEY), true); } catch (e) { }
+      await acReady();
         await withTimeout(firebase.auth().signInAnonymously());
         db = firebase.firestore();
       }

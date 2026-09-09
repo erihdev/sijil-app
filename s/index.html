@@ -495,15 +495,30 @@ h2{font-size:19px;font-weight:800;color:var(--navy);margin:0 0 10px}
   const fdoc = (path) => withTimeout(db.doc(path).get());
   const fcol = (name) => withTimeout(db.collection(name).get());
 
+  /* رمز App Check لا يكون جاهزاً لحظة activate: أول قراءة قد تُرفض بـ permission-denied
+     رغم صحة القواعد (رأيناها فعلياً على بوابة الطالب: أول تحميل يفشل والثاني ينجح).
+     ننتظر الرمز أولاً، ونعيد المحاولة مرة واحدة بعد مهلة قصيرة إن رُفضت. */
+  async function acReady() {
+    try { if (firebase.appCheck) await Promise.race([firebase.appCheck().getToken(), new Promise(r => setTimeout(r, 6000))]); } catch (e) { }
+  }
+  async function withAC(fn) {
+    try { return await fn(); }
+    catch (e) {
+      if (!e || e.code !== "permission-denied") throw e;
+      await acReady(); await new Promise(r => setTimeout(r, 700));
+      return await fn();
+    }
+  }
   /* ═══ الإقلاع ═══ */
   async function boot() {
     try {
       if (CLOUD) {
         firebase.initializeApp(window.FIREBASE_CONFIG);
         try { if (firebase.appCheck && window.APPCHECK_SITE_KEY) firebase.appCheck().activate(new firebase.appCheck.ReCaptchaEnterpriseProvider(window.APPCHECK_SITE_KEY), true); } catch (e) { }
+        await acReady();
         await withTimeout(firebase.auth().signInAnonymously());
         db = firebase.firestore();
-        const [cs, ts, ms, mv] = await Promise.all([fcol("classes"), fcol("teachers"), fdoc("meta/app"), fcol("moves")]);
+        const [cs, ts, ms, mv] = await withAC(() => Promise.all([fcol("classes"), fcol("teachers"), fdoc("meta/app"), fcol("moves")]));
         D.classes = []; cs.forEach(d => D.classes.push(Object.assign({ id: d.id }, d.data())));
         D.teachers = []; ts.forEach(d => D.teachers.push(Object.assign({ id: d.id }, d.data())));
         D.moves = []; mv.forEach(d => D.moves.push(Object.assign({ id: d.id }, d.data())));

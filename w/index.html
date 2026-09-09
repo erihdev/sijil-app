@@ -160,12 +160,27 @@ button{font-family:inherit;font-size:16px}
     .replace(/[إأآا]/g, "ا").replace(/ى/g, "ي").replace(/ة/g, "ه")
     .replace(/^ال/, "").replace(/\s+/g, " ").toLowerCase();
 
+  /* رمز App Check لا يكون جاهزاً لحظة activate: أول قراءة قد تُرفض بـ permission-denied
+     رغم صحة القواعد (رأيناها فعلياً على بوابة الطالب: أول تحميل يفشل والثاني ينجح).
+     ننتظر الرمز أولاً، ونعيد المحاولة مرة واحدة بعد مهلة قصيرة إن رُفضت. */
+  async function acReady() {
+    try { if (firebase.appCheck) await Promise.race([firebase.appCheck().getToken(), new Promise(r => setTimeout(r, 6000))]); } catch (e) { }
+  }
+  async function withAC(fn) {
+    try { return await fn(); }
+    catch (e) {
+      if (!e || e.code !== "permission-denied") throw e;
+      await acReady(); await new Promise(r => setTimeout(r, 700));
+      return await fn();
+    }
+  }
   async function boot() {
     if (!AID || !/^[a-z0-9]{4,12}$/.test(AID)) return fail("رابط غير مكتمل", "اطلب من معلمك إرسال الرابط كاملاً.");
     const slow = setTimeout(() => { const el = $("#ld"); if (el) el.textContent = "الاتصال يستغرق وقتاً أطول من المعتاد…"; }, 5000);
     try {
       firebase.initializeApp(window.FIREBASE_CONFIG);
       try { if (firebase.appCheck && window.APPCHECK_SITE_KEY) firebase.appCheck().activate(new firebase.appCheck.ReCaptchaEnterpriseProvider(window.APPCHECK_SITE_KEY), true); } catch (e) { }
+      await acReady();
       await withTimeout(firebase.auth().signInAnonymously());
       db = firebase.firestore();
       const s = await withTimeout(db.doc("assign/" + AID).get());
