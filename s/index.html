@@ -330,7 +330,7 @@ h2{font-size:19px;font-weight:800;color:var(--navy);margin:0 0 10px}
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-check-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
-<script src="../js/fb.js?v=53"></script>
+<script src="../js/fb.js?v=56"></script>
 <script>
 /* ═══════════════════════════════════════════════════════════════════════════════════════
    سجلي — بوابة الطالب (نواة)
@@ -599,7 +599,7 @@ h2{font-size:19px;font-weight:800;color:var(--navy);margin:0 0 10px}
         if (!D.classes.length || !D.meta.states) throw new Error("data");
       } else {
         db = demoDb;
-        await loadScript("../js/demo-data.js?v=53");
+        await loadScript("../js/demo-data.js?v=56");
         const DEMO = window.DEMO || {};
         D.classes = JSON.parse(JSON.stringify(DEMO.classes || []));
         D.teachers = JSON.parse(JSON.stringify(DEMO.teachers || []));
@@ -1192,6 +1192,6 @@ h2{font-size:19px;font-weight:800;color:var(--navy);margin:0 0 10px}
   boot();
 })();
 </script>
-<script src="../js/student/content.js?v=53"></script>
+<script src="../js/student/content.js?v=56"></script>
 </body>
 </html>

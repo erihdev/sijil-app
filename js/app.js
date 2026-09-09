@@ -792,6 +792,25 @@
     el.innerHTML = `<span>🔐 هذا الجهاز لم يُعتمد برقمك بعد تحديث التطبيق: الحفظ في إعدادات المدرسة والمعلمين والجدول سيُرفض (وليس سببه الإنترنت). أدخل رقمك مرة واحدة ويبقى الجهاز معتمداً.</span><button class="btn-gold" id="claim-go">🔓 اعتماد الجهاز الآن</button>`;
     const b = $("#claim-go"); if (b) b.onclick = () => { DB.session = null; DB.srole = null; save(); setTimeout(() => location.reload(), 250); };
   }
+  /* ═══ البيانات الخاصة (sedits): جوالات أولياء الأمور وتصحيحات الأسماء ═══
+     جوال ولي الأمر كان داخل مستند الفصل، ومستندات الفصول تُقرأ من أي جهاز مصادَق — وبوابة
+     الطالب تفتح بحساب مجهول، فكان أي طالب يفتح الطرفية ويقرأ أسماء المدرسة كلها وجوالات
+     أولياء أمورهم. فانتقلت الأرقام إلى sedits وقراءتها تشترط مطالبة معلم (sess)، وصارت تُقرأ
+     بعد الدخول لا في الإقلاع. الإقلاع يُحاول أيضاً (الجلسة المستأنفة مطالبتها قائمة).
+     وتُطبَّق بـapplySedits نفسها: هي وحدها التي تلحق بالطالب المنقول عبر s.from. */
+  async function loadPrivate() {
+    if (!CLOUD || !fdb || !TE) return false;
+    let sedits = null;
+    try {
+      const se = await fdb.collection("sedits").get();
+      sedits = {}; se.forEach(d => sedits[d.id] = d.data() || {});
+    } catch (e) { return false; }
+    if (!Object.keys(sedits).length && D.sedits && Object.keys(D.sedits).length) return false;
+    applySedits(D.classes, sedits);
+    D.sedits = sedits;
+    try { localStorage.setItem("sijil.cloudD", JSON.stringify(D)); } catch (e) { }
+    return true;
+  }
   async function enter(t) {
     TE = t;
     $("#view-login").classList.add("hidden");
@@ -814,6 +833,8 @@
         save();
       } catch (e) { syncBadge(false); }
     }
+    // جوالات أولياء الأمور وتصحيحات الأسماء: قراءتها تشترط مطالبة معلم، ولا تُقرأ في الإقلاع المجهول
+    try { await loadPrivate(); } catch (e) { }
     try { sweepRecs(); } catch (e) { }                        // تنظيف أيام الرصد الفارغة المتراكمة قبل أول رسم
     try { loadLogo(true); } catch (e) { }                     // شعار المدرسة لترويسة المطبوعات (لا ينتظره أحد)
     renderToday(); renderReg(); renderGrades(); renderRep(); renderMore();
