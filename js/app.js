@@ -319,6 +319,45 @@
   const NEW_FROM = (cid) => "new_" + cid;
   const isNewFrom = (f) => /^new(_[A-Za-z0-9]{1,12})?$/.test(String(f || ""));
   const NEW_LBL = "مستجد (طالب جديد)";
+  /* ═══ 🗑 حذف طالب ═══
+     الحذف الحقيقي ممنوع بقصد: مستند الفصل مقفل، وحركات النقل لا تُحدَّث ولا تُحذف في القواعد.
+     ولو حُذفت الحركة لعاد الموضع فارغاً، ولوَرِثَ الطالبُ التالي رصدَ من كان قبله (recs مفاتيحها
+     أرقام المواضع لا الأسماء) — وهذه أسوأ من أي زر. فالحذف = حركة خروج (to:"out"): يختفي من
+     قوائم كل معلميه ومن المطبوعات ومن بوابته، ويبقى موضعه محجوزاً إلى الأبد فلا يرث أحدٌ رصده،
+     ويبقى رصده السابق محفوظاً لا يُمحى. ومعرّف الحركة {cid}x{si} فريدٌ لكل موضع، فحذفٌ مكرر من
+     جهازين لا يكتب مرتين — ويُقرأ الرفض «موجود» نجاحاً لا فشلاً. */
+  async function removeStudent(cid, si) {
+    const c = classById(cid);
+    if (!c) return { ok: false, err: "لا فصل بهذا المعرّف" };
+    if (!TE || !TE.admin) return { ok: false, err: "حذف الطلاب لمدير المدرسة وحده" };
+    const i = +si, st = (c.students || [])[i];
+    if (!st || st.gap) return { ok: false, err: "لا طالب في هذا الموضع" };
+    if (st.moved) return { ok: true, already: true, name: String(st.n || ""), no: activeCount(c) };
+    const nm = String(st.n || "").slice(0, 120);
+    const m = { from: cid, si: i, to: "out", name: nm, newSi: 0, tn: TE ? TE.name : "", ts: Date.now() };
+    const id = moveId(m);
+    try {
+      if (CLOUD && fdb) {
+        const ref = fdb.doc("moves/" + id);
+        await fdb.runTransaction(async tx => { const ex = await tx.get(ref); if (ex.exists) throw new Error("SLOT_TAKEN"); tx.set(ref, m); });
+      } else {
+        let stored = []; try { const raw = JSON.parse(localStorage.getItem(KEY) || "null"); stored = (raw && Array.isArray(raw.moves)) ? raw.moves : []; } catch (e) { }
+        if (stored.concat(D.moves || []).some(x => x && x.id === id)) throw new Error("SLOT_TAKEN");
+      }
+      const rec = Object.assign({ id }, m);
+      applyMoves(D.classes, [rec]); delete rec.appliedSi;
+      D.moves = D.moves || []; D.moves.push(rec);
+      if (!CLOUD) { DB.moves = D.moves; save(); } else saveCloudD();
+      return { ok: true, name: nm, no: activeCount(classById(cid)), id: id, cname: c.name };
+    } catch (e) {
+      if (e && e.message === "SLOT_TAKEN") {
+        // خروجُه مسجَّل من جهاز آخر: نُحدِّث القائمة ونعدّه نجاحاً — النتيجة المطلوبة قائمة
+        try { await refreshMoves({ from: cid }); } catch (x) { }
+        return { ok: true, already: true, name: nm, no: activeCount(classById(cid) || c) };
+      }
+      return { ok: false, err: "تعذّر الحذف — تحقق من الاتصال ثم أعد المحاولة" };
+    }
+  }
   async function addStudent(cid, name) {
     const c = classById(cid);
     if (!c) return { ok: false, err: "لا فصل بهذا المعرّف" };
@@ -5164,7 +5203,7 @@
     assessDefault, assessEff, assessApply, assessView, assessMerge, ASSESS_C, ASSESS_CK, ASSESS_WK, ASSESS_MAX,
     $, esc, clone, save, syncBadge, mergeComms, rec,
     classById, myClasses, activeStudents, activeCount, isActive, applyMoves, applySedits, refreshMoves, absorbMoves, moveId, migrateMove, classPointsMap, adminMoves,
-    addStudent, isNewFrom,
+    addStudent, removeStudent, isNewFrom,
     calcStudent, classCalc, autoGrade, effGrades, gradeTotal, gradedMax, gradePct, hasGrades, levelOf, attPct, maxTotal, pctCell, daySeries, trendOf, studentSummary,
     hijriLabel, hijriParts, curWeek, subjCode, loadCurr, saveCurrEdit, lessonURL,
     openSheet, closeSheet, printSheet, printDoc, printCertificate, printReport, printLetter,

@@ -26,7 +26,7 @@
   const DAYS5 = ["الأحد", "الإثنين", "الثلاثاء", "الأربعاء", "الخميس"];
   const pad2 = (n) => String(n).padStart(2, "0");
   const isDemo = () => !(S().CLOUD && S().fdb);
-  const ACTS = { pin: "🔑 رقم دخول", edit: "✏️ تعديل", add: "➕ إضافة معلم", addst: "➕ طالب جديد", lead: "🎖️ رائد فصل", schedule: "🗓️ الجدول", move: "🔁 نقل طالب", sedit: "👤 بيانات طالب", backup: "⬇️ نسخة احتياطية", restore: "⬆️ استعادة", bell: "⏰ أوقات الحصص", school: "🏫 أسماء الإدارة", assess: "🎛️ مكتبة التقييمات" };
+  const ACTS = { pin: "🔑 رقم دخول", edit: "✏️ تعديل", add: "➕ إضافة معلم", addst: "➕ طالب جديد", delst: "🗑 حذف طالب", lead: "🎖️ رائد فصل", schedule: "🗓️ الجدول", move: "🔁 نقل طالب", sedit: "👤 بيانات طالب", backup: "⬇️ نسخة احتياطية", restore: "⬆️ استعادة", bell: "⏰ أوقات الحصص", school: "🏫 أسماء الإدارة", assess: "🎛️ مكتبة التقييمات" };
   let curBox = null, logAll = false, busy = false, lastRestore = null;
 
   /* ═══ CSS الوحدة (مرة واحدة) ═══ */

@@ -334,6 +334,63 @@
     } catch (e) { warn("registerStudentId", e && e.message); return { ok: false, err: "تعذّر تسجيل الهوية — تحقق من الاتصال ثم أعد المحاولة" }; }
   }
 
+  /* ═══ إلغاء مدخل بوابة طالب حُذف ═══
+     بصمة هويته spins/{h} **لا يمكن حذفها**: مفتاحها بصمةٌ تُحسب من رقم الهوية، والرقم لا يُخزَّن
+     عندنا أصلاً — فلا سبيل إلى معرفة h بعد الاستيراد. ولا حاجة: البوابة ترفض دخول طالب حُذف
+     (resolvePos ⇒ moved). والذي يُنظَّف هنا ما يُقرأ فعلاً بعد الحذف:
+       sids/{cid}.list  ← يُسقط موضعه، فلا يعدّه المعلم حساباً تصله ورقة
+       mkeys/{cid}.k    ← يُسقط مفتاح صندوقه، فلا يُرسل إليه معلمٌ رسالة
+       spush/{mk}       ← يُحذف اشتراك إشعاراته، فلا يصله «واجب جديد» بعد خروجه (وهذا وحده
+                          ما كان سيصل جواله فعلاً بعد الحذف) */
+  async function unregisterStudentId(cid, si) {
+    const s = S(); if (!s) return { ok: false };
+    const i = sidI(si); if (!(i >= 0)) return { ok: false };
+    const out = { ok: true, sids: false, mkeys: false, push: false };
+    try {
+      if (s.CLOUD && s.fdb) {
+        let mk = "";
+        try {
+          const d = await s.fdb.doc("mkeys/" + cid).get();
+          const k = d.exists ? (((d.data() || {}).k) || {}) : {};
+          mk = String(k[String(i)] || "");
+          if (k[String(i)] != null) {
+            delete k[String(i)];
+            await s.fdb.doc("mkeys/" + cid).set({ k: k, n: Object.keys(k).length, tn: (s.TE || {}).name || "", ts: Date.now() });
+            out.mkeys = true;
+          }
+        } catch (e) { }
+        try {
+          const d2 = await s.fdb.doc("sids/" + cid).get();
+          const list = d2.exists ? (((d2.data() || {}).list) || []) : [];
+          const keep = list.map(sidI).filter(x => x >= 0 && x !== i);
+          if (keep.length !== list.length) {
+            await s.fdb.doc("sids/" + cid).set({ list: keep, n: keep.length, tn: (s.TE || {}).name || "", ts: Date.now() });
+            out.sids = true;
+          }
+        } catch (e) { }
+        if (isMkStr(mk)) { try { await s.fdb.doc("spush/" + mk).delete(); out.push = true; } catch (e) { } }
+        return out;
+      }
+      const DB = s.DB || window.DB || {};
+      const k2 = ((DB.mkeys || {})[cid] || {}).k || {};
+      const mk2 = String(k2[String(i)] || "");
+      if (k2[String(i)] != null) {
+        delete k2[String(i)];
+        DB.mkeys = DB.mkeys || {}; DB.mkeys[cid] = { k: k2, n: Object.keys(k2).length, tn: (s.TE || {}).name || "", ts: Date.now() };
+        out.mkeys = true;
+      }
+      const l2 = ((DB.sids || {})[cid] || {}).list || [];
+      const keep2 = l2.map(sidI).filter(x => x >= 0 && x !== i);
+      if (keep2.length !== l2.length) {
+        DB.sids = DB.sids || {}; DB.sids[cid] = { list: keep2, n: keep2.length, tn: (s.TE || {}).name || "", ts: Date.now() };
+        out.sids = true;
+      }
+      if (mk2 && DB.spush) { delete DB.spush[mk2]; out.push = true; }
+      try { s.save("spins"); } catch (e) { }
+      return out;
+    } catch (e) { warn("unregisterStudentId", e && e.message); return { ok: false }; }
+  }
+
   /* ═══ تعديل بيانات طالب من المدير: sedits/{cid} = { s: { si: { p?, n? } }, tn, ts } ═══ */
   async function saveSedit(cid, si, patch) {
     const s = S(), D = s.D, DB = s.DB, p = {};
@@ -895,7 +952,7 @@
     // أسماء إدارة المدرسة وسطر التواقيع
     schoolStaff, sigLine, saveStaff, validateStaff, STAFF_KEYS, STAFF_LBL,
     // تسجيل هوية طالب واحد (بوابته وصندوق رسائله)
-    registerStudentId, sidDigits,
+    registerStudentId, unregisterStudentId, sidDigits,
     // مكتبة التقييمات ودرجاتها (cfg/assess)
     assess, defaultAssess, validateAssess, saveAssess, assessLine, assessScore,
     ASSESS_KEYS, ASSESS_WK, ASSESS_WLBL, ASSESS_COLORS, ASSESS_CLBL, ASSESS_MAX, ASSESS_LOCK

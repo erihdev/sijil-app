@@ -109,13 +109,23 @@ def main(argv=None) -> int:
     now_ms = dt.datetime.now(RIYADH).timestamp() * 1000
     max_age_ms = max(1, args.max_age) * 60_000
     idx: dict = {}
-    sent = quiet = cleaned = 0
+    sent = quiet = cleaned = gone = 0
+
+    # الطالب المحذوف (حركة خروج to=="out") يبقى اشتراكه في spush ولا سبيل لحذفه من جهازه —
+    # فلا يُرسل إليه شيء بعد خروجه. والبوابة ترفض دخوله أصلاً، فالإشعار وحده كان سيصله.
+    left = set()
+    for mid, mv in (store.list("moves") or {}).items():
+        if str(mv.get("to") or "") == "out":
+            left.add(str(mv.get("from") or "") + ":" + str(int(num(mv.get("si"), -1))))
 
     for mk, d in subs.items():
         cid = str(d.get("cid") or "")
         si = int(num(d.get("si"), -1))
         ep = str(d.get("ep") or "")
         if not mk or not cid or si < 0 or not ep:
+            continue
+        if (cid + ":" + str(si)) in left:
+            gone += 1
             continue
 
         mark = store.get("pushlog/s_" + mk) or {}
@@ -173,7 +183,7 @@ def main(argv=None) -> int:
         else:
             log("  ✖ تعذّر الإرسال (%s %s)" % (code, why))
 
-    log("أُرسل %d · بلا جديد %d · اشتراكات منتهية حُذفت %d" % (sent, quiet, cleaned))
+    log("أُرسل %d · بلا جديد %d · اشتراكات منتهية حُذفت %d · طلاب خارج القائمة %d" % (sent, quiet, cleaned, gone))
     return 0
 
 

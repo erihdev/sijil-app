@@ -27,6 +27,7 @@
 .ads-tools select{flex:0 0 auto}
 .ads-tools .btn-plain{flex:0 0 auto;padding:9px 14px}
 .ads-tools .btn-gold{flex:0 0 auto;padding:9px 12px;font-size:13px}
+.ads-tools .btn-primary{flex:0 0 auto;padding:9px 14px;font-size:13.5px}
 .report-table.ads td{white-space:nowrap;vertical-align:middle}
 .report-table.ads td.nm{line-height:1.35}
 .report-table.ads td.nm small{display:block;color:var(--muted);font-weight:400;font-size:10.5px}
@@ -51,6 +52,13 @@
 .report-table.ads tr.hl td{background:#fdf6e3!important}
 .ads-sub{font-size:12px;color:var(--muted);margin:-4px 0 8px;line-height:1.8}
 .ads-cnt{font-size:12px;color:var(--muted);margin:8px 2px 0;line-height:1.7}
+.ads-dlw{background:#FDECEC;border:1.5px solid #f1b9b9;border-radius:12px;padding:10px 12px;font-size:12.5px;
+  font-weight:700;color:#8c2b2b;line-height:1.9;margin:2px 0 8px}
+.ads-dlw ul{margin:6px 0 0;padding-inline-start:18px;font-weight:600}
+.ads-dlw li{margin-bottom:3px}
+.btn-danger{background:var(--bad);color:#fff;border:0;border-radius:12px;padding:12px 16px;
+  font-weight:800;font-size:15px;font-family:inherit;cursor:pointer;flex:1 1 46%}
+.btn-danger:disabled{opacity:.5;cursor:not-allowed}
 .ads-sug{border:1.5px solid var(--gold);background:#fdf6e3;border-radius:12px;padding:8px 10px;margin-bottom:10px}
 .ads-sug h4{margin:0 0 6px;font-size:14.5px;font-weight:800;color:#6b5410}
 .ads-sug .sr{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:7px 2px;border-top:1px dashed #e3d3a6}
@@ -247,6 +255,59 @@
     }, 500);
   }
 
+  /* ═══ 🗑 حذف طالب ═══
+     ما يحدث فعلاً (والنافذة تقوله للمدير بلا تلميع): يختفي من قوائم كل معلميه ومن المطبوعات
+     ومن بوابته، ويبقى رصده السابق محفوظاً لا يُمحى، ويبقى موضعه محجوزاً إلى الأبد فلا يرث
+     طالبٌ جديد رصدَ من كان قبله. والسببان (أُضيف بالخطأ / انتقل خارج المدرسة) يكتبان الحركة
+     نفسها — الفرق في سجل الإدارة وحده، ولا نوهم المدير بغير ذلك. */
+  function delSheet(cid, si, onDone) {
+    const s = S(), a = A(), c = byId(cid), st = c && (c.students || [])[si];
+    if (!st || st.gap) { toast("تعذّر إيجاد الطالب"); return; }
+    if (!(s.TE || {}).admin) { toast("حذف الطلاب لمدير المدرسة وحده"); return; }
+    if (st.moved) { toast("هذا الطالب محذوف بالفعل — حُدِّثت القائمة"); if (onDone) onDone(); return; }
+    if (movesOff()) { toast("الحذف معطّل: أعد تحميل الصفحة مع اتصال بالإنترنت"); return; }
+    let why = "wrong";
+    s.openSheet(`<h4>🗑 حذف الطالب</h4>
+      <div style="text-align:center;font-size:15px;font-weight:800;color:var(--navy);margin-bottom:2px">${esc(st.n)}</div>
+      <div style="text-align:center;color:var(--muted);font-size:12.5px;margin-bottom:10px">${esc(c.name)} — رقم ${si + 1}</div>
+      <div class="field"><label>السبب</label><div class="as-modes" id="ads-dl-w" style="grid-template-columns:1fr 1fr">
+        <button class="as-mode on" data-w="wrong"><span>✍️</span>أُضيف بالخطأ</button>
+        <button class="as-mode" data-w="left"><span>🚪</span>انتقل خارج المدرسة</button></div></div>
+      <div class="ads-dlw">ماذا يحدث بالضبط؟
+        <ul><li>يختفي من قوائم <b>كل معلميه</b> ومن التحضير والدرجات والمطبوعات.</li>
+        <li>يُمنع دخوله إلى بوابة الطالب، ولا تصله أوراق ولا رسائل ولا إشعارات.</li>
+        <li>رصده ودرجاته السابقة <b>تبقى محفوظة</b> ولا تُمحى (سجلٌّ لا يُتلَف).</li>
+        <li>موضعه في القائمة يبقى محجوزاً، فلا يرث طالبٌ جديد رصده — وأرقام زملائه لا تتغيّر.</li>
+        <li>لا رجعة إلا بإضافته من جديد بـ«➕ طالب جديد» (بموضع جديد وبلا رصده القديم).</li></ul></div>
+      <div id="ads-dl-msg" style="font-size:13px;font-weight:700;min-height:18px;text-align:right;line-height:1.8"></div>
+      <div class="sheet-actions"><button class="btn-plain" onclick="window._sheetClose()">إلغاء</button>
+        <button class="btn-danger" id="ads-dl-ok">🗑 نعم، احذفه</button></div>`, (o) => {
+      const msg = o.querySelector("#ads-dl-msg"), ok = o.querySelector("#ads-dl-ok");
+      let busy = false;
+      const say = (t, col) => { msg.style.color = col || "var(--muted)"; msg.innerHTML = t; };
+      o.querySelectorAll("#ads-dl-w [data-w]").forEach(b => b.onclick = () => {
+        why = b.dataset.w;
+        o.querySelectorAll("#ads-dl-w [data-w]").forEach(x => x.classList.toggle("on", x === b));
+      });
+      ok.onclick = async () => {
+        if (busy) return;
+        busy = true; ok.disabled = true; say("جارِ الحذف…");
+        let r = null;
+        try { r = await s.removeStudent(cid, si); } catch (e) { r = { ok: false, err: "تعذّر الحذف — تحقق من الاتصال" }; }
+        if (!r || !r.ok) { busy = false; ok.disabled = false; say((r && r.err) || "تعذّر الحذف", "var(--bad)"); return; }
+        // مدخل بوابته: يُنظَّف بعد الحذف (فشلُه لا يُبطل الحذف — البوابة ترفضه أصلاً)
+        let cl = null;
+        try { cl = await a.unregisterStudentId(cid, si); } catch (e) { cl = null; }
+        const why2 = why === "left" ? "انتقل خارج المدرسة" : "أُضيف بالخطأ";
+        try { await a.adminlog("delst", c.name + " #" + (si + 1) + " " + st.n + " — " + why2); } catch (e) { }
+        try { a.invalidate(); } catch (e) { }
+        s.closeSheet();
+        toast(r.already ? "كان محذوفاً من جهاز آخر — حُدِّثت القائمة" : "🗑 حُذف " + st.n + ((cl && cl.push) ? " وأُلغيت إشعاراته" : ""));
+        if (onDone) onDone();
+      };
+    });
+  }
+
   /* ═══ ➕ طالب مستجد ═══
      مستندات الفصول مقفلة للكتابة في القواعد، فالإضافة تمرّ من نموذج الحركات نفسه
      (SIJIL.addStudent: حركةٌ بلا فصلٍ مصدر تُركِّب الطالب من اسمها) — فيظهر عند كل معلم
@@ -380,7 +441,7 @@
       <button class="ads-edit" type="button" title="تعديل الاسم/جوال ولي الأمر">✏️</button>
       <a class="ads-wa${hasP ? "" : " off"}" target="_blank" rel="noopener"${hasP ? "" : ' tabindex="-1" aria-disabled="true"'} href="${wa}" title="${hasP ? "واتساب ولي الأمر — رسالة المدير عبر كل المواد" : "لا رقم مسجل لولي الأمر"}">💬</a>
       <select class="ads-mv" title="نقل إلى فصل آخر"${off ? " disabled" : ""}><option value="">🔁 نقل إلى…</option>${others.filter(x => x.id !== c.id).map(x => `<option value="${esc(x.id)}">${esc(x.name)}</option>`).join("")}</select>
-      <button class="ads-out" type="button" title="تسجيل خروج من المدرسة"${off ? " disabled" : ""}>🚪</button></div>`;
+      <button class="ads-out" type="button" title="حذف الطالب من القائمة (أُضيف بالخطأ أو انتقل خارج المدرسة)"${off ? " disabled" : ""}>🗑</button></div>`;
   }
   function tableHtml(rows, withClass, id) {
     const others = cls();
@@ -398,7 +459,7 @@
       const cid = act.dataset.c, i = +act.dataset.i, q = (sel) => act.querySelector(sel);
       q(".ads-card").onclick = () => S().studentProgress(cid, i);
       q(".ads-edit").onclick = () => editSheet(cid, i, rerender);
-      q(".ads-out").onclick = () => viaMoves(cid, i, "out");
+      q(".ads-out").onclick = () => delSheet(cid, i, rerender);
       const mv = q(".ads-mv"); mv.onchange = () => { const to = mv.value; mv.value = ""; if (to) viaMoves(cid, i, to); };
       const tr = act.closest("tr");
       if (tr) act.querySelectorAll("button,select,a").forEach(el => { el.addEventListener("focus", () => tr.classList.add("hl")); el.addEventListener("blur", () => tr.classList.remove("hl")); });
@@ -434,7 +495,7 @@
           ${H.printBtn("ads-print")}<button class="btn-gold" id="ads-refresh" title="إعادة تحميل رصد كل المعلمين">🔄</button></div>
         <div id="ads-chips">${H.chips(list.map(c => ({ k: c.id, t: `${esc(c.name)} <small style="opacity:.75">${s.activeCount(c)}</small>` })), curCid, "c")}</div>
         <div id="ads-body"><div class="empty-note">جارِ جمع رصد كل المعلمين…</div></div>
-        <div class="ads-cnt">➕ طالب جديد · 👤 البطاقة الشاملة · ✏️ تعديل الاسم/الجوال · 💬 واتساب ولي الأمر · 🔁 نقل · 🚪 خروج${movedOut ? ` — ${movedOut} مسجَّل خروجه من المدرسة` : ""}</div>`);
+        <div class="ads-cnt">➕ طالب جديد · 👤 البطاقة الشاملة · ✏️ تعديل الاسم/الجوال · 💬 واتساب ولي الأمر · 🔁 نقل إلى فصل · 🗑 حذف${movedOut ? ` — ${movedOut} خارج القائمة` : ""}</div>`);
     box.querySelector("#ads-sort").value = sortBy;
 
     const body = box.querySelector("#ads-body"), qEl = box.querySelector("#ads-q"), chips = box.querySelector("#ads-chips");
@@ -500,6 +561,6 @@
     if (query.trim().length >= 2) { try { qEl.focus(); qEl.setSelectionRange(qEl.value.length, qEl.value.length); } catch (e) { } }
   }
 
-  window.SIJIL_ADMIN_STUDENTS = { render, adminMessage, editSheet, addSheet, viaMoves, searchRows, get cid() { return curCid; }, set cid(v) { curCid = v; } };
+  window.SIJIL_ADMIN_STUDENTS = { render, adminMessage, editSheet, addSheet, delSheet, viaMoves, searchRows, get cid() { return curCid; }, set cid(v) { curCid = v; } };
   if (window.SIJIL_ADMIN && typeof window.SIJIL_ADMIN.register === "function") window.SIJIL_ADMIN.register("students", render);
 })();
