@@ -29,10 +29,10 @@
   if (m !== "skip") { try { D.documentElement.classList.add("intro-bar"); } catch (e) { } }
   if (m === "full") { var a = function () { if (D.body) { D.body.classList.add("has-intro"); return 1; } };
     if (!a()) { try { new MutationObserver(function (x, o) { if (a()) o.disconnect(); }).observe(D.documentElement, { childList: true }); } catch (e) { } D.addEventListener("DOMContentLoaded", a); } }
-  try { var t = D.createElement("script"); t.src = "../js/intro-boot.js?v=63"; t.async = false; D.head.appendChild(t); } catch (e) { }
+  try { var t = D.createElement("script"); t.src = "../js/intro-boot.js?v=64"; t.async = false; D.head.appendChild(t); } catch (e) { }
 })();
 </script>
-<link rel="stylesheet" href="../css/intro.css?v=63">
+<link rel="stylesheet" href="../css/intro.css?v=64">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800;900&display=swap">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='46' fill='%230E2033'/><text x='50' y='68' font-size='52' text-anchor='middle' fill='%23D7A93F'>س</text></svg>">
 <style>
@@ -81,10 +81,13 @@ h2{font-size:19px;font-weight:800;color:var(--navy);margin:0 0 10px}
 .steps i.on{background:var(--gold)}
 .pick{display:grid;grid-template-columns:repeat(2,1fr);gap:11px}
 .pick.three{grid-template-columns:repeat(3,1fr)}
-.pk{background:#fff;border:2.5px solid var(--line);border-radius:18px;padding:16px 8px;
-  color:var(--ink);font-weight:800;font-size:19px;line-height:1.4;min-height:84px;
-  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px}
-.pk .em{font-size:28px;line-height:1}
+/* الشريحة هدفُ لمسٍ لطفلٍ في السابعة: كبيرةٌ تملأ يده، لا زرٌّ صغير يتحرّاه بإصبعه. */
+.pk{background:#fff;border:2.5px solid var(--line);border-radius:20px;padding:18px 8px;
+  color:var(--ink);font-weight:800;font-size:21px;line-height:1.35;min-height:116px;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;
+  box-shadow:0 2px 10px rgba(27,42,58,.05);transition:border-color .15s,box-shadow .15s}
+.pk .em{font-size:38px;line-height:1}
+.pk:hover{border-color:var(--goldl);box-shadow:0 6px 18px rgba(27,42,58,.10)}
 .pk.on{border-color:var(--gold);background:#FDF8EC}
 .pk:active{transform:scale(.97)}
 .nid{width:100%;border:2.5px dashed var(--gold);border-radius:18px;padding:16px 12px;
@@ -372,6 +375,30 @@ h2{font-size:19px;font-weight:800;color:var(--navy);margin:0 0 10px}
   font-weight:800;font-size:16px;font-family:inherit;cursor:pointer}
 .tour:active{transform:scale(.985)}
 .lgf{margin-top:10px;font-size:12.5px;color:var(--muted);font-weight:700;line-height:1.8;text-align:center}
+
+/* ── ما ستجده بعد الدخول ──
+   الشاشةُ كانت بطاقةً صغيرة في وسط فراغٍ واسع، والطفلُ ووليُّه لا يعرفان ما وراء الباب.
+   فصارت الشاشةُ عمودين على الحاسب: الاختيار يميناً والمزايا يساراً، وعموداً واحداً على
+   الجوال (الاختيارُ أولاً لأنه العمل، والمزايا تحته لمن يقرأ). وكلُّ بندٍ هنا مأخوذٌ من
+   جردٍ موثّقٍ بالشيفرة — لا وعدَ بما لا يعمل. */
+.lgrid{display:grid;gap:14px}
+.perks{background:var(--card);border:1px solid var(--line);border-radius:20px;
+  padding:16px 15px 18px;box-shadow:0 4px 18px rgba(27,42,58,.07)}
+.perks h2{font-size:17px;margin:0 0 3px}
+.perks .psub{color:var(--muted);font-size:13px;font-weight:700;margin:0 0 13px;line-height:1.7}
+.pgrp{margin-top:15px}
+.pgrp:first-of-type{margin-top:0}
+.pgrp>b{display:flex;align-items:center;gap:7px;font-size:13.5px;font-weight:900;color:var(--navy);
+  margin-bottom:9px;padding-bottom:7px;border-bottom:1.5px dashed var(--line)}
+.pgrp>b i{font-style:normal;font-size:11px;font-weight:800;color:var(--muted);margin-inline-start:auto}
+.prow{display:flex;gap:10px;align-items:flex-start;margin-bottom:11px}
+.prow:last-child{margin-bottom:0}
+.prow .pe{font-size:20px;line-height:1.25;flex:none;width:26px;text-align:center}
+.prow .pt{min-width:0}
+.prow .pt b{display:block;font-size:13.5px;font-weight:900;color:var(--ink);line-height:1.55}
+.prow .pt span{display:block;font-size:12.5px;color:var(--muted);font-weight:600;line-height:1.75}
+.pnote{font-size:12px;color:var(--muted);font-weight:700;line-height:1.75;text-align:center;
+  margin-top:14px;padding-top:12px;border-top:1.5px dashed var(--line)}
 @media(min-width:760px){
   /* الشاشة الكبيرة: بطاقةٌ واحدة في الوسط وشرائح الصفوف ثلاثةً في السطر — لا عمودان
      ضائعان في منتصف شاشةٍ عريضة كما كانت. */
@@ -379,6 +406,18 @@ h2{font-size:19px;font-weight:800;color:var(--navy);margin:0 0 10px}
   .pick{grid-template-columns:repeat(3,1fr)}
   .pick.three{grid-template-columns:repeat(3,1fr)}
   .card.mid .big{font-size:64px}
+  .pk{min-height:132px;font-size:23px}
+  .pk .em{font-size:44px}
+}
+@media(min-width:980px){
+  /* شاشةُ الدخول وحدها تتّسع لعمودين: الفراغُ الذي كان تحت البطاقة صار مكاناً يقرأ فيه
+     وليُّ الأمر ما سيجده. وبقيةُ الشاشات تبقى 640 كما هي. */
+  .wrap.lgw{max-width:1000px}
+  .lgrid.two{grid-template-columns:1.04fr .96fr;align-items:start}
+  .perks{padding:20px 19px 22px}
+  .perks h2{font-size:19px}
+  .prow .pt b{font-size:14px}
+  .prow .pt span{font-size:13px}
 }
 
 /* ═══ 🎬 مسرح الدرس: هيكل حصة المعلم نفسه (محطات · مسرح · لوحة شرف) ═══ */
@@ -601,7 +640,7 @@ h2{font-size:19px;font-weight:800;color:var(--navy);margin:0 0 10px}
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-check-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
-<script src="../js/fb.js?v=63"></script>
+<script src="../js/fb.js?v=64"></script>
 <script>
 /* ═══════════════════════════════════════════════════════════════════════════════════════
    سجلي — بوابة الطالب (نواة)
@@ -906,7 +945,7 @@ h2{font-size:19px;font-weight:800;color:var(--navy);margin:0 0 10px}
         if (!D.classes.length || !D.meta.states) throw new Error("data");
       } else {
         db = demoDb;
-        await loadScript("../js/demo-data.js?v=63");
+        await loadScript("../js/demo-data.js?v=64");
         const DEMO = window.DEMO || {};
         D.classes = JSON.parse(JSON.stringify(DEMO.classes || []));
         D.teachers = JSON.parse(JSON.stringify(DEMO.teachers || []));
@@ -1028,13 +1067,42 @@ h2{font-size:19px;font-weight:800;color:var(--navy);margin:0 0 10px}
 
   /* ═══ شاشات الدخول ═══ */
   let pickG = 0, pickC = "";
-  function shell(step, inner) {
+  /* aside: لوحةٌ اختيارية بجانب بطاقة الدخول (المزايا في الخطوة الأولى). بلا aside تبقى
+     الشبكةُ عموداً واحداً فلا يتغيّر شيءٌ في الخطوتين الثانية والثالثة. */
+  /* لوحة «ما ستجده بعد الدخول». كلُّ بندٍ هنا تحقّقنا من عمله في الشيفرة قبل كتابته،
+     ولم يُذكر ما لا يعمل اليوم: «يصلك إشعارٌ والتطبيق مغلق» يحتاج أسراراً غير مضبوطة
+     في المستودع، فلا يُوعَد به وليُّ أمرٍ حتى تُضبط. والمذكور هنا يعمل بلا إعدادٍ زائد. */
+  const PERK_KID = [
+    ["🪪", "نقاطك وحضورك أمامك", "مجموع نقاطك، ونسبة حضورك، وسلسلة أيامك، وشاراتك التي جمعتها"],
+    ["✏️", "تحلّ ورقة معلمك وتعرف درجتك في الحال", "تُصحَّح فور تسليمها، وتراجع أخطاءك، وتصل درجتك معلمك"],
+    ["🎒", "الدرس كما يعرضه معلمك في الحصة", "القصة والمصطلحات و«تحقّق من فهمي» والألعاب — وتُفتح بعدها بلا إنترنت"],
+    ["🏅", "شهادة باسمك تحفظها أو تطبعها", "أرقامها من رصد معلميك، وترسلها لأهلك بضغطة"],
+  ];
+  const PERK_PAR = [
+    ["👨‍👩‍👦", "حصص اليوم حصةً حصة", "حاضر أو غائب، وكم شارك، وهل حلّ الواجب، وأي ملاحظة سلوك — والمعلم لا يزال في الحصة"],
+    ["🔔", "«ما يحتاج متابعتكم» في سطور", "غيابُ اليوم، وواجبٌ لم يُحلّ، وورقةٌ فات موعدها، ومادةٌ نزل مستواه فيها"],
+    ["📚", "مستواه في كل مادة على حدة", "درجته ونسبته وتقديره وحضوره ومشاركاته عند كل معلم"],
+    ["📬", "رسائل معلميه تصل صندوقه وحده", "استدعاءٌ أو شكرٌ أو تقريرُ مستوى — لا يقرؤها زملاؤه"],
+  ];
+  const perkRows = (a) => a.map(([e, t, d]) =>
+    `<div class="prow"><div class="pe">${e}</div><div class="pt"><b>${t}</b><span>${d}</span></div></div>`).join("");
+  const PERKS = `<div class="perks">
+    <h2>ما ستجده بعد الدخول 🌱</h2>
+    <p class="psub">بوابةٌ لك ولأهلك معاً — كلُّ ما فيها من دفتر معلميك، لا شيء مُدخَلٌ باليد.</p>
+    <div class="pgrp"><b>🧒 لك أنت<i>٦ تبويبات</i></b>${perkRows(PERK_KID)}</div>
+    <div class="pgrp"><b>👨‍👩‍👦 لأمك أو أبيك<i>شاشةٌ كاملة</i></b>${perkRows(PERK_PAR)}</div>
+    <div class="pnote">🔒 لا يفتح بوابتك إلا أنت — وتقدر تقفلها برمزٍ سرّي من عندك.</div>
+  </div>`;
+  function shell(step, inner, aside) {
     $("#bar-t").textContent = "بوابتي";
     $("#bar-s").textContent = (META.school && META.school.name) || "سجلي";
-    $("#bar-out").hidden = true; $("#tabs").hidden = true; app.className = "wrap nobar";
-    app.innerHTML = `<div class="card">
-      <div class="steps">${[1, 2, 3].map(i => `<i class="${i <= step ? "on" : ""}"></i>`).join("")}</div>
-      ${inner}</div>`;
+    $("#bar-out").hidden = true; $("#tabs").hidden = true;
+    app.className = "wrap nobar" + (aside ? " lgw" : "");
+    app.innerHTML = `<div class="lgrid${aside ? " two" : ""}">
+      <div class="card">
+        <div class="steps">${[1, 2, 3].map(i => `<i class="${i <= step ? "on" : ""}"></i>`).join("")}</div>
+        ${inner}</div>
+      ${aside || ""}</div>`;
   }
   function loginGrade() {
     pickG = 0; pickC = "";
@@ -1042,7 +1110,7 @@ h2{font-size:19px;font-weight:800;color:var(--navy);margin:0 0 10px}
     shell(1, `<h1>أهلاً بك 👋</h1><p class="sub">في أي صف أنت؟</p>
       <div class="pick" id="gg">${gs.map(g => `<button class="pk" data-g="${g}"><span class="em">${GEM[g] || "📘"}</span>${esc(GS[g] || g)}</button>`).join("")}</div>
       <button class="tour" id="tour">🎬 شاهد الجولة</button>
-      <div class="lgf">بوابة الطالب — ترى فيها نقاطك وحضورك وواجباتك ودروسك وشهادتك</div>`);
+      <div class="lgf">اختر صفك ثم فصلك، وادخل برقم هويتك — ولا تحتاج كلمة مرور</div>`, PERKS);
     app.querySelectorAll("[data-g]").forEach(b => b.onclick = () => { pickG = +b.dataset.g; loginSec(); });
     // الجولة بالطلب: إعادة الصفحة بـ?intro=1 (المفتاح نفسه الذي يستعمله زر التطبيق)
     const tb = $("#tour");
@@ -1660,6 +1728,6 @@ h2{font-size:19px;font-weight:800;color:var(--navy);margin:0 0 10px}
   boot();
 })();
 </script>
-<script src="../js/student/content.js?v=63"></script>
+<script src="../js/student/content.js?v=64"></script>
 </body>
 </html>
