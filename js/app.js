@@ -509,10 +509,26 @@
     const attended = stCnt(t, "حاضر") + stCnt(t, "عن بعد") + 0.5 * stCnt(t, "متأخر");
     return Math.round(Math.min(1, attended / denom) * 100);
   };
+  /* ═══ الفصل الدراسي: نافذةُ تواريخ لا مخزنٌ ثانٍ (docs/TERM_SPEC.md) ═══
+     مستندٌ واحد cfg/term = {t, start, lbl} يحمل بداية الفصل الجاري، وكلُّ حلقةٍ تمرّ على
+     تواريخ الرصد تُقيَّد به — فلا تتراكم نقاطُ فصلٍ مضى ولا غيابُه ولا سلوكُه في فصلٍ جديد.
+     وبلا المستند تُعيد "" فتصحّ المقارنة دائماً: السلوك اليوم كما هو حرفاً بحرف. */
+  function termFrom() {
+    const t = (META && META.term) || null;
+    const d = (t && typeof t.start === "string") ? t.start : "";
+    return /^\d{4}-\d{2}-\d{2}$/.test(d) ? d : "";
+  }
+  function termKey() {
+    const t = (META && META.term) || null;
+    if (t && (t.t === "t1" || t.t === "t2")) return t.t;
+    return (((META || {}).school || {}).term_lbl || "").includes("الثاني") ? "t2" : "t1";
+  }
   function calcStudent(cid, si, recsOverride) {
     const out = { pts: 0, days: 0, st: STATES.map(() => 0), part: 0, hwY: 0, hwN: 0, sh: 0, behP: 0, behN: 0, notes: [] };
     const cd = recsOverride || DB.recs[cid] || {};
+    const tf = termFrom();
     for (const date of Object.keys(cd)) {
+      if (tf && date < tf) continue;                          // رصدُ فصلٍ مضى خارج حساب الجاري
       const e = cd[date][si]; if (emptyRec(e)) continue;      // سجل فارغ (فتح بطاقة/نافذة حالة) ليس يوم رصد
       out.days++;
       if (e.a != null && STATES[e.a]) { out.st[e.a]++; out.pts += (+STATES[e.a].pts || 0); }
@@ -789,10 +805,11 @@
     applySedits(classes, sedits);
     // إعدادات المدرسة: cfg/bell (جدول الأجراس) وcfg/school (أسماء الإدارة) وcfg/assess (مكتبة التقييمات ودرجاتها)
     //   — غيابها أو تعذّر قراءتها = الافتراضي ولا يُفشل الإقلاع
-    let bellCfg = null, schoolCfg = null, assessCfg = null;
+    let bellCfg = null, schoolCfg = null, assessCfg = null, termCfg = null;
     try {
-      const [bs, ss, as] = await Promise.all([fdb.doc("cfg/bell").get(), fdb.doc("cfg/school").get(), fdb.doc("cfg/assess").get()]);
+      const [bs, ss, as, tm] = await Promise.all([fdb.doc("cfg/bell").get(), fdb.doc("cfg/school").get(), fdb.doc("cfg/assess").get(), fdb.doc("cfg/term").get().catch(() => null)]);
       if (bs.exists) bellCfg = bs.data() || null; if (ss.exists) schoolCfg = ss.data() || null; if (as.exists) assessCfg = as.data() || null;
+      if (tm && tm.exists) termCfg = tm.data() || null;
     }
     catch (e) {
       // فشل القراءة (قاعدة غير منشورة أو App Check أو انقطاع) ≠ «لم يضبط المدير شيئاً»: نُبقي آخر إعداد محفوظ
@@ -811,7 +828,7 @@
       try { console.warn("[سجلي] تعذّرت قراءة meta/app — " + (meta ? "استُعملت النسخة المحفوظة على الجهاز" : "لا نسخة محفوظة")); } catch (e) { }
     }
     if (!meta) throw new Error("META_UNAVAILABLE");
-    D = { meta, teachers, classes, schedule: (schS.data() || {}).rows || [], moves, sedits, bell: bellCfg, cfgSchool: schoolCfg, cfgAssess: assessCfg };
+    D = { meta, teachers, classes, schedule: (schS.data() || {}).rows || [], moves, sedits, bell: bellCfg, cfgSchool: schoolCfg, cfgAssess: assessCfg, cfgTerm: termCfg };
     try { localStorage.setItem("sijil.cloudD", JSON.stringify(D)); } catch (e) { }
   }
   function bootOffline() {
@@ -842,7 +859,11 @@
     assessApply();                       // cfg/assess فوق META.states/behaviors/weights — قبل أول رسم
     W = META.weights || {}; STATES = META.states || []; BEH = META.behaviors || [];
     ASSESS = (META.assess && META.assess.length) ? META.assess : DEFAULT_ASSESS;
-    TERM = (META.school.term_lbl || "").includes("الثاني") ? "t2" : "t1";
+    /* التبديل كان مستحيلاً: meta/app مقفول بالقواعد (allow write: if false) وكاتبُ term_lbl
+       الوحيد هو تأسيسُ مدرسةٍ جديدة. فصار cfg/term — وهو قابلٌ للكتابة — هو المصدر،
+       والملصقُ القديم احتياطٌ لمدرسةٍ لم تُبدّل بعد. */
+    META.term = D.cfgTerm || null;             // نافذة الفصل الجاري (cfg/term) قبل اشتقاق TERM
+    TERM = termKey();
     initLogin();
     if (DB.session && DB.srole === "student") { DB.session = null; DB.srole = null; save(); }
     if (DB.session) {
@@ -4635,8 +4656,9 @@
   /* ═══════════ 📈 تقدّم الطالب عبر المواد + لوحة مستويات المدير + تقارير أولياء الأمور ═══════════ */
   // نقاط كل يوم رصد مرتبة زمنياً (لأي سجل: مادتي أو مادة زميل)
   function daySeries(recsCid, i) {
-    const out = [];
+    const out = [], tf = termFrom();
     Object.keys(recsCid || {}).sort().forEach(date => {
+      if (tf && date < tf) return;                            // منحنى الفصل الجاري وحده
       const e = recsCid[date][i]; if (emptyRec(e)) return; let p = 0;
       if (e.a != null && STATES[e.a]) p += +STATES[e.a].pts || 0;
       if (e.part) p += e.part * W.part; if (e.hw === 1) p += W.hw; if (e.sh) p += e.sh * W.sheets;
@@ -5645,7 +5667,7 @@
     classById, myClasses, activeStudents, activeCount, isActive, applyMoves, applySedits, refreshMoves, absorbMoves, moveId, migrateMove, classPointsMap, adminMoves,
     addStudent, removeStudent, isNewFrom,
     signupSchool, trialBar,
-    calcStudent, classCalc, rankMap, autoGrade, effGrades, gradeTotal, gradedMax, gradePct, hasGrades, levelOf, attPct, overallPct, maxTotal, pctCell, daySeries, trendOf, studentSummary,
+    calcStudent, classCalc, rankMap, autoGrade, termFrom, termKey, effGrades, gradeTotal, gradedMax, gradePct, hasGrades, levelOf, attPct, overallPct, maxTotal, pctCell, daySeries, trendOf, studentSummary,
     hijriLabel, hijriParts, curWeek, subjCode, loadCurr, saveCurrEdit, lessonURL,
     openSheet, closeSheet, printSheet, printDoc, printCertificate, printReport, printLetter,
     sha256, shortId, waLink,

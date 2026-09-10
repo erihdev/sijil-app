@@ -29,10 +29,10 @@
   if (m !== "skip") { try { D.documentElement.classList.add("intro-bar"); } catch (e) { } }
   if (m === "full") { var a = function () { if (D.body) { D.body.classList.add("has-intro"); return 1; } };
     if (!a()) { try { new MutationObserver(function (x, o) { if (a()) o.disconnect(); }).observe(D.documentElement, { childList: true }); } catch (e) { } D.addEventListener("DOMContentLoaded", a); } }
-  try { var t = D.createElement("script"); t.src = "../js/intro-boot.js?v=65"; t.async = false; D.head.appendChild(t); } catch (e) { }
+  try { var t = D.createElement("script"); t.src = "../js/intro-boot.js?v=66"; t.async = false; D.head.appendChild(t); } catch (e) { }
 })();
 </script>
-<link rel="stylesheet" href="../css/intro.css?v=65">
+<link rel="stylesheet" href="../css/intro.css?v=66">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800;900&display=swap">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='46' fill='%230E2033'/><text x='50' y='68' font-size='52' text-anchor='middle' fill='%23D7A93F'>س</text></svg>">
 <style>
@@ -640,7 +640,7 @@ h2{font-size:19px;font-weight:800;color:var(--navy);margin:0 0 10px}
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-check-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
-<script src="../js/fb.js?v=65"></script>
+<script src="../js/fb.js?v=66"></script>
 <script>
 /* ═══════════════════════════════════════════════════════════════════════════════════════
    سجلي — بوابة الطالب (نواة)
@@ -932,10 +932,10 @@ h2{font-size:19px;font-weight:800;color:var(--navy);margin:0 0 10px}
            غير أوزان دفتر معلمه وتُسمّي حالاته بأسماء أُلغيت. غيابهما لا يُسقط الإقلاع (catch → null). */
         /* الجدول المدرسي وأوقات الحصص: بهما تُبنى «حصص اليوم» في شاشة وليّ الأمر — لكل حصة
            مادتها ومعلمها ووقتها وحالة ابنه فيها. القراءة مسموحة لأي مصادَق، وغيابهما لا يُسقط شيئاً. */
-        const [cs, ts, ms, mv, sc, ac, sh, bl, sn] = await withAC(() => Promise.all([fcol("classes"), fcol("teachers"), fdoc("meta/app"), fcol("moves"),
+        const [cs, ts, ms, mv, sc, ac, sh, bl, sn, tm] = await withAC(() => Promise.all([fcol("classes"), fcol("teachers"), fdoc("meta/app"), fcol("moves"),
           fdoc("cfg/school").catch(() => null), fdoc("cfg/assess").catch(() => null),
           fdoc("schedule/all").catch(() => null), fdoc("cfg/bell").catch(() => null),
-          fcol("snames").catch(() => null)]));
+          fcol("snames").catch(() => null), fdoc("cfg/term").catch(() => null)]));
         // تصحيحات الأسماء (الأسماء وحدها — sedits لا تُقرأ من جهاز مجهول)
         D.snames = {};
         if (sn) sn.forEach(d => { D.snames[d.id] = ((d.data() || {}).n) || {}; });
@@ -943,6 +943,9 @@ h2{font-size:19px;font-weight:800;color:var(--navy);margin:0 0 10px}
         D.bell = (bl && bl.exists) ? (bl.data() || null) : null;
         D.cfgSchool = (sc && sc.exists) ? (sc.data() || {}) : {};
         D.cfgAssess = (ac && ac.exists) ? (ac.data() || null) : null;
+        // نافذة الفصل الجاري: لا بدّ أن تُطابق التطبيق حرفاً بحرف، وإلا قرأ وليّ الأمر رقماً
+        //   وقرأ المعلم غيره — وهو الخلاف الذي أفسد «المستوى العام» من قبل.
+        D.cfgTerm = (tm && tm.exists) ? (tm.data() || null) : null;
         D.classes = []; cs.forEach(d => D.classes.push(Object.assign({ id: d.id }, d.data())));
         D.teachers = []; ts.forEach(d => D.teachers.push(Object.assign({ id: d.id }, d.data())));
         D.moves = []; mv.forEach(d => D.moves.push(Object.assign({ id: d.id }, d.data())));
@@ -950,12 +953,12 @@ h2{font-size:19px;font-weight:800;color:var(--navy);margin:0 0 10px}
         if (!D.classes.length || !D.meta.states) throw new Error("data");
       } else {
         db = demoDb;
-        await loadScript("../js/demo-data.js?v=65");
+        await loadScript("../js/demo-data.js?v=66");
         const DEMO = window.DEMO || {};
         D.classes = JSON.parse(JSON.stringify(DEMO.classes || []));
         D.teachers = JSON.parse(JSON.stringify(DEMO.teachers || []));
         D.meta = JSON.parse(JSON.stringify(DEMO.meta || {}));
-        D.moves = []; D.cfgSchool = {}; D.cfgAssess = null; D.bell = null; D.snames = {};
+        D.moves = []; D.cfgSchool = {}; D.cfgAssess = null; D.bell = null; D.snames = {}; D.cfgTerm = null;
         // جدول المدرسة موجود في بيانات الديمو: بلا هذا تقول شاشة وليّ الأمر «لا حصص اليوم» أبداً
         D.schedule = JSON.parse(JSON.stringify(DEMO.schedule || []));
         if (!D.classes.length) throw new Error("data");
@@ -1380,9 +1383,17 @@ h2{font-size:19px;font-weight:800;color:var(--navy);margin:0 0 10px}
 
   /* ═══ الحساب: النقاط والحضور والسلسلة والرتبة (منقولة عن منطق js/app.js) ═══ */
   const emptyRec = (e) => !e || (e.a == null && !e.part && e.hw == null && !e.sh && !((e.beh || []).length) && !String(e.note || "").trim());
+  /* نافذة الفصل الجاري — نسخةُ js/app.js حرفاً بحرف (docs/TERM_SPEC.md) */
+  function termFrom() {
+    const t = (D && D.cfgTerm) || null;
+    const d = (t && typeof t.start === "string") ? t.start : "";
+    return /^\d{4}-\d{2}-\d{2}$/.test(d) ? d : "";
+  }
   function calcOne(cd, si) {
     const out = { pts: 0, days: 0, st: STATES.map(() => 0), part: 0, hwY: 0, hwN: 0, sh: 0, behP: 0, behN: 0, notes: [] };
+    const tf = termFrom();
     for (const date of Object.keys(cd || {})) {
+      if (tf && date < tf) continue;                          // رصدُ فصلٍ مضى خارج حساب الجاري
       const e = (cd[date] || {})[si]; if (emptyRec(e)) continue;
       out.days++;
       if (e.a != null && STATES[e.a]) { out.st[e.a]++; out.pts += (+STATES[e.a].pts || 0); }
@@ -1752,6 +1763,6 @@ h2{font-size:19px;font-weight:800;color:var(--navy);margin:0 0 10px}
   boot();
 })();
 </script>
-<script src="../js/student/content.js?v=65"></script>
+<script src="../js/student/content.js?v=66"></script>
 </body>
 </html>

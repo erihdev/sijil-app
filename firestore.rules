@@ -357,6 +357,19 @@ service cloud.firestore {
     //    cfg/bell   جدول الأجراس: {start, len, n, breaks[], lens?, days?, tn, ts}
     //    cfg/school أسماء الإدارة: {principal?, vice?, agent?, counselor?, tn, ts}
     //    cfg/assess مكتبة التقييمات ودرجاتها: {states:[{k,t,v,c}], behaviors:[{k,t,v}], weights:{…}, tn, ts}
+    /* cfg/term: نافذة الفصل الدراسي الجاري — {t, start, lbl, ts}. مستندٌ في مجموعةٍ
+       قائمة لا مجموعةٌ جديدة: ملف القواعد استهلك ٥٦٪ من سقفه، وكل مجموعةٍ تُستنسخ في
+       نسخة المساحة فتكلفتها مضاعفة. والتاريخ ISO لأن الرصد مفاتيحه تواريخ ISO.
+       وtn مطلوبٌ لأن stamped() تشترطه — وبإسقاطه تصير الكتابة الصحيحة مستحيلة
+       (وقع فعلاً، وكشفه المحاكي قبل الشحن). */
+    function termShape() {
+      return request.resource.data.keys().hasOnly(['t', 'start', 'lbl', 'tn', 'ts'])
+          && request.resource.data.t is string
+          && (request.resource.data.t == 't1' || request.resource.data.t == 't2')
+          && request.resource.data.start is string
+          && request.resource.data.start.matches('^[0-9]{4}-[0-9]{2}-[0-9]{2}$')
+          && (!('lbl' in request.resource.data) || (request.resource.data.lbl is string && request.resource.data.lbl.size() <= 40));
+    }
     function bellShape() {
       return request.resource.data.keys().hasOnly(['start', 'len', 'n', 'breaks', 'lens', 'days', 'tn', 'ts'])
           && request.resource.data.start is int && request.resource.data.start >= 0 && request.resource.data.start <= 1439
@@ -402,7 +415,7 @@ service cloud.firestore {
       //   لا استبدال لها إلا من جهاز أثبت رقم دخول معلم (مطالبة sess).
       allow create, update: if signedIn() && stamped() && anyClaim()
           && ((doc == 'bell' && bellShape()) || (doc == 'school' && schoolShape())
-              || (doc == 'assess' && assessShape()));
+              || (doc == 'assess' && assessShape()) || (doc == 'term' && termShape()));
       allow delete: if false;
     }
 
@@ -1231,6 +1244,19 @@ service cloud.firestore {
       //    cfg/bell   جدول الأجراس: {start, len, n, breaks[], lens?, days?, tn, ts}
       //    cfg/school أسماء الإدارة: {principal?, vice?, agent?, counselor?, tn, ts}
       //    cfg/assess مكتبة التقييمات ودرجاتها: {states:[{k,t,v,c}], behaviors:[{k,t,v}], weights:{…}, tn, ts}
+      /* cfg/term: نافذة الفصل الدراسي الجاري — {t, start, lbl, ts}. مستندٌ في مجموعةٍ
+         قائمة لا مجموعةٌ جديدة: ملف القواعد استهلك ٥٦٪ من سقفه، وكل مجموعةٍ تُستنسخ في
+         نسخة المساحة فتكلفتها مضاعفة. والتاريخ ISO لأن الرصد مفاتيحه تواريخ ISO.
+         وtn مطلوبٌ لأن stamped_sp() تشترطه — وبإسقاطه تصير الكتابة الصحيحة مستحيلة
+         (وقع فعلاً، وكشفه المحاكي قبل الشحن). */
+      function termShape_sp() {
+        return request.resource.data.keys().hasOnly(['t', 'start', 'lbl', 'tn', 'ts'])
+            && request.resource.data.t is string
+            && (request.resource.data.t == 't1' || request.resource.data.t == 't2')
+            && request.resource.data.start is string
+            && request.resource.data.start.matches('^[0-9]{4}-[0-9]{2}-[0-9]{2}$')
+            && (!('lbl' in request.resource.data) || (request.resource.data.lbl is string && request.resource.data.lbl.size() <= 40));
+      }
       function bellShape_sp() {
         return request.resource.data.keys().hasOnly(['start', 'len', 'n', 'breaks', 'lens', 'days', 'tn', 'ts'])
             && request.resource.data.start is int && request.resource.data.start >= 0 && request.resource.data.start <= 1439
@@ -1276,7 +1302,7 @@ service cloud.firestore {
         //   لا استبدال لها إلا من جهاز أثبت رقم دخول معلم (مطالبة sess).
         allow create, update: if signedIn_sp() && stamped_sp() && anyClaim_sp()
             && ((doc == 'bell' && bellShape_sp()) || (doc == 'school' && schoolShape_sp())
-                || (doc == 'assess' && assessShape_sp()));
+                || (doc == 'assess' && assessShape_sp()) || (doc == 'term' && termShape_sp()));
         allow delete: if false;
       }
 
