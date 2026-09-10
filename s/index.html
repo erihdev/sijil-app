@@ -29,10 +29,10 @@
   if (m !== "skip") { try { D.documentElement.classList.add("intro-bar"); } catch (e) { } }
   if (m === "full") { var a = function () { if (D.body) { D.body.classList.add("has-intro"); return 1; } };
     if (!a()) { try { new MutationObserver(function (x, o) { if (a()) o.disconnect(); }).observe(D.documentElement, { childList: true }); } catch (e) { } D.addEventListener("DOMContentLoaded", a); } }
-  try { var t = D.createElement("script"); t.src = "../js/intro-boot.js?v=64"; t.async = false; D.head.appendChild(t); } catch (e) { }
+  try { var t = D.createElement("script"); t.src = "../js/intro-boot.js?v=65"; t.async = false; D.head.appendChild(t); } catch (e) { }
 })();
 </script>
-<link rel="stylesheet" href="../css/intro.css?v=64">
+<link rel="stylesheet" href="../css/intro.css?v=65">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800;900&display=swap">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='46' fill='%230E2033'/><text x='50' y='68' font-size='52' text-anchor='middle' fill='%23D7A93F'>س</text></svg>">
 <style>
@@ -640,7 +640,7 @@ h2{font-size:19px;font-weight:800;color:var(--navy);margin:0 0 10px}
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-check-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
-<script src="../js/fb.js?v=64"></script>
+<script src="../js/fb.js?v=65"></script>
 <script>
 /* ═══════════════════════════════════════════════════════════════════════════════════════
    سجلي — بوابة الطالب (نواة)
@@ -727,7 +727,12 @@ h2{font-size:19px;font-weight:800;color:var(--navy);margin:0 0 10px}
   let D = { classes: [], teachers: [], meta: {}, moves: [], schedule: [], bell: null };
   let META = {}, STATES = [], BEH = [], W = {};
   let S = null;                                    // الجلسة {cid, si, name, first, cname, gc, gname, sec}
-  let H = null;                                    // بصمة هذه الجلسة (للرمز الاختياري) — لا تُحفظ في localStorage
+  /* H بصمةُ الهوية sha256(الرقم|الفصل|الملح)، وHASCODE هل ضُبط رمزٌ من قبل. كانا في
+     sessionStorage وحده فيُمحيان بإغلاق التبويب — والجلسة المستأنفة تقرؤهما فارغين،
+     فيصير زرّ «رمزي السري» معطّلاً إلا في الجلسة التي دخل فيها الطفل برقمه. فصارا
+     يُحفظان مع الجلسة كما يُحفظ mk تماماً: البصمةُ هاشٌ لا يكشف رقم الهوية، ومن يملك
+     الجهاز يملك الجلسة أصلاً — فلا يزيد حفظُها شيئاً على ما هو مبذولٌ له. */
+  let H = null, HASCODE = false;
   let RECS = null, GRADES = null;                  // ذاكرة كسولة
   let CURTAB = "card";
   const app = $("#app");
@@ -945,7 +950,7 @@ h2{font-size:19px;font-weight:800;color:var(--navy);margin:0 0 10px}
         if (!D.classes.length || !D.meta.states) throw new Error("data");
       } else {
         db = demoDb;
-        await loadScript("../js/demo-data.js?v=64");
+        await loadScript("../js/demo-data.js?v=65");
         const DEMO = window.DEMO || {};
         D.classes = JSON.parse(JSON.stringify(DEMO.classes || []));
         D.teachers = JSON.parse(JSON.stringify(DEMO.teachers || []));
@@ -1225,9 +1230,10 @@ h2{font-size:19px;font-weight:800;color:var(--navy);margin:0 0 10px}
   }
   function finish(r, offerCode) {
     lockClear(); H = r.h; ssSet(HKEY, r.h);
+    HASCODE = !!(r.doc || {}).c;
     /* mk مفتاح صندوق رسائله: يأتي داخل بصمة هويته ولا يُعرف بغيرها، ويُحفظ مع الجلسة على جهازه
        لأن الجلسة المستأنفة لا تعيد قراءة البصمة. من لا مفتاح له = مدرسة سجّلت هوياتها قبل الميزة. */
-    const sess = { cid: r.cid, si: r.si, ts: Date.now(), mk: String((r.doc || {}).mk || "") };
+    const sess = { cid: r.cid, si: r.si, ts: Date.now(), mk: String((r.doc || {}).mk || ""), h: r.h, hc: HASCODE };
     lsSet(SKEY, JSON.stringify(sess));
     enter(sess, offerCode && !r.doc.c);
   }
@@ -1240,10 +1246,12 @@ h2{font-size:19px;font-weight:800;color:var(--navy);margin:0 0 10px}
     if (pos.out) { lsDel(SKEY); return null; }
     const c = clsById(pos.cid), st = c && (c.students || [])[pos.si];
     if (!c || !st || st.gap || st.moved) { lsDel(SKEY); return null; }
-    H = ssGet(HKEY);
+    // البصمة من الجلسة أولاً ثم من sessionStorage (لجلسةٍ حُفظت قبل هذا الإصلاح)
+    H = (typeof s.h === "string" && s.h) ? s.h : ssGet(HKEY);
+    HASCODE = !!s.hc;
     // mk يعود مع الجلسة: enter تكتب الجلسة من جديد، فإسقاطه هنا يكتب "" فوق المفتاح
     //   ويُفقد الطالب صندوق رسائله وإشعاراته إلى الأبد بعد أول إعادة تحميل.
-    return { cid: pos.cid, si: pos.si, ts: s.ts, mk: s.mk };
+    return { cid: pos.cid, si: pos.si, ts: s.ts, mk: s.mk, h: H || "", hc: HASCODE };
   }
 
   /* ═══ البوابة ═══ */
@@ -1257,7 +1265,7 @@ h2{font-size:19px;font-weight:800;color:var(--navy);margin:0 0 10px}
     };
     stashNames(sess.cid);          // اسمان لكل زميل في فصله (لوحة الشرف) قبل نسيان الأسماء
     PH = null; forgetNames();      // بقية المدرسة تُنسى هنا: لا اسم زميل ولا جوال ولي أمره
-    lsSet(SKEY, JSON.stringify({ cid: S.cid, si: S.si, ts: Date.now(), mk: S.mk }));
+    lsSet(SKEY, JSON.stringify({ cid: S.cid, si: S.si, ts: Date.now(), mk: S.mk, h: H || String(sess.h || ""), hc: HASCODE || !!sess.hc }));
     $("#bar-t").textContent = S.first;
     $("#bar-s").textContent = S.cname;
     $("#bar-out").hidden = false;
@@ -1321,6 +1329,14 @@ h2{font-size:19px;font-weight:800;color:var(--navy);margin:0 0 10px}
 
   /* ═══ الرمز الاختياري: الكتابة الوحيدة في هذه الصفحة كلها ═══ */
   function codeSheet() {
+    /* رمزٌ مضبوطٌ من قبل: القاعدة تسمح بكتابة c مرةً واحدة أبداً، فلا تُعرض عليه خانةٌ
+       تُرفض كتابتها ثم تُقال له «ما قدرنا نحفظه 📡». يُقال له الحقُّ ومن يُغيّره له. */
+    if (HASCODE) {
+      return sheet(`<h2>رمزك مضبوط ✅</h2>
+        <p class="sub mid">بوابتك مقفلةٌ برمزك، ويُطلب منك كلما دخلت برقم هويتك.
+        <br><br>ولتغييره راجع معلمك أو إدارة المدرسة — لا يُغيَّر من هنا حمايةً لك.</p>
+        <button class="go soft" id="x">تمام</button>`, (b, close) => { b.querySelector("#x").onclick = close; });
+    }
     if (!H) {
       return sheet(`<h2>رمزك السري 🔒</h2>
         <p class="sub mid">لتضبط رمزك، اخرج ثم ادخل برقم هويتك مرة واحدة.</p>
@@ -1343,10 +1359,15 @@ h2{font-size:19px;font-weight:800;color:var(--navy);margin:0 0 10px}
         try {
           const c = await sha256(v + "|" + H);
           await withTimeout(db.doc("spins/" + H).set({ c: c }, { merge: true }));
+          HASCODE = true;
+          try { const j = JSON.parse(lsGet(SKEY) || "null"); if (j) { j.hc = true; lsSet(SKEY, JSON.stringify(j)); } } catch (e2) { }
           close(); toast("تمام! رمزك محفوظ ✅");
         } catch (e) {
           btn.disabled = false; btn.textContent = "احفظ رمزي";
-          err.innerHTML = `<div class="msg bad">ما قدرنا نحفظه الآن 📡 جرّب بعد قليل.</div>`;
+          // رفضُ الصلاحية ليس انقطاعَ إنترنت: القاعدة تمنع تبديل رمزٍ مضبوطٍ من قبل
+          const denied = !!(e && (e.code === "permission-denied" || /permission/i.test(String(e.message || ""))));
+          if (denied) { HASCODE = true; err.innerHTML = `<div class="msg wait">لك رمزٌ مضبوطٌ من قبل، ولا يُغيَّر من هنا حمايةً لك — راجع معلمك.</div>`; }
+          else err.innerHTML = `<div class="msg bad">ما قدرنا نحفظه الآن 📡 جرّب بعد قليل.</div>`;
         }
       };
     });
@@ -1500,7 +1521,7 @@ h2{font-size:19px;font-weight:800;color:var(--navy);margin:0 0 10px}
       if (r.i === S.si) { mine = lastR; mypts = r.pts; }
     });
     return {
-      date: date, of: rows.length,
+      date: todayKey(), of: rows.length,   // كان `date` متغيّراً محلياً حُذف عند إعادة الكتابة
       board: rows.filter(r => r.pts > 0).slice(0, 5).map(r => ({ n: r.n, pts: r.pts, me: r.i === S.si })),
       mine: mine ? { rank: mine, pts: mypts } : null
     };
@@ -1613,6 +1634,9 @@ h2{font-size:19px;font-weight:800;color:var(--navy);margin:0 0 10px}
   async function cardTab(el) {
     try { await loadRecs(); }
     catch (e) {
+      // العطبُ يُقال في الطرفية: بلا هذا السطر يبتلع الـcatch أيَّ خطأ برمجيّ ويُظهره
+      //   للطفل بوصفه انقطاعَ إنترنت — وهو ما أخفى عطباً حقيقياً في الوضع التجريبي.
+      try { console.warn("[cardTab] loadRecs:", (e && (e.stack || e.message)) || e); } catch (x) { }
       el.innerHTML = `<div class="card mid"><div class="big">📡</div><h1>ما وصلت بياناتك</h1>
         <p class="sub">تأكد من الإنترنت.</p><button class="go gold" id="rt">↻ حاول مرة أخرى</button></div>`;
       const b = el.querySelector("#rt"); if (b) b.onclick = () => showTab("card"); return;
@@ -1728,6 +1752,6 @@ h2{font-size:19px;font-weight:800;color:var(--navy);margin:0 0 10px}
   boot();
 })();
 </script>
-<script src="../js/student/content.js?v=64"></script>
+<script src="../js/student/content.js?v=65"></script>
 </body>
 </html>
