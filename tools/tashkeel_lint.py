@@ -54,7 +54,7 @@ STEMS = {
     "بدر": "بَدْر", "خالد": "خَالِد", "ناصر": "نَاصِر", "راكان": "رَاكَان",
     "زياد": "زِيَاد", "تركي": "تُرْكِي", "جود": "جُود", "سالم": "سَالِم",
     "محمد": "مُحَمَّد", "مريم": "مَرْيَم", "سارة": "سَارَة",
-    "لينا": "لِينَا", "يوسف": "يُوسُف", "أحمد": "أَحْمَد", "عائشة": "عَائِشَة",
+    "يوسف": "يُوسُف", "أحمد": "أَحْمَد", "عائشة": "عَائِشَة",
     # المدرسة
     "المعلم": "الْمُعَلِّم", "المعلمة": "الْمُعَلِّمَة",
     "المدرسة": "الْمَدْرَسَة", "مدرسة": "مَدْرَسَة", "الطالب": "الطَّالِب",
@@ -133,6 +133,24 @@ def main(argv=None) -> int:
     per_word = collections.defaultdict(collections.Counter)
     fixed_files = checked = 0
 
+    # مسحةٌ أولى: أيُّ كلماتِ المعجم لها أكثر من جسمٍ في الدروس؟ تلك مشتبهةٌ لا مخطئة
+    #   (اسمٌ يشبه صفة: لِينَا/لَيِّناً)، فيُمتنع عن تصحيحها آلياً ولو خرجت عن المعجم.
+    stems_seen = collections.defaultdict(set)
+    for _p in sorted(glob.glob(os.path.join(LESSONS, "*.json"))):
+        _k = os.path.splitext(os.path.basename(_p))[0]
+        if _k == "index" or (subs and subject_of(_k) not in subs):
+            continue
+        try:
+            _d = json.loads(io.open(_p, encoding="utf-8").read())
+        except Exception:
+            continue
+        for _sc in (_d.get("story") or []):
+            for _w in WORD.findall((_sc or {}).get("n") or ""):
+                _b = bare_w(_w)
+                if _b in WANT:
+                    stems_seen[_b].add(stem(_w))
+    ambiguous = {b for b, v in stems_seen.items() if len(v) > 1}
+
     for p in sorted(glob.glob(os.path.join(LESSONS, "*.json"))):
         key = os.path.splitext(os.path.basename(p))[0]
         if key == "index" or (subs and subject_of(key) not in subs):
@@ -151,7 +169,7 @@ def main(argv=None) -> int:
                     continue
                 hits[bare_w(w)] += n.count(w)
                 per_word[bare_w(w)][w] += n.count(w)
-                if a.fix:
+                if a.fix and bare_w(w) not in ambiguous:
                     # حركةُ الآخر تبقى كما كتبها المُشكِّل — الجسمُ وحده يُصحَّح
                     c = canon(w)
                     body = stem(w)
@@ -173,9 +191,14 @@ def main(argv=None) -> int:
     for b, c in hits.most_common(30):
         forms = " | ".join("%s×%d" % (f, k) for f, k in per_word[b].most_common(3))
         print("  %-12s الصواب %-16s ×%-4d الموجود: %s" % (b, STEMS[b], c, forms))
+    amb = [b for b in hits if b in ambiguous]
+    if amb:
+        print(chr(10) + "⚠ مشتبهةٌ لا تُصحَّح آلياً (لها أكثر من جسمٍ في الدروس — راجعها بنفسك):")
+        for b in amb:
+            print("   %-12s %s" % (b, " | ".join(sorted(stems_seen[b]))))
     if a.fix:
         print("\n✔ صُحِّحت وكُتبت في %d ملفاً" % fixed_files)
-        return 0
+        return 2 if amb else 0
     print("\nللتصحيح: python tools/tashkeel_lint.py --fix")
     return 2
 
