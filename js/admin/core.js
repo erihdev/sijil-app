@@ -331,6 +331,15 @@
     const gc = +rec.gc;
     if (!(gc >= 1 && gc <= 12)) return { ok: false, err: "اختر الصف" };
     const cur = s.classById(cid);
+    // الإنشاء على معرّفٍ قائم كان يمرّ تعديلاً صامتاً فيُعاد تسمية فصلٍ بدل إضافة آخر
+    if (rec.create && (cur || (s.D.classes || []).some(c => String(c.id || "").toLowerCase() === String(cid).toLowerCase())))
+      return { ok: false, err: "المعرّف «" + cid + "» لفصلٍ قائم — اختر معرّفاً آخر" };
+    // D.classes لقطةُ الإقلاع: فصلٌ أنشأه جهازٌ آخر بعدها لا تراه — فتُسأل السحابة قبل الكتابة فوقه
+    if (rec.create && s.CLOUD && s.fdb) {
+      let ex = false;
+      try { ex = (await s.fdb.doc("classes/" + cid).get()).exists; } catch (e) { ex = false; }
+      if (ex) return { ok: false, err: "المعرّف «" + cid + "» لفصلٍ أُنشئ من جهازٍ آخر — أعد تحميل الصفحة" };
+    }
     // الطلاب لا يُمسّون هنا أبداً: التسمية تُعيد كتابة المستند، وإسقاطهم يمحو فصلاً كاملاً
     const students = (cur && Array.isArray(cur.students)) ? cur.students.map(x => ({ n: String((x || {}).n || ""), p: String((x || {}).p || "") })) : [];
     const doc = { name: name, grade: String(rec.grade || (s.GNAME[gc] ? "الصف " + s.GNAME[gc] : "")).slice(0, 40),

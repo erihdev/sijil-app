@@ -8,7 +8,8 @@
   let MOVES_OK = true;                 // هل حُمِّلت حركات النقل من السحابة عند الإقلاع؟ (false ⇒ النقل معطّل وتُعرض آخر حركات محفوظة على الجهاز)
   const STCOLORS = ["var(--st0)", "var(--st1)", "var(--st2)", "var(--st3)", "var(--st4)", "var(--st5)", "var(--st6)"];
   const DAYS = ["الأحد", "الإثنين", "الثلاثاء", "الأربعاء", "الخميس", "الجمعة", "السبت"];
-  const GNAME = ["", "", "الثاني", "الثالث", "الرابع", "الخامس", "السادس"];
+  // مدرستنا ٢–٦، لكن المدرسة الجديدة تُنشئ فصولها في أي صف من الأول إلى الثاني عشر
+  const GNAME = ["", "الأول", "الثاني", "الثالث", "الرابع", "الخامس", "السادس", "السابع", "الثامن", "التاسع", "العاشر", "الحادي عشر", "الثاني عشر"];
   const DEFAULT_ASSESS = [
     { k: "part", n: "الحضور والمشاركة", max: 15 },
     { k: "sheets", n: "أوراق العمل والواجبات", max: 10 },
@@ -2824,7 +2825,8 @@
     if (d && d.yt) saved = Array.isArray(d.yt) ? d.yt[0] : d.yt;
     if (!saved) { try { if (CLOUD && fdb) { const s = await fdb.doc("lessonyt/" + key).get(); if (s.exists) saved = (s.data() || {}).url || ""; } else { saved = localStorage.getItem("yt:" + key) || ""; } } catch (e) { } }
     if (!liveFresh(seq)) return;
-    const q = encodeURIComponent((les ? les + " " : "") + TE.subject + " " + GNAME[c.gc] + " ابتدائي شرح");
+    const stage = c.gc >= 10 ? "ثانوي" : c.gc >= 7 ? "متوسط" : "ابتدائي";   // مدرستنا ابتدائية، والمساحات قد تكون غيرها
+    const q = encodeURIComponent((les ? les + " " : "") + TE.subject + " " + GNAME[c.gc] + " " + stage + " شرح");
     const frame = (src) => `<iframe id="yt-frame" src="${src}" allow="autoplay; fullscreen" allowfullscreen style="flex:1;width:100%;border:0"></iframe>`;
     const placeholder = `<div id="yt-frame" style="flex:1;display:flex;align-items:center;justify-content:center;color:#c9d5e3;text-align:center;padding:20px">اضغط «🔎 بحث» لإيجاد شرح «${esc(les)}» في يوتيوب، ثم الصق رابط الفيديو هنا — وسيُحفظ للدرس ويظهر تلقائياً في كل مرة.</div>`;
     const src0 = saved ? ytEmbedSrc(saved) : "";

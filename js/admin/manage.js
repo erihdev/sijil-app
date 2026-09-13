@@ -1469,19 +1469,29 @@
     (o) => {
       const out = o.querySelector("#cs-out"), go = o.querySelector("#cs-go");
       const gc = o.querySelector("#cs-gc"), nm = o.querySelector("#cs-name"), id = o.querySelector("#cs-id");
-      // اقتراحٌ لطيف: أول فصلٍ في الصف الثالث ⇒ c3a واسمه «ثالث (أ)»
-      const AR = ["أ", "ب", "ج", "د", "هـ", "و", "ز", "ح"];
+      /* اقتراحٌ لطيف: أول فصلٍ في الصف الثالث ⇒ c3a واسمه «ثالث (أ)».
+         كان يُحسب مرةً عند الفتح (للصف الأول، الخيار الافتراضي) ولا يتبع تبديل الصف، ويعدّ
+         فصول الصف لا المعرّفات المستعملة — فبعد أول فصلٍ خرج عن النمط صار يقترح معرّفاً
+         قائماً، والحفظ يكتب فوقه صامتاً: «لا نستطيع إضافة أكثر من فصلين». فصار يتبع الصف
+         ما دام المدير لم يكتب شيئاً بيده، ويختار أول حرفٍ حرّ بين المعرّفات الموجودة فعلاً. */
+      const AR = ["أ", "ب", "ج", "د", "هـ", "و", "ز", "ح", "ط", "ي", "ك", "ل", "م", "ن", "س", "ع", "ف", "ص", "ق", "ر", "ش", "ت", "ث", "خ", "ذ", "ض"];
+      const used = new Set((s.D.classes || []).map(c => String(c.id || "").toLowerCase()));
+      let sugId = "", sugNm = "";
       const suggest = () => {
         if (cur) return;
         const g = +gc.value || 1;
-        const same = (s.D.classes || []).filter(c => +c.gc === g).length;
-        if (!id.value.trim()) id.value = "c" + g + String.fromCharCode(97 + Math.min(same, 25));
-        if (!nm.value.trim()) nm.value = (GNUM[g] || "").replace("ال", "") + " (" + (AR[same] || (same + 1)) + ")";
+        let k = 0; while (k < 26 && used.has("c" + g + String.fromCharCode(97 + k))) k++;
+        // ستٌّ وعشرون شعبةً في صفٍّ واحد: لا اقتراح — يكتب المدير معرّفه بيده بدل أن يُعطى معرّفاً قائماً
+        const nid = k < 26 ? "c" + g + String.fromCharCode(97 + k) : "";
+        const nnm = (GNUM[g] || "").replace("ال", "") + " (" + (AR[k] || (k + 1)) + ")";
+        // لا يُحدَّث «آخر اقتراح» إلا حين نكتب فعلاً — فما كتبه المدير بيده لا يُحسب اقتراحاً ولو صادفه
+        if (!id.value.trim() || id.value.trim() === sugId) { id.value = nid; sugId = nid; }
+        if (!nm.value.trim() || nm.value.trim() === sugNm) { nm.value = nnm; sugNm = nnm; }
       };
       gc.onchange = suggest; suggest();
       go.onclick = async () => {
         go.disabled = true; out.textContent = "جارِ الحفظ…";
-        const r = await Ad.saveClass((cur ? cur.id : (id.value || "").trim()), { name: nm.value, gc: +gc.value });
+        const r = await Ad.saveClass((cur ? cur.id : (id.value || "").trim()), { name: nm.value, gc: +gc.value, create: !cur });
         if (!r.ok) { go.disabled = false; out.innerHTML = '<span style="color:var(--bad)">' + s.esc(r.err || "تعذّر الحفظ") + '</span>'; return; }
         try { await Ad.adminlog("class", (cur ? "تعديل فصل " : "فصل جديد ") + (nm.value || "")); } catch (e) { }
         s.closeSheet(); again();
