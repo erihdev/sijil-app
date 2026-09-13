@@ -616,8 +616,9 @@
     /* تعريف الغياب نفسه في كل الشاشات (core.attBucketOf): «غائب بعذر» عذر لا غياب — كان /غائب/ يبتلعه
        فينفخ عدّاد «الغياب المتكرر» في تقرير الرائد وفي رسالة قروب أولياء الأمور بخلاف لوحة القيادة. */
     const absA = new Set(s.STATES.map((x, k) => (typeof Ad.attBucketOf === "function" ? Ad.attBucketOf(k) === 1 : (!/عذر|مستأذن/.test(x.name || "") && /غائب|هارب/.test(x.name || ""))) ? k : -1).filter(k => k >= 0));
-    const byDate = {};
+    const byDate = {}, tfa = (typeof s.termFrom === "function") ? s.termFrom() : "";
     docs.forEach(dc => Object.keys(dc.recs || {}).forEach(date => {
+      if (tfa && date < tfa) return;                          // غيابُ فصلٍ مضى لا يُعدّ في «المتكرر»
       const day = dc.recs[date] || {};
       Object.keys(day).forEach(si => { const e = day[si]; if (!e || e.a == null || !absA.has(e.a)) return; (byDate[date] = byDate[date] || {})[si] = 1; });
     }));

@@ -103,12 +103,12 @@ def main(argv=None) -> int:
 
     sa_raw = os.environ.get("SA_JSON", "")
     vp = os.environ.get("VAPID_PRIVATE", "")
-    vs = os.environ.get("VAPID_SUB", "mailto:erihdev@gmail.com")
+    vs = os.environ.get("VAPID_SUB", "")
     if not sa_raw:
         log("✖ لا SA_JSON — لا يمكن القراءة من Firestore")
         return 1
-    if not vp and not args.dry_run:
-        log("✖ لا VAPID_PRIVATE — لا يمكن الإرسال")
+    if not args.dry_run and (not vp or not vs):
+        log("✖ لا VAPID_PRIVATE أو لا VAPID_SUB — لا يمكن الإرسال")
         return 1
 
     store = Store(load_sa(sa_raw))
@@ -123,6 +123,7 @@ def main(argv=None) -> int:
     idx: dict = {}
     sent = quiet = cleaned = gone = 0
     by_kind: dict = {}
+    too_old = 0
 
     # الطالب المحذوف (حركة خروج to=="out") يبقى اشتراكه في spush ولا سبيل لحذفه من جهازه —
     # فلا يُرسل إليه شيء بعد خروجه. والبوابة ترفض دخوله أصلاً، فالإشعار وحده كان سيصله.
@@ -172,6 +173,7 @@ def main(argv=None) -> int:
             if not cand or num(cand.get("ts")) <= last_of[k]:
                 continue
             if now_ms - num(cand.get("ts")) > max_age_ms:      # قديمٌ جداً: لا نُوقظ به أحداً
+                too_old += 1                                    # يُعدّ ليُرى — كان يُسقط صامتاً
                 continue
             due.append((cand, k))
         if not due:
@@ -222,6 +224,8 @@ def main(argv=None) -> int:
 
     if by_kind:
         log("النوع: " + " · ".join("%s %d" % (k, v) for k, v in sorted(by_kind.items())))
+    if too_old:
+        log("مُتجاوَز لقِدَمه (أقدم من %d دقيقة): %d" % (args.max_age, too_old))
     log("أُرسل %d · بلا جديد %d · اشتراكات منتهية حُذفت %d · طلاب خارج القائمة %d" % (sent, quiet, cleaned, gone))
     return 0
 

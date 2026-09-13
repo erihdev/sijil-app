@@ -14,7 +14,22 @@ self.addEventListener("activate", (e) => {
    إلى الشبكة كما لو لم يكن مسجّلاً، بدل أن يسقط الطلب ويظهر «تعذّر تحميل الدرس». */
 const cOpen = () => { try { return caches.open(V).catch(() => null); } catch (e) { return Promise.resolve(null); } };
 const cMatch = (req, opt) => { try { return caches.match(req, opt).catch(() => null); } catch (e) { return Promise.resolve(null); } };
-const cPut = (req, res) => { cOpen().then(c => c && c.put(req, res)).catch(() => { }); };
+/* مفتاح الكاش هو الرابط بالاستعلام (app.js?v=66 وapp.js?v=67 مدخلان)، والمطابقة الاحتياطية
+   تتجاهل الاستعلام فتُعيد أول مدخلٍ أُدرج — أي الأقدم. فعند حفظ نسخةٍ بـ?v= جديدة تُحذف
+   أخوات المسار نفسه بالاستعلامات الأخرى: يبقى في الكاش نسخةٌ واحدة لكل ملفٍ هي الأحدث. */
+const cPut = (req, res) => {
+  cOpen().then(async c => {
+    if (!c) return;
+    try {
+      const u = new URL(req.url || req);
+      if (u.search) {
+        const olds = await c.keys(new Request(u.origin + u.pathname), { ignoreSearch: true });
+        await Promise.all(olds.filter(k => k.url !== u.href).map(k => c.delete(k)));
+      }
+    } catch (e) { }
+    return c.put(req, res);
+  }).catch(() => { });
+};
 
 // الدروس والمناهج: كاش أولاً ثم تحديث صامت في الخلفية
 async function dataFirst(req) {

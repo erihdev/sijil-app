@@ -210,8 +210,9 @@
       why.part = "حضور " + Math.round(attRate * 100) + "% + مشاركة " + Math.round(partRate * 100) + "%" + (skip.length ? " (" + skip.join(" و") + ")" : "");
     }
     if (t.days && find("behave") && (denom > 0 || t.behP || t.behN)) {
-      var sum = 0, cd = recsOf(tid), si = ST.S.si;
+      var sum = 0, cd = recsOf(tid), si = ST.S.si, tfb = (typeof ST.termFrom === "function") ? ST.termFrom() : "";
       Object.keys(cd).forEach(function (date) {
+        if (tfb && date < tfb) return;                        // رصدُ فصلٍ مضى خارج درجة السلوك
         var e = (cd[date] || {})[si]; if (!e) return;
         (e.beh || []).forEach(function (bi) { var b = BEH[bi]; if (b) sum += (+b.pts || 0); });
       });

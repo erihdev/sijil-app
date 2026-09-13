@@ -599,8 +599,8 @@
     /* «لا مخالفات مرصودة» هدية لا تُمنح لمن لا يوم حضور له أصلاً: الطالب الغائب بعذر في كل أيامه
        كان يخرج 15/15 ⇒ «ممتاز 100%» في الدرجات والمستويات، وتهنئةً لولي أمره. */
     if (t.days && A("behave") && (denom > 0 || t.behP || t.behN)) {
-      let sum = 0; const cd = recsOverride || DB.recs[cid] || {};
-      for (const date of Object.keys(cd)) { const e = cd[date][si]; if (!e) continue; (e.beh || []).forEach(bi => { const b = BEH[bi]; if (b) sum += (+b.pts || 0); }); }
+      let sum = 0; const cd = recsOverride || DB.recs[cid] || {}, tfb = termFrom();
+      for (const date of Object.keys(cd)) { if (tfb && date < tfb) continue; const e = cd[date][si]; if (!e) continue; (e.beh || []).forEach(bi => { const b = BEH[bi]; if (b) sum += (+b.pts || 0); }); }
       const mx = A("behave").max; v.behave = Math.max(0, Math.min(mx, Math.round((mx + sum) * 10) / 10));
       why.behave = sum ? mx + (sum > 0 ? " + " : " − ") + Math.abs(Math.round(sum * 10) / 10) + " من سجل السلوك" : mx + " (لا مخالفات مرصودة)";
     }

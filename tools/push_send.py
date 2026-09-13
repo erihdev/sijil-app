@@ -72,8 +72,21 @@ PROJECT = os.environ.get("SIJIL_PROJECT", "sijil-app-de556")
 API = "https://firestore.googleapis.com/v1"
 SCOPE = "https://www.googleapis.com/auth/datastore"
 
-# نافذة الإرسال بالدقائق قبل بداية الحصة: أوسع من فترة الجدولة (5 دقائق) حتى لا تُفوَّت حصة
-LEAD_LO, LEAD_HI = 3, 12
+# نافذة الإرسال بالدقائق قبل بداية الحصة. كانت 3–12 على افتراض تشغيلةٍ كل خمس دقائق،
+# لكن جدولة GitHub تُنفّذ ثلث التشغيلات فقط بفجواتٍ بلغت ٤٢ دقيقة (مقيسة ٧–١٣ سبتمبر)
+# فضاعت حصص. فاتّسعت إلى 30: أقلّ من مسافة حصتين (٤٥) فلا تُنبّه حصتين معاً، والعنوان يقول
+# كم بقي بالضبط فلا يُوهم «بعد قليل» من على بعد نصف ساعة.
+LEAD_LO, LEAD_HI = 3, 30
+
+
+def mins_ar(n: int) -> str:
+    """«دقيقتين» / «٥ دقائق» / «١٥ دقيقة» — عددٌ عربيٌّ يُقرأ في عنوان الإشعار."""
+    n = int(n)
+    if n <= 1:
+        return "دقيقة"
+    if n == 2:
+        return "دقيقتين"
+    return "%d %s" % (n, "دقائق" if n <= 10 else "دقيقة")
 
 
 def log(*parts: object) -> None:
@@ -361,7 +374,7 @@ def plan_alerts(now: dt.datetime, rows: list, bell_raw: object, teachers: list,
     out: list = []
     for (tid, p), slot in sorted(hits.items(), key=lambda kv: (kv[1]["start"], kv[0][0])):
         names = " و".join(slot["classes"])
-        title = "الحصة %s بعد قليل" % ordn(p)
+        title = "الحصة %s بعد %s" % (ordn(p), mins_ar(slot["mins"]))
         body = ("%s — تبدأ %s" % (names, hm(slot["start"]))) if names else ("تبدأ " + hm(slot["start"]))
         sub = subs.get(tid)
         out.append({
@@ -518,7 +531,7 @@ def parse_args(argv=None):
     ap.add_argument("--now", metavar="HH:MM", help="ساعة افتراضية بتوقيت الرياض (للتجربة)")
     ap.add_argument("--day", metavar="اليوم", help="اسم يوم عربي يتجاوز اليوم الفعلي (للتجربة)")
     ap.add_argument("--window", nargs=2, type=int, metavar=("من", "إلى"),
-                    default=[LEAD_LO, LEAD_HI], help="نافذة الدقائق قبل الحصة (الافتراضي 3 12)")
+                    default=[LEAD_LO, LEAD_HI], help="نافذة الدقائق قبل الحصة (الافتراضي 3 30)")
     return ap.parse_args(argv)
 
 
@@ -600,9 +613,11 @@ def main(argv=None) -> int:
 
     sent = skipped = failed = removed = 0
     for a in alerts:
-        who = "%s (%s)" % (a["tname"], a["tid"])
+        # المستودع عامّ وسجلّ المهمة مقروءٌ للجميع: الاسم الكامل والفصل والحصة لا يُطبعان
+        #   إلا في التجربة اليدوية — وفي الإرسال الفعلي المعرّفُ وحده.
+        who = ("%s (%s)" % (a["tname"], a["tid"])) if args.dry_run else a["tid"]
         what = "الحصة %s%s" % (ordn(a["p"]),
-                               (" — " + " و".join(a["classes"])) if a["classes"] else "")
+                               (" — " + " و".join(a["classes"])) if (a["classes"] and args.dry_run) else "")
         if a["skip"]:
             skipped += 1
             log("  تخطّي:", who, "·", what, "·", a["skip"])

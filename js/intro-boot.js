@@ -2,7 +2,7 @@
    نسخة مصغّرة من منطق القرار مضمّنة في <head> داخل index.html؛ هذا الملف يُكمل ما بعد القرار. */
 (function () {
   'use strict';
-  var W = window, D = document, V = '54';
+  var W = window, D = document, V = '68';
   var NS = W.SIJIL_INTRO = W.SIJIL_INTRO || {};
   /* base: جذر التطبيق بالنسبة للصفحة الحالية. الجولة تُفتح من index.html (base = "")
      ومن بوابة الطالب s/index.html (base = "../") — فكل مسار أصلٍ أو وحدةٍ يُسبق به،

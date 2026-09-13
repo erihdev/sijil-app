@@ -4,6 +4,13 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#0E2033">
+<!-- manifest خاصّ بالبوابة (start_url هنا لا في واجهة المعلم): إشعارات الآيفون تشترط فتحها من
+     الشاشة الرئيسية كتطبيقٍ قائمٍ بذاته، وبلا manifest يُضاف الرابط كإشارةٍ مرجعية تفتح سفاري -->
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="../icon-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="بوابتي">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <title>بوابتي — سجلي</title>
 <meta name="description" content="بوابة الطالب: اختر صفك واكتب رقم هويتك لترى نقاطك وحضورك وموادك ومهامك ودروسك وشهادتك.">
 <meta name="robots" content="noindex">
@@ -29,10 +36,10 @@
   if (m !== "skip") { try { D.documentElement.classList.add("intro-bar"); } catch (e) { } }
   if (m === "full") { var a = function () { if (D.body) { D.body.classList.add("has-intro"); return 1; } };
     if (!a()) { try { new MutationObserver(function (x, o) { if (a()) o.disconnect(); }).observe(D.documentElement, { childList: true }); } catch (e) { } D.addEventListener("DOMContentLoaded", a); } }
-  try { var t = D.createElement("script"); t.src = "../js/intro-boot.js?v=67"; t.async = false; D.head.appendChild(t); } catch (e) { }
+  try { var t = D.createElement("script"); t.src = "../js/intro-boot.js?v=68"; t.async = false; D.head.appendChild(t); } catch (e) { }
 })();
 </script>
-<link rel="stylesheet" href="../css/intro.css?v=67">
+<link rel="stylesheet" href="../css/intro.css?v=68">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800;900&display=swap">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='46' fill='%230E2033'/><text x='50' y='68' font-size='52' text-anchor='middle' fill='%23D7A93F'>س</text></svg>">
 <style>
@@ -640,7 +647,7 @@ h2{font-size:19px;font-weight:800;color:var(--navy);margin:0 0 10px}
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-check-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
-<script src="../js/fb.js?v=67"></script>
+<script src="../js/fb.js?v=68"></script>
 <script>
 /* ═══════════════════════════════════════════════════════════════════════════════════════
    سجلي — بوابة الطالب (نواة)
@@ -954,7 +961,7 @@ h2{font-size:19px;font-weight:800;color:var(--navy);margin:0 0 10px}
         if (!D.classes.length || !D.meta.states) throw new Error("data");
       } else {
         db = demoDb;
-        await loadScript("../js/demo-data.js?v=67");
+        await loadScript("../js/demo-data.js?v=68");
         const DEMO = window.DEMO || {};
         D.classes = JSON.parse(JSON.stringify(DEMO.classes || []));
         D.teachers = JSON.parse(JSON.stringify(DEMO.teachers || []));
@@ -1078,10 +1085,11 @@ h2{font-size:19px;font-weight:800;color:var(--navy);margin:0 0 10px}
   let pickG = 0, pickC = "";
   /* aside: لوحةٌ اختيارية بجانب بطاقة الدخول (المزايا في الخطوة الأولى). بلا aside تبقى
      الشبكةُ عموداً واحداً فلا يتغيّر شيءٌ في الخطوتين الثانية والثالثة. */
-  /* لوحة «ما ستجده بعد الدخول». كلُّ بندٍ هنا تحقّقنا من عمله في الشيفرة قبل كتابته،
-     ولم يُذكر ما لا يعمل اليوم: «يصلك إشعارٌ والتطبيق مغلق» يحتاج أسراراً غير مضبوطة
-     في المستودع، فلا يُوعَد به وليُّ أمرٍ حتى تُضبط. والمذكور هنا يعمل بلا إعدادٍ زائد. */
+  /* لوحة «ما ستجده بعد الدخول». كلُّ بندٍ هنا تحقّقنا من عمله في الشيفرة قبل كتابته.
+     «يصلك إشعارٌ والتطبيق مغلق» كان مستثنى حتى تُضبط أسرار الإرسال — ضُبطت في ١٠ سبتمبر
+     ٢٠٢٦ والمهمة تعمل (.github/workflows/class-alerts.yml)، فصار يُوعَد به. */
   const PERK_KID = [
+    ["🔔", "يصلك إشعار على جوالك والبوابة مغلقة", "واجبٌ جديد أو رسالةٌ من معلمك — يصلك ولو لم تفتح البوابة (فعّل الجرس مرة واحدة)"],
     ["🪪", "نقاطك وحضورك أمامك", "مجموع نقاطك، ونسبة حضورك، وسلسلة أيامك، وشاراتك التي جمعتها"],
     ["✏️", "تحلّ ورقة معلمك وتعرف درجتك في الحال", "تُصحَّح فور تسليمها، وتراجع أخطاءك، وتصل درجتك معلمك"],
     ["🎒", "الدرس كما يعرضه معلمك في الحصة", "القصة والمصطلحات و«تحقّق من فهمي» والألعاب — وتُفتح بعدها بلا إنترنت"],
@@ -1305,7 +1313,15 @@ h2{font-size:19px;font-weight:800;color:var(--navy);margin:0 0 10px}
     const def = REG[id];
     if (id === "card" && !def) return cardTab(app);
     if (def && typeof def.render === "function") {
-      try { def.render(app, API); } catch (e) { app.innerHTML = soon(TABS.find(t => t.id === id)); }
+      /* عطلُ رسمٍ حقيقي كان يظهر للطالب «نجهّز لك هذا القسم… قريباً» بلا أثر في الكونسول —
+         فمرّ عطلُ «بطاقتي» أياماً على أنه ميزةٌ لم تُبنَ. الآن: تسجيلٌ ورسالةُ عطلٍ بزرّ إعادة. */
+      try { def.render(app, API); } catch (e) {
+        try { console.warn("[showTab]", id, e); } catch (e2) { }
+        const t = TABS.find(x => x.id === id);
+        app.innerHTML = `<div class="card mid"><div class="big">${t ? t.ic : "⚠️"}</div><h1>${esc(t ? t.t : "")}</h1>
+          <p class="sub" style="margin:0 0 12px">تعذّر فتح هذا القسم الآن.</p><button class="go soft" id="retry">↻ أعد المحاولة</button></div>`;
+        const rb = $("#retry"); if (rb) rb.onclick = () => showTab(id);
+      }
       return;
     }
     app.innerHTML = soon(TABS.find(t => t.id === id));
@@ -1720,7 +1736,7 @@ h2{font-size:19px;font-weight:800;color:var(--navy);margin:0 0 10px}
     get META() { return META; },
     get STATES() { return STATES; }, get BEH() { return BEH; }, get W() { return W; },
     fdoc, fcol, withTimeout, esc, ord, arNum, sha256, applyMoves, resolvePos, clsById, secOf,
-    myTeachers, loadRecs, loadGrades, calcOne, calcAll, attPct, streak, rank: rankOf,
+    myTeachers, loadRecs, loadGrades, calcOne, calcAll, attPct, streak, rank: rankOf, termFrom,
     board() { return (BOARD || []).map(x => ({ n: x.n, pts: x.pts, me: x.me })); },
     liveBoard() { return LIVEB ? JSON.parse(JSON.stringify(LIVEB)) : null; },
     staff,
@@ -1764,6 +1780,6 @@ h2{font-size:19px;font-weight:800;color:var(--navy);margin:0 0 10px}
   boot();
 })();
 </script>
-<script src="../js/student/content.js?v=67"></script>
+<script src="../js/student/content.js?v=68"></script>
 </body>
 </html>
