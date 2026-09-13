@@ -162,6 +162,8 @@ jobs:
             sleep $(( LEFT < STEP ? LEFT : STEP ))
           done
           echo "انتهت: $i دورة · المعلمون ناجح $ts فشل $tf · الطلاب ناجح $ss فشل $sf" | tee -a run.log
+          # السجلان إلى المخرج أيضاً حتى يقرأهما gh run view --log (الملخص لا يُجلب بالـAPI)
+          echo "════ run.log ════"; tail -n 200 run.log; echo "════ students.log ════"; tail -n 100 students.log
           {
             echo "### تنبيهات الحصص — $i دورة · المعلمون ناجح $ts / فشل $tf · الطلاب ناجح $ss / فشل $sf"
             echo '```'
