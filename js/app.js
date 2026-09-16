@@ -1489,7 +1489,7 @@
       return `<button class="chip ${on ? "on" : ""}${isNow ? " isnow" : ""}" data-c="${c.id}"><span class="cn">${esc(c.name)}${mk}</span>${tag}</button>`;
     }).join("");
     box.innerHTML = `<div class="class-chips">${chipHtml}</div>
-      <div class="reg-tools"><input type="date" id="reg-date" value="${regDate}" max="${maxRegDate()}"><button class="btn-soft" id="reg-all">✓ الكل حاضر</button><button class="btn-gold" id="reg-live">🎬 وضع العرض</button></div>
+      <div class="reg-tools"><input type="date" id="reg-date" value="${regDate}" max="${maxRegDate()}"><button class="btn-soft" id="reg-all">✓ الكل حاضر</button><button class="btn-soft" id="reg-msg-btn">✉️ رسالة</button><button class="btn-gold" id="reg-live">🎬 وضع العرض</button></div>
       <div class="empty-note" id="reg-msg" hidden style="padding:2px 4px 6px;text-align:right;min-height:0;color:var(--bad)"></div>
       <button type="button" class="reglegend" id="reg-legend"><span><b>🙋</b> مشاركة ${signN(W.part)}</span><span><b>📚</b> الواجب ✓/✗</span><span><b>⭐</b> سلوك</span><span class="q">❔ الشرح والتراجع</span></button>
       <div id="reg-absbar" class="no-print"></div>
@@ -1525,7 +1525,27 @@
     };
     // الزر ملاصق لحقل التاريخ: كان يتجاهله ويكتب على اليوم دائماً، فيرى المعلم ورقته السابقة خاليةً بعد الإنهاء
     $("#reg-live").onclick = () => liveSession(regClass, null, regDate);
+    $("#reg-msg-btn").onclick = () => classMsgPicker(regClass, regDate);
     drawRows();
+  }
+  /* «✉️ رسالة» من رأس ورقة التحضير: المستقبِلون بنقرة واحدة — الفصل كله، أو غائبو اليوم، أو من لم يحلّ الواجب */
+  function classMsgPicker(cid, dt) {
+    const c = classById(cid); if (!c) return;
+    const all = activeStudents(c).map(x => x.i);
+    const abs = absentIdx(cid, dt);
+    const noHw = all.filter(i => { const e = ((DB.recs[cid] || {})[dt] || {})[i]; return e && e.hw === 0; });
+    openSheet(`<h4>✉️ رسالة — ${esc(c.name)}</h4><p class="sub" style="margin:0 0 10px;color:var(--muted);font-size:13px">إلى من؟ ثم قالبٌ جاهز وإرسال بنقرة.</p>
+      <div class="msgpick">
+        <button class="btn-gold" data-pick="all">👥 الفصل كله <b>${all.length}</b></button>
+        <button class="btn-soft" data-pick="abs" ${abs.length ? "" : "disabled"}>🚫 غائبو اليوم <b>${abs.length}</b></button>
+        <button class="btn-soft" data-pick="hw" ${noHw.length ? "" : "disabled"}>📚 لم يحلّوا الواجب اليوم <b>${noHw.length}</b></button>
+      </div>
+      <div class="sheet-actions"><button class="btn-plain" onclick="window._sheetClose()">إلغاء</button></div>`, (o) => {
+      o.querySelectorAll("[data-pick]").forEach(b => b.onclick = () => {
+        const k = b.dataset.pick, list = k === "abs" ? abs : k === "hw" ? noHw : all;
+        closeSheet(); msgSheet(cid, list, { kind: k === "abs" ? "call" : k === "hw" ? "hw" : "level" });
+      });
+    });
   }
   /* «الغياب الفعلي» له تعريف واحد في التطبيق (absCnt أعلاه): غائب أو هارب، والمأذون ليس منه.
      وكان مسار ولي الأمر (خلاصة الحصة ونافذة الإبلاغ) يقرأ /غائب|هارب/ عارية فيبتلع «غائب بعذر» —
@@ -1548,7 +1568,8 @@
         <span class="pts ${t.pts < 0 ? "neg" : ""}">${t.pts}</span></div>
         <div class="s2"><button class="mini ${e.part ? "on" : ""}" data-act="part" title="نقرة: مشاركة إضافية · ضغطة مطوّلة: تصفير العدّاد">🙋${e.part ? `<span class="b">${e.part}</span>` : ""}</button>
         <button class="mini ${e.hw != null ? "on" : ""}" data-act="hw">${e.hw === 1 ? "✅" : e.hw === 0 ? "❌" : "📚"}</button>
-        <button class="mini ${(e.beh || []).length ? "on" : ""}" data-act="beh">⭐${(e.beh || []).length ? `<span class="b">${e.beh.length}</span>` : ""}</button></div>${pn ? `
+        <button class="mini ${(e.beh || []).length ? "on" : ""}" data-act="beh">⭐${(e.beh || []).length ? `<span class="b">${e.beh.length}</span>` : ""}</button>
+        <button class="mini msg" data-act="msg" title="رسالة إلى الطالب ووليّ أمره">✉️</button></div>${pn ? `
         <button type="button" class="pnotify${sent ? " done" : ""}" data-act="pn">${sent ? `✔ أُبلغ ولي الأمر ${esc(agoLabel(sent.ts))}` : "💬 أبلغ ولي الأمر"}</button>` : ""}</div>`;
     }).join("");
     list.querySelectorAll(".stu").forEach(row => {
@@ -1601,6 +1622,7 @@
     if (what === "state") { stateSheet(i); return; }
     if (what === "beh") { behSheet(i); return; }
     if (what === "pn") { parentAlert(regClass, regDate, i); return; }
+    if (what === "msg") { msgSheet(regClass, [i]); return; }
     const cid = regClass, dt = regDate, snap = snapRec(cid, dt, i), nm = firstName(classById(cid).students[i].n);
     const e = rec(cid, dt, i, true);
     if (what === "part") { e.part = (+e.part || 0) + 1; save("recs:" + cid); drawRows(); undoReg(`🙋 مشاركة لـ ${nm} ${signN(W.part)}`, cid, dt, i, snap); }
@@ -1924,9 +1946,9 @@
       <div class="empty-note" style="padding:4px 2px 0;text-align:right;font-size:12px">تُرسل رسالة كاملة (الحضور، المشاركة، الواجبات، السلوك، النقاط، الدرجات، التوصية) وتُسجَّل في سجل التواصل تلقائياً.</div>
       ${phone ? "" : askPhoneHtml(cid, i, "sc")}
       <div class="sheet-actions" style="flex-wrap:wrap">
+        <button class="btn-gold" style="flex:1 1 100%" id="sc-msg">✉️ رسالة إلى الطالب ووليّه</button>
         <button class="btn-plain" style="flex:1 1 46%" id="sc-report">📄 تقرير للطباعة</button>
-        <button class="btn-plain" style="flex:1 1 46%" id="sc-letter">✉️ إشعار ولي الأمر</button>
-        <button class="btn-gold" style="flex:1 1 100%" id="sc-msg">📬 رسالة إلى حسابه ووليّه</button>
+        <button class="btn-plain" style="flex:1 1 46%" id="sc-letter">🖨️ إشعار ورقي لولي الأمر</button>
         <button class="btn-gold" style="flex:1 1 100%" id="sc-prog">📈 تقدّم الطالب في كل المواد</button>
         <button class="btn-gold" style="flex:1 1 100%" id="sc-cert">🎓 شهادة تميّز (طباعة فاخرة)</button>
         <button class="btn-primary" style="flex:1 1 100%" onclick="window._sheetClose()">إغلاق</button></div>`,
@@ -4226,15 +4248,18 @@
     const chips = (tpl || [{ k: "level", ic: "📊", n: "متابعة المستوى" }, { k: "call", ic: "📣", n: "استدعاء" },
       { k: "thanks", ic: "🌟", n: "شكر" }, { k: "hw", ic: "📚", n: "واجب" }, { k: "beh", ic: "⚠️", n: "سلوك" },
       { k: "free", ic: "✍️", n: "نص حر" }]);
-    openSheet(`<h4>✉️ رسالة إلى حساب ${one != null ? "الطالب ووليّه" : "الطلاب وأوليائهم"}</h4>
-      <div style="font-size:13px;color:var(--muted);margin-bottom:8px">${who} — تظهر في «📬 رسائلي» داخل حسابه على بوابة الطالب، ويراها وليّ أمره معه.</div>
-      <div class="field"><label>القالب</label><div class="msg-tpl" id="mg-tpl">${chips.map(x => `<button class="as-mode ${x.k === pick ? "on" : ""}" data-k="${x.k}"><span>${x.ic}</span>${x.n}</button>`).join("")}</div></div>
-      <div class="field"><label>العنوان</label><input class="search-box" id="mg-t" style="margin:0" maxlength="80"></div>
-      <div class="field"><label>النص</label><textarea class="search-box" id="mg-b" style="margin:0;height:190px;font-size:13.5px;line-height:1.9" maxlength="700"></textarea>
-        <div class="empty-note" style="padding:4px 2px 0;text-align:right"><span id="mg-len">0</span>/700 محرف — عدّله كما تشاء قبل الإرسال</div></div>
+    const ph = one != null ? phoneOf(c.students[one]) : "";
+    openSheet(`<h4>✉️ رسالة إلى ${who}</h4>
+      <div style="font-size:12.5px;color:var(--muted);margin-bottom:6px">تصل إلى حساب الطالب على البوابة ويراها وليّ أمره معه${ph ? "، ويمكن إرسالها واتساب أيضاً" : ""}.</div>
+      <div class="msg-tpl big" id="mg-tpl">${chips.map(x => `<button class="as-mode ${x.k === pick ? "on" : ""}" data-k="${x.k}"><span>${x.ic}</span>${x.n}</button>`).join("")}</div>
+      <input class="search-box" id="mg-t" style="margin:8px 0 6px;font-weight:800" maxlength="80" placeholder="العنوان">
+      <textarea class="search-box" id="mg-b" style="margin:0;height:132px;font-size:13.5px;line-height:1.8" maxlength="700"></textarea>
+      <div class="empty-note" style="padding:2px 2px 4px;text-align:right;min-height:0"><span id="mg-len">0</span>/700 — عدّل النص كما تشاء</div>
       <div id="mg-out"></div>
-      <div class="sheet-actions" style="flex-wrap:wrap"><button class="btn-plain" style="flex:1 1 46%" onclick="window._sheetClose()">إلغاء</button>
-        <button class="btn-primary" style="flex:1 1 46%" id="mg-send">📬 أرسِل إلى الحساب</button></div>`, async (o) => {
+      <div class="sheet-actions" style="flex-wrap:wrap">
+        <button class="btn-primary" style="flex:1 1 100%" id="mg-send">📬 أرسِل إلى ${one != null ? "الطالب ووليّه" : idx.length + " طالباً وأولياءهم"}</button>
+        ${ph ? `<a class="wa-btn" style="flex:1 1 100%;margin:0" id="mg-wa" target="_blank" rel="noopener" href="#">💬 أرسلها واتساب لولي الأمر</a>` : ""}
+        <button class="btn-plain" style="flex:1 1 100%" onclick="window._sheetClose()">إلغاء</button></div>`, async (o) => {
       const $$ = (q) => o.querySelector(q);
       const fill = () => {
         const v = one != null ? cur() : groupBody(pick);
@@ -4243,6 +4268,14 @@
       };
       fill();
       $$("#mg-b").oninput = () => { $$("#mg-len").textContent = String($$("#mg-b").value.length); };
+      // واتساب بالنص نفسه: الرابط يُبنى لحظة النقر من الحقلين، ويُسجَّل في سجل التواصل
+      const wa = $$("#mg-wa");
+      if (wa && ph) wa.addEventListener("click", () => {
+        const t = $$("#mg-t").value.trim(), bd = $$("#mg-b").value.trim();
+        wa.href = waLink(ph, (t ? t + "\n\n" : "") + bd);
+        try { logComm(cid, one, MSG_WHY[pick] || "رسالة", "واتساب", t); } catch (e) { }
+        if (opts.after) setTimeout(() => { try { opts.after(); } catch (e) { } }, 400);
+      });
       o.querySelectorAll("#mg-tpl [data-k]").forEach(b => b.onclick = () => {
         pick = b.dataset.k;
         o.querySelectorAll("#mg-tpl [data-k]").forEach(x => x.classList.toggle("on", x === b));
@@ -4274,7 +4307,7 @@
         $$("#mg-out").innerHTML = `<div class="as-sum ${ok ? "ok" : "bad"}">${ok ? `✅ وصلت إلى <b>${ok} ${ok === 1 ? "حساب" : "حساباً"}</b> — تظهر في «📬 رسائلي» عندهم` : "لم تصل أي رسالة"}`
           + (miss ? `<div class="s warn">⚠ ${miss} بلا حساب مسجَّل</div>` : "")
           + (fail ? `<div class="s warn">تعثّر الإرسال إلى ${fail} — أعد المحاولة</div>` : "") + `</div>`;
-        btn.textContent = ok ? "✔ أُرسلت" : "📬 أرسِل إلى الحساب";
+        btn.textContent = ok ? "✔ أُرسلت" : "📬 أعد الإرسال";
         btn.disabled = !!ok;
         if (ok && opts.after) { try { opts.after(); } catch (e) { } }
       };
