@@ -298,10 +298,10 @@
     if (!nwState.wk) nwState.wk = wkNow;
     N.load().then(d => {
       if (!d || !$("#hm-nw", box)) return;
-      const gc = nwState.gc, weeks = N.weeksOf(gc), wk = weeks.includes(nwState.wk) ? nwState.wk : (weeks.filter(w => w <= wkNow).pop() || weeks[0] || wkNow);
+      const gc = nwState.gc, weeks = N.weeksOf(gc), wk = weeks.includes(nwState.wk) ? nwState.wk : (weeks.filter(w => +w && w <= wkNow).pop() || weeks[0] || wkNow);
       nwState.wk = wk;
       const wb = $("#hm-nw-w", box);
-      if (wb) { wb.innerHTML = weeks.map(w => `<button class="chip ${w === wk ? "on" : ""}" data-k="${w}" style="padding:5px 10px;font-size:12px">${w === wkNow ? "هذا الأسبوع" : "أسبوع " + w}</button>`).join(""); H().bindChips(wb, (k) => { nwState.wk = +k; nwRender(box, wkNow); }); }
+      if (wb) { wb.innerHTML = weeks.map(w => `<button class="chip ${w === wk ? "on" : ""}" data-k="${w}" style="padding:5px 10px;font-size:12px">${w === wkNow ? "هذا الأسبوع" : w === N.UNSCHED ? "غير مجدولة" : "أسبوع " + w}</button>`).join(""); H().bindChips(wb, (k) => { nwState.wk = +k || k; nwRender(box, wkNow); }); }
       out.className = ""; out.style.padding = "0";
       out.innerHTML = N.gradeHtml(gc, wk, { staff: true, term: S().TERM }) || '<div class="empty-note">لا نواتج لهذا الأسبوع</div>';
     }).catch(() => { out.textContent = "تعذّر تحميل نواتج التعلم"; });

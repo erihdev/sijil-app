@@ -32,7 +32,7 @@
   var SEEN = "sijil.s.seen";       // أوراق فتحها الطفل من رابط معلمه (يكتبها w/index.html)
 
   /* ═══ ثوابت المواد ═══ */
-  var SUBJ_CODE = [["رقمية", "dg"], ["رياضيات", "ma"], ["عربية", "ar"], ["نجليزية", "en"], ["علوم", "sc"],
+  var SUBJ_CODE = [["رقمية", "dg"], ["رياضيات", "ma"], ["عربية", "ar"], ["لغتي", "ar"], ["قراءة", "ar"], ["نجليزية", "en"], ["علوم", "sc"],
   ["إسلامية", "is"], ["قرآن", "qu"], ["اجتماعية", "so"], ["فنية", "rt"], ["بدنية", "pe"], ["حياتية", "lf"]];
   function subjCode(s) { s = String(s || ""); for (var i = 0; i < SUBJ_CODE.length; i++) if (s.indexOf(SUBJ_CODE[i][0]) >= 0) return SUBJ_CODE[i][1]; return ""; }
   // لون وأيقونة لكل مادة — ولا أحمر في القائمة كلها
@@ -55,7 +55,11 @@
     { k: "p2", n: "تطبيق عملي 2", max: 15 }
   ];
   function ASSESS() { var m = ST.META || {}; return (m.assess && m.assess.length) ? m.assess : DEFAULT_ASSESS; }
-  function TERM() { var sc = (ST.META || {}).school || {}; return String(sc.term_lbl || "").indexOf("الثاني") >= 0 ? "t2" : "t1"; }
+  /* الفصل الجاري كما يقرؤه التطبيق (termKey): cfg/term أولاً، ثم ملصق meta/app احتياطاً */
+  function TERM() {
+    var ct = (ST.D && ST.D.cfgTerm) || null; if (ct && (ct.t === "t1" || ct.t === "t2")) return ct.t;
+    var sc = (ST.META || {}).school || {}; return String(sc.term_lbl || "").indexOf("الثاني") >= 0 ? "t2" : "t1";
+  }
 
   /* ═══ أدوات صغيرة ═══ */
   function r1(n) { return Math.round((+n || 0) * 10) / 10; }
@@ -547,7 +551,7 @@
         if (!ok()) return;
         if (!d || !N.hasGrade(gc)) { el.innerHTML = head("🦅", "صقور نافس", "") + oopsHtml(); return; }
         var wkNow = curWeek(), weeks = N.weeksOf(gc), wk = NAFIS.wk || wkNow;
-        if (weeks.indexOf(wk) < 0) { var past = weeks.filter(function (w) { return w <= wkNow; }); wk = past.length ? past[past.length - 1] : (weeks[0] || wkNow); }
+        if (weeks.indexOf(wk) < 0) { var past = weeks.filter(function (w) { return +w && w <= wkNow; }); wk = past.length ? past[past.length - 1] : (weeks[0] || wkNow); }
         NAFIS.wk = wk;
         var g = N.grade(gc), doms = Object.keys(g.domains), first = String(ST.S.first || ST.S.name || "").split(" ")[0];
         var hero = '<div class="card" style="background:linear-gradient(150deg,#0E2033,#16304D);color:#fff;border:none;text-align:center;padding:18px 14px">' +
@@ -555,9 +559,9 @@
           '<div style="font-size:21px;font-weight:900;color:#F2CC6B;margin-top:6px">' + esc(first ? first + "، أنت من صقور نافس" : "أنت من صقور نافس") + '</div>' +
           '<div style="font-size:13.5px;color:#c9d5e3;margin-top:6px;line-height:1.7">الصف ' + (gc === 3 ? "الثالث" : "السادس") + ' من صفوف الاختبار الوطني «نافس». هنا ناتجُ كل أسبوعٍ: شاهد الفيديو، وحُلّ الاختبار، ونفّذ المهمة — وكن جاهزاً.</div>' +
           '<div style="display:flex;gap:6px;justify-content:center;flex-wrap:wrap;margin-top:10px">' + doms.map(function (dm) { return '<span style="background:rgba(242,204,107,.16);border:1px solid rgba(242,204,107,.45);border-radius:999px;padding:4px 11px;font-size:12.5px;font-weight:800">' + esc(N.DOM_NAME[dm]) + '</span>'; }).join("") + '</div></div>';
-        var bar = '<div class="wkbar">' + weeks.map(function (w) { return '<button data-nw="' + w + '" class="' + (w === wk ? "on" : "") + '">' + (w === wkNow ? "هذا الأسبوع" : "أسبوع " + w) + '</button>'; }).join("") + '</div>';
-        el.innerHTML = head("🦅", "صقور نافس", wk === wkNow ? "نواتج هذا الأسبوع" : "نواتج الأسبوع " + wk) + hero + bar + (N.gradeHtml(gc, wk, { term: TERM() }) || empty("🌱", "لا نواتج في هذا الأسبوع", "جرّب أسبوعاً آخر."));
-        each(el, "[data-nw]", function (b) { b.onclick = function () { NAFIS.wk = +b.getAttribute("data-nw"); ST.refresh(); }; });
+        var bar = '<div class="wkbar">' + weeks.map(function (w) { return '<button data-nw="' + w + '" class="' + (w === wk ? "on" : "") + '">' + (w === wkNow ? "هذا الأسبوع" : w === N.UNSCHED ? "غير مجدولة" : "أسبوع " + w) + '</button>'; }).join("") + '</div>';
+        el.innerHTML = head("🦅", "صقور نافس", wk === wkNow ? "نواتج هذا الأسبوع" : wk === N.UNSCHED ? "نواتج غير مجدولة" : "نواتج الأسبوع " + wk) + hero + bar + (N.gradeHtml(gc, wk, { term: TERM() }) || empty("🌱", "لا نواتج في هذا الأسبوع", "جرّب أسبوعاً آخر."));
+        each(el, "[data-nw]", function (b) { b.onclick = function () { var v = b.getAttribute("data-nw"); NAFIS.wk = +v || v; ST.refresh(); }; });
       }, function () { if (ok()) oops(el); });
     }
   });

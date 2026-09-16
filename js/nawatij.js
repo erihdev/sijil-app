@@ -52,11 +52,13 @@
   function grade(gc) { return (DATA && DATA.grades && DATA.grades[String(gc)]) || null; }
   function hasGrade(gc) { return !!grade(gc); }
   /* عناصر الأسبوع: الأسبوع رقمٌ في المنصة، و«ف2» لما يخصّ الفصل الثاني كله، و«غم» لغير المجدول */
+  var UNSCHED = "غم";                                                   // «غير مجدولة» في المنصة: نواتج بلا أسبوع
   function items(gc, dom, wk, term) {
     var g = grade(gc); if (!g || !g.domains[dom]) return [];
-    var key = term === "t2" ? "ف2" : +wk;
+    var key = wk === UNSCHED ? UNSCHED : (term === "t2" ? "ف2" : +wk);
     return g.domains[dom].items.filter(function (it) { return it.w.indexOf(key) >= 0; });
   }
+  function weekLabel(wk, term) { return wk === UNSCHED ? "غير مجدولة" : (term === "t2" ? "الفصل الثاني" : "الأسبوع " + wk); }
   function link(href, cls, txt) { return href ? '<a class="' + cls + '" href="' + esc(href) + '" target="_blank" rel="noopener">' + txt + '</a>' : ""; }
   function rowHtml(it) {
     var b = RES.map(function (r) { return link(it.res[r[0]], r[0] === "outcome" ? "g" : "", r[1] + " " + r[2]); }).join("");
@@ -67,12 +69,13 @@
     opt = opt || {}; css();
     var g = grade(gc); if (!g || !g.domains[dom]) return "";
     var d = g.domains[dom], list = items(gc, dom, wk, opt.term), h = "";
-    var diag = wk === 1 ? (DATA.extras || []).filter(function (e) { return e.gc.indexOf(+gc) >= 0 && e.weeks.indexOf(1) >= 0; }) : [];
+    // الاختبار التشخيصي للأسبوع الأول من الفصل الأول وحده
+    var diag = (wk === 1 && opt.term !== "t2") ? (DATA.extras || []).filter(function (e) { return e.gc.indexOf(+gc) >= 0 && e.weeks.indexOf(1) >= 0; }) : [];
     if (!list.length && !diag.length && !opt.always) return "";
-    h += '<div class="nw"><div class="nwh">🦅 صقور نافس — ' + DOM_ICON[dom] + ' ' + esc(DOM_NAME[dom]) + ' <small>ناتج التعلم · ' + (opt.term === "t2" ? "الفصل الثاني" : "الأسبوع " + wk) + ' · الصف ' + (gc === 3 || gc === "3" ? "الثالث" : "السادس") + '</small></div>';
+    h += '<div class="nw"><div class="nwh">🦅 صقور نافس — ' + DOM_ICON[dom] + ' ' + esc(DOM_NAME[dom]) + ' <small>ناتج التعلم · ' + weekLabel(wk, opt.term) + ' · الصف ' + (gc === 3 || gc === "3" ? "الثالث" : "السادس") + '</small></div>';
     diag.forEach(function (e) { h += '<div class="nwi"><div class="nwn">' + esc(e.name) + '</div><div class="nwe">' + esc(e.desc) + '</div><div class="nwb">' + link(e.url, "g", "✅ افتح الاختبار التشخيصي") + '</div></div>'; });
     if (list.length) list.forEach(function (it) { h += rowHtml(it); });
-    else if (!diag.length) h += '<div class="nwe">لا ناتج مستهدف لهذا الأسبوع في هذا المجال.</div>';
+    else if (!diag.length) h += '<div class="nwe">' + (wk === UNSCHED ? "لا نواتج غير مجدولة في هذا المجال." : opt.term === "t2" ? "لا ناتج مستهدف لهذا الفصل في هذا المجال." : "لا ناتج مستهدف لهذا الأسبوع في هذا المجال.") + '</div>';
     var foot = [];
     if (d.self) foot.push(link(d.self, "s", "🧭 منصة التعلم الذاتي — " + esc(DOM_NAME[dom])));
     if (opt.staff && d.training) foot.push(link(d.training, "", "🎓 خطة تدريب المعلمين"));
@@ -87,12 +90,14 @@
   }
   /* الأسابيع التي فيها نواتج لصفٍّ (لشريط الأسابيع) */
   function weeksOf(gc) {
-    var g = grade(gc), set = {}; if (!g) return [];
-    Object.keys(g.domains).forEach(function (dom) { g.domains[dom].items.forEach(function (it) { it.w.forEach(function (w) { if (+w) set[+w] = 1; }); }); });
+    var g = grade(gc), set = {}, un = false; if (!g) return [];
+    Object.keys(g.domains).forEach(function (dom) { g.domains[dom].items.forEach(function (it) { it.w.forEach(function (w) { if (+w) set[+w] = 1; else if (w === UNSCHED) un = true; }); }); });
     (DATA.extras || []).forEach(function (e) { if (e.gc.indexOf(+gc) >= 0) e.weeks.forEach(function (w) { set[w] = 1; }); });
-    return Object.keys(set).map(Number).sort(function (a, b) { return a - b; });
+    var out = Object.keys(set).map(Number).sort(function (a, b) { return a - b; });
+    if (un) out.push(UNSCHED);                                          // آخر شريحة: «غير مجدولة»
+    return out;
   }
   /* صقور نافس: هل هذا الطالب/الصف من المستهدفين؟ */
   function isFalcon(gc) { return +gc === 3 || +gc === 6; }
-  window.NAWATIJ = { isFalcon: isFalcon, load: load, domainOf: domainOf, hasGrade: hasGrade, grade: grade, items: items, block: block, gradeHtml: gradeHtml, weeksOf: weeksOf, DOM_OF: DOM_OF, DOM_NAME: DOM_NAME };
+  window.NAWATIJ = { isFalcon: isFalcon, weekLabel: weekLabel, UNSCHED: UNSCHED, load: load, domainOf: domainOf, hasGrade: hasGrade, grade: grade, items: items, block: block, gradeHtml: gradeHtml, weeksOf: weeksOf, DOM_OF: DOM_OF, DOM_NAME: DOM_NAME };
 })();

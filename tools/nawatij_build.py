@@ -6,7 +6,8 @@
   OC.urls     = جدول الروابط · SELF["صف|مجال"] منصة التعلم الذاتي · LEAD.training خطة التدريب · EXTRAS الاختبار التشخيصي
 نأخذ الصفين الثالث والسادس الابتدائي فقط، وروابط عامة فقط — لا شيء من قاعدة المدارس (DB) يُقرأ أو يُحفظ.
 
-  python tools/nawatij_build.py --school 90194
+  python tools/nawatij_build.py --school <الرقم الإحصائي للمدرسة>
+(الرقم مفتاحُ دخول المنصة — لا يُكتب في المستودع ولا في السجلات.)
 """
 import io, os, sys, json, argparse, collections
 from playwright.sync_api import sync_playwright
@@ -30,7 +31,9 @@ with sync_playwright() as pw:
     d = f.evaluate("() => ({OC: OC, OC_GRADES: OC_GRADES, OC_DOMAINS: OC_DOMAINS, SELF: SELF, LEAD: LEAD, EXTRAS: EXTRAS})")
     b.close()
 OC, G, D, SELF, LEAD, EXTRAS = d["OC"], d["OC_GRADES"], d["OC_DOMAINS"], d["SELF"], d["LEAD"], d["EXTRAS"]
-urls = OC["urls"]; U = lambda i: (urls[i] if isinstance(i, int) and 0 <= i < len(urls) else "")
+urls = OC["urls"]
+# حارس: الجدول قد يحوي عناصر ليست روابط («قريبا») — لا تُصدَّر
+U = lambda i: (urls[i] if isinstance(i, int) and 0 <= i < len(urls) and str(urls[i]).startswith("http") else "")
 KEYS = ["outcome", "video", "quiz", "tasks", "enrich"]
 gcmap = {"الصف الثالث الابتدائي": 3, "الصف السادس الابتدائي": 6}; dommap = {"القراءة": "read", "الرياضيات": "math", "العلوم": "sci"}
 import datetime

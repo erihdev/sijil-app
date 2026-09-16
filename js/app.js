@@ -641,7 +641,7 @@
   }
 
   /* ═══ الدروس ═══ */
-  const SUBJ_CODE = [["رقمية", "dg"], ["رياضيات", "ma"], ["عربية", "ar"], ["نجليزية", "en"], ["علوم", "sc"], ["إسلامية", "is"], ["قرآن", "qu"], ["اجتماعية", "so"], ["فنية", "rt"], ["بدنية", "pe"], ["حياتية", "lf"]];
+  const SUBJ_CODE = [["رقمية", "dg"], ["رياضيات", "ma"], ["عربية", "ar"], ["لغتي", "ar"], ["قراءة", "ar"], ["نجليزية", "en"], ["علوم", "sc"], ["إسلامية", "is"], ["قرآن", "qu"], ["اجتماعية", "so"], ["فنية", "rt"], ["بدنية", "pe"], ["حياتية", "lf"]];
   const subjCode = (s) => { for (const [k, v] of SUBJ_CODE) if ((s || "").includes(k)) return v; return ""; };
   const currCache = {};
   async function loadCurr(code) {
@@ -1133,7 +1133,7 @@
     }
     /* نواتج التعلم المستهدفة (منصة تعليم جازان): لمعلم القراءة/الرياضيات/العلوم في الثالث أو السادس
        يظهر ناتجُ الأسبوع بروابطه تحت درس الأسبوع مباشرة — بدل الدخول إلى المنصة بالرقم الإحصائي. */
-    if (window.NAWATIJ && NAWATIJ.domainOf(TE.subject)) {
+    if (window.NAWATIJ && NAWATIJ.domainOf(TE.subject) && grades.some(g => NAWATIJ.isFalcon(g))) {
       try {
         await NAWATIJ.load();
         for (const g of grades) if (NAWATIJ.hasGrade(g)) html += NAWATIJ.block(g, NAWATIJ.domainOf(TE.subject), wk, { staff: true, term: TERM });
