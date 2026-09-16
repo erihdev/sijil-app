@@ -816,7 +816,7 @@
       // فشل القراءة (قاعدة غير منشورة أو App Check أو انقطاع) ≠ «لم يضبط المدير شيئاً»: نُبقي آخر إعداد محفوظ
       // على الجهاز حتى لا ترتدّ المدرسة كلها إلى الأوقات الافتراضية بصمت، ونترك أثراً في الكونسول.
       try { const old = JSON.parse(localStorage.getItem("sijil.cloudD") || "null"); if (old) { bellCfg = old.bell || null; schoolCfg = old.cfgSchool || null; assessCfg = old.cfgAssess || null; } } catch (x) { }
-      try { console.warn("[سجلي] تعذّرت قراءة إعدادات المدرسة (cfg/bell وcfg/school وcfg/assess) — استُعملت النسخة المحفوظة على الجهاز إن وُجدت:", (e && e.message) || e); } catch (x) { }
+      try { console.warn("[نجوم المدرسة] تعذّرت قراءة إعدادات المدرسة (cfg/bell وcfg/school وcfg/assess) — استُعملت النسخة المحفوظة على الجهاز إن وُجدت:", (e && e.message) || e); } catch (x) { }
     }
     /* meta/app هو أصل كل شيء (الأوزان والحالات والسلوكيات واسم المدرسة). كان يُمرَّر
        metaS.data() كما هو، فإن لم يوجد المستند أو رُفضت قراءته صار undefined ثم انفجر
@@ -826,7 +826,7 @@
     let meta = (metaS && metaS.exists) ? (metaS.data() || null) : null;
     if (!meta) {
       try { const old = JSON.parse(localStorage.getItem("sijil.cloudD") || "null"); if (old && old.meta) meta = old.meta; } catch (e) { }
-      try { console.warn("[سجلي] تعذّرت قراءة meta/app — " + (meta ? "استُعملت النسخة المحفوظة على الجهاز" : "لا نسخة محفوظة")); } catch (e) { }
+      try { console.warn("[نجوم المدرسة] تعذّرت قراءة meta/app — " + (meta ? "استُعملت النسخة المحفوظة على الجهاز" : "لا نسخة محفوظة")); } catch (e) { }
     }
     if (!meta) throw new Error("META_UNAVAILABLE");
     D = { meta, teachers, classes, schedule: (schS.data() || {}).rows || [], moves, sedits, bell: bellCfg, cfgSchool: schoolCfg, cfgAssess: assessCfg, cfgTerm: termCfg };
@@ -1894,7 +1894,7 @@
       (o) => {
         o.querySelector("#sc-addcomm").onclick = () => commSheet(cid, i);
         /* الباب كان مغلقاً بلا لافتة: المعلم هو من يعرف رقم ولي الأمر ولا يستطيع حفظه (التعديل محصور
-           في لوحة المدير)، فيخرج من «سجلي» ويرسل من جواله الشخصي فلا يبقى أثر. */
+           في لوحة المدير)، فيخرج من «نجوم المدرسة» ويرسل من جواله الشخصي فلا يبقى أثر. */
         bindAskPhone(o, cid, i, "sc", () => setTimeout(() => { if (cardOpen(i)) studentCard(cid, i); }, 1200));
         const fb = o.querySelector("#sc-files");
         if (fb) fb.onclick = () => filesSheet("📎 أدلة وأعمال — " + s.n, "student", { c: cid, i },
@@ -2238,7 +2238,7 @@
       <div class="card"><h3><span class="dot"></span>مكتبة التقييمات</h3>
         <div class="countchips">${assessView(STATES).map(s => `<span class="cc" style="background:${STCOLORS[s.i]}">${esc(s.name)} ${s.pts >= 0 ? "+" : ""}${s.pts}</span>`).join("")}</div>
         <div class="countchips">${assessView(BEH).map(b => `<span class="cc" style="background:${b.pts >= 0 ? "var(--ok)" : "var(--bad)"}">${esc(b.name)} ${b.pts >= 0 ? "+" : ""}${b.pts}</span>`).join("")}</div></div>
-      <div class="card"><h3><span class="dot"></span>عن البرنامج</h3><div style="font-size:13.5px;line-height:2;color:var(--muted)">سجلي — سجل المتابعة الرقمي — ${CLOUD ? "النسخة السحابية المشتركة ☁️" : "نسخة تجريبية محلية"}.<br>يعمل على أي جهاز: جوال، تابلت، وكمبيوتر.<br><b>المطوّر:</b> أ. ضيف الله أحمد محمد مشني</div></div>`;
+      <div class="card"><h3><span class="dot"></span>عن البرنامج</h3><div style="font-size:13.5px;line-height:2;color:var(--muted)">نجوم المدرسة — سجل المتابعة الرقمي — ${CLOUD ? "النسخة السحابية المشتركة ☁️" : "نسخة تجريبية محلية"}.<br>يعمل على أي جهاز: جوال، تابلت، وكمبيوتر.<br><b>المطوّر:</b> أ. ضيف الله أحمد محمد مشني</div></div>`;
     // 👤 بياناتي (js/admin/teachers.js) — بطاقة الحساب وتغيير رقم الدخول للمعلم داخل «المزيد».
     // في لوحة المدير تظهر داخل «⚙️ الإدارة» — فلا نكررها هنا (تفادي تكرار معرّفات #me-*)
     try {
@@ -2340,7 +2340,7 @@
       nextKey = ""; try { paintNext(); } catch (e) { }
       try { const N2 = window.SIJIL_NOTIFY; if (N2 && typeof N2.refresh === "function") N2.refresh(); } catch (e) { }
       const m = $("#nt-cal-msg");
-      if (m) m.textContent = "✔ سيصلك التنبيه قبل الحصة بـ " + minsArObl(notifyLead()) + " ما دام «سجلي» مفتوحاً؛ وإن كان مغلقاً فقد يصل قبلها بقليل.";
+      if (m) m.textContent = "✔ سيصلك التنبيه قبل الحصة بـ " + minsArObl(notifyLead()) + " ما دام «نجوم المدرسة» مفتوحاً؛ وإن كان مغلقاً فقد يصل قبلها بقليل.";
     };
     const sb = $("#nt-snd");
     if (sb) sb.onclick = () => { if (soundOn()) lsDel(NSND_KEY); else { lsSet(NSND_KEY, "1"); beep(); } paintNotifyCard(); };
@@ -5315,7 +5315,7 @@
       ? `<span>🎁 تجربة ${esc(SPACE_DOC.name || "مدرستك")} — بقي <b>${arNum(left)}</b> ${left === 1 ? "يوم" : left === 2 ? "يومان" : left <= 10 ? "أيام" : "يوماً"}</span><button class="tb-a" id="tb-buy">اشترك الآن</button><button class="tb-a" id="tb-out" style="background:transparent;color:inherit;border:1px solid currentColor">↩ خروج من هذه المدرسة</button>`
       : `<span>⏳ انتهت تجربة ${esc(SPACE_DOC.name || "مدرستك")} — بياناتك محفوظة كما هي، وتعود بالاشتراك</span><button class="tb-a" id="tb-buy">اشترك الآن</button><button class="tb-a" id="tb-out" style="background:transparent;color:inherit;border:1px solid currentColor">↩ خروج من هذه المدرسة</button>`;
     const b = el.querySelector("#tb-buy");
-    if (b) b.onclick = () => { try { window.open("https://wa.me/966599363888?text=" + encodeURIComponent("أرغب الاشتراك في «سجلي» — رمز مدرستي: " + SPACE), "_blank"); } catch (e) { } };
+    if (b) b.onclick = () => { try { window.open("https://wa.me/966599363888?text=" + encodeURIComponent("أرغب الاشتراك في «نجوم المدرسة» — رمز مدرستي: " + SPACE), "_blank"); } catch (e) { } };
     /* مخرجٌ ظاهر: من فتح رابط مدرسةٍ أخرى بالخطأ يبقى فيها (الرمز محفوظ في جهازه) ولا
        يعرف كيف يعود. و?s= الفارغة تُفرّغه — فيُعرض زراً لا سرّاً. */
     const x = el.querySelector("#tb-out");

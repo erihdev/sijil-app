@@ -375,7 +375,7 @@
   // عرض الرقم مرة واحدة بعد التعيين + نسخ + واتساب (الرقم لا يُكتب في سجل الإدارة)
   function showPin(o, name, tid, pin, title, after) {
     const t = byId(tid) || {}, mob = mobOf(t);
-    const msg = `السلام عليكم أ. ${name}\nرقم دخولك إلى «سجلي» (${S().META.school.name}): ${pin}\nيمكنك تغييره من «👤 بياناتي» داخل التطبيق.`;
+    const msg = `السلام عليكم أ. ${name}\nرقم دخولك إلى «نجوم المدرسة» (${S().META.school.name}): ${pin}\nيمكنك تغييره من «👤 بياناتي» داخل التطبيق.`;
     const sh = o.querySelector(".sheet") || o;
     sh.innerHTML = `<h4>${esc(title)}</h4>
       <div style="text-align:center;font-weight:800;color:var(--navy)">${esc(name)} <span class="tch-id">(${esc(tid)})</span></div>

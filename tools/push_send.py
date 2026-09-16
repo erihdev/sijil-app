@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-سجلي — مُرسل تنبيهات الحصص (يُشغَّل من المهمة المجدولة في GitHub Actions)
+نجوم المدرسة — مُرسل تنبيهات الحصص (يُشغَّل من المهمة المجدولة في GitHub Actions)
 
 ماذا يفعل؟
   يقرأ من Firestore بحساب خدمة: جدول الحصص ``schedule/all``، وأوقات الأجراس ``cfg/bell``،
@@ -525,7 +525,7 @@ def send_one(alert: dict, vapid_private: str, vapid_sub: str) -> tuple:
 
 def parse_args(argv=None):
     ap = argparse.ArgumentParser(
-        description="إرسال تنبيهات الحصص لمعلمي سجلي قبل بداية الحصة بدقائق.")
+        description="إرسال تنبيهات الحصص لمعلمي نجوم المدرسة قبل بداية الحصة بدقائق.")
     ap.add_argument("--dry-run", action="store_true",
                     help="حساب وطباعة فقط: بلا إرسال وبلا كتابة أي شيء")
     ap.add_argument("--now", metavar="HH:MM", help="ساعة افتراضية بتوقيت الرياض (للتجربة)")
@@ -561,7 +561,7 @@ def main(argv=None) -> int:
     now = when(args)
     url = (os.environ.get("SIJIL_URL") or "./").strip() or "./"
 
-    log("سجلي — تنبيهات الحصص")
+    log("نجوم المدرسة — تنبيهات الحصص")
     log("اللحظة بتوقيت الرياض:", now.strftime("%Y-%m-%d %H:%M"),
         "·", DAYS[(now.weekday() + 1) % 7], "· النافذة: من", lo, "إلى", hi, "دقيقة")
 

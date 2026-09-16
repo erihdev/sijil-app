@@ -4,10 +4,10 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#0E2033">
-<title>مرفق — سجلي</title>
+<title>مرفق — نجوم المدرسة</title>
 <meta name="description" content="مرفق من معلم ابنك: صورة أو ملف أو مقطع صوتي. افتح الرابط من جوالك بلا تسجيل.">
-<meta property="og:type" content="website"><meta property="og:site_name" content="سجلي">
-<meta property="og:title" content="مرفق من المعلم — سجلي">
+<meta property="og:type" content="website"><meta property="og:site_name" content="نجوم المدرسة">
+<meta property="og:title" content="مرفق من المعلم — نجوم المدرسة">
 <meta property="og:description" content="افتح الرابط من جوالك لمشاهدة المرفق — بلا تسجيل ولا تطبيق.">
 <meta property="og:image" content="https://sijli.erihdev.com/assets/og.jpg"><meta property="og:image:width" content="1200"><meta property="og:image:height" content="630">
 <meta name="twitter:card" content="summary_large_image">
@@ -53,14 +53,14 @@ h1{font-size:19px;font-weight:800;color:var(--navy);margin:0 0 4px;line-height:1
 </style>
 </head>
 <body>
-<div class="bar"><span id="bar-t">مرفق</span><small id="bar-s">سجلي</small></div>
+<div class="bar"><span id="bar-t">مرفق</span><small id="bar-s">نجوم المدرسة</small></div>
 <div class="wrap" id="app"><div class="err" id="ld">جارِ التحميل…</div></div>
 
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-check-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
-<script src="../js/fb.js?v=68"></script>
+<script src="../js/fb.js?v=69"></script>
 <script>
 (function () {
   "use strict";
@@ -82,7 +82,7 @@ h1{font-size:19px;font-weight:800;color:var(--navy);margin:0 0 4px;line-height:1
   const fail = (t, s) => { app.innerHTML = `<div class="err"><b>${esc(t)}</b>${esc(s || "")}</div>`; };
   // فشل الشبكة أو الصلاحية ليس «حذف المعلم للمرفق»: رسالتان مختلفتان، وزر يعيد المحاولة
   const failNet = () => {
-    app.innerHTML = `<div class="err"><b>تعذّر الاتصال</b>لم نصل إلى خادم «سجلي». تحقق من اتصال الإنترنت ثم أعد المحاولة.
+    app.innerHTML = `<div class="err"><b>تعذّر الاتصال</b>لم نصل إلى خادم «نجوم المدرسة». تحقق من اتصال الإنترنت ثم أعد المحاولة.
       <div style="max-width:250px;margin:16px auto 0"><button class="go gold" id="rt">↻ إعادة المحاولة</button></div></div>`;
     const b = $("#rt"); if (b) b.onclick = () => location.reload();
   };
@@ -150,7 +150,7 @@ h1{font-size:19px;font-weight:800;color:var(--navy);margin:0 0 4px;line-height:1
       ${inner}
       ${foot || ""}
     </div>
-    <div class="foot">سجلي — سجل المتابعة الرقمي · <a href="https://erihdev.com">ERIHDEV.COM</a></div>`;
+    <div class="foot">نجوم المدرسة — سجل المتابعة الرقمي · <a href="https://erihdev.com">ERIHDEV.COM</a></div>`;
   }
 
   /* رمز App Check لا يكون جاهزاً لحظة activate: أول قراءة قد تُرفض بـ permission-denied
@@ -230,7 +230,7 @@ h1{font-size:19px;font-weight:800;color:var(--navy);margin:0 0 4px;line-height:1
         : `<a class="go gold" target="_blank" rel="noopener" href="${url}">↗️ فتح بالحجم الكامل</a>
         <a class="go soft" download="${esc(rec.n || "مرفق")}" href="${dl}">⬇️ حفظ في جهازي</a>`}
       </div>
-      <div class="note">وصلك هذا المرفق من معلّم ابنك أو ابنتك عبر <b>سجلي</b> — لا يحتاج تسجيلاً ولا تطبيقاً.</div>`);
+      <div class="note">وصلك هذا المرفق من معلّم ابنك أو ابنتك عبر <b>نجوم المدرسة</b> — لا يحتاج تسجيلاً ولا تطبيقاً.</div>`);
     $("#bar-t").textContent = KIND[k];
   }
   boot();

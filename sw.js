@@ -44,7 +44,7 @@ async function dataFirst(req) {
    مفتاح الكاش هو الرابط كاملاً بما فيه الاستعلام، والتطبيق يُفتح بروابط مختلفة للصفحة
    نفسها: «./» (رابط بدء التطبيق المثبَّت في manifest، وما تفتحه نقرةُ الإشعار) و
    «index.html» و«index.html?demo» و«?pv=1»… فكان الاحتياطي `caches.match("./index.html")`
-   لا يطابق شيئاً إلا إن صادف المعلم أن دخل بذلك الرابط بعينه: مَن ثبّت «سجلي» على شاشته
+   لا يطابق شيئاً إلا إن صادف المعلم أن دخل بذلك الرابط بعينه: مَن ثبّت «نجوم المدرسة» على شاشته
    يفتحه على «./» فلا يجد شيئاً حين ينقطع الاتصال، ويرى «تعذّر الوصول إلى الموقع» رغم
    وعد العمل دون اتصال. الحل: تجاهل الاستعلام في المطابقة، وتجريب صيغتي الجذر.
 
@@ -82,7 +82,7 @@ self.addEventListener("fetch", (e) => {
 
 /* ═══════════ تنبيهات الحصص ═══════════
    push            رسالة قادمة من الخادم → تُعرض كتنبيه عربي (العنوان والنص من الخادم)
-   notificationclick  نقرة المعلم → تُركّز نافذة «سجلي» المفتوحة، وإن لم توجد تفتح واحدة
+   notificationclick  نقرة المعلم → تُركّز نافذة «نجوم المدرسة» المفتوحة، وإن لم توجد تفتح واحدة
    التنبيه المحلي (قبل الحصة بالمهلة التي اختارها المعلم) يرسله js/notify.js عبر registration.showNotification. */
 async function sijilFocus(url) {
   const root = new URL("./", self.location.href);        // جذر التطبيق = نطاق عامل الخدمة
@@ -126,7 +126,7 @@ self.addEventListener("push", (e) => {
     icon: d.icon || "./icon-192.png", badge: d.badge || "./icon-192.png",
     data: { url: d.url || "./" }
   };
-  sijilWait(e, self.registration.showNotification(String(d.title || "سجلي"), opt).catch(() => { }));
+  sijilWait(e, self.registration.showNotification(String(d.title || "نجوم المدرسة"), opt).catch(() => { }));
 });
 
 /* تدوير عنوان الاشتراك: كروم/FCM يُبطل العنوان بعد تحديثٍ أو تنظيف، فترجع خدمة الدفع 410

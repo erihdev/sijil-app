@@ -870,7 +870,7 @@
       cfgAssess: (s.D && s.D.cfgAssess) || (s.DB && s.DB.cfgAssess) || null
     };
     const txt = JSON.stringify(out);
-    download(txt, `نسخة سجلي الشاملة - ${s.META.school.name} - ${hijStamp()} - ${Ad.isoDate()}.json`);
+    download(txt, `نسخة نجوم المدرسة الشاملة - ${s.META.school.name} - ${hijStamp()} - ${Ad.isoDate()}.json`);
     Ad.toast(`⬇️ نُزّلت النسخة (${Math.round(txt.length / 1024)} كيلوبايت)`, 3000);
     try { await Ad.adminlog("backup", `تصدير نسخة احتياطية شاملة (${teachers.length} معلماً، ${(out.classes || []).length} فصلاً، ${Object.keys(out.recs).length} مستند رصد)`); } catch (e) { warn("log/backup", e); }
     return out;
@@ -1090,7 +1090,7 @@
   function linksHtml() {
     const s = S(), h = H();
     return h.tools(`${h.btn("📚 توزيع المناهج", 'id="mg-curr"')}`) +
-      `<div class="mg-about">سجلي — سجل المتابعة الرقمي — ${s.CLOUD ? "النسخة السحابية المشتركة ☁️" : "نسخة تجريبية محلية 🧪"}.<br>يعمل على أي جهاز: جوال، تابلت، وكمبيوتر.<br><b>المدرسة:</b> ${esc(s.META.school.name)} · <b>العام:</b> ${esc(s.META.school.year || "")} · ${esc(s.META.school.term_lbl || "")}<br><b>المطوّر:</b> أ. ضيف الله أحمد محمد مشني</div>`;
+      `<div class="mg-about">نجوم المدرسة — سجل المتابعة الرقمي — ${s.CLOUD ? "النسخة السحابية المشتركة ☁️" : "نسخة تجريبية محلية 🧪"}.<br>يعمل على أي جهاز: جوال، تابلت، وكمبيوتر.<br><b>المدرسة:</b> ${esc(s.META.school.name)} · <b>العام:</b> ${esc(s.META.school.year || "")} · ${esc(s.META.school.term_lbl || "")}<br><b>المطوّر:</b> أ. ضيف الله أحمد محمد مشني</div>`;
   }
 
   /* ═══ الرسم والربط ═══ */
@@ -1252,7 +1252,7 @@
     const Ad = A();
     let data = null;
     try { data = JSON.parse(await f.text()); } catch (e) { throw new Error("الملف ليس JSON صالحاً"); }
-    if (!data || typeof data !== "object" || data.kind !== "sijil-school-backup") throw new Error("هذا ليس ملف نسخة احتياطية من «سجلي»");
+    if (!data || typeof data !== "object" || data.kind !== "sijil-school-backup") throw new Error("هذا ليس ملف نسخة احتياطية من «نجوم المدرسة»");
     const sm = summarize(data);
     if (!(sm.teachers + sm.classes + sm.recs + sm.grades + sm.comms + sm.schedule)) throw new Error("الملف لا يحوي بيانات لاستعادتها");
     const ok1 = await Ad.confirm("⬆️ استعادة نسخة احتياطية", summaryHtml(data, sm) +

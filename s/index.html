@@ -11,11 +11,11 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="بوابتي">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<title>بوابتي — سجلي</title>
+<title>بوابتي — نجوم المدرسة</title>
 <meta name="description" content="بوابة الطالب: اختر صفك واكتب رقم هويتك لترى نقاطك وحضورك وموادك ومهامك ودروسك وشهادتك.">
 <meta name="robots" content="noindex">
-<meta property="og:type" content="website"><meta property="og:site_name" content="سجلي">
-<meta property="og:title" content="بوابة الطالب — سجلي">
+<meta property="og:type" content="website"><meta property="og:site_name" content="نجوم المدرسة">
+<meta property="og:title" content="بوابة الطالب — نجوم المدرسة">
 <meta property="og:description" content="افتح البوابة من جوالك: نقاطك وحضورك وموادك ومهامك ودروسك وشهادتك في مكان واحد.">
 <meta property="og:image" content="https://sijli.erihdev.com/assets/og.jpg"><meta property="og:image:width" content="1200"><meta property="og:image:height" content="630">
 <meta name="twitter:card" content="summary_large_image">
@@ -36,10 +36,10 @@
   if (m !== "skip") { try { D.documentElement.classList.add("intro-bar"); } catch (e) { } }
   if (m === "full") { var a = function () { if (D.body) { D.body.classList.add("has-intro"); return 1; } };
     if (!a()) { try { new MutationObserver(function (x, o) { if (a()) o.disconnect(); }).observe(D.documentElement, { childList: true }); } catch (e) { } D.addEventListener("DOMContentLoaded", a); } }
-  try { var t = D.createElement("script"); t.src = "../js/intro-boot.js?v=68"; t.async = false; D.head.appendChild(t); } catch (e) { }
+  try { var t = D.createElement("script"); t.src = "../js/intro-boot.js?v=69"; t.async = false; D.head.appendChild(t); } catch (e) { }
 })();
 </script>
-<link rel="stylesheet" href="../css/intro.css?v=68">
+<link rel="stylesheet" href="../css/intro.css?v=69">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800;900&display=swap">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='46' fill='%230E2033'/><text x='50' y='68' font-size='52' text-anchor='middle' fill='%23D7A93F'>س</text></svg>">
 <style>
@@ -634,10 +634,10 @@ h2{font-size:19px;font-weight:800;color:var(--navy);margin:0 0 10px}
   </div>
 </div>
 <div id="intro-track" hidden></div>
-<div id="intro-bar" hidden><span class="brand">سجلي</span><a class="enter" href="#app">دخول</a></div>
+<div id="intro-bar" hidden><span class="brand">نجوم المدرسة</span><a class="enter" href="#app">دخول</a></div>
 <div id="intro-posters" hidden></div>
 <div id="intro-stamp" hidden><div class="seal"><svg viewBox="0 0 100 100" aria-hidden="true"><path d="M50 4L61 27L84 16L73 39L96 50L73 61L84 84L61 73L50 96L39 73L16 84L27 61L4 50L27 39L16 16L39 27Z"/></svg><b>سُجِّل</b></div></div>
-<div class="bar"><div class="who"><b id="bar-t">بوابتي</b><small id="bar-s">سجلي</small></div>
+<div class="bar"><div class="who"><b id="bar-t">بوابتي</b><small id="bar-s">نجوم المدرسة</small></div>
   <button class="out" id="bar-out" hidden>🚪 خروج</button></div>
 <div class="demo" id="demo-strip" hidden></div>
 <div class="wrap nobar" id="app"><div class="load"><div class="spin"></div>جارِ التحميل…</div></div>
@@ -647,10 +647,10 @@ h2{font-size:19px;font-weight:800;color:var(--navy);margin:0 0 10px}
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-check-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
-<script src="../js/fb.js?v=68"></script>
+<script src="../js/fb.js?v=69"></script>
 <script>
 /* ═══════════════════════════════════════════════════════════════════════════════════════
-   سجلي — بوابة الطالب (نواة)
+   نجوم المدرسة — بوابة الطالب (نواة)
    ───────────────────────────────────────────────────────────────────────────────────────
    صفحة مستقلة خفيفة على نمط w/ وv/: مصادقة مجهولة + App Check، **قراءة فقط**، ولا تُحمَّل
    منها ذرّة من واجهة المعلم. الجمهور طفل في العاشرة على جوال أمه.
@@ -961,7 +961,7 @@ h2{font-size:19px;font-weight:800;color:var(--navy);margin:0 0 10px}
         if (!D.classes.length || !D.meta.states) throw new Error("data");
       } else {
         db = demoDb;
-        await loadScript("../js/demo-data.js?v=68");
+        await loadScript("../js/demo-data.js?v=69");
         const DEMO = window.DEMO || {};
         D.classes = JSON.parse(JSON.stringify(DEMO.classes || []));
         D.teachers = JSON.parse(JSON.stringify(DEMO.teachers || []));
@@ -979,7 +979,7 @@ h2{font-size:19px;font-weight:800;color:var(--navy);margin:0 0 10px}
       META = D.meta || {}; assessApply();
       STATES = META.states || []; BEH = META.behaviors || []; W = META.weights || {};
       D.classes.sort((a, b) => ((a.gc || 0) - (b.gc || 0)) || String(a.id).localeCompare(String(b.id)));
-      $("#bar-s").textContent = (META.school && META.school.name) || "سجلي";
+      $("#bar-s").textContent = (META.school && META.school.name) || "نجوم المدرسة";
       if (!CLOUD) await demoSeed();
       const kept = restore();
       if (kept) enter(kept, false); else loginGrade();
@@ -1112,7 +1112,7 @@ h2{font-size:19px;font-weight:800;color:var(--navy);margin:0 0 10px}
   </div>`;
   function shell(step, inner, aside) {
     $("#bar-t").textContent = "بوابتي";
-    $("#bar-s").textContent = (META.school && META.school.name) || "سجلي";
+    $("#bar-s").textContent = (META.school && META.school.name) || "نجوم المدرسة";
     $("#bar-out").hidden = true; $("#tabs").hidden = true;
     app.className = "wrap nobar" + (aside ? " lgw" : "");
     app.innerHTML = `<div class="lgrid${aside ? " two" : ""}">
@@ -1780,6 +1780,6 @@ h2{font-size:19px;font-weight:800;color:var(--navy);margin:0 0 10px}
   boot();
 })();
 </script>
-<script src="../js/student/content.js?v=68"></script>
+<script src="../js/student/content.js?v=69"></script>
 </body>
 </html>

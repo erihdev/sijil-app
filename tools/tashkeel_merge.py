@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-سجلي — دمج تشكيل السرد في بيانات الدروس، بفحصٍ صارم لا يمرّ عليه تحريف.
+نجوم المدرسة — دمج تشكيل السرد في بيانات الدروس، بفحصٍ صارم لا يمرّ عليه تحريف.
 
 المشكلة: محرّك النطق في المتصفح يقرأ العربية غير المشكّلة تخميناً، فيقول «عَلَم» موضع
 «عِلْم» و«كَتَبَ» موضع «كُتُب». والحلّ نصُّ سردٍ مشكّل يُقرأ بدل نصّ الشاشة — وهو حقل
@@ -69,7 +69,7 @@ def main(argv=None) -> int:
     except (AttributeError, ValueError):
         pass
 
-    ap = argparse.ArgumentParser(description="دمج تشكيل السرد في دروس سجلي")
+    ap = argparse.ArgumentParser(description="دمج تشكيل السرد في دروس نجوم المدرسة")
     ap.add_argument("side", help="مجلد الملفات الجانبية")
     ap.add_argument("--dry-run", action="store_true", help="فحصٌ وتقرير بلا كتابة")
     ap.add_argument("--min-density", type=float, default=0.30,
