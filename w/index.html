@@ -5,12 +5,12 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#0E2033">
 <title>ورقة عمل — نجوم المدرسة</title>
-<meta name="description" content="ورقة عمل تفاعلية من معلمك: افتح الرابط من جوالك، اختر اسمك، وحلّ الأسئلة. تُصحَّح آلياً وتصل نتيجتك إلى المعلم.">
+<meta name="description" content="ورقة عمل تفاعلية من معلمك: افتح الرابط من جوالك، اكتب رقم هويتك، وحلّ الأسئلة. تُصحَّح آلياً وتصل نتيجتك إلى المعلم.">
 <meta property="og:type" content="website"><meta property="og:site_name" content="نجوم المدرسة">
 <meta property="og:title" content="ورقة عمل تفاعلية — نجوم المدرسة">
-<meta property="og:description" content="افتح الرابط من جوالك، اختر اسمك، وحلّ الأسئلة. تُصحَّح آلياً وتصل نتيجتك إلى المعلم فوراً.">
+<meta property="og:description" content="افتح الرابط من جوالك، اكتب رقم هويتك، وحلّ الأسئلة. تُصحَّح آلياً وتصل نتيجتك إلى المعلم فوراً.">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='22' fill='%230E2033'/><path d='M27 43 A23 23 0 1 0 73 43' fill='none' stroke='%23F2CC6B' stroke-width='9.5' stroke-linecap='round'/><path d='M50 14 L54.2 24 L65 25 L57 32 L59.5 42.5 L50 37 L40.5 42.5 L43 32 L35 25 L45.8 24 Z' fill='%23F2CC6B'/></svg>">
-<meta property="og:image" content="https://sijli.erihdev.com/assets/og.jpg?v=75"><meta property="og:image:width" content="1200"><meta property="og:image:height" content="630">
+<meta property="og:image" content="https://sijli.erihdev.com/assets/og.jpg?v=76"><meta property="og:image:width" content="1200"><meta property="og:image:height" content="630">
 <meta name="twitter:card" content="summary_large_image">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -83,7 +83,7 @@ button{font-family:inherit;font-size:16px}
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-check-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
-<script src="../js/fb.js?v=75"></script>
+<script src="../js/fb.js?v=76"></script>
 <script>
 (function () {
   "use strict";
@@ -95,10 +95,10 @@ button{font-family:inherit;font-size:16px}
   const MODE_T = { ws: "ورقة عمل", quiz: "اختبار", race: "تحدٍّ" };
   let db = null, A = null, C = null, si = -1, sname = "", answers = [], qi = 0, t0 = 0, tIv = null, left = 0;
   let PREV = null;   // تسليم سابق: المحاولة الأولى هي المعتمدة
-  /* مفتاح «هذا الجهاز هو صاحب التسليم»: صفحة الطالب بلا حساب ولا كلمة سر (يختار اسمه من
-     قائمة الفصل)، فمراجعة الأخطاء — وفيها الإجابة الصحيحة لكل سؤال — لا تُعرض إلا للجهاز
-     الذي أرسل ذلك التسليم. بدونه كان اختيار اسم زميل استنفد محاولته يكشف مفتاح الإجابة
-     كاملاً لمن لم يحلّ شيئاً. */
+  /* مفتاح «هذا الجهاز هو صاحب التسليم»: مراجعة الأخطاء — وفيها الإجابة الصحيحة لكل سؤال —
+     لا تُعرض إلا للجهاز الذي أرسل ذلك التسليم. (كانت الصفحة تعرض قائمة أسماء الفصل ليختار
+     الطالب اسمه، فكان الزميل يفتح ورقة زميله ويحلّها باسمه؛ ألغيت القائمة: الهوية من جلسة
+     البوابة على الجهاز أو برقم الهوية.) */
   const mineKey = (i) => "sijil.solved." + AID + "." + i;
   const isMine = (i) => { try { return localStorage.getItem(mineKey(i)) === "1"; } catch (e) { return false; } };
   const markMine = (i) => { try { localStorage.setItem(mineKey(i), "1"); } catch (e) { } };
@@ -238,28 +238,79 @@ button{font-family:inherit;font-size:16px}
      فقط، فلا يجد غيرهم اسمه ولا يُسلِّم ورقة ليست له. غياب to أو خلوّه = الفصل كله كما كان. */
   const toList = () => (Array.isArray(A.to) ? A.to.map(x => +x).filter(x => Number.isInteger(x) && x >= 0) : []);
   const toHas = (i) => { const t = toList(); return !t.length || t.indexOf(+i) >= 0; };
-  function pickName() {
-    const savedRaw = localStorage.getItem("sijil.stu." + A.cid);
-    const saved = (savedRaw !== null && C.students[+savedRaw] && !C.students[+savedRaw].moved && toHas(+savedRaw)) ? savedRaw : null;   // اسم محفوظ لطالب منقول أو ليس من المقصودين يُهمل
-    const list = (C.students || []).map((s, i) => ({ i, n: s.n, m: !!s.moved })).filter(x => !x.m && toHas(x.i));
-    app.innerHTML = `<div class="card">
-      <div class="note2" style="margin:0 0 6px">${A.mode === "ws" ? "📝 ورقة عمل تفاعلية" : A.mode === "quiz" ? "⏱️ اختبار قصير تفاعلي" : "🏁 سباق أسئلة"} — مادة ${esc(A.subj)}</div>
+  const SALT = "sijil1448", SKEY = "sijil.s.sess";
+  const hexOf = (b) => [...new Uint8Array(b)].map(x => x.toString(16).padStart(2, "0")).join("");
+  async function sha256(msg) { return hexOf(await crypto.subtle.digest("SHA-256", new TextEncoder().encode(msg))); }
+  const okStudent = (i) => { const st = C.students[i]; return !!(st && st.n && !st.moved && !st.gap); };
+  /* موضع الطالب في فصل الورقة من بصمته: الفصل نفسه، أو منقولٌ إليه (copy.from من حركات النقل) */
+  function posOf(dc, ds) {
+    if (dc === A.cid) return okStudent(ds) ? ds : -1;
+    return C.students.findIndex(st => st && st.from && st.from.cid === dc && +st.from.si === +ds && okStudent(C.students.indexOf(st)));
+  }
+  /* جلسة بوابة الطالب على هذا الجهاز — لفصل الورقة نفسه — أو هوية تحقّقنا منها هنا من قبل */
+  function knownSi() {
+    try { const ss = JSON.parse(localStorage.getItem(SKEY) || "null"); if (ss && ss.cid === A.cid && Number.isInteger(+ss.si) && okStudent(+ss.si)) return +ss.si; } catch (e) { }
+    try { const v = localStorage.getItem("sijil.stu." + A.cid); if (v !== null && okStudent(+v)) return +v; } catch (e) { }
+    return -1;
+  }
+  function headerHtml() {
+    return `<div class="note2" style="margin:0 0 6px">${A.mode === "ws" ? "📝 ورقة عمل تفاعلية" : A.mode === "quiz" ? "⏱️ اختبار قصير تفاعلي" : "🏁 سباق أسئلة"} — مادة ${esc(A.subj)}</div>
       <h1>${esc(A.t)}</h1>
       <p class="sub">المعلم: ${esc(A.tn)} · الفصل: ${esc(A.cname)} · ${A.qs.length} أسئلة${A.mode !== "ws" && A.secs ? ` · المدة ${Math.round(A.secs / 60)} دقيقة` : ""}</p>
       ${A.due ? `<p class="sub" style="margin-top:2px">⏰ آخر موعد للتسليم: ${esc(new Date(A.due).toLocaleString("ar-SA", { weekday: "long", day: "numeric", month: "long", hour: "numeric", minute: "2-digit" }))}</p>` : ""}
       ${isLate() ? `<div class="late">⏰ انتهى موعد التسليم، وسيُسجَّل حلّك متأخراً.</div>` : ""}
-      <div class="note2" id="tries-note" style="margin:8px 0 4px">${PV ? "🧪 <b>وضع المعاينة</b> — تجربة للمعلم قبل الإرسال: لا تُسجَّل نتيجة ولا تُحتسب محاولة، ولا يرى الطلاب هذه الجلسة." : triesLabel(0)}</div>
-      ${toList().length && !PV ? `<div class="note2" style="margin:8px 0 4px">🎯 ورقة خاصة: أرسلها معلمك إلى ${toList().length} من طلاب الفصل — إن لم تجد اسمك فهي ليست لك، وراجع معلمك.</div>` : ""}
-      <p class="lbl">${PV ? "اختر اسماً للتجربة (اختياري)" : `اختر اسمك من فصل ${esc(A.cname)}`}</p>
-      <div id="names">${list.map(s => `<button class="name${String(s.i) === saved ? " on" : ""}" data-i="${s.i}">${esc(s.n)}</button>`).join("")}</div>
-      <button class="go" id="start" ${saved === null && !PV ? "disabled" : ""}>${PV ? "🧪 ابدأ المعاينة" : "ابدأ الحل"}</button></div>`;
-    if (saved !== null) { si = +saved; sname = (C.students[si] || {}).n || ""; }
-    app.querySelectorAll(".name").forEach(b => b.onclick = () => {
-      app.querySelectorAll(".name").forEach(x => x.classList.remove("on"));
-      b.classList.add("on"); si = +b.dataset.i; sname = (C.students[si] || {}).n || "";
-      localStorage.setItem("sijil.stu." + A.cid, String(si));
-      $("#start").disabled = false;
-    });
+      <div class="note2" id="tries-note" style="margin:8px 0 4px">${PV ? "🧪 <b>وضع المعاينة</b> — تجربة للمعلم قبل الإرسال: لا تُسجَّل نتيجة ولا تُحتسب محاولة، وتُعرض الإجابات الصحيحة في النهاية." : allowed() > 1 ? `🔁 لك ${allowed()} محاولات — <b>المحاولة الأولى</b> هي التي تصل إلى معلمك، والباقي للتدريب.` : "⚠️ محاولة واحدة فقط — راجع إجاباتك قبل التسليم."}</div>`;
+  }
+  /* الورقة لصاحبها وحده: لا قائمة أسماء. الهوية من جلسة البوابة على الجهاز، وإلا برقم الهوية (كما في البوابة). */
+  function pickName() {
+    if (PV) {
+      si = -1; sname = "معاينة المعلم";
+      app.innerHTML = `<div class="card">${headerHtml()}<button class="go" id="start">🧪 ابدأ المعاينة</button></div>`;
+      bindStart(); return;
+    }
+    const known = knownSi();
+    if (known >= 0 && toHas(known)) { si = known; sname = (C.students[si] || {}).n || ""; return showReady(); }
+    askId(known >= 0 && !toHas(known) ? "هذه الورقة ليست لك — أرسلها معلمك إلى طلاب محدَّدين." : "");
+  }
+  function showReady() {
+    app.innerHTML = `<div class="card">${headerHtml()}
+      <p class="lbl">الطالب</p>
+      <div class="note2" style="margin:0 0 8px;font-weight:800">🧒 ${esc(sname)} <button class="name" id="notme" style="margin-inline-start:8px">ليس أنا</button></div>
+      <button class="go" id="start">ابدأ الحل</button></div>`;
+    $("#notme").onclick = () => { try { localStorage.removeItem("sijil.stu." + A.cid); } catch (e) { } si = -1; sname = ""; askId(""); };
+    bindStart();
+  }
+  function askId(msg) {
+    app.innerHTML = `<div class="card">${headerHtml()}
+      ${toList().length ? `<div class="note2" style="margin:8px 0 4px">🎯 ورقة خاصة: أرسلها معلمك إلى ${toList().length} من طلاب الفصل.</div>` : ""}
+      <p class="lbl">اكتب رقم هويتك (١٠ أرقام) لنتأكد أنها ورقتك</p>
+      <input class="nid" id="nid" inputmode="numeric" autocomplete="off" maxlength="10" placeholder="10xxxxxxxx" style="width:100%;box-sizing:border-box;border:1.5px solid #cbd5e1;border-radius:12px;padding:12px;font:inherit;font-size:18px;text-align:center;letter-spacing:2px">
+      <div class="note2" id="id-msg" style="margin:6px 0 0;color:#8f1d1b">${esc(msg || "")}</div>
+      <button class="go" id="verify" style="margin-top:10px">تحقق ←</button>
+      <p class="hint" style="margin-top:10px">لا تظهر أسماء زملائك هنا: الورقة تصل لصاحبها فقط.</p></div>`;
+    const inp = $("#nid"), btn = $("#verify"), m = $("#id-msg");
+    const go = async () => {
+      const nid = String(inp.value || "").replace(/[٠-٩]/g, d => "٠١٢٣٤٥٦٧٨٩".indexOf(d)).replace(/\D/g, "");
+      if (nid.length !== 10) { m.textContent = "اكتب رقم الهوية كاملاً (١٠ أرقام)"; return; }
+      btn.disabled = true; m.textContent = "جارِ التحقق…"; m.style.color = "#6b7a8f";
+      try {
+        let snap = await withTimeout(db.doc("spins/" + await sha256(nid + "|" + A.cid + "|" + SALT)).get());
+        if (!snap.exists) {   // منقولٌ إلى هذا الفصل: بصمته بفصله الأصلي
+          const froms = [...new Set(C.students.filter(st => st && st.from && st.from.cid).map(st => st.from.cid))];
+          for (const f of froms) { const s2 = await withTimeout(db.doc("spins/" + await sha256(nid + "|" + f + "|" + SALT)).get()); if (s2.exists) { snap = s2; break; } }
+        }
+        const doc = snap.exists ? (snap.data() || {}) : null;
+        const pos = doc ? posOf(String(doc.cid || ""), +doc.si) : -1;
+        if (pos < 0) { btn.disabled = false; m.style.color = "#8f1d1b"; m.textContent = "الرقم غير مسجَّل في فصل هذه الورقة — تأكد من الرقم أو اسأل معلمك."; return; }
+        if (!toHas(pos)) { btn.disabled = false; m.style.color = "#8f1d1b"; m.textContent = "هذه الورقة ليست لك — أرسلها معلمك إلى طلاب محدَّدين."; return; }
+        si = pos; sname = (C.students[si] || {}).n || "";
+        try { localStorage.setItem("sijil.stu." + A.cid, String(si)); } catch (e) { }
+        showReady();
+      } catch (e) { btn.disabled = false; m.style.color = "#8f1d1b"; m.textContent = "تعذّر التحقق — تحقق من اتصال الإنترنت ثم أعد المحاولة."; }
+    };
+    btn.onclick = go; inp.onkeydown = (e) => { if (e.key === "Enter") go(); }; setTimeout(() => inp.focus(), 50);
+  }
+  function bindStart() {
     $("#start").onclick = async () => {
       if (PV) { if (si < 0) { si = -1; sname = "معاينة المعلم"; } PREV = null; }
       else {

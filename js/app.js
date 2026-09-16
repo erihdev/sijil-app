@@ -1626,13 +1626,37 @@
   /* السلوك يتكرّر: الحصة الحية تسجّل «مميز» في كل مرة (beh=[3,3,3] أي ثلاث نقاط).
      فالنافذة تعرض عدد المرات وتحفظها كما هي — لا تسحقها بـ Set كما كانت تفعل، فتضيع نقاط الحصة بضغطة «حفظ» بريئة.
      إلغاء تحديد سلوك يحذف كل مراته (قصد صريح)، وتحديد سلوك جديد يضيفه مرة واحدة. */
+  /* «ما رُصد اليوم»: حذفُ الخطأ نفسه لا تعويضه بسلوك سالب — كان المعلم الذي أخطأ نقرةً بعد انقضاء
+     ثواني التراجع لا يجد طريقاً إلا رصد ⚠ سالبٍ يبقى على الطفل ويصل إلى أهله. */
+  function dayLogHtml(cid, dt, i) {
+    const e = rec(cid, dt, i, false); if (!e) return "";
+    const rows = [];
+    (e.beh || []).forEach((k, j) => { const b = BEH[k]; if (!b) return; rows.push(`<div class="logrow"><span>${(+b.pts || 0) < 0 ? "⚠" : "⭐"} ${esc(b.name)} <b>${signN(b.pts || 0)}</b></span><button type="button" class="mini" data-del="beh:${j}">🗑 حذف</button></div>`); });
+    if (+e.part) rows.push(`<div class="logrow"><span>🙋 مشاركة ×${e.part} <b>${signN((+e.part) * (+W.part || 0))}</b></span><span><button type="button" class="mini" data-del="part:1">−١</button> <button type="button" class="mini" data-del="part:all">تصفير</button></span></div>`);
+    if (e.hw === 1 || e.hw === 0) rows.push(`<div class="logrow"><span>📚 ${e.hw === 1 ? "حلّ الواجب <b>" + signN(W.hw) + "</b>" : "لم يحلّ الواجب"}</span><button type="button" class="mini" data-del="hw">🗑 مسح</button></div>`);
+    if (e.a != null && STATES[e.a]) rows.push(`<div class="logrow"><span>${ST_ICON(STATES[e.a].name || "")} ${esc(STATES[e.a].name)} <b>${signN(STATES[e.a].pts || 0)}</b></span><button type="button" class="mini" data-del="a">🗑 مسح الحالة</button></div>`);
+    if (!rows.length) return "";
+    return `<div class="lsec2" style="margin-top:10px">🗂 ما رُصد له في ${esc(dt)} — أخطأت؟ احذف الرصد نفسه</div><div class="daylog">${rows.join("")}</div>`;
+  }
+  function delLog(cid, dt, i, what) {
+    const snap = snapRec(cid, dt, i), e = rec(cid, dt, i, false); if (!e) return;
+    const nm = firstName(classById(cid).students[i].n); let lbl = "";
+    if (what.startsWith("beh:")) { const j = +what.slice(4), b = BEH[(e.beh || [])[j]]; if (!b) return; e.beh.splice(j, 1); lbl = `🗑 حُذف «${b.name}» من ${nm}`; }
+    else if (what === "part:1") { e.part = Math.max(0, (+e.part || 0) - 1); lbl = `🗑 أُنقصت مشاركة ${nm}`; }
+    else if (what === "part:all") { e.part = 0; lbl = `🗑 صُفِّرت مشاركات ${nm}`; }
+    else if (what === "hw") { e.hw = null; lbl = `🗑 مُسح رصد واجب ${nm}`; }
+    else if (what === "a") { e.a = null; lbl = `🧹 مُسحت حالة ${nm}`; }
+    pruneRec(cid, dt, i); markDrop(cid); save("recs:" + cid); drawRows();
+    undoReg(lbl, cid, dt, i, snap);
+  }
   function behSheet(i) {
     const c = classById(regClass), cur = rec(regClass, regDate, i, false) || {};
     const orig = (cur.beh || []).slice(), cnt = {};
     orig.forEach(k => cnt[k] = (cnt[k] || 0) + 1);
     const sel = new Set(orig), rep = Object.keys(cnt).some(k => cnt[k] > 1);
-    openSheet(`<h4>${esc(c.students[i].n)} — السلوك والتقييم</h4><div class="behgrid">${assessView(BEH).map(b => `<button data-k="${b.i}" class="${sel.has(b.i) ? "sel" : ""}">${esc(b.name)}${cnt[b.i] > 1 ? `<span class="x">×${cnt[b.i]}</span>` : ""} <span class="p ${b.pts >= 0 ? "pos" : "neg"}">${b.pts >= 0 ? "+" : ""}${b.pts}</span></button>`).join("")}</div>${rep ? `<div class="empty-note" style="padding:2px 4px 6px;text-align:right;font-size:12px">×العدد = مرات رُصدت في الحصة الحية، وتبقى كما هي بعد الحفظ.</div>` : ""}<textarea class="note" id="bh-note" rows="2" placeholder="ملاحظة (اختياري)…">${esc(cur.note || "")}</textarea><div class="sheet-actions"><button class="btn-plain" id="bh-x">إغلاق</button><button class="btn-primary" id="bh-ok">تم</button></div>`,
+    openSheet(`<h4>${esc(c.students[i].n)} — السلوك والتقييم</h4>${dayLogHtml(regClass, regDate, i)}<div class="behgrid">${assessView(BEH).map(b => `<button data-k="${b.i}" class="${sel.has(b.i) ? "sel" : ""}">${esc(b.name)}${cnt[b.i] > 1 ? `<span class="x">×${cnt[b.i]}</span>` : ""} <span class="p ${b.pts >= 0 ? "pos" : "neg"}">${b.pts >= 0 ? "+" : ""}${b.pts}</span></button>`).join("")}</div>${rep ? `<div class="empty-note" style="padding:2px 4px 6px;text-align:right;font-size:12px">×العدد = مرات رُصدت في الحصة الحية، وتبقى كما هي بعد الحفظ.</div>` : ""}<textarea class="note" id="bh-note" rows="2" placeholder="ملاحظة (اختياري)…">${esc(cur.note || "")}</textarea><div class="sheet-actions"><button class="btn-plain" id="bh-x">إغلاق</button><button class="btn-primary" id="bh-ok">تم</button></div>`,
       (o) => {
+        o.querySelectorAll("[data-del]").forEach(b => b.onclick = () => { const w = b.dataset.del; closeSheet(); delLog(regClass, regDate, i, w); behSheet(i); });
         o.querySelectorAll("[data-k]").forEach(b => b.onclick = () => { const k = +b.dataset.k; if (sel.has(k)) sel.delete(k); else sel.add(k); b.classList.toggle("sel"); });
         o.querySelector("#bh-x").onclick = closeSheet;
         o.querySelector("#bh-ok").onclick = () => {
