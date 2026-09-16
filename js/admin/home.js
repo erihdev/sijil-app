@@ -274,6 +274,7 @@
       ${h.card(`🗓️ جدول حصص ${esc(day === tName ? "اليوم" : "يوم")} (${esc(day)})`, `<div class="adm-sec"><div class="class-chips" id="hm-days" style="padding:0;margin:0">${WDAYS.map(d => `<button class="chip ${d === day ? "on" : ""}" data-k="${d}" style="padding:6px 12px;font-size:12.5px">${d}</button>`).join("")}</div>${h.printBtn("hm-print-grid", "🖨️ طباعة")}</div>${brkBar}${grid}<div class="adm-legend"><span>● الحصة الحالية</span><span>☕ فسحة</span><span>${esc(Ad.bellLine(day))}</span></div>`)}
       <div class="adm-sec"><div class="t">🔔 تنبيهات ذكية</div><button class="btn-plain" id="hm-refresh" style="flex:0 0 auto;padding:8px 12px">🔄 تحديث</button></div>
       ${alerts}
+      ${nwGrades(cx).length ? h.card("🎯 نواتج التعلم المستهدفة — نافس", `<div class="adm-sec"><div class="class-chips" id="hm-nw-g" style="padding:0;margin:0">${nwGrades(cx).map(g => `<button class="chip ${g === nwState.gc ? "on" : ""}" data-k="${g}" style="padding:6px 12px;font-size:12.5px">الصف ${g === 3 ? "الثالث" : "السادس"}</button>`).join("")}</div></div><div class="class-chips" id="hm-nw-w" style="padding:0;margin:6px 0 0"></div><div id="hm-nw" class="empty-note" style="padding:10px 4px">جارِ تحميل نواتج التعلم…</div>`) : ""}
       ${h.card("⚡ إجراءات سريعة", `<div class="adm-acts"><button class="btn-gold" id="qa-moves">👥 نقل الطلاب</button><button class="btn-gold" id="qa-levels">📊 مستويات المدرسة</button><button class="btn-gold" id="qa-att">🖨️ تقرير حضور اليوم</button><button class="btn-gold" id="qa-backup">⬇️ نسخة احتياطية شاملة</button></div>`)}`;
     box.dataset.ready = "1";
     startTicker(box, day, tName);
@@ -285,6 +286,25 @@
     $("#qa-levels", box).onclick = () => s.switchTab("levels");
     $("#qa-att", box).onclick = () => printAttendance(cx, "day");
     $("#qa-backup", box).onclick = () => fullBackup().catch(e => Ad.toast("⚠️ تعذّر إنشاء النسخة"));
+    nwRender(box, s.curWeek());
+  }
+  /* ═══ نواتج التعلم المستهدفة (منصة تعليم جازان) — للصفوف الموجودة في المدرسة من الثالث والسادس ═══
+     المدير يرى نواتج الأسبوع لكل مجال، وخطة تدريب المعلمين، ومنصة التعلم الذاتي، والاختبار التشخيصي. */
+  const nwState = { gc: 0, wk: 0 };
+  const nwGrades = (cx) => { const gs = [...new Set((S().D.classes || []).map(c => +c.gc))].filter(g => g === 3 || g === 6).sort(); if (!nwState.gc && gs.length) nwState.gc = gs[0]; return gs; };
+  function nwRender(box, wkNow) {
+    const N = window.NAWATIJ, out = $("#hm-nw", box); if (!N || !out) return;
+    if (!nwState.wk) nwState.wk = wkNow;
+    N.load().then(d => {
+      if (!d || !$("#hm-nw", box)) return;
+      const gc = nwState.gc, weeks = N.weeksOf(gc), wk = weeks.includes(nwState.wk) ? nwState.wk : (weeks.filter(w => w <= wkNow).pop() || weeks[0] || wkNow);
+      nwState.wk = wk;
+      const wb = $("#hm-nw-w", box);
+      if (wb) { wb.innerHTML = weeks.map(w => `<button class="chip ${w === wk ? "on" : ""}" data-k="${w}" style="padding:5px 10px;font-size:12px">${w === wkNow ? "هذا الأسبوع" : "أسبوع " + w}</button>`).join(""); H().bindChips(wb, (k) => { nwState.wk = +k; nwRender(box, wkNow); }); }
+      out.className = ""; out.style.padding = "0";
+      out.innerHTML = N.gradeHtml(gc, wk, { staff: true, term: S().TERM }) || '<div class="empty-note">لا نواتج لهذا الأسبوع</div>';
+    }).catch(() => { out.textContent = "تعذّر تحميل نواتج التعلم"; });
+    const gb = $("#hm-nw-g", box); if (gb && !gb.dataset.b) { gb.dataset.b = "1"; H().bindChips(gb, (k) => { nwState.gc = +k; nwState.wk = 0; gb.querySelectorAll(".chip").forEach(c => c.classList.toggle("on", +c.dataset.k === +k)); nwRender(box, wkNow); }); }
   }
   function gridPrint(cls, rows, cols, pNow) {
     const Ad = A();

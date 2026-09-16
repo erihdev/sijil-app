@@ -1131,6 +1131,14 @@
       const nm = main ? main.lesson : "—", off = !main || String(nm).includes("إجازة");
       html += `<div class="lesson-line" style="margin-top:9px"><span class="nm">الصف ${GNAME[g]}: ${esc(nm)}</span>${off ? "" : `<span style="display:flex;gap:6px;flex-wrap:wrap">${FILES() ? `<button class="btn-soft" data-fg="${g}" data-code="${code}">📎 مرفقات الدرس</button>` : ""}<button class="btn-gold" data-g="${g}">🚀 افتح الدرس التفاعلي</button></span>`}</div>`;
     }
+    /* نواتج التعلم المستهدفة (منصة تعليم جازان): لمعلم القراءة/الرياضيات/العلوم في الثالث أو السادس
+       يظهر ناتجُ الأسبوع بروابطه تحت درس الأسبوع مباشرة — بدل الدخول إلى المنصة بالرقم الإحصائي. */
+    if (window.NAWATIJ && NAWATIJ.domainOf(TE.subject)) {
+      try {
+        await NAWATIJ.load();
+        for (const g of grades) if (NAWATIJ.hasGrade(g)) html += NAWATIJ.block(g, NAWATIJ.domainOf(TE.subject), wk, { staff: true, term: TERM });
+      } catch (e) { }
+    }
     LB.innerHTML = `<h3><span class="dot"></span>درس هذا الأسبوع</h3>` + html;
     LB.querySelectorAll("[data-fg]").forEach(b => b.onclick = () => filesSheet("📎 مرفقات الدرس — الصف " + GNAME[+b.dataset.fg], "lesson", { code: b.dataset.code, wk },
       "ملفات تخصّ درس هذا الأسبوع: صور، أوراق عمل، عروض بصيغة PDF — تظهر أيضاً داخل الحصة الحية."));

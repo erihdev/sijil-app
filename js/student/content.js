@@ -563,13 +563,28 @@
         el.innerHTML = head("🎒", "دروسي", wk === wkNow ? "دروس هذا الأسبوع" : "دروس الأسبوع " + wk) +
           '<div class="wkbar">' + weeks.map(function (w) {
             return '<button data-w="' + w + '" class="' + (w === wk ? "on" : "") + '">' + (w === wkNow ? "هذا الأسبوع" : "أسبوع " + w) + '</button>';
-          }).join("") + '</div>' +
+          }).join("") + '</div><div id="nw-less"></div>' +
           (cards.length ? cards.join("") : empty("🌱", "لا دروس في هذا الأسبوع", "جرّب أسبوعاً آخر من الشريط أعلاه."));
+        nawatijFill(el, gc, wk, list, ok);
         each(el, "[data-w]", function (b) { b.onclick = function () { LESSTATE.wk = +b.getAttribute("data-w"); ST.refresh(); }; });
         each(el, "[data-lsn]", function (b) { b.onclick = function () { toggleLesson(b); }; });
       }, function () { if (ok()) oops(el); });
     }
   });
+  /* نواتج التعلم المستهدفة للصفين الثالث والسادس (منصة تعليم جازان): ناتج الأسبوع في مجالات
+     مواد الطالب — القراءة والرياضيات (والعلوم للسادس) — بفيديوه واختباره ومهمته ومنصته الذاتية.
+     يُحمَّل ملفه عند الحاجة فقط؛ الطالب خارج الصفين لا يجلب شيئاً ولا يرى شيئاً. */
+  function nawatijFill(el, gc, wk, list, ok) {
+    var N = window.NAWATIJ, box = el.querySelector("#nw-less");
+    if (!N || !box || !(gc === 3 || gc === 6)) return;
+    N.load().then(function (d) {
+      if (!d || !ok() || !N.hasGrade(gc)) return;
+      var doms = [], seen = {};
+      list.forEach(function (x) { var dm = N.DOM_OF[x.code]; if (dm && !seen[dm]) { seen[dm] = 1; doms.push(dm); } });
+      if (!doms.length) doms = Object.keys(N.grade(gc).domains);
+      box.innerHTML = doms.map(function (dm) { return N.block(gc, dm, wk, { term: TERM() }); }).join("");
+    }).catch(function () { });
+  }
   function lessonCard(t, sc, code, wk, row) {
     var H = th(sc), off = String(row.lesson || "").indexOf("إجازة") >= 0;
     return '<div class="lsn">' +
