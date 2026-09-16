@@ -39,7 +39,33 @@
   /* ═══ النموذج: مواد ← نواتج ← مؤشرات (بأسئلتها) ═══ */
   function norm(s) { return String(s || "").replace(/[ًٌٍَُِّْـ]/g, "").replace(/\s+/g, " ").trim(); }
   function indNo(act) { var m = norm(act).match(/المؤشر\s*[\(]?\s*([٠-٩0-9]+)/); return m ? +m[1].replace(/[٠-٩]/g, function (d) { return "٠١٢٣٤٥٦٧٨٩".indexOf(d); }) : 0; }
+  /* محتوى المنصة المسحوب (spz_<صف>.json): {subjects:[{dom,name,outcomes:[{n,title,domain,inds:[{code,label,text,explain,q:[{q,type,opts,ans}]}]}]}]} */
+  var SPZ = {};
+  function loadSpz(gc) {
+    if (SPZ[gc] !== undefined) return Promise.resolve(SPZ[gc]);
+    return F.fetchJson("data/nafis/spz_" + gc + ".json?v=1").then(function (d) { SPZ[gc] = d || null; return SPZ[gc]; });   // المسار نسبي لجذر التطبيق (BASE في nafis.js)
+  }
+  function mediaByOrdinal(gc, dom, n) { return F.mediaItems(gc, dom).filter(function (m) { return F.ordinal(m.name) === n; })[0] || null; }
+  function buildFromSpz(gc, spz) {
+    var subjects = [];
+    spz.subjects.forEach(function (S) {
+      var dom = S.dom, subj = { dom: dom, name: F.DOMN[dom] || S.name, icon: F.DOMI[dom] || "📚", outcomes: [] };
+      S.outcomes.forEach(function (O) {
+        var k = O.n - 1, om = dom === "read" ? null : mediaByOrdinal(gc, dom, O.n), inds = [];
+        O.inds.forEach(function (I, ti) {
+          var codeN = parseInt(String(I.code).split("-").pop(), 10) || (ti + 1);
+          var media = dom === "read" ? mediaByOrdinal(gc, dom, parseInt(I.code, 10) || 0) : om;
+          inds.push({ k: k, ok: k, i: ti, code: I.code || String(ti + 1), label: I.label || ("المؤشر " + codeN), text: I.text, explain: I.explain || "", media: media || {},
+            qs: (I.q || []).filter(function (q) { return q.ans != null; }).map(function (q) { return { q: q.q, type: "mcq", opts: q.opts, ans: q.ans, act: I.label || "", passage: "", needs_figure: false, figure_desc: "" }; }) });
+        });
+        subj.outcomes.push({ k: k, number: O.n, title: O.title, domain: O.domain, inds: inds, media: om });
+      });
+      subjects.push(subj);
+    });
+    return { gc: gc, subjects: subjects, src: "spz" };
+  }
   function buildModel(gc) {
+    if (SPZ[gc]) return buildFromSpz(gc, SPZ[gc]);
     var subjects = [];
     ["read", "math", "sci"].forEach(function (dom) {
       var items = F.mediaItems(gc, dom); if (!items.length) return;
@@ -128,10 +154,10 @@
     return h;
   }
   function out() {
-    var s = curSubj(), o = curOut(), h = '<button class="back" data-go="subj">→ ' + esc(s.name) + '</button><div class="njc"><div class="njh"><b>ناتج ' + o.number + '</b><span class="pill">' + s.icon + ' ' + esc(s.name) + '</span></div><div class="t">' + esc(o.title) + '</div></div>';
+    var s = curSubj(), o = curOut(), h = '<button class="back" data-go="subj">→ ' + esc(s.name) + '</button><div class="njc"><div class="njh"><b>ناتج ' + o.number + '</b><span class="pill">' + (o.domain ? esc(o.domain) + ' · ' : '') + s.icon + ' ' + esc(s.name) + '</span></div><div class="t">' + esc(o.title) + '</div></div>';
     o.inds.forEach(function (x) {
       var mk = mastered(s, o, x), tr = trained(s, o, x), n = Math.min(TRAIN_N, x.qs.length);
-      h += '<div class="njc"><div class="njh"><b>المؤشر ' + x.code + '</b>' + (mk ? '<span class="pill ok">مُتقَن</span>' : tr ? '<span class="pill go">جاهز للاختبار</span>' : '<span class="pill">لم يبدأ</span>') + '</div><div class="t">' + esc(x.text) + '</div>' +
+      h += '<div class="njc"><div class="njh"><b>' + esc(x.label || ("المؤشر " + x.code)) + '</b>' + (mk ? '<span class="pill ok">مُتقَن</span>' : tr ? '<span class="pill go">جاهز للاختبار</span>' : '<span class="pill">لم يبدأ</span>') + '</div><div class="t">' + esc(x.text) + '</div>' +
         '<div class="ib"><button data-go="ind" data-i="' + x.i + '" data-stage="expl">📘 شرح</button>' +
         (n ? '<button data-go="ind" data-i="' + x.i + '" data-stage="train" class="' + (tr ? "done" : "g") + '">✍️ تدريب (' + n + ')</button><button data-go="ind" data-i="' + x.i + '" data-stage="test" class="' + (mk ? "done" : tr ? "g" : "lock") + '">🏁 اختبار' + (tr ? "" : " <small>بعد إكمال التدريب</small>") + '</button>' : '<button class="lock" disabled>✍️ لا أسئلة منقولة بعد</button>') +
         '</div><div class="meta">المرحلة: ' + (mk ? "مُتقَن ✅" : tr ? "التدريب مكتمل — الاختبار متاح" : "لم تبدأ") + '</div></div>';
@@ -142,6 +168,7 @@
     return '<div class="steps"><div class="' + (stage === "expl" ? "on" : "done") + '">الشرح<br><small>المرحلة 1</small></div><div class="' + (stage === "train" ? "on" : tr ? "done" : "") + '">التدريب<br><small>المرحلة 2</small></div><div class="' + (stage === "test" ? "on" : mk ? "done" : tr ? "" : "lock") + '">الاختبار<br><small>' + (tr ? "المرحلة 3" : "مقفلة حتى إكمال التدريب") + '</small></div></div>';
   }
   function explanation(s, o, x) {
+    if (x.explain) return esc(x.explain);
     var bi = F.bankItem(STATE.gc, s.dom, o.k), ex = bi && bi.explain && bi.explain[x.i];
     if (ex) return esc(ex);
     return 'في هذا المؤشر ستتدرّب على: ' + esc(x.text) + '\n• الخطوة الأولى: اقرأ المؤشر جيداً وافهم ما المطلوب منك بالضبط.\n• الخطوة الثانية: راجع درسك في الكتاب المدرسي وشاهد فيديو الناتج.\n• الخطوة الثالثة: حُلّ أسئلة التدريب وتحقق من كل إجابة قبل الانتقال.\nانتبه: لا تدخل الاختبار قبل أن تكون واثقاً من فهمك للمؤشر.';
@@ -149,7 +176,7 @@
   function ind() {
     var s = curSubj(), o = curOut(), x = o.inds[STATE.i], tr = trained(s, o, x), mk = mastered(s, o, x), stage = STATE.stage || "expl";
     if (stage === "test" && !tr) stage = STATE.stage = "expl";
-    var h = '<button class="back" data-go="out">→ نواتج التعلم</button><div class="njc"><div class="njh"><b>المؤشر ' + x.code + '</b>' + (mk ? '<span class="pill ok">مُتقَن</span>' : "") + '</div><div class="t">' + esc(x.text) + '</div><div class="meta">' + esc(s.name) + ' — ' + esc(o.title) + '</div>' + stepper(stage, tr, mk) + '</div>';
+    var h = '<button class="back" data-go="out">→ نواتج التعلم</button><div class="njc"><div class="njh"><b>' + esc(x.label || ("المؤشر " + x.code)) + '</b>' + (mk ? '<span class="pill ok">مُتقَن</span>' : "") + '</div><div class="t">' + esc(x.text) + '</div><div class="meta">' + esc(s.name) + ' — ' + esc(o.title) + '</div>' + stepper(stage, tr, mk) + '</div>';
     if (stage === "expl") {
       var m = x.media || {}, vid = F.embedUrl(m.video);
       h += '<div class="njc"><div class="lbl">ناتج التعلم ' + o.number + '</div><div class="t">' + esc(o.title) + '</div><div class="lbl">المؤشر المطلوب إتقانه</div><div class="t">' + esc(x.text) + '</div>' +
@@ -208,7 +235,7 @@
   function startTest() {
     var s = curSubj(), o = curOut(), x = o.inds[STATE.i], qs = x.qs.slice(0, TEST_N);
     F.quiz(Object.assign({}, STATE.ctx, { onDone: function () { render(); } }), STATE.gc, s.dom, o.k, {
-      qs: qs, a: ikey(STATE.gc, s.dom, o.k, x.i), title: "المؤشر " + x.code + " — " + s.name, tries: 99,
+      qs: qs, a: ikey(STATE.gc, s.dom, o.k, x.i), title: (x.label || ("المؤشر " + x.code)) + " — " + s.name, tries: 99,
       onResult: function (rec, st, g) { if (g && qs.length && g.sc / qs.length >= MASTER) markProg(s, o, x, "best"); }
     });
   }
@@ -254,16 +281,20 @@
     return ctx.db.doc("subs/" + F.key(gc, "diag", 0) + "_" + ctx.S.si).get().then(function (d) { STATE.diag = d.exists ? d.data() : null; }).catch(function () { });
   }
   function open(ctx, gc, root) {
-    STATE.ctx = ctx; STATE.gc = gc; STATE.root = root; STATE.model = buildModel(gc);
-    loadCache(); render();
-    return Promise.all([refresh(false), loadDiag()]).then(function () { render(); });
+    STATE.ctx = ctx; STATE.gc = gc; STATE.root = root;
+    return loadSpz(gc).then(function () {
+      STATE.model = buildModel(gc); loadCache(); render();
+      return Promise.all([refresh(false), loadDiag()]).then(function () { render(); });
+    });
   }
   /* ملخّص لِلوحة النتائج: عدد المؤشرات المُتقنة لكل طالب من مستندات التقدّم */
   function summarize(rows, gc) {
-    var model = buildModel(gc), tot = 0; allInds(model).forEach(function (r) { if (r.x.qs.length) tot++; });
+    var model = buildModel(gc), tot = 0;   // مع محتوى المنصة إن كان محمّلاً (loadSpz) وإلا بنك الملفات
+    allInds(model).forEach(function (r) { if (r.x.qs.length) tot++; });
     var by = {};
     rows.forEach(function (r) { var p = String(r.a || "").match(/^nf(\d)([rms])(\d\d)p$/); if (!p || +p[1] !== gc) return; var n = 0, b = r.best || 0; while (b >= 1) { if (b % 2 >= 1) n++; b = Math.floor(b / 2); } by[r.cid + "|" + r.si] = (by[r.cid + "|" + r.si] || 0) + n; });
     return { tot: tot, by: by };
   }
-  window.NAFIS_J = { open: open, render: render, buildModel: buildModel, summarize: summarize, STATE: STATE };
+  function preload(gcs) { return Promise.all((gcs || [3, 6]).map(loadSpz)); }
+  window.NAFIS_J = { open: open, render: render, buildModel: buildModel, summarize: summarize, preload: preload, STATE: STATE };
 })();

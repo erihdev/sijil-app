@@ -251,7 +251,8 @@
   function results(ctx, opts) {
     css();
     var db = ctx.db, classes = opts.classes || [];
-    return db.collection("subs").where("tid", "==", "nafis").get().then(function (snap) {
+    var pre = (window.NAFIS_J && window.NAFIS_J.preload) ? window.NAFIS_J.preload([3, 6]) : Promise.resolve();   // محتوى المنصة لحساب إجمالي المؤشرات
+    return pre.then(function () { return db.collection("subs").where("tid", "==", "nafis").get(); }).then(function (snap) {
       var rows = []; snap.forEach(function (d) { rows.push(d.data()); });
       var byC = {};
       rows.forEach(function (r) { (byC[r.cid] = byC[r.cid] || []).push(r); });
@@ -287,5 +288,5 @@
       return { html: html || '<div class="empty-note">لا تسليمات بعد.</div>', n: rows.length };
     });
   }
-  window.NAFIS = { load: load, grade: grade, items: items, mediaItems: mediaItems, mediaDom: mediaDom, key: key, forWeek: forWeek, bankItem: bankItem, graded: graded, block: block, bind: bind, weekHtml: weekHtml, progress: progress, quiz: quiz, results: results, tasksOf: tasksOf, DOMN: DOMN, DOMI: DOMI, ordinal: ordinal, embedUrl: embedUrl, viewer: viewer, esc: esc, css: css, diagHtml: diagHtml };
+  window.NAFIS = { load: load, grade: grade, items: items, mediaItems: mediaItems, mediaDom: mediaDom, key: key, forWeek: forWeek, bankItem: bankItem, graded: graded, block: block, bind: bind, weekHtml: weekHtml, progress: progress, quiz: quiz, results: results, tasksOf: tasksOf, DOMN: DOMN, DOMI: DOMI, ordinal: ordinal, embedUrl: embedUrl, viewer: viewer, esc: esc, css: css, diagHtml: diagHtml, fetchJson: fetchJson };
 })();
