@@ -332,7 +332,7 @@
     const L = [];
     L.push("BEGIN:VCALENDAR");
     L.push("VERSION:2.0");
-    L.push("PRODID:-//ERIHDEV//Sijil Student Tracker//AR");
+    L.push("PRODID:-//ERIHDEV//Nujoom Al-Madrasa//AR");
     L.push("CALSCALE:GREGORIAN");
     L.push("X-WR-CALNAME:" + T("حصص " + ((te && te.name) || "") + (termLbl() ? " — " + termLbl() : "")));
     L.push("X-WR-CALDESC:" + T(schoolName() + (te && te.subject ? " — " + te.subject : "")));
