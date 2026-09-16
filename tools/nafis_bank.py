@@ -14,8 +14,9 @@ ans_pdf, ans_sug, conf, ans_text, needs_figure, figure_desc, page}]}]}.
 """
 import io, os, sys, json, argparse, collections, re
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-ap = argparse.ArgumentParser(); ap.add_argument("--src", required=True); ap.add_argument("--min-conf", type=float, default=0.75)
+ap = argparse.ArgumentParser(); ap.add_argument("--src", required=True, action="append", help="مجلد ملفات النقل (يتكرر)"); ap.add_argument("--min-conf", type=float, default=0.75)
 a = ap.parse_args()
+a.src.append(os.path.join(ROOT, "data", "nafis", "src"))   # المصادر المحفوظة في المستودع (diag_*.json …)
 media = json.load(io.open(os.path.join(ROOT, "data", "nafis", "media.json"), encoding="utf-8"))
 doc2item = {}
 for gc, g in media["grades"].items():
@@ -46,12 +47,21 @@ def slot(gc, dom, k, name):
     for it in D["items"]:
         if it["k"] == k: return it
     it = {"k": k, "name": name, "outcome": "", "indicators": [], "q": [], "sources": []}; D["items"].append(it); return it
-for fn in sorted(os.listdir(a.src)):
-    if not fn.endswith(".json"): continue
-    try: d = json.load(io.open(os.path.join(a.src, fn), encoding="utf-8"))
+seen = set()
+for src in a.src:
+  if not os.path.isdir(src): continue
+  for fn in sorted(os.listdir(src)):
+    if not fn.endswith(".json") or fn in seen: continue
+    seen.add(fn)
+    try: d = json.load(io.open(os.path.join(src, fn), encoding="utf-8"))
     except Exception as e: stats["bad_json"] += 1; print("BAD", fn, e); continue
     fid = fn[:-5]
-    if fn.startswith("form_"):
+    if fn.startswith("diag_"):
+        gc = str(d.get("gc")); it = slot(gc, "diag", 0, d.get("item") or "الاختبار التشخيصي"); it["outcome"] = d.get("title", ""); it["sources"].append({"kind": "diag", "form_id": d.get("form_id", "")})
+        for act in d.get("activities", []):
+            for q in act.get("questions", []):
+                nq = norm_q(q, (act.get("n") or "").strip()); nq["passage"] = (act.get("passage") or "").strip(); it["q"].append(nq)
+    elif fn.startswith("form_"):
         gc, dom, name = str(d.get("gc")), d.get("dom"), (d.get("item") or "").strip()
         k = name2item.get((gc, dom, name))
         if k is None: stats["form_unmatched"] += 1; print("form unmatched:", fn, gc, dom, name); continue

@@ -14,7 +14,7 @@
 (function () {
   "use strict";
   var BANK = null, MEDIA = null, TASKS = {}, P = {};
-  var DOMN = { read: "القراءة", math: "الرياضيات", sci: "العلوم" }, DOMI = { read: "📖", math: "➗", sci: "🔬" };
+  var DOMN = { read: "القراءة", math: "الرياضيات", sci: "العلوم", diag: "الاختبار التشخيصي" }, DOMI = { read: "📖", math: "➗", sci: "🔬", diag: "🧪" };
   var LETTER = ["أ", "ب", "ج", "د", "هـ", "و"];
   var BASE = (function () { try { var s = document.currentScript && document.currentScript.src; return s ? s.replace(/js\/nafis\.js.*$/, "") : ""; } catch (e) { return ""; } })();
   function esc(s) { return String(s == null ? "" : s).replace(/[&<>"']/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]; }); }
@@ -98,8 +98,17 @@
     return "";
   }
   /* ═══ الواجهة: كتلة ناتجٍ واحد ═══ */
+  /* بطاقة الاختبار التشخيصي للفترة الأولى (نموذج Forms المحاكي للاختبارات الوطنية) — ثابتة أعلى كتل الأسبوع */
+  function diagHtml(ctx, gc, sub) {
+    var bi = bankItem(gc, "diag", 0), nq = graded(bi).length; if (!nq) return "";
+    var done = sub && sub.mx, pct = done ? Math.round(sub.sc / sub.mx * 100) : null;
+    return '<div class="nf nfd" data-nf="' + gc + '|diag|0"><div class="nfh">🧪 الاختبار التشخيصي <small>الفترة الأولى · محاكٍ للاختبارات الوطنية</small></div>' +
+      '<div class="nfo">' + esc((bi && bi.outcome) || "اختبار تشخيصي في القراءة والرياضيات" + (gc === 6 ? " والعلوم" : "")) + ' — ' + nq + ' سؤالاً</div>' +
+      '<div class="nfb"><button data-act="quiz" class="' + (done ? "done" : "g") + '">✅ ' + (done ? "أعد الاختبار <small>" + pct + "٪ · " + (sub.att || 1) + (sub.att > 1 ? " محاولات" : " محاولة") + "</small>" : "ابدأ الاختبار التشخيصي") + '</button></div><div class="nfx"></div></div>';
+  }
   function block(ctx, gc, dom, k, sub) {
     css();
+    if (dom === "diag") return diagHtml(ctx, gc, sub);
     var m = mediaItems(gc, dom).filter(function (x) { return x.k === k; })[0]; if (!m) return "";
     var bi = bankItem(gc, dom, k), nq = graded(bi).length, done = sub && sub.mx;
     var pct = done ? Math.round(sub.sc / sub.mx * 100) : null;
@@ -136,7 +145,7 @@
   function bind(root, ctx) {
     root.querySelectorAll(".nf").forEach(function (box) {
       var p = box.getAttribute("data-nf").split("|"), gc = +p[0], dom = p[1], k = +p[2];
-      var m = mediaItems(gc, dom).filter(function (x) { return x.k === k; })[0], x = box.querySelector(".nfx");
+      var m = mediaItems(gc, dom).filter(function (x) { return x.k === k; })[0] || {}, x = box.querySelector(".nfx");
       box.querySelectorAll("[data-act]").forEach(function (b) {
         b.onclick = function () {
           var act = b.getAttribute("data-act");
@@ -160,10 +169,10 @@
      الأسئلة من البنك؛ التصحيح فوري؛ التسليم في subs/{a}_{si} بمنطق الورقة التفاعلية نفسه:
      المحاولة الأولى مسجَّلةٌ لا تتبدّل (ans/sc/ts)، وتُزاد att وbest وlsc. ثلاث محاولات. */
   var TRIES = 3;
-  function quiz(ctx, gc, dom, k) {
-    css();
-    var bi = bankItem(gc, dom, k), qs = graded(bi); if (!qs.length) return;
-    var a = key(gc, dom, k), S = ctx.S, docId = a + "_" + S.si;
+  function quiz(ctx, gc, dom, k, o) {
+    css(); o = o || {};
+    var bi = bankItem(gc, dom, k), qs = o.qs || graded(bi); if (!qs.length) return;
+    var a = o.a || key(gc, dom, k), S = ctx.S, docId = a + "_" + S.si, title = o.title || (bi && bi.name) || "", tries = o.tries || TRIES;
     var wrap = document.createElement("div"); wrap.className = "nfq"; document.body.appendChild(wrap);
     var qi = 0, answers = new Array(qs.length).fill(null), PREV = null;
     function close() { try { document.body.removeChild(wrap); } catch (e) { } if (ctx.onDone) ctx.onDone(); }
@@ -171,7 +180,7 @@
       var q = qs[qi], cur = answers[qi];
       var opts = (q.type === "fill") ? '<input class="fill" id="nf-fill" placeholder="اكتب الإجابة" value="' + esc(cur || "") + '">' :
         (q.opts || []).map(function (o, i) { return '<button class="opt' + (cur === i ? " on" : "") + '" data-i="' + i + '"><b>' + (LETTER[i] || i + 1) + '</b><span>' + esc(o) + '</span></button>'; }).join("");
-      wrap.innerHTML = '<div class="top"><b>✅ اختبار: ' + esc(bi.name || "") + '</b><button class="x" id="nf-x" style="border:0;background:#fff;border-radius:999px;padding:6px 10px;font:inherit;font-weight:800">✕</button></div>' +
+      wrap.innerHTML = '<div class="top"><b>✅ اختبار: ' + esc(title) + '</b><button class="x" id="nf-x" style="border:0;background:#fff;border-radius:999px;padding:6px 10px;font:inherit;font-weight:800">✕</button></div>' +
         '<div class="bar"><i style="width:' + Math.round(qi / qs.length * 100) + '%"></i></div>' +
         '<div class="card">' + (q.passage ? '<div class="pas">' + esc(q.passage) + '</div>' : "") +
         '<div class="qn">السؤال ' + (qi + 1) + ' من ' + qs.length + (q.act ? ' · ' + esc(q.act) : "") + '</div>' +
@@ -205,7 +214,7 @@
       var ansArr = answers.map(function (x) { return x == null ? -1 : (typeof x === "string" ? x.slice(0, 60) : x); });
       var rec;
       var go = function () {
-        if (PREV && (PREV.att || 1) >= TRIES) { rec = PREV; return Promise.resolve("max"); }
+        if (PREV && (PREV.att || 1) >= tries) { rec = PREV; return Promise.resolve("max"); }
         if (PREV) { rec = Object.assign({}, PREV, { best: Math.max(PREV.best != null ? PREV.best : PREV.sc, g.sc), lsc: g.sc, att: Math.min(99, (PREV.att || 1) + 1), lts: now }); }
         else rec = { a: a, si: S.si, n: String(S.name || "").slice(0, 80), cid: S.cid, tid: "nafis", ans: ansArr, sc: g.sc, mx: qs.length, best: g.sc, lsc: g.sc, att: 1, ts: now };
         return ctx.db.doc("subs/" + docId).set(rec).then(function () { return "ok"; }).catch(function (e) { return "err:" + (e && e.code || e); });
@@ -215,8 +224,9 @@
         wrap.innerHTML = '<div class="res"><div class="big">' + face + '</div><h2>' + g.sc + ' من ' + qs.length + '</h2><p>' + (pct >= 80 ? "ممتاز يا صقر نافس!" : pct >= 50 ? "جيد — راجع ما أخطأت فيه وأعد المحاولة" : "شاهد الفيديو مرة أخرى ثم أعد المحاولة") + '</p>' +
           (st === "max" ? '<p>استُنفدت المحاولات الثلاث — درجتك المسجّلة ' + rec.sc + ' من ' + rec.mx + '</p>' : st === "ok" ? '<p>سُجّلت محاولتك رقم ' + (rec.att || 1) + (rec.att > 1 ? ' · درجتك المسجّلة عند معلمك ' + rec.sc + ' من ' + rec.mx + ' (المحاولة الأولى)، وأفضل نتيجة ' + rec.best : "") + '</p>' : '<p style="color:#b33">تعذّر حفظ النتيجة الآن 📡 — درجتك محسوبة لكن لم تُسجَّل: ' + esc(st) + '</p>') +
           '<div class="rv">' + g.detail.map(function (d, i) { return '<div class="it ' + (d.ok ? "ok" : "bad") + '"><b>' + (i + 1) + '.</b> ' + esc(d.q).slice(0, 160) + '<br>' + (d.ok ? "✅ صحيح" : "❌ الإجابة الصحيحة: " + esc(d.right)) + '</div>'; }).join("") + '</div>' +
-          '<div class="nav"><button class="p" id="nf-close">إغلاق</button>' + (st === "ok" && (rec.att || 1) < TRIES ? '<button class="n" id="nf-again">↺ محاولة أخرى</button>' : "") + '</div></div>';
+          '<div class="nav"><button class="p" id="nf-close">إغلاق</button>' + (st === "ok" && (rec.att || 1) < tries ? '<button class="n" id="nf-again">↺ محاولة أخرى</button>' : "") + '</div></div>';
         wrap.querySelector("#nf-close").onclick = close;
+        if (o.onResult) { try { o.onResult(rec, st, g); } catch (e) { } }
         var ag = wrap.querySelector("#nf-again"); if (ag) ag.onclick = function () { qi = 0; answers = new Array(qs.length).fill(null); draw(); };
       });
     }
@@ -225,12 +235,13 @@
   /* ═══ تقدّم الطالب: تسليماته لكل ناتج (get لكل مستند — القائمة ممنوعة على الطالب) ═══ */
   function progress(ctx, gc, doms) {
     var jobs = [];
+    if (graded(bankItem(gc, "diag", 0)).length) { var ad = key(gc, "diag", 0); jobs.push(ctx.db.doc("subs/" + ad + "_" + ctx.S.si).get().then(function (d) { return [ad, d.exists ? d.data() : null]; }).catch(function () { return [ad, null]; })); }
     doms.forEach(function (dom) { mediaItems(gc, dom).forEach(function (m) { var a = key(gc, dom, m.k); jobs.push(ctx.db.doc("subs/" + a + "_" + ctx.S.si).get().then(function (d) { return [a, d.exists ? d.data() : null]; }).catch(function () { return [a, null]; })); }); });
     return Promise.all(jobs).then(function (rows) { var o = {}; rows.forEach(function (r) { if (r[1]) o[r[0]] = r[1]; }); return o; });
   }
   /* ═══ الحاضنة للبوابة: كتل الأسبوع لكل مجالات الصف ═══ */
   function weekHtml(ctx, gc, doms, wk, term, subs) {
-    var h = "";
+    var h = diagHtml(ctx, gc, subs[key(gc, "diag", 0)]);
     doms.forEach(function (dom) {
       forWeek(gc, dom, wk, term).forEach(function (k) { h += block(ctx, gc, dom, k, subs[key(gc, dom, k)]); });
     });
@@ -249,23 +260,26 @@
         var gc = +c.gc; if (!(gc === 3 || gc === 6)) return;
         var list = byC[c.id] || [], doms = Object.keys((MEDIA.grades[String(gc)] || {}));
         var cols = [];
+        if (graded(bankItem(gc, "diag", 0)).length) cols.push({ a: key(gc, "diag", 0), t: "🧪 تشخيصي", full: "الاختبار التشخيصي للفترة الأولى", dom: "diag", k: 0 });
         doms.forEach(function (dom) { mediaItems(gc, dom).forEach(function (m) { var bi = bankItem(gc, dom, m.k); if (bi && graded(bi).length) cols.push({ a: key(gc, dom, m.k), t: DOMI[dom] + " " + (/المؤشر/.test(m.name) ? "م" : "ن") + (ordinal(m.name) || m.k + 1), full: m.name, dom: dom, k: m.k }); }); });
         var students = (c.students || []).map(function (s, i) { return { i: i, n: s && s.n, gone: !s || !s.n || s.moved || s.gap }; }).filter(function (s) { return !s.gone; });
         var bySi = {}; list.forEach(function (r) { (bySi[r.si] = bySi[r.si] || {})[r.a] = r; });
-        var solved = list.length, avg = list.length ? Math.round(list.reduce(function (t, r) { return t + r.sc / r.mx; }, 0) / list.length * 100) : null;
+        var tests = list.filter(function (r) { return /^nf\d[rmsd]\d\d$/.test(r.a); });
+        var solved = tests.length, avg = tests.length ? Math.round(tests.reduce(function (t, r) { return t + r.sc / r.mx; }, 0) / tests.length * 100) : null;
+        var jsum = window.NAFIS_J ? window.NAFIS_J.summarize(rows, gc) : null;   // رحلة الإتقان: مؤشرات مُتقنة لكل طالب
         html += '<div class="nfr" style="margin-top:12px"><div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:6px"><b>' + esc(c.name) + '</b><span style="font-size:12.5px;color:#6b7a8f">' + students.length + ' طالباً · ' + solved + ' تسليماً' + (avg != null ? ' · متوسط <bdi>' + avg + '%</bdi>' : "") + '</span></div>' +
-          '<div style="overflow:auto;max-height:60vh;margin-top:6px"><table><tr><th>الطالب</th>' + cols.map(function (x) { return '<th title="' + esc(x.full || x.t) + '">' + esc(x.t) + '</th>'; }).join("") + '<th>المعدل</th></tr>' +
+          '<div style="overflow:auto;max-height:60vh;margin-top:6px"><table><tr><th>الطالب</th>' + cols.map(function (x) { return '<th title="' + esc(x.full || x.t) + '">' + esc(x.t) + '</th>'; }).join("") + (jsum ? '<th title="مؤشرات مُتقنة في رحلة الإتقان">🎯 إتقان</th>' : "") + '<th>المعدل</th></tr>' +
           students.map(function (s) {
             var r = bySi[s.i] || {}, tot = 0, n = 0;
             var cells = cols.map(function (x) { var q = r[x.a]; if (!q) return '<td><span class="p no">—</span></td>'; var p = Math.round(q.sc / q.mx * 100); tot += p; n++; return '<td><span class="p ' + (p >= 80 ? "hi" : p >= 50 ? "mid" : "lo") + '" title="' + q.sc + '/' + q.mx + ' · محاولات ' + (q.att || 1) + '"><bdi>' + p + '%</bdi></span></td>'; }).join("");
-            return '<tr><td class="nm">' + esc(s.n) + '</td>' + cells + '<td>' + (n ? '<b><bdi>' + Math.round(tot / n) + '%</bdi></b>' : "—") + '</td></tr>';
+            return '<tr><td class="nm">' + esc(s.n) + '</td>' + cells + (jsum ? '<td><b><bdi>' + (jsum.by[c.id + "|" + s.i] || 0) + '/' + jsum.tot + '</bdi></b></td>' : "") + '<td>' + (n ? '<b><bdi>' + Math.round(tot / n) + '%</bdi></b>' : "—") + '</td></tr>';
           }).join("") + '</table></div></div>';
       });
       // أكثر الأسئلة خطأً (على مستوى المدرسة)
       var wrong = {};
       rows.forEach(function (r) {
-        var p = r.a.match(/^nf(\d)([rms])(\d\d)$/); if (!p) return;
-        var dom = { r: "read", m: "math", s: "sci" }[p[2]], bi = bankItem(+p[1], dom, +p[3]); if (!bi) return;
+        var p = r.a.match(/^nf(\d)([rmsd])(\d\d)$/); if (!p) return;
+        var dom = { r: "read", m: "math", s: "sci", d: "diag" }[p[2]], bi = bankItem(+p[1], dom, +p[3]); if (!bi) return;
         var qs = graded(bi); (r.ans || []).forEach(function (a2, i) { var q = qs[i]; if (!q) return; var k2 = r.a + "#" + i; wrong[k2] = wrong[k2] || { q: q.q, n: 0, w: 0, t: p[1] + " " + DOMN[dom] + " · " + bi.name }; wrong[k2].n++; if (q.type === "fill" ? true : a2 !== q.ans) wrong[k2].w++; });
       });
       var top = Object.keys(wrong).map(function (k2) { return wrong[k2]; }).filter(function (x) { return x.n >= 3; }).sort(function (a2, b2) { return b2.w / b2.n - a2.w / a2.n; }).slice(0, 8);
@@ -273,5 +287,5 @@
       return { html: html || '<div class="empty-note">لا تسليمات بعد.</div>', n: rows.length };
     });
   }
-  window.NAFIS = { load: load, grade: grade, items: items, mediaItems: mediaItems, mediaDom: mediaDom, key: key, forWeek: forWeek, bankItem: bankItem, graded: graded, block: block, bind: bind, weekHtml: weekHtml, progress: progress, quiz: quiz, results: results, tasksOf: tasksOf, DOMN: DOMN, DOMI: DOMI };
+  window.NAFIS = { load: load, grade: grade, items: items, mediaItems: mediaItems, mediaDom: mediaDom, key: key, forWeek: forWeek, bankItem: bankItem, graded: graded, block: block, bind: bind, weekHtml: weekHtml, progress: progress, quiz: quiz, results: results, tasksOf: tasksOf, DOMN: DOMN, DOMI: DOMI, ordinal: ordinal, embedUrl: embedUrl, viewer: viewer, esc: esc, css: css, diagHtml: diagHtml };
 })();

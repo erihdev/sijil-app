@@ -1,10 +1,20 @@
 {
  "built": "2026-09-16",
  "stats": {
-  "files": 28,
-  "q": 420,
+  "files": 30,
+  "q": 445,
   "keyed_pdf": 420,
-  "needs_figure": 103
+  "needs_figure": 104,
+  "keyed_solver": 24,
+  "unkeyed": 1
  },
- "unkeyed": []
+ "unkeyed": [
+  {
+   "gc": "3",
+   "dom": "diag",
+   "k": 0,
+   "i": 1,
+   "q": "العَلَاقَةُ الَّتِي تَرْبِطُ بَيْنَ العَدَدَيْنِ ٢٧٨٤ □ ٢٦٨٤ هي:"
+  }
+ ]
 }

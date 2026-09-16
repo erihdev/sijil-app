@@ -541,7 +541,7 @@
      قسمٌ باسمه لطالب الثالث أو السادس: يقول له إنه من المستهدفين، ويضع أمامه ناتج الأسبوع في
      كل مجالٍ (القراءة والرياضيات — والعلوم للسادس) بفيديوه واختباره ومهمته وعرضه، والاختبار
      التشخيصي في الأسبوع الأول، ومنصة التعلم الذاتي لكل مجال. الأسابيع شريطٌ يتنقّل فيه. */
-  var NAFIS = { wk: 0 };
+  var NAFIS = { wk: 0, mode: "j" };   // j = رحلة الإتقان (محاكاة منصة التعلم الذاتي)، w = ناتج الأسبوع
   ST.tab("nafis", {
     render: function (el) {
       var ok = guard(), N = window.NAWATIJ, gc = ST.S.gc;
@@ -559,19 +559,24 @@
           '<div style="font-size:21px;font-weight:900;color:#F2CC6B;margin-top:6px">' + esc(first ? first + "، أنت من صقور نافس" : "أنت من صقور نافس") + '</div>' +
           '<div style="font-size:13.5px;color:#c9d5e3;margin-top:6px;line-height:1.7">الصف ' + (gc === 3 ? "الثالث" : "السادس") + ' من صفوف الاختبار الوطني «نافس». هنا ناتجُ كل أسبوعٍ: شاهد الفيديو، وحُلّ الاختبار، ونفّذ المهمة — وكن جاهزاً.</div>' +
           '<div style="display:flex;gap:6px;justify-content:center;flex-wrap:wrap;margin-top:10px">' + doms.map(function (dm) { return '<span style="background:rgba(242,204,107,.16);border:1px solid rgba(242,204,107,.45);border-radius:999px;padding:4px 11px;font-size:12.5px;font-weight:800">' + esc(N.DOM_NAME[dm]) + '</span>'; }).join("") + '</div></div>';
-        var bar = '<div class="wkbar">' + weeks.map(function (w) { return '<button data-nw="' + w + '" class="' + (w === wk ? "on" : "") + '">' + (w === wkNow ? "هذا الأسبوع" : w === N.UNSCHED ? "غير مجدولة" : "أسبوع " + w) + '</button>'; }).join("") + '</div>';
-        var F = window.NAFIS;
+        var modes = '<div class="wkbar" id="nf-mode"><button data-nm="j" class="' + (NAFIS.mode === "j" ? "on" : "") + '">🎯 رحلة الإتقان</button><button data-nm="w" class="' + (NAFIS.mode === "w" ? "on" : "") + '">📅 ناتج الأسبوع</button></div>';
+        var bar = (NAFIS.mode === "j" ? "" : '<div class="wkbar">') + weeks.map(function (w) { return '<button data-nw="' + w + '" class="' + (w === wk ? "on" : "") + '">' + (w === wkNow ? "هذا الأسبوع" : w === N.UNSCHED ? "غير مجدولة" : "أسبوع " + w) + '</button>'; }).join("") + '</div>';
+        var F = window.NAFIS, J = window.NAFIS_J;
+        if (NAFIS.mode === "j") bar = ""; else bar += "";
         var fallback = function () { return N.gradeHtml(gc, wk, { term: TERM() }) || empty("🌱", "لا نواتج في هذا الأسبوع", "جرّب أسبوعاً آخر."); };
-        el.innerHTML = head("🦅", "صقور نافس", wk === wkNow ? "نواتج هذا الأسبوع" : wk === N.UNSCHED ? "نواتج غير مجدولة" : "نواتج الأسبوع " + wk) + hero + bar + '<div id="nf-body">' + (F ? '<div class="load"><div class="spin"></div>لحظة…</div>' : fallback()) + '</div>';
+        el.innerHTML = head("🦅", "صقور نافس", NAFIS.mode === "j" ? "رحلة الإتقان — نواتج التعلم والمؤشرات" : wk === wkNow ? "نواتج هذا الأسبوع" : wk === N.UNSCHED ? "نواتج غير مجدولة" : "نواتج الأسبوع " + wk) + hero + modes + bar + '<div id="nf-body">' + (F ? '<div class="load"><div class="spin"></div>لحظة…</div>' : fallback()) + '</div>';
         each(el, "[data-nw]", function (b) { b.onclick = function () { var v = b.getAttribute("data-nw"); NAFIS.wk = +v || v; ST.refresh(); }; });
+        each(el, "[data-nm]", function (b) { b.onclick = function () { NAFIS.mode = b.getAttribute("data-nm"); ST.refresh(); }; });
         /* المحاكاة داخل التطبيق: الفيديو والملف والاختبار والمهمة في الكتلة نفسها، والنتائج في subs.
            إن تعذّر تحميل البنك تبقى كتل الروابط القديمة. */
         if (F) {
-          var ctx = { S: ST.S, db: ST.db, onDone: function () { ST.refresh(); } };
+          var cls = (ST.clsById && ST.clsById(ST.S.cid)) || {};
+          var ctx = { S: Object.assign({ cname: cls.name || "" }, ST.S), db: ST.db, onDone: function () { ST.refresh(); } };
           F.load([gc]).then(function (okB) {
             if (!ok()) return;
             var body = el.querySelector("#nf-body"); if (!body) return;
             if (!okB) { body.innerHTML = fallback(); return; }
+            if (NAFIS.mode === "j" && J) return J.open(ctx, gc, body);
             return F.progress(ctx, gc, doms).then(function (subs) {
               if (!ok()) return;
               var h = F.weekHtml(ctx, gc, doms, wk, TERM(), subs);
