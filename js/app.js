@@ -1137,9 +1137,16 @@
       try {
         await NAWATIJ.load();
         for (const g of grades) if (NAWATIJ.hasGrade(g)) html += NAWATIJ.block(g, NAWATIJ.domainOf(TE.subject), wk, { staff: true, term: TERM });
+        if (window.NAFIS) html += `<button class="btn-soft" id="nf-tres" style="margin-top:8px">📊 نتائج اختبارات صقور نافس لصفوفك</button>`;
       } catch (e) { }
     }
     LB.innerHTML = `<h3><span class="dot"></span>درس هذا الأسبوع</h3>` + html;
+    const tres = LB.querySelector("#nf-tres");
+    if (tres) tres.onclick = () => openSheet(`<h4>🦅 نتائج صقور نافس — صفوفك</h4><div id="nf-res" class="empty-note">جارِ التحميل…</div><div class="sheet-actions"><button class="btn-plain" onclick="window._sheetClose()">إغلاق</button></div>`, async (o) => {
+      const box = o.querySelector("#nf-res");
+      try { await NAFIS.load(); const r = await NAFIS.results({ db: fdb, S: null }, { classes: myClasses().filter(c => NAWATIJ.isFalcon(c.gc)) }); box.className = ""; box.innerHTML = r.html; }
+      catch (e) { box.textContent = "تعذّر تحميل النتائج: " + ((e && e.message) || e); }
+    });
     LB.querySelectorAll("[data-fg]").forEach(b => b.onclick = () => filesSheet("📎 مرفقات الدرس — الصف " + GNAME[+b.dataset.fg], "lesson", { code: b.dataset.code, wk },
       "ملفات تخصّ درس هذا الأسبوع: صور، أوراق عمل، عروض بصيغة PDF — تظهر أيضاً داخل الحصة الحية."));
     /* كان يفتح أول فصل في الصف (myClasses().find) فيرصد المعلمُ حصةً كاملة على «سادس (أ)»

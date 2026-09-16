@@ -1,0 +1,1464 @@
+{
+ "grades": {
+  "3": {
+   "read": {
+    "name": "القراءة",
+    "self": "https://b14t47tf1m31-d.space-z.ai/",
+    "training": "1p_G2EOjNTkPWCFiXCuk9DKRpN60DG1wl",
+    "items": [
+     {
+      "k": 0,
+      "name": "المؤشر الأول",
+      "w": [
+       2
+      ],
+      "video": {
+       "type": "drive",
+       "id": "1g-bJ8Bbh21sb_JO7xtZi4BvYaockgGph"
+      },
+      "doc": "1lhXZVhIe8msQNpxGbabH9XLJKCfzLOZL",
+      "enrich": "",
+      "tasks_url": "https://silver-lamington-8b7be3.netlify.app/",
+      "quiz_url": "https://drive.google.com/file/d/1zKbZSB1iFeLRGnPJKHLS3ngXrhZVAgT3/view"
+     },
+     {
+      "k": 1,
+      "name": "المؤشر الثاني",
+      "w": [
+       3
+      ],
+      "video": {
+       "type": "drive",
+       "id": "1_aaD67XbI35PMrSmE4rz3uw-EU0nyxTg"
+      },
+      "doc": "1GRrtF_ymVYgYnL6z1pQZgjZ3ogLM-y_T",
+      "enrich": "",
+      "tasks_url": "https://silver-lamington-8b7be3.netlify.app/",
+      "quiz_url": "https://forms.cloud.microsoft/Pages/ShareFormPage.aspx?id=DQSIkWdsW0yxEjajBLZtrQAAAAAAAAAAAAMAADVUkoZUREI5MjRUR1ZKUDBEQlRNTFFFTkFEUEREUi4u&sharetoken=2WMuFGDXFEjyzzguIoRA"
+     },
+     {
+      "k": 2,
+      "name": "المؤشر الثالث",
+      "w": [
+       4
+      ],
+      "video": {
+       "type": "drive",
+       "id": "1JnC3L_5qjrp01yZgNq5i721tpFOkuITD"
+      },
+      "doc": "14l3Zxo2gFvFQObuG_qCymuc_ZXdJlEtz",
+      "enrich": "",
+      "tasks_url": "https://silver-lamington-8b7be3.netlify.app/",
+      "quiz_url": ""
+     },
+     {
+      "k": 3,
+      "name": "المؤشر الرابع",
+      "w": [
+       8
+      ],
+      "video": {
+       "type": "drive",
+       "id": "1ZhvANB45kX13MDga0VimkPUCoYa8o4Dh"
+      },
+      "doc": "11-q3Uozmi62wfa-1n7ytPm_O5GbOR8mx",
+      "enrich": "",
+      "tasks_url": "https://silver-lamington-8b7be3.netlify.app/",
+      "quiz_url": ""
+     },
+     {
+      "k": 4,
+      "name": "المؤشر الخامس",
+      "w": [
+       9
+      ],
+      "video": {
+       "type": "drive",
+       "id": "1vMRJs4FyNhY6UU-nx8VAsIWmFVjJPUfd"
+      },
+      "doc": "1R-P0c6nq_ZA1aneVivMaJkJkWnK1ojbK",
+      "enrich": "",
+      "tasks_url": "https://silver-lamington-8b7be3.netlify.app/",
+      "quiz_url": ""
+     },
+     {
+      "k": 5,
+      "name": "المؤشر السادس",
+      "w": [
+       10
+      ],
+      "video": {
+       "type": "drive",
+       "id": "1cA7picjysck3trhW2lBtgf_Gwa397Mn2"
+      },
+      "doc": "1O66TvLRa3JphlgemhGkxbHZtEFxlOIUq",
+      "enrich": "",
+      "tasks_url": "https://silver-lamington-8b7be3.netlify.app/",
+      "quiz_url": ""
+     },
+     {
+      "k": 6,
+      "name": "المؤشر السابع",
+      "w": [
+       12
+      ],
+      "video": {
+       "type": "drive",
+       "id": "1ggsX3p5aZVlSebw1qn3FUK6X243KMmge"
+      },
+      "doc": "1MEJZwO4nK40f3lmV1I8_CMCY4Hm9zzMd",
+      "enrich": "",
+      "tasks_url": "https://silver-lamington-8b7be3.netlify.app/",
+      "quiz_url": ""
+     },
+     {
+      "k": 7,
+      "name": "المؤشر الثامن",
+      "w": [
+       13
+      ],
+      "video": {
+       "type": "drive",
+       "id": "1ydiZndAoxR6_6is4Xxz6aVzWVefV034Z"
+      },
+      "doc": "1XNb-MLMDCIEARLfu9ZkFWib0FIzED3wE",
+      "enrich": "",
+      "tasks_url": "https://silver-lamington-8b7be3.netlify.app/",
+      "quiz_url": ""
+     },
+     {
+      "k": 8,
+      "name": "المؤشر التاسع",
+      "w": [
+       "ف2"
+      ],
+      "video": {
+       "type": "drive",
+       "id": "1maYyT2Ju-CURVZ04WNpHRX35C6XFvDxJ"
+      },
+      "doc": "1oFSsgZTmb44xhbZS6mcOMSpWvWNMkmh3",
+      "enrich": "",
+      "tasks_url": "https://silver-lamington-8b7be3.netlify.app/",
+      "quiz_url": ""
+     },
+     {
+      "k": 9,
+      "name": "المؤشر الثالث عشر",
+      "w": [
+       "ف2"
+      ],
+      "video": {
+       "type": "drive",
+       "id": "1Pl6VT6iJK0uhQiNeh2liFtVW4y9i3H2P"
+      },
+      "doc": "1NOw3bKIBZTEtjN8jTeCY3e_4xz_JAp3Y",
+      "enrich": "",
+      "tasks_url": "https://silver-lamington-8b7be3.netlify.app/",
+      "quiz_url": ""
+     },
+     {
+      "k": 10,
+      "name": "المؤشر الثاني عشر",
+      "w": [
+       "ف2"
+      ],
+      "video": {
+       "type": "drive",
+       "id": "13adGOawCLXd-VEiqK4_dBeIV82szitMl"
+      },
+      "doc": "1mOcyl7OBkM8YMRSaW8obsDqOmG3Wzsjo",
+      "enrich": "",
+      "tasks_url": "https://silver-lamington-8b7be3.netlify.app/",
+      "quiz_url": ""
+     },
+     {
+      "k": 11,
+      "name": "المؤشر الحادي عشر",
+      "w": [
+       "ف2"
+      ],
+      "video": {
+       "type": "drive",
+       "id": "1MNbvcekuIdxsi89h_VVrhMCv8EU0Gw76"
+      },
+      "doc": "1I-floW9w2_xCTL2Tjn2NCFVi9gMHkaxg",
+      "enrich": "",
+      "tasks_url": "https://silver-lamington-8b7be3.netlify.app/",
+      "quiz_url": ""
+     },
+     {
+      "k": 12,
+      "name": "المؤشر العاشر",
+      "w": [
+       "ف2"
+      ],
+      "video": {
+       "type": "drive",
+       "id": "1Okil8Kqn6CPjYLl2S2QzOLwZvrIjdoT8"
+      },
+      "doc": "1LUbpuvsXaDR-QuWrx46hPRysrD3Mkztz",
+      "enrich": "",
+      "tasks_url": "https://silver-lamington-8b7be3.netlify.app/",
+      "quiz_url": ""
+     }
+    ]
+   },
+   "math": {
+    "name": "الرياضيات",
+    "self": "https://b14t47tf1m31-d.space-z.ai/",
+    "training": "1oRy9j_eTyHt_ZbT65ZYxXrCXv1ehA46p",
+    "items": [
+     {
+      "k": 0,
+      "name": "ناتج التعلم الحادي عشر",
+      "w": [
+       2
+      ],
+      "video": {
+       "type": "yt",
+       "list": "PLVK9orzViDFDkdm6WWYdPAtTQRHpRhAKb"
+      },
+      "doc": "18mKiodFaW8zEn9tq6j6CQD7TkMU5rfMO",
+      "enrich": "",
+      "tasks_url": "https://drive.google.com/file/d/1hUMlI568qYUyYxxTBZaZFqADQhBrTKi7/view",
+      "quiz_url": "https://forms.cloud.microsoft/Pages/ShareFormPage.aspx?id=63amB9ouB0OwpxhE7cWhWO-wF3hjMt1MgEqJ0mz9EiVUOVY2NE1TWkJKMFRaQjMxVDFEMks0RFQzNSQlQCNjPTEu&sharetoken=GDqZUWWifumJNiUyjw4K"
+     },
+     {
+      "k": 1,
+      "name": "ناتج التعلم الخامس",
+      "w": [
+       3
+      ],
+      "video": {
+       "type": "yt",
+       "list": "PLVK9orzViDFD_lZsVkbBJDmAY2Hzp_QEr"
+      },
+      "doc": "1Bm8lFV1WN9z6Ru6ehNlemHECxKisOryC",
+      "enrich": "",
+      "tasks_url": "https://drive.google.com/file/d/15oZhsIz7Cts3hct15_k8z5VVlA_7s1e4/view",
+      "quiz_url": "https://forms.cloud.microsoft/Pages/ShareFormPage.aspx?id=vtDXcIBcikyxBWMi6kVagH2PkCXLVkdGjqM95ENMpQJUNk5BUVc5WVowRzlXUk41WVA4Uk1WRTI3Ri4u&sharetoken=iDuJmBNdVFG3Do0IKXtR"
+     },
+     {
+      "k": 2,
+      "name": "ناتج التعلم الأول",
+      "w": [
+       4
+      ],
+      "video": {
+       "type": "yt",
+       "list": "PLVK9orzViDFDMXWLSintE3iQOzl563o6d"
+      },
+      "doc": "1R1DdNSLdyZEyBN2lvU1VdWuasl1mm6_h",
+      "enrich": "",
+      "tasks_url": "https://drive.google.com/file/d/19gzOMFcRP-nIInxvPqjMuTU_b3EjDgdX/view",
+      "quiz_url": "https://forms.cloud.microsoft/Pages/ShareFormPage.aspx?id=vtDXcIBcikyxBWMi6kVagH2PkCXLVkdGjqM95ENMpQJUODQ5M1VFSzdDUjdZTjRUOENWRFM2OFY3Vi4u&sharetoken=iDuJmBNdVFG3Do0IKXtR"
+     },
+     {
+      "k": 3,
+      "name": "ناتج التعلم الثاني عشر",
+      "w": [
+       5,
+       6
+      ],
+      "video": {
+       "type": "yt",
+       "list": "PLVK9orzViDFDFeIu92LadmE5xsDIK2EYn"
+      },
+      "doc": "1FB562dDjK7TblmRJfCX6m01eqcF-M3fj",
+      "enrich": "",
+      "tasks_url": "https://drive.google.com/file/d/1eVwaLzSj3UjgNC065ryZdN9L04mQs0Re/view",
+      "quiz_url": "https://forms.cloud.microsoft/Pages/ShareFormPage.aspx?id=63amB9ouB0OwpxhE7cWhWO-wF3hjMt1MgEqJ0mz9EiVUQkhSMEs4M1RYUUVaRThRMlg0M0k5SlRVSCQlQCNjPTEu&sharetoken=YtjNTrPbwwvoFcU4buYa"
+     },
+     {
+      "k": 4,
+      "name": "ناتج التعلم الثاني",
+      "w": [
+       8,
+       9
+      ],
+      "video": {
+       "type": "yt",
+       "list": "PLVK9orzViDFApjZDt7SaY18woEEpHHM-i"
+      },
+      "doc": "1yY0JW9R0gWE9BNSL0LJU7RJQ2tPiKBhv",
+      "enrich": "",
+      "tasks_url": "https://drive.google.com/file/d/11aOW-ZTadN3oYaPlLPy4fUOQ6MHyesug/view",
+      "quiz_url": "https://forms.cloud.microsoft/Pages/ShareFormPage.aspx?id=vtDXcIBcikyxBWMi6kVagH2PkCXLVkdGjqM95ENMpQJUNVQwNFo1UzkzUlpGMUNLWU5TUlI4T1k0SC4u&sharetoken=iDuJmBNdVFG3Do0IKXtR"
+     },
+     {
+      "k": 5,
+      "name": "ناتج التعلم الثامن",
+      "w": [
+       10
+      ],
+      "video": {
+       "type": "yt",
+       "list": "PLVK9orzViDFBxx8l0qhVs6StQNu18jpAO"
+      },
+      "doc": "1iF2xylj475mvx_KTW7YIVMzyyHM2nslW",
+      "enrich": "",
+      "tasks_url": "https://drive.google.com/file/d/1uPWkOoW7Ov4cts7gMxPxnQRDr5L-ulX7/view",
+      "quiz_url": "https://forms.cloud.microsoft/Pages/ShareFormPage.aspx?id=63amB9ouB0OwpxhE7cWhWO-wF3hjMt1MgEqJ0mz9EiVUREg5VllYRVhIUVJWTDJRUUgxTzBPSTVTTSQlQCNjPTEu&sharetoken=ok66tvEOnHTOuryQ9qyz"
+     },
+     {
+      "k": 6,
+      "name": "ناتج التعلم الثالث",
+      "w": [
+       12
+      ],
+      "video": {
+       "type": "yt",
+       "list": "PLVK9orzViDFDRR31ZEEdsncKRM23w6s_A"
+      },
+      "doc": "12NwjFxuF1RuVzT7GeyIHJXTIjmoBCKic",
+      "enrich": "",
+      "tasks_url": "https://drive.google.com/file/d/1jyfTxSZGylJbQpaRU6NgjHr3hYAVA60Z/view",
+      "quiz_url": "https://forms.cloud.microsoft/Pages/ShareFormPage.aspx?id=63amB9ouB0OwpxhE7cWhWMzVV6qAEuJMs4PN2mxIhphUMllFSEVYRDRBNjU3N0oyTzRCMDBHVFBQUi4u&sharetoken=yXQIW8FZA0087uvew52h"
+     },
+     {
+      "k": 7,
+      "name": "ناتج التعلم التاسع",
+      "w": [
+       13
+      ],
+      "video": {
+       "type": "yt",
+       "list": "PLVK9orzViDFDfnQbFO6Qq2ip6UgoSy7_s"
+      },
+      "doc": "100zWzr_TvKyc4uvqB-Hx1QQU0-eXqsy_",
+      "enrich": "",
+      "tasks_url": "https://drive.google.com/file/d/1bYJx-LLmiKz9IXbmBNPYHoZwEPKS6U89/view",
+      "quiz_url": "https://forms.cloud.microsoft/Pages/ShareFormPage.aspx?id=UYPKa9MBUkKF6r2o-NI1vePWLBUQQRJEney64qcrLMBUNzE4Uk9OMTNKSllFR1RIWkFIRjdKVTc5RS4u&sharetoken=DdkMLNjpODS3WViOi96v"
+     },
+     {
+      "k": 8,
+      "name": "ناتج التعلم الثالث عشر",
+      "w": [
+       14
+      ],
+      "video": {
+       "type": "yt",
+       "list": "PLVK9orzViDFBFjE48zpAjxStGVHXvWmmQ"
+      },
+      "doc": "1mpb3Ioc_4Hv2X7LX5EthXDyH4dSDfiNf",
+      "enrich": "",
+      "tasks_url": "https://drive.google.com/file/d/1hNCMWccsrADLR6F61M0qVjW8vZeOIg96/view",
+      "quiz_url": "https://forms.cloud.microsoft/Pages/ShareFormPage.aspx?id=63amB9ouB0OwpxhE7cWhWMzVV6qAEuJMs4PN2mxIhphUQzZXU09SQllGSUtGMURQSU9LSEZaRVhTVS4u&sharetoken=dlKzUleUXfIo0lCBMPKA"
+     },
+     {
+      "k": 9,
+      "name": "ناتج التعلم الرابع",
+      "w": [
+       15
+      ],
+      "video": {
+       "type": "yt",
+       "list": "PLVK9orzViDFBxOaBqQFisUqsPQGXzo9om"
+      },
+      "doc": "1SBDlXosqtJjSXqUVA4ovp6YL8FPvZ0UD",
+      "enrich": "",
+      "tasks_url": "https://drive.google.com/file/d/136ocfgjdlCnYbFE6-EU6hPj0Jf2zWSv7/view",
+      "quiz_url": "https://forms.cloud.microsoft/Pages/ShareFormPage.aspx?id=vtDXcIBcikyxBWMi6kVagH2PkCXLVkdGjqM95ENMpQJURFU2N0wzR01YUktNV1lIRTM2T1FIMFFHRi4u&sharetoken=iDuJmBNdVFG3Do0IKXtR"
+     },
+     {
+      "k": 10,
+      "name": "ناتج التعلم السادس",
+      "w": [
+       15
+      ],
+      "video": {
+       "type": "yt",
+       "list": "PLVK9orzViDFApSZuIM28gZUs6w6Nbqpcp"
+      },
+      "doc": "101mxyPLqAjjLqDdSBAD6w61D8UiDWXwL",
+      "enrich": "",
+      "tasks_url": "https://drive.google.com/file/d/1oL6Q7fxg6zXOddWGrV5FOGudbWhtUemL/view",
+      "quiz_url": "https://forms.cloud.microsoft/Pages/ShareFormPage.aspx?id=vtDXcIBcikyxBWMi6kVagH2PkCXLVkdGjqM95ENMpQJUNVdJQzdNVlNUS00wODdGNFE2UUU5QlRWUS4u&sharetoken=iDuJmBNdVFG3Do0IKXtR"
+     },
+     {
+      "k": 11,
+      "name": "ناتج التعلم السابع",
+      "w": [
+       "ف2"
+      ],
+      "video": {
+       "type": "yt",
+       "list": "PLVK9orzViDFBRkr-FoItko29uU6zDwMoG"
+      },
+      "doc": "1gXxmyaexv8WZ-6MvHpIuMGM3PieyEV8F",
+      "enrich": "",
+      "tasks_url": "https://drive.google.com/file/d/1CdnAb1JXFMrRioJ-AW7hjNxTDJCpj45M/view",
+      "quiz_url": "https://forms.cloud.microsoft/Pages/ShareFormPage.aspx?id=DQSIkWdsW0yxEjajBLZtrQAAAAAAAAAAAAN__ixw_DRUOFFIOTFQMzlRM1ZPSUJOUjFPTzZPUlBaSC4u&sharetoken=oHEIv5Xq3knPzRmGBZ5x"
+     },
+     {
+      "k": 12,
+      "name": "ناتج التعلم العاشر",
+      "w": [
+       "ف2"
+      ],
+      "video": {
+       "type": "yt",
+       "list": "PLVK9orzViDFCzK2ic6K0RXjhQ6E8vGuH7"
+      },
+      "doc": "15cJcnob4xgOmJgKyTGuW2iUejMPWprtK",
+      "enrich": "",
+      "tasks_url": "https://drive.google.com/file/d/16zau7tNlimohzsWiatNQS6Q3eEZmpPKQ/view",
+      "quiz_url": "https://forms.cloud.microsoft/Pages/ShareFormPage.aspx?id=63amB9ouB0OwpxhE7cWhWO-wF3hjMt1MgEqJ0mz9EiVUQlg4MkhQSVNERzJVRFZHUVo5OUk5RERKRCQlQCNjPTEu&sharetoken=NxAoWq4GgDOBxKqyfDbo"
+     }
+    ]
+   }
+  },
+  "6": {
+   "read": {
+    "name": "القراءة",
+    "self": "https://b14t47tf1m31-d.space-z.ai/",
+    "training": "1547kqwPMdmYvr5dcqpKtJwmg4JCuYNpD",
+    "items": [
+     {
+      "k": 0,
+      "name": "المؤشر الأول",
+      "w": [
+       2
+      ],
+      "video": {
+       "type": "drive",
+       "id": "1Uc-uatZEqtJXfARjtJf4NDLtwwbpWZft"
+      },
+      "doc": "1mLzqJi2UZq9xAhsNomB29AyYoDBXZCPX",
+      "enrich": "",
+      "tasks_url": "https://jazzy-buttercream-8b59a6.netlify.app/",
+      "quiz_url": "https://forms.cloud.microsoft/Pages/ShareFormPage.aspx?id=UYPKa9MBUkKF6r2o-NI1vRxjAcu0G9NBkrW7vCsRV1NUMlJSTVc4TkVOWUtWMk5aMEpDOVA0U0pLMC4u&sharetoken=NXgjMX3yC8C6ONXLNViL"
+     },
+     {
+      "k": 1,
+      "name": "المؤشر الثاني",
+      "w": [
+       3
+      ],
+      "video": {
+       "type": "drive",
+       "id": "1AY8dMZor1x96nckK75QgZyPT2AIoPnaN"
+      },
+      "doc": "1f5DxNslpKGw4RfPCLfxV7YSkBQV4urc9",
+      "enrich": "",
+      "tasks_url": "https://jazzy-buttercream-8b59a6.netlify.app/",
+      "quiz_url": "https://forms.cloud.microsoft/Pages/ShareFormPage.aspx?id=UYPKa9MBUkKF6r2o-NI1vRxjAcu0G9NBkrW7vCsRV1NUM09DMkkwNE5BQVdET1gyVUVHOE1GMTc4MS4u&sharetoken=YwSuWBHpeYiW2CyXl0Ay"
+     },
+     {
+      "k": 2,
+      "name": "المؤشر الثالث",
+      "w": [
+       4
+      ],
+      "video": {
+       "type": "drive",
+       "id": "1MbWNa1VdIWHfw8bzteU1GOTGUES6vKBF"
+      },
+      "doc": "167fds218DklX-5FAkJU8RGINk2KVnyYk",
+      "enrich": "",
+      "tasks_url": "https://jazzy-buttercream-8b59a6.netlify.app/",
+      "quiz_url": "https://forms.cloud.microsoft/Pages/ShareFormPage.aspx?id=63amB9ouB0OwpxhE7cWhWLqNTtcuqP9BuD4iNWtQ6ZpUM01FWjBGSzJHQkdJNlI5SFBOOVVNMlZNNC4u&sharetoken=uJ0lU5TPBsGWD9YILs8Y"
+     },
+     {
+      "k": 3,
+      "name": "المؤشر الرابع",
+      "w": [
+       5
+      ],
+      "video": {
+       "type": "drive",
+       "id": "1hr0Fme7-isNT0qJi1p9HKREEnhM-FYtS"
+      },
+      "doc": "1AzYGtU-1v36ynT043yhwOKyX7B2s5xEE",
+      "enrich": "",
+      "tasks_url": "https://jazzy-buttercream-8b59a6.netlify.app/",
+      "quiz_url": "https://forms.cloud.microsoft/Pages/ShareFormPage.aspx?id=63amB9ouB0OwpxhE7cWhWLqNTtcuqP9BuD4iNWtQ6ZpUM01FWjBGSzJHQkdJNlI5SFBOOVVNMlZNNC4u&sharetoken=uJ0lU5TPBsGWD9YILs8Y"
+     },
+     {
+      "k": 4,
+      "name": "المؤشر الخامس",
+      "w": [
+       8
+      ],
+      "video": {
+       "type": "drive",
+       "id": "18xJeOX21MIyxu6imsHeKnMv8w-q1c2Bz"
+      },
+      "doc": "1FbxZ-1FSYdtc_Wo5VSCR_qx3hcT4zJJr",
+      "enrich": "",
+      "tasks_url": "https://jazzy-buttercream-8b59a6.netlify.app/",
+      "quiz_url": "https://forms.cloud.microsoft/Pages/ShareFormPage.aspx?id=63amB9ouB0OwpxhE7cWhWLqNTtcuqP9BuD4iNWtQ6ZpUNjdQSUJNSkQ4QlNXNlozMzNCUFIzMVJLOC4u&sharetoken=2z0IHo6PZGGfdNrESaEY"
+     },
+     {
+      "k": 5,
+      "name": "المؤشر السادس",
+      "w": [
+       9
+      ],
+      "video": {
+       "type": "drive",
+       "id": "1c2K5Ag_AM2ciEI8V4ESY3Zws0Uew3P0i"
+      },
+      "doc": "13qI9s28ypvcwwgcntkGyn-FPiQHnWhtw",
+      "enrich": "",
+      "tasks_url": "https://jazzy-buttercream-8b59a6.netlify.app/",
+      "quiz_url": "https://forms.cloud.microsoft/Pages/ShareFormPage.aspx?id=63amB9ouB0OwpxhE7cWhWLqNTtcuqP9BuD4iNWtQ6ZpUM1daT1ZQODhKTTI3U1pVNFMzMVRDTjg0Ni4u&sharetoken=1p2pkgHcgbTOyD5deU8O"
+     },
+     {
+      "k": 6,
+      "name": "المؤشر السابع",
+      "w": [
+       10
+      ],
+      "video": {
+       "type": "drive",
+       "id": "1zJ-adt2CvguyQEZf1sKviaGp2YZQmEvg"
+      },
+      "doc": "1lfIMIqMNI-ClO41Q6NWP-Q3o55OwzaXQ",
+      "enrich": "",
+      "tasks_url": "https://jazzy-buttercream-8b59a6.netlify.app/",
+      "quiz_url": "https://forms.cloud.microsoft/Pages/ShareFormPage.aspx?id=63amB9ouB0OwpxhE7cWhWLqNTtcuqP9BuD4iNWtQ6ZpUM1daT1ZQODhKTTI3U1pVNFMzMVRDTjg0Ni4u&sharetoken=1p2pkgHcgbTOyD5deU8O"
+     },
+     {
+      "k": 7,
+      "name": "المؤشر الثامن",
+      "w": [
+       12
+      ],
+      "video": {
+       "type": "drive",
+       "id": "1VN3RfRp7Qnw9N3BUaORhA7Sk-c_ZHJC5"
+      },
+      "doc": "1uJJwpS07ICYPvnFpl4Wl-aGJw61FSxcm",
+      "enrich": "",
+      "tasks_url": "https://jazzy-buttercream-8b59a6.netlify.app/",
+      "quiz_url": "https://forms.cloud.microsoft/Pages/ShareFormPage.aspx?id=63amB9ouB0OwpxhE7cWhWLqNTtcuqP9BuD4iNWtQ6ZpUOEZXVFNHSkdRTEU1UVVSVzRDNlY2UEJIMi4u&sharetoken=XCsErH0WOsWKDYKlHami"
+     },
+     {
+      "k": 8,
+      "name": "المؤشر التاسع",
+      "w": [
+       13
+      ],
+      "video": {
+       "type": "drive",
+       "id": "15enzsJoQZ0H_RtJ3FgJKbp7yn3fmOwJd"
+      },
+      "doc": "1Cwb4Zf5i2pRZu0q2-DOPp84NPGMZXz90",
+      "enrich": "",
+      "tasks_url": "https://jazzy-buttercream-8b59a6.netlify.app/",
+      "quiz_url": "https://forms.cloud.microsoft/Pages/ShareFormPage.aspx?id=63amB9ouB0OwpxhE7cWhWLqNTtcuqP9BuD4iNWtQ6ZpUOEZXVFNHSkdRTEU1UVVSVzRDNlY2UEJIMi4u&sharetoken=XCsErH0WOsWKDYKlHami"
+     },
+     {
+      "k": 9,
+      "name": "المؤشر الثالث عشر",
+      "w": [
+       "ف2"
+      ],
+      "video": {
+       "type": "drive",
+       "id": "1fOMdYHOTGixPUm4a2HYWEkB6jx8RRAEe"
+      },
+      "doc": "1vKoVwnSIQq99hA8t6qUEy4KwXMp8IyTi",
+      "enrich": "",
+      "tasks_url": "https://jazzy-buttercream-8b59a6.netlify.app/",
+      "quiz_url": "https://forms.cloud.microsoft/Pages/ShareFormPage.aspx?id=UYPKa9MBUkKF6r2o-NI1vRxjAcu0G9NBkrW7vCsRV1NUMUU1NERMUTBLOVQxS05BNE1KWTJSN0JOUC4u&sharetoken=XDAs7k3mt9eUalqBCpVg"
+     },
+     {
+      "k": 10,
+      "name": "المؤشر الثاني عشر",
+      "w": [
+       "ف2"
+      ],
+      "video": {
+       "type": "drive",
+       "id": "1ykeIcG2-MGVHdTlwaAVv1msU1JR0by0X"
+      },
+      "doc": "1lBKMG4BuEcPWJaG5kPIYzzvpw4ocudtk",
+      "enrich": "",
+      "tasks_url": "https://jazzy-buttercream-8b59a6.netlify.app/",
+      "quiz_url": "https://forms.cloud.microsoft/Pages/ShareFormPage.aspx?id=UYPKa9MBUkKF6r2o-NI1vRxjAcu0G9NBkrW7vCsRV1NUMUU1NERMUTBLOVQxS05BNE1KWTJSN0JOUC4u&sharetoken=XDAs7k3mt9eUalqBCpVg"
+     },
+     {
+      "k": 11,
+      "name": "المؤشر الحادي عشر",
+      "w": [
+       "ف2"
+      ],
+      "video": {
+       "type": "drive",
+       "id": "1v8oBgLIO8GXJYMldNBaLe0VPrp4Tb6NV"
+      },
+      "doc": "1pMsoMqSiKDI9dHYnMZn92C2Wa345zXQG",
+      "enrich": "",
+      "tasks_url": "https://jazzy-buttercream-8b59a6.netlify.app/",
+      "quiz_url": "https://forms.cloud.microsoft/Pages/ShareFormPage.aspx?id=UYPKa9MBUkKF6r2o-NI1vRxjAcu0G9NBkrW7vCsRV1NUMUFNOUpXOUc1RDJHOU4xR0JLTkc3QVdDNy4u&sharetoken=crjzvS5YQFsVHraOLH1U"
+     },
+     {
+      "k": 12,
+      "name": "المؤشر الرابع عشر",
+      "w": [
+       "ف2"
+      ],
+      "video": {
+       "type": "drive",
+       "id": "1FiBl8KZA4qBbyNoe5PqNil-7c7Mjqy_0"
+      },
+      "doc": "133g_Mzdolkad7jzbbJNNOKfS1ZL2GmHG",
+      "enrich": "",
+      "tasks_url": "https://jazzy-buttercream-8b59a6.netlify.app/",
+      "quiz_url": "https://forms.cloud.microsoft/Pages/ShareFormPage.aspx?id=UYPKa9MBUkKF6r2o-NI1vRxjAcu0G9NBkrW7vCsRV1NUMUU1NERMUTBLOVQxS05BNE1KWTJSN0JOUC4u&sharetoken=XDAs7k3mt9eUalqBCpVg"
+     },
+     {
+      "k": 13,
+      "name": "المؤشر العاشر",
+      "w": [
+       "ف2"
+      ],
+      "video": {
+       "type": "drive",
+       "id": "1v5yJCQsWqW9SinYYapXtmevSRNv-zAhZ"
+      },
+      "doc": "1iS2PAyetf9TUVOXpSCwpcDL3i-tYp7xv",
+      "enrich": "",
+      "tasks_url": "https://jazzy-buttercream-8b59a6.netlify.app/",
+      "quiz_url": "https://forms.cloud.microsoft/Pages/ShareFormPage.aspx?id=UYPKa9MBUkKF6r2o-NI1vRxjAcu0G9NBkrW7vCsRV1NUMUFNOUpXOUc1RDJHOU4xR0JLTkc3QVdDNy4u&sharetoken=crjzvS5YQFsVHraOLH1U"
+     }
+    ]
+   },
+   "math": {
+    "name": "الرياضيات",
+    "self": "https://b14t47tf1m31-d.space-z.ai/",
+    "training": "1Xc-8S5CJ9LtUaHhKWWyYd8LYxK82zGtI",
+    "items": [
+     {
+      "k": 0,
+      "name": "ناتج التعلم الأول",
+      "w": [
+       2
+      ],
+      "video": {
+       "type": "link",
+       "url": "https://drive.google.com/drive/folders/1LTRVcp26QFXdLW5I_-0zTv7lFvv7JN0R?usp=drive_link"
+      },
+      "doc": "18YneyqEWyUgsdSTd5c3mRWIrP4B-PCLO",
+      "enrich": "1teVyprEoHq30xSY3QfHClW4jHU1vRIYQ",
+      "tasks_url": "https://drive.google.com/file/d/11-68YeTkEBxC0jQxsPhZ58TOBn_WEOqA/view",
+      "quiz_url": "https://drive.google.com/drive/folders/1Nbklkn1W5EDSlAqul8lxAso8_g-XZ4tX?usp=drive_link"
+     },
+     {
+      "k": 1,
+      "name": "ناتج التعلم السادس",
+      "w": [
+       2,
+       15
+      ],
+      "video": {
+       "type": "link",
+       "url": "https://drive.google.com/drive/folders/1ZL3IFWANCLjVO48LA0ylGIIRygkjanZj?usp=drive_link"
+      },
+      "doc": "1fQFf4R8SjWzTloE7JwBB_5gkpQEBBVUi",
+      "enrich": "1_Y9L3wGAUUBBzzO7PAVwrsyPE-IXbmG1",
+      "tasks_url": "https://drive.google.com/file/d/1sjjQVA3jcKBzp6mDvBfqVelpLTJ5Niti/view",
+      "quiz_url": "https://drive.google.com/drive/folders/1Cpj80rnVe3UWOJL2u0Q-lJp8B1WIapfJ?usp=drive_link"
+     },
+     {
+      "k": 2,
+      "name": "ناتج التعلم الحادي عشر",
+      "w": [
+       3
+      ],
+      "video": {
+       "type": "link",
+       "url": "https://drive.google.com/drive/folders/1hKol6E8DPAlXwnUqrWv0paO7NUzldnCL?usp=drive_link"
+      },
+      "doc": "1zH8eAS_jEU6uVLbuaCBRncHGiUkgYx5p",
+      "enrich": "1k-X-ywgK2WR_ypqeCIu8vG63NHLfjhSZ",
+      "tasks_url": "https://drive.google.com/file/d/1qERZo4IrAIs4c-RbvHswsog8JSqbeYVN/view",
+      "quiz_url": "https://drive.google.com/drive/folders/1MjGuRhIkkCo0q9SyVc-hP0JOmZ7UfWy-?usp=drive_link"
+     },
+     {
+      "k": 3,
+      "name": "ناتج التعلم الثاني عشر",
+      "w": [
+       4
+      ],
+      "video": {
+       "type": "link",
+       "url": "https://drive.google.com/drive/folders/1KGq-N8tWlfjP93247yfPB_SgZxukbNzE?usp=drive_link"
+      },
+      "doc": "1dQ2GaC6BRg-YWetR5jTbixqxDNtyc_qv",
+      "enrich": "1rTmZegqLKRar0nmC5PvB82w-muIWQk8l",
+      "tasks_url": "https://drive.google.com/file/d/1Kk3kIgrvThH3QONLEufVXre7WJbGOe5r/view",
+      "quiz_url": "https://drive.google.com/drive/folders/1hEQ2vArkmvVPz_JUfwSgt7AkxD-ihC7A?usp=drive_link"
+     },
+     {
+      "k": 4,
+      "name": "ناتج التعلم التاسع عشر",
+      "w": [
+       5
+      ],
+      "video": {
+       "type": "link",
+       "url": "https://drive.google.com/drive/folders/1wRz4k10fWnBeU_arP3cQDjsQRoZwhOvB?usp=drive_link"
+      },
+      "doc": "1KCkm-JtWjC6SkxxaDJLSp68PGuxG_jFX",
+      "enrich": "1AhwHHF3WC2ZbwKCnjH2CfSOCv2Tz5IZ_",
+      "tasks_url": "https://drive.google.com/file/d/1fnjmRw6DUsRPBtsh7toxxaq9ERZBNtn0/view",
+      "quiz_url": "https://drive.google.com/drive/folders/1zjItulZwli4ju1Wpy7Hzy95-YTZUG2vO?usp=drive_link"
+     },
+     {
+      "k": 5,
+      "name": "ناتج التعلم العشرون",
+      "w": [
+       6
+      ],
+      "video": {
+       "type": "link",
+       "url": "https://drive.google.com/drive/folders/1smRYT1AJfjj3JMCuYZoPlf7addx_QSeO?usp=drive_link"
+      },
+      "doc": "1TI0wyWuiDUcgM4cqBGtg6iJFZcKfOOFq",
+      "enrich": "1Euw5LktXcn-MfkzYbqq76rvyjvDgyY2r",
+      "tasks_url": "https://drive.google.com/file/d/1m_W1ZYMYc09e-IoSSS3IW9SZxWggO1TH/view",
+      "quiz_url": "https://drive.google.com/drive/folders/1gcxW2FDjB76a_t-lDiEMziR1c17e4Rhg?usp=drive_link"
+     },
+     {
+      "k": 6,
+      "name": "ناتج التعلم الثالث",
+      "w": [
+       7,
+       12
+      ],
+      "video": {
+       "type": "link",
+       "url": "https://drive.google.com/drive/folders/1vNX77BTbdm6bTg_EH7W1XLwui-NOeiS0?usp=drive_link"
+      },
+      "doc": "1GCMoDFXJzRpnNs0LFp4txaad8XkYpQdj",
+      "enrich": "1EoHXxFMpsdFQjCQIMhEmEGiInSYiXBAl",
+      "tasks_url": "https://drive.google.com/file/d/1LBgG4-_KnUCx_0Kpi2D80XVQjzTc2cQK/view",
+      "quiz_url": "https://drive.google.com/drive/folders/1PEAf3mdSx7bd-jo4_zganVkHeUM0PAYn?usp=drive_link"
+     },
+     {
+      "k": 7,
+      "name": "ناتج التعلم العاشر",
+      "w": [
+       8
+      ],
+      "video": {
+       "type": "link",
+       "url": "https://drive.google.com/drive/folders/1x0NambFe1OZSzE8Zw6J7hb6uIRqDZyP0?usp=drive_link"
+      },
+      "doc": "1DMY_OhQXQ4-_5wmrDilhyD-0PqXd9-By",
+      "enrich": "1oB_VOsfvC4QCI02h6w_so2K3F2zg9r_z",
+      "tasks_url": "https://drive.google.com/file/d/16uMzilmoZ26aQJ5Cqf9InxihqB7XX_NY/view",
+      "quiz_url": "https://drive.google.com/drive/folders/1ehN3sSmzf1fjvSDE6Kl-Ryr4ecfpFZEP?usp=drive_link"
+     },
+     {
+      "k": 8,
+      "name": "ناتج التعلم الرابع",
+      "w": [
+       9,
+       15
+      ],
+      "video": {
+       "type": "link",
+       "url": "https://drive.google.com/drive/folders/1Ul3_1t0mQZdh23Fg4D04MhMV5g0BgZkF?usp=drive_link"
+      },
+      "doc": "1aH3D_uwp_pevdHTvsimFHydcdru-YPtT",
+      "enrich": "18GPBz20WMx_6RJamWo5vHqgerZ8o3n6D",
+      "tasks_url": "https://drive.google.com/file/d/1HawEuWeDhGLyoPcF1k_OhiN5RC_CWSNH/view",
+      "quiz_url": "https://drive.google.com/drive/folders/1YGsRKQ_g-vJmGpv3oOvHQtVPudKOpYim?usp=drive_link"
+     },
+     {
+      "k": 9,
+      "name": "ناتج التعلم التاسع",
+      "w": [
+       10,
+       13
+      ],
+      "video": {
+       "type": "link",
+       "url": "https://drive.google.com/drive/folders/1YipukXXmTO0TFjhyKtX6UpP7kIcPb6Eg?usp=drive_link"
+      },
+      "doc": "1XGpT6a0UIMycy3l0AHVBymaH-ZSKzLiu",
+      "enrich": "1gfSlTTMBnDk5uC5jOITeUCT-3vyyeb3L",
+      "tasks_url": "https://drive.google.com/file/d/1F1oqpcw4U9uigRxHanirgbqkQGJhyRcz/view",
+      "quiz_url": "https://drive.google.com/drive/folders/1tR9bl3x6cXwnKiwQUmbgA2K1mOP6lZGg?usp=drive_link"
+     },
+     {
+      "k": 10,
+      "name": "ناتج التعلم الثالث عشر",
+      "w": [
+       14
+      ],
+      "video": {
+       "type": "link",
+       "url": "https://drive.google.com/drive/folders/1PgTknq14N-jpOdaWd2gdBkdR4YHTu4eC?usp=drive_link"
+      },
+      "doc": "1yeYxPlIQZiRWXvWQmYG7cKYD0icHkYrc",
+      "enrich": "1TQSu1gL4_GMVAmpZtI3Bn_So3jSCsNmr",
+      "tasks_url": "https://drive.google.com/file/d/1kW5tfOG24KGUd2JJi3RoYTjl9b_dvEX1/view",
+      "quiz_url": "https://drive.google.com/drive/folders/1_hYoE3VY5dgN9TuGVEwJtIe7FM2BNmpr?usp=drive_link"
+     },
+     {
+      "k": 11,
+      "name": "ناتج التعلم الثامن",
+      "w": [
+       "ف2"
+      ],
+      "video": {
+       "type": "link",
+       "url": "https://drive.google.com/drive/folders/1Bllfamo5Bg_94bxQYIRil6SOTUT74QiW?usp=drive_link"
+      },
+      "doc": "1dtQkAkw59hR_XUyf2IXFCYGKSugBy_LE",
+      "enrich": "1qvzSTDkSndQlflmblt9eyWCpLydhQ_A6",
+      "tasks_url": "https://drive.google.com/file/d/1b2pSEWS5-Qm_ISa0h_bABakI7JvRpPzb/view",
+      "quiz_url": "https://drive.google.com/drive/folders/1yUZdD_6kE0Hr9ACM8Z4hmWiUog7wg_zF?usp=drive_link"
+     },
+     {
+      "k": 12,
+      "name": "ناتج التعلم الثامن عشر",
+      "w": [
+       "ف2"
+      ],
+      "video": {
+       "type": "link",
+       "url": "https://drive.google.com/drive/folders/1-GGeyyGrPC-hkmomvpNXl7at_864Xlen?usp=drive_link"
+      },
+      "doc": "1p_S60BRbN1641CnBPJvCPdkKHY4OHdXz",
+      "enrich": "16cWOil7nKKNFySFgVUdggv_bgP_pQmwA",
+      "tasks_url": "https://drive.google.com/file/d/1jwWiM-iT-CgyyeauCn0M-ehUjCshXthJ/view",
+      "quiz_url": "https://drive.google.com/drive/folders/1SXGnhafJX4QGIWVeyZi2twdX2h-0GEzU?usp=drive_link"
+     },
+     {
+      "k": 13,
+      "name": "ناتج التعلم الثاني",
+      "w": [
+       "ف2"
+      ],
+      "video": {
+       "type": "link",
+       "url": "https://drive.google.com/drive/folders/1Czjhbd9L9xajgrLZ8ohAL-S6e5Cl2qd-?usp=drive_link"
+      },
+      "doc": "1ATHnqgEO13oAkPhIO2vfmJS6uQKpr9ZV",
+      "enrich": "17KUSbDnyU4GeQCz4yBz-buJ5X2QAjN42",
+      "tasks_url": "https://drive.google.com/file/d/15vP4RkCIKwBUMM3wX2eDoKf2SHXd5CID/view",
+      "quiz_url": "https://drive.google.com/drive/folders/1ztz32Ng_-dGU20cY43Nv81L1cWsd36LJ?usp=drive_link"
+     },
+     {
+      "k": 14,
+      "name": "ناتج التعلم الخامس",
+      "w": [
+       "ف2"
+      ],
+      "video": {
+       "type": "link",
+       "url": "https://drive.google.com/drive/folders/1fWyBSB9vXkJd6RINecT66WxqiKswuaH_?usp=drive_link"
+      },
+      "doc": "1MG67nWzUeJfx3nvt5Bpl8MhcS9FbmzqO",
+      "enrich": "14HWS-ztcMjchpFXv3vSHLFdUu9sErTuO",
+      "tasks_url": "https://drive.google.com/file/d/1zwFgu0C4YyktUHS2McJ9jx0cK0tjP87x/view",
+      "quiz_url": "https://drive.google.com/drive/folders/1kdfPxH1Jlq01QQY-9tUfgiA5eUQfG4lR?usp=drive_link"
+     },
+     {
+      "k": 15,
+      "name": "ناتج التعلم الخامس عشر",
+      "w": [
+       "ف2"
+      ],
+      "video": {
+       "type": "link",
+       "url": "https://drive.google.com/drive/folders/1KhxcLit3vCxQwqGFGK2ZHMYsradNgwrd?usp=drive_link"
+      },
+      "doc": "1xgCFE6Cfgus0FV7mad1jA04friXx4FOO",
+      "enrich": "1kqzXCAQ_J_oczl6rZxy5cOyWmCMlNzx9",
+      "tasks_url": "https://drive.google.com/file/d/16lkcdOV6OvU_hFm3QEU9nyojbPU2f1HA/view",
+      "quiz_url": "https://drive.google.com/drive/folders/1w0DHVIjKnlfayl4eARVJgutxVxgXtt3_?usp=drive_link"
+     },
+     {
+      "k": 16,
+      "name": "ناتج التعلم الرابع عشر",
+      "w": [
+       "ف2"
+      ],
+      "video": {
+       "type": "link",
+       "url": "https://drive.google.com/drive/folders/1YZDhA1cU828cIoxX4osVOOV8cevPNiYj?usp=drive_link"
+      },
+      "doc": "1weo7EfPj8GqZWkcSXtmiHXlvaIU0bCd4",
+      "enrich": "1YQ7kad8sD6A6D0d9oG99QwZoi9T6uodE",
+      "tasks_url": "https://drive.google.com/file/d/1JwwaaY3eYHXjlKC5ZaCyPUU9xJcIR3um/view",
+      "quiz_url": "https://drive.google.com/drive/folders/1kHau7FqJ157SAXRWT5gCHjXTdDHpGojo?usp=drive_link"
+     },
+     {
+      "k": 17,
+      "name": "ناتج التعلم السابع",
+      "w": [
+       "ف2"
+      ],
+      "video": {
+       "type": "link",
+       "url": "https://drive.google.com/drive/folders/1VpOJZEkNccNhXY1i8u1YTBMFTuwV1Sof?usp=drive_link"
+      },
+      "doc": "1v_BUwsHRT1rp8NN9MAyWqiAr1iHJLev5",
+      "enrich": "1_mh8Um4M2tz1xgvaTEsu8j7-1j-f3C_Y",
+      "tasks_url": "https://drive.google.com/file/d/1O_MUKSlgxYnicixrFQp38b5PihY8R780/view",
+      "quiz_url": "https://drive.google.com/drive/folders/1Z4niCiZb0kx5vi9-DnHDNpnQ7it_NO8H?usp=drive_link"
+     },
+     {
+      "k": 18,
+      "name": "ناتج التعلم السابع عشر",
+      "w": [
+       "ف2"
+      ],
+      "video": {
+       "type": "link",
+       "url": "https://drive.google.com/drive/folders/1QJjCMFv4Ha68ntRZBeZ-gTC-qi13fXaD?usp=drive_link"
+      },
+      "doc": "1-qVaoDViZGRWkgcBenQW1hcJIA76pUU5",
+      "enrich": "1dZw27ehnmNiMAqt1Af73y2ImzLatK1Pm",
+      "tasks_url": "https://drive.google.com/file/d/1smejje6B3_A6tdKlrEBHXV63j2RN_RD0/view",
+      "quiz_url": "https://drive.google.com/drive/folders/1M5cMLKPtNSeLhWJ3fZH3k2q8GGhE3Ypj?usp=drive_link"
+     },
+     {
+      "k": 19,
+      "name": "ناتج التعلم السادس عشر",
+      "w": [
+       "ف2"
+      ],
+      "video": {
+       "type": "link",
+       "url": "https://drive.google.com/drive/folders/1ZhgSJ28D-hfFQsh_0ZzIewaUlwZcFtiW?usp=drive_link"
+      },
+      "doc": "1KsFT-Q8YUSRBZotg8KT137zhf54FG3eg",
+      "enrich": "15GQ74ZbOzEJzqpzBTLHiwEsLM0z9Gaxl",
+      "tasks_url": "https://drive.google.com/file/d/1d_R_YnLjzgbK68QBnmx11vZaFEwoOctn/view",
+      "quiz_url": "https://drive.google.com/drive/folders/1gmOY_Z1qZYsqZHJexao0bmUi6_zXpy8P?usp=drive_link"
+     },
+     {
+      "k": 20,
+      "name": "ناتج التعلم الواحد وعشرون",
+      "w": [
+       "ف2"
+      ],
+      "video": {
+       "type": "link",
+       "url": "https://drive.google.com/drive/folders/1P1mmYyq6KIvJpKwv91vgPVkA-D8jnJpt?usp=drive_link"
+      },
+      "doc": "1L3KSszuMzhI0Ij40FcCFOfUhxbYHuHKn",
+      "enrich": "1VhxoiZhsCCt5FemYgcx-fd40zHvEi7Qi",
+      "tasks_url": "https://drive.google.com/file/d/1IsGNT81zjSZ5-WrRE4NO0WGBPRDGRPRT/view",
+      "quiz_url": "https://drive.google.com/drive/folders/1QkzIrx-GAultbNWjF0EJPyT6KdD9LXKH?usp=drive_link"
+     }
+    ]
+   },
+   "sci": {
+    "name": "العلوم",
+    "self": "https://b14t47tf1m31-d.space-z.ai/",
+    "training": "12Tc6eBTuWk7zuIhvnEm-yyg4DU5daReq",
+    "items": [
+     {
+      "k": 0,
+      "name": "ناتج التعلم الأول",
+      "w": [
+       2
+      ],
+      "video": {
+       "type": "drive",
+       "id": "1Vwp8Jg1lCeB8KoBvirB6aV09LTRohBIp"
+      },
+      "doc": "",
+      "enrich": "",
+      "tasks_url": "https://preeminent-froyo-e9abf7.netlify.app/",
+      "quiz_url": "https://forms.cloud.microsoft/Pages/ShareFormPage.aspx?id=UYPKa9MBUkKF6r2o-NI1vaBuzE-zUYNEupJ6YsSkbQpUNVcyRllDUktMQlBSUkIyWVNHVlA4N0c0NC4u&sharetoken=FxR6X0PGNZDcJSeoKirm"
+     },
+     {
+      "k": 1,
+      "name": "ناتج التعلم التاسع عشر",
+      "w": [
+       2
+      ],
+      "video": {
+       "type": "drive",
+       "id": "1lLl_xpY-rt43YEXajSmbwFrKDJwq8K9j"
+      },
+      "doc": "17ztVGAPtJ56vNljWDZorf7zY4blz7EU1",
+      "enrich": "",
+      "tasks_url": "https://preeminent-froyo-e9abf7.netlify.app/",
+      "quiz_url": "https://forms.cloud.microsoft/Pages/ResponsePage.aspx?id=UYPKa9MBUkKF6r2o-NI1vZJMQdi-wTpMuudrwtYjlb5UN1k2TjlFOThKR1ZSNUJTV0NTMVA3UTBNUi4u"
+     },
+     {
+      "k": 2,
+      "name": "ناتج التعلم الثاني",
+      "w": [
+       3
+      ],
+      "video": {
+       "type": "drive",
+       "id": "1kSFfMHQzawdrECmwSY7I1i5-MG4QN6l9"
+      },
+      "doc": "",
+      "enrich": "",
+      "tasks_url": "https://preeminent-froyo-e9abf7.netlify.app/",
+      "quiz_url": "https://forms.cloud.microsoft/Pages/ShareFormPage.aspx?id=UYPKa9MBUkKF6r2o-NI1vaBuzE-zUYNEupJ6YsSkbQpUQVFJSFMzMVE1SEhJWDc4MElXVVpJTjNKRi4u&sharetoken=2VHPdzccIGwSbEQ2Nceg"
+     },
+     {
+      "k": 3,
+      "name": "ناتج التعلم العشرون",
+      "w": [
+       4,
+       5,
+       6
+      ],
+      "video": {
+       "type": "drive",
+       "id": "146e4TFd_b-vDUVdzz58e7qEmp4gbcm5p"
+      },
+      "doc": "1RA0fhU-Za-Qpxj_M_z3EU5QKfaHwQqxv",
+      "enrich": "",
+      "tasks_url": "https://preeminent-froyo-e9abf7.netlify.app/",
+      "quiz_url": "https://forms.cloud.microsoft/Pages/ResponsePage.aspx?id=UYPKa9MBUkKF6r2o-NI1vZJMQdi-wTpMuudrwtYjlb5UNFZRUFA5SU9VRjBWMDNXWUJCWUtNTEUzUy4u"
+     },
+     {
+      "k": 4,
+      "name": "ناتج التعلم الحادي عشر",
+      "w": [
+       5,
+       6
+      ],
+      "video": {
+       "type": "drive",
+       "id": "1-Eq5gKG1pgu9F6bJadYfN3axzkpmATh_"
+      },
+      "doc": "1amC_PyFVZ0KE1s6qTwcDVClj1iFqS85G",
+      "enrich": "",
+      "tasks_url": "https://preeminent-froyo-e9abf7.netlify.app/",
+      "quiz_url": "https://forms.cloud.microsoft/Pages/ShareFormPage.aspx?id=63amB9ouB0OwpxhE7cWhWItFJSZjLR1DomZh9jHAIx1UNU5TM1lUVkNINlc0R0Y1S0pXVlMzQTRDRi4u&sharetoken=PyiRjQBJlhVAPKjV8OED"
+     },
+     {
+      "k": 5,
+      "name": "ناتج التعلم الثالث",
+      "w": [
+       7,
+       10,
+       11
+      ],
+      "video": {
+       "type": "drive",
+       "id": "1eqNQmzUWePkrlTDEvPskAlAeScNX7jHX"
+      },
+      "doc": "12WUud5WP5HRVnHcj8PzvFhU5XAhazwWS",
+      "enrich": "",
+      "tasks_url": "https://preeminent-froyo-e9abf7.netlify.app/",
+      "quiz_url": "https://forms.cloud.microsoft/Pages/ShareFormPage.aspx?id=63amB9ouB0OwpxhE7cWhWCaStQvlPHtOpOjNPv7YGc1UMlVGVUVKQ0tVUlEwMUM3UUFXUjRNRjY3VSQlQCNjPTEu&sharetoken=XHg0om6s2DsZuKylUjjD"
+     },
+     {
+      "k": 6,
+      "name": "ناتج التعلم الواحد وعشرون",
+      "w": [
+       7,
+       8
+      ],
+      "video": {
+       "type": "drive",
+       "id": "1Jo2ITTFKi8gtETatiVYe-6u5Rza7mZcI"
+      },
+      "doc": "1pT3V2K0ZBSrTHznX0nXLISI7qir9Cirw",
+      "enrich": "",
+      "tasks_url": "https://preeminent-froyo-e9abf7.netlify.app/",
+      "quiz_url": "https://forms.cloud.microsoft/Pages/ResponsePage.aspx?id=UYPKa9MBUkKF6r2o-NI1vZJMQdi-wTpMuudrwtYjlb5UNFZRUFA5SU9VRjBWMDNXWUJCWUtNTEUzUy4u"
+     },
+     {
+      "k": 7,
+      "name": "ناتج التعلم الخامس",
+      "w": [
+       8,
+       9
+      ],
+      "video": {
+       "type": "drive",
+       "id": "1UYUoTTlljkUTdTmNm79uZWVqpwPERDzW"
+      },
+      "doc": "1eVXzbSzoDKCeGy0cXI8N0nKa4F-Vjzax",
+      "enrich": "",
+      "tasks_url": "https://preeminent-froyo-e9abf7.netlify.app/",
+      "quiz_url": "https://forms.cloud.microsoft/Pages/ShareFormPage.aspx?id=vtDXcIBcikyxBWMi6kVagNTiGB6AE1ZJqCmAY6cgjWdUMTcyV1JXSjJEUzk3WjFBVTU1RUJGNlBETS4u&sharetoken=IDRAWjgKAXjb3x35DaOJ"
+     },
+     {
+      "k": 8,
+      "name": "ناتج التعلم الرابع",
+      "w": [
+       8,
+       9
+      ],
+      "video": {
+       "type": "drive",
+       "id": "1mzSLU55iDlAt1H1qB05Ref49XAM6eXg_"
+      },
+      "doc": "145rmkoRTw7vlZHQzPqFD4N3oul6bj3k6",
+      "enrich": "",
+      "tasks_url": "https://preeminent-froyo-e9abf7.netlify.app/",
+      "quiz_url": "https://forms.cloud.microsoft/Pages/ShareFormPage.aspx?id=63amB9ouB0OwpxhE7cWhWCaStQvlPHtOpOjNPv7YGc1UQ09FS0FMTks4RUg2SkJVWk9XRlRQS0xDUiQlQCNjPTEu&sharetoken=YYxzUYSFmbSoLO5SLW2c"
+     },
+     {
+      "k": 9,
+      "name": "ناتج التعلم التاسع وعشرون",
+      "w": [
+       11,
+       12
+      ],
+      "video": {
+       "type": "drive",
+       "id": "1bd6CFgvf10KXbrc5Nn9i5lk8_pHWZMtr"
+      },
+      "doc": "1GzQ8gdz3cdl96kHjcZnwos4g0rwg4vGF",
+      "enrich": "",
+      "tasks_url": "https://preeminent-froyo-e9abf7.netlify.app/",
+      "quiz_url": "https://q.me-qr.com/u0ms1ij6"
+     },
+     {
+      "k": 10,
+      "name": "ناتج التعلم الثامن",
+      "w": [
+       12
+      ],
+      "video": {
+       "type": "drive",
+       "id": "1UmaC4EMCnQf2anel34yAAW40Kt8Y9KQO"
+      },
+      "doc": "1nVnBlklnQxjV3at_Zyy1pQeDMip2qmUy",
+      "enrich": "",
+      "tasks_url": "https://preeminent-froyo-e9abf7.netlify.app/",
+      "quiz_url": "https://forms.cloud.microsoft/Pages/ShareFormPage.aspx?id=vtDXcIBcikyxBWMi6kVagPCcP_24MHRNi_KoFvNNbQFUNzE4QVZLUjdMMFRIQ09EWVpUSE9TS041MS4u&sharetoken=MIAxqYCkqeilvpf8frJz"
+     },
+     {
+      "k": 11,
+      "name": "ناتج التعلم السادس",
+      "w": [
+       12
+      ],
+      "video": {
+       "type": "drive",
+       "id": "1gDa46g0LaHfYObQXIT1ksY3AGuSe9Hp1"
+      },
+      "doc": "116Egjrq7P0lRX1H63gQROsdrsbRToQe7",
+      "enrich": "",
+      "tasks_url": "https://preeminent-froyo-e9abf7.netlify.app/",
+      "quiz_url": "https://forms.cloud.microsoft/Pages/ShareFormPage.aspx?id=vtDXcIBcikyxBWMi6kVagNTiGB6AE1ZJqCmAY6cgjWdURDM4MTJKNVJJRTVOQTBSOTU0RDNNQ0dZSS4u&sharetoken=0wfQPPU2h39xZcyflal0"
+     },
+     {
+      "k": 12,
+      "name": "ناتج التعلم التاسع",
+      "w": [
+       13
+      ],
+      "video": {
+       "type": "drive",
+       "id": "1Xbh2MdGted9nW7UgfVJQV-MRa4zNNh3w"
+      },
+      "doc": "18mUIUklOpFdnDWul4-2cKsO5lvKQIWTh",
+      "enrich": "",
+      "tasks_url": "https://preeminent-froyo-e9abf7.netlify.app/",
+      "quiz_url": "https://forms.cloud.microsoft/Pages/ShareFormPage.aspx?id=63amB9ouB0OwpxhE7cWhWCaStQvlPHtOpOjNPv7YGc1UMktONUVJTVNTSTVMQ080VVZQRUo1TElNWSQlQCNjPTEu&sharetoken=fVP9SuEdwFa6cEYVaRe7"
+     },
+     {
+      "k": 13,
+      "name": "ناتج التعلم الثلاثون",
+      "w": [
+       13
+      ],
+      "video": {
+       "type": "drive",
+       "id": "11w6bk3B6xbg62OnTj0TDbs5QtViInDJH"
+      },
+      "doc": "1QJbQFLxmmWGhyFMpjv45pp4DU_qduk7C",
+      "enrich": "",
+      "tasks_url": "https://preeminent-froyo-e9abf7.netlify.app/",
+      "quiz_url": "https://q.me-qr.com/l680qpdc"
+     },
+     {
+      "k": 14,
+      "name": "ناتج التعلم السابع",
+      "w": [
+       13
+      ],
+      "video": {
+       "type": "drive",
+       "id": "1Zko2xB2JS7Y8fW79ULOHIdz-m_czg2-6"
+      },
+      "doc": "1yM-g53k93gLY0HD_q_BAuaNLaKy2uQVO",
+      "enrich": "",
+      "tasks_url": "https://preeminent-froyo-e9abf7.netlify.app/",
+      "quiz_url": "https://forms.cloud.microsoft/Pages/ShareFormPage.aspx?id=vtDXcIBcikyxBWMi6kVagPCcP_24MHRNi_KoFvNNbQFUQkNKVlJER1BOWTdNUDBaSUNDSE1VNEU5Vi4u&sharetoken=o0RNfZfb9Stm3OKm3jMp"
+     },
+     {
+      "k": 15,
+      "name": "ناتج التعلم العاشر",
+      "w": [
+       14,
+       15,
+       16
+      ],
+      "video": {
+       "type": "drive",
+       "id": "1ej8iPWecUns-hOWoFa_WUknGhBfpJl-M"
+      },
+      "doc": "1NBbsH4vH9mM0AbEUCbZ4g-7IXGlmk143",
+      "enrich": "",
+      "tasks_url": "https://preeminent-froyo-e9abf7.netlify.app/",
+      "quiz_url": "https://forms.cloud.microsoft/Pages/ShareFormPage.aspx?id=63amB9ouB0OwpxhE7cWhWCaStQvlPHtOpOjNPv7YGc1UMzVPREVFWjFOQzkyMEg4MkNIVEtVNVpBTiQlQCNjPTEu&sharetoken=BVdIidfyefrOrpikLlw2"
+     },
+     {
+      "k": 16,
+      "name": "ناتج التعلم الواحد والثلاتون",
+      "w": [
+       14
+      ],
+      "video": {
+       "type": "drive",
+       "id": "1qKEWnoRPfgGGGFvTXrvVR_-0ykxT6wyG"
+      },
+      "doc": "1ZGCZ4rmYjb7yf4goHBcG-BAagdLOWNAh",
+      "enrich": "",
+      "tasks_url": "https://preeminent-froyo-e9abf7.netlify.app/",
+      "quiz_url": "https://q.me-qr.com/gglf0kdg"
+     },
+     {
+      "k": 17,
+      "name": "ناتج التعلم الثاني والثلاثون",
+      "w": [
+       15
+      ],
+      "video": {
+       "type": "drive",
+       "id": "14gN0KsHVrpsNE_7xCSfij-cxOdX74STp"
+      },
+      "doc": "1H9Dm8dx8t9lqdmGoOsG6NgkQ_JI28fa4",
+      "enrich": "",
+      "tasks_url": "https://preeminent-froyo-e9abf7.netlify.app/",
+      "quiz_url": "https://q.me-qr.com/n21db85e"
+     },
+     {
+      "k": 18,
+      "name": "ناتج التعلم الثالث والثلاثون",
+      "w": [
+       16
+      ],
+      "video": {
+       "type": "drive",
+       "id": "1O8hNbjyiAYIrAH1bH9veGPhweIs3VHJD"
+      },
+      "doc": "11RLPdGU3o8iAmRXBjjuVt75PTlgeUeY8",
+      "enrich": "",
+      "tasks_url": "https://preeminent-froyo-e9abf7.netlify.app/",
+      "quiz_url": "https://q.me-qr.com/n21db85e"
+     },
+     {
+      "k": 19,
+      "name": "ناتج التعلم الثالث عشر",
+      "w": [
+       "غم"
+      ],
+      "video": {
+       "type": "drive",
+       "id": "13-vJoayKTdZagVUaTbFB9jmX9uCoM4t3"
+      },
+      "doc": "1s34o4YEOiSuSPFQYVBMYKebvQu-RdiPp",
+      "enrich": "",
+      "tasks_url": "https://preeminent-froyo-e9abf7.netlify.app/",
+      "quiz_url": "https://forms.cloud.microsoft/Pages/ShareFormPage.aspx?id=63amB9ouB0OwpxhE7cWhWJLS2UZvQRJJg_Ux-hhQjZJUOEFRV1YyNkxZNlJHUzlCVjBVSlBRSDdFUS4u&sharetoken=5ObFBJF6imRwJe3dyjQH"
+     },
+     {
+      "k": 20,
+      "name": "ناتج التعلم الثالث وعشرون",
+      "w": [
+       "غم"
+      ],
+      "video": {
+       "type": "drive",
+       "id": "15dW4gMvQdFAG3jdlrzZKVW5cLDvJQf5Y"
+      },
+      "doc": "1c7xy6ciVVZxmpC4K3dtdQ0XxhizZprhe",
+      "enrich": "",
+      "tasks_url": "https://preeminent-froyo-e9abf7.netlify.app/",
+      "quiz_url": "https://elecquiz-ipitdvnq.manus.space/quiz1"
+     },
+     {
+      "k": 21,
+      "name": "ناتج التعلم الثامن عشر",
+      "w": [
+       "غم"
+      ],
+      "video": {
+       "type": "drive",
+       "id": "1qDh27wtJlBeAyM6ziU3PJ7vH7GJSMm21"
+      },
+      "doc": "1tdAlCGs7Lw0emBcOnC0vEzGkLD6_9RY-",
+      "enrich": "",
+      "tasks_url": "https://preeminent-froyo-e9abf7.netlify.app/",
+      "quiz_url": "https://lighthearted-biscochitos-d5c40b.netlify.app/"
+     },
+     {
+      "k": 22,
+      "name": "ناتج التعلم الثامن وعشرون",
+      "w": [
+       "غم"
+      ],
+      "video": {
+       "type": "drive",
+       "id": "1IE_dOcARXMRPhtViMsAsc5NbUZUPa3No"
+      },
+      "doc": "1PBE0oXkpgis4YX02JiS0e3mgyFj3cwy0",
+      "enrich": "",
+      "tasks_url": "https://preeminent-froyo-e9abf7.netlify.app/",
+      "quiz_url": "https://forms.cloud.microsoft/pages/responsepage.aspx?id=63amB9ouB0OwpxhE7cWhWLr1HFmBoP5MlxnNdNwrMtBUOVdYUFI3RTg0SDJDNlBPRVo4UEsyWDhYQS4u&origin=lprLink&route=shorturl"
+     },
+     {
+      "k": 23,
+      "name": "ناتج التعلم الثاني عشر",
+      "w": [
+       "غم"
+      ],
+      "video": null,
+      "doc": "1Y4wy9gh2npp_OJgtr3MOoHB6GXnK_aoC",
+      "enrich": "",
+      "tasks_url": "https://preeminent-froyo-e9abf7.netlify.app/",
+      "quiz_url": "https://forms.cloud.microsoft/Pages/ResponsePage.aspx?id=63amB9ouB0OwpxhE7cWhWMxi0MaesZlBovxyyVDBOnFURUFBOUJRM01NUk03SVQ3SkxFOUlCRUlaMS4u"
+     },
+     {
+      "k": 24,
+      "name": "ناتج التعلم الثاني وعشرون",
+      "w": [
+       "غم"
+      ],
+      "video": {
+       "type": "drive",
+       "id": "165HyTmD-VhdWvhKr2UCyhrDEhjnOblsT"
+      },
+      "doc": "1eR1NDg2U242Qp_2oMlZGvh-amsKN-HBQ",
+      "enrich": "",
+      "tasks_url": "https://preeminent-froyo-e9abf7.netlify.app/",
+      "quiz_url": "https://forms.cloud.microsoft/Pages/ShareFormPage.aspx?id=63amB9ouB0OwpxhE7cWhWM3xVs7QDbxHi81QVweF-UZUM0JURjJMUTdQRFpMWk1DWUdKR09GS1RIWiQlQCNjPTEu&sharetoken=ceUs4QEaLGZCio3nhXdz"
+     },
+     {
+      "k": 25,
+      "name": "ناتج التعلم الخامس عشر",
+      "w": [
+       "غم"
+      ],
+      "video": {
+       "type": "drive",
+       "id": "1E3eG5DGZzwWAysHHz_uvrfE06tz8ud1i"
+      },
+      "doc": "1RKrF-AMh-oQVl0HqjKr18fWWAcNMYk2V",
+      "enrich": "",
+      "tasks_url": "https://preeminent-froyo-e9abf7.netlify.app/",
+      "quiz_url": "https://k.tahdiri.com/forms/exam?c=4ZNJWU7W2BDV"
+     },
+     {
+      "k": 26,
+      "name": "ناتج التعلم الخامس وعشرون",
+      "w": [
+       "غم"
+      ],
+      "video": {
+       "type": "drive",
+       "id": "1tuOtWo_qWQHKyzlwK4_rVqM6SocDiURm"
+      },
+      "doc": "1w-u4IQvPGWl3BIO1h6GZxpHqp2RZraYc",
+      "enrich": "",
+      "tasks_url": "https://preeminent-froyo-e9abf7.netlify.app/",
+      "quiz_url": "https://forms.cloud.microsoft/Pages/ShareFormPage.aspx?id=63amB9ouB0OwpxhE7cWhWFrIfK1o04ZNkSe5S-ohJ8xURFRGVzNXSE9QQlZORFM1R1pOSUE0UjIwUi4u&sharetoken=Q2nu4ohDD3n5SOwZM3Oo"
+     },
+     {
+      "k": 27,
+      "name": "ناتج التعلم الرابع عشر",
+      "w": [
+       "غم"
+      ],
+      "video": null,
+      "doc": "1te6WToh7Xz2fSp--YvG9h7H_FrN3fs1a",
+      "enrich": "",
+      "tasks_url": "https://preeminent-froyo-e9abf7.netlify.app/",
+      "quiz_url": "https://forms.office.com/Pages/ResponsePage.aspx?id=63amB9ouB0OwpxhE7cWhWFQnnJ6RCdlFoGfGGkA_H_JUM0U0VjJSNFg0Wk03UENLREc1Q0NIVVBSRC4u"
+     },
+     {
+      "k": 28,
+      "name": "ناتج التعلم الرابع وعشرون",
+      "w": [
+       "غم"
+      ],
+      "video": {
+       "type": "drive",
+       "id": "1sQILSRj4japgc5DinmCEFoeP31lgzOR0"
+      },
+      "doc": "1I0Y7lK6UL4A5SP44oibypHTTU_q4P2qJ",
+      "enrich": "",
+      "tasks_url": "https://preeminent-froyo-e9abf7.netlify.app/",
+      "quiz_url": "https://drive.google.com/drive/folders/1hs4QvS2QveXuKfJMXfTut7N6haHslfoJ?usp=sharing"
+     },
+     {
+      "k": 29,
+      "name": "ناتج التعلم السابع عشر",
+      "w": [
+       "غم"
+      ],
+      "video": {
+       "type": "drive",
+       "id": "19ZfGVGRVmK4YGNMH3stZMbXi5OV8eNHB"
+      },
+      "doc": "1xlRnQhQHEPFbsaCNW3IJxkRgfKcK89I4",
+      "enrich": "",
+      "tasks_url": "https://preeminent-froyo-e9abf7.netlify.app/",
+      "quiz_url": "https://extraordinary-platypus-7eec56.netlify.app/"
+     },
+     {
+      "k": 30,
+      "name": "ناتج التعلم السابع وعشرون",
+      "w": [
+       "غم"
+      ],
+      "video": {
+       "type": "drive",
+       "id": "1VRXTtbWiq2Yu5pwDH2pBtJT-6kDBB-tL"
+      },
+      "doc": "1mNab9wpNaXVd3s53sk7pp4SU_39k2OTX",
+      "enrich": "",
+      "tasks_url": "https://preeminent-froyo-e9abf7.netlify.app/",
+      "quiz_url": "https://forms.cloud.microsoft/pages/responsepage.aspx?id=63amB9ouB0OwpxhE7cWhWLr1HFmBoP5MlxnNdNwrMtBUOVdYUFI3RTg0SDJDNlBPRVo4UEsyWDhYQS4u&origin=lprLink&route=shorturl"
+     },
+     {
+      "k": 31,
+      "name": "ناتج التعلم السادس عشر",
+      "w": [
+       "غم"
+      ],
+      "video": {
+       "type": "drive",
+       "id": "11sPa0D8k0pRUpmGSy7Ow3xEnKHwvpiDV"
+      },
+      "doc": "13YmV8S2fA_Q2jJQH1PLMXCTxyjn6lvHb",
+      "enrich": "",
+      "tasks_url": "https://preeminent-froyo-e9abf7.netlify.app/",
+      "quiz_url": "https://daloo444-ops.github.io/physics-tests/16.html"
+     },
+     {
+      "k": 32,
+      "name": "ناتج التعلم السادس و عشرون",
+      "w": [
+       "غم"
+      ],
+      "video": {
+       "type": "drive",
+       "id": "1ryAViB8M2XDPtIMPFS4v_1TmsbDCt3Z-"
+      },
+      "doc": "1p4sP2s39UEsxZOlKdwnbwo5MNK0GTu2B",
+      "enrich": "",
+      "tasks_url": "https://preeminent-froyo-e9abf7.netlify.app/",
+      "quiz_url": "https://forms.cloud.microsoft/Pages/ShareFormPage.aspx?id=63amB9ouB0OwpxhE7cWhWFrIfK1o04ZNkSe5S-ohJ8xURFRGVzNXSE9QQlZORFM1R1pOSUE0UjIwUi4u&sharetoken=Q2nu4ohDD3n5SOwZM3Oo"
+     }
+    ]
+   }
+  }
+ }
+}

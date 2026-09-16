@@ -560,8 +560,26 @@
           '<div style="font-size:13.5px;color:#c9d5e3;margin-top:6px;line-height:1.7">الصف ' + (gc === 3 ? "الثالث" : "السادس") + ' من صفوف الاختبار الوطني «نافس». هنا ناتجُ كل أسبوعٍ: شاهد الفيديو، وحُلّ الاختبار، ونفّذ المهمة — وكن جاهزاً.</div>' +
           '<div style="display:flex;gap:6px;justify-content:center;flex-wrap:wrap;margin-top:10px">' + doms.map(function (dm) { return '<span style="background:rgba(242,204,107,.16);border:1px solid rgba(242,204,107,.45);border-radius:999px;padding:4px 11px;font-size:12.5px;font-weight:800">' + esc(N.DOM_NAME[dm]) + '</span>'; }).join("") + '</div></div>';
         var bar = '<div class="wkbar">' + weeks.map(function (w) { return '<button data-nw="' + w + '" class="' + (w === wk ? "on" : "") + '">' + (w === wkNow ? "هذا الأسبوع" : w === N.UNSCHED ? "غير مجدولة" : "أسبوع " + w) + '</button>'; }).join("") + '</div>';
-        el.innerHTML = head("🦅", "صقور نافس", wk === wkNow ? "نواتج هذا الأسبوع" : wk === N.UNSCHED ? "نواتج غير مجدولة" : "نواتج الأسبوع " + wk) + hero + bar + (N.gradeHtml(gc, wk, { term: TERM() }) || empty("🌱", "لا نواتج في هذا الأسبوع", "جرّب أسبوعاً آخر."));
+        var F = window.NAFIS;
+        var fallback = function () { return N.gradeHtml(gc, wk, { term: TERM() }) || empty("🌱", "لا نواتج في هذا الأسبوع", "جرّب أسبوعاً آخر."); };
+        el.innerHTML = head("🦅", "صقور نافس", wk === wkNow ? "نواتج هذا الأسبوع" : wk === N.UNSCHED ? "نواتج غير مجدولة" : "نواتج الأسبوع " + wk) + hero + bar + '<div id="nf-body">' + (F ? '<div class="load"><div class="spin"></div>لحظة…</div>' : fallback()) + '</div>';
         each(el, "[data-nw]", function (b) { b.onclick = function () { var v = b.getAttribute("data-nw"); NAFIS.wk = +v || v; ST.refresh(); }; });
+        /* المحاكاة داخل التطبيق: الفيديو والملف والاختبار والمهمة في الكتلة نفسها، والنتائج في subs.
+           إن تعذّر تحميل البنك تبقى كتل الروابط القديمة. */
+        if (F) {
+          var ctx = { S: ST.S, db: ST.db, onDone: function () { ST.refresh(); } };
+          F.load([gc]).then(function (okB) {
+            if (!ok()) return;
+            var body = el.querySelector("#nf-body"); if (!body) return;
+            if (!okB) { body.innerHTML = fallback(); return; }
+            return F.progress(ctx, gc, doms).then(function (subs) {
+              if (!ok()) return;
+              var h = F.weekHtml(ctx, gc, doms, wk, TERM(), subs);
+              body.innerHTML = h || fallback();
+              F.bind(body, ctx);
+            });
+          }).catch(function () { var body = el.querySelector("#nf-body"); if (body && ok()) body.innerHTML = fallback(); });
+        }
       }, function () { if (ok()) oops(el); });
     }
   });
