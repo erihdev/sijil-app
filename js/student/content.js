@@ -533,6 +533,35 @@
       (sub ? "👁️ افتحها مرة أخرى" : "✏️ ابدأ الحل") + '</button></div>';
   }
 
+  /* ══════════════════════════ 🦅 صقور نافس ══════════════════════════
+     قسمٌ باسمه لطالب الثالث أو السادس: يقول له إنه من المستهدفين، ويضع أمامه ناتج الأسبوع في
+     كل مجالٍ (القراءة والرياضيات — والعلوم للسادس) بفيديوه واختباره ومهمته وعرضه، والاختبار
+     التشخيصي في الأسبوع الأول، ومنصة التعلم الذاتي لكل مجال. الأسابيع شريطٌ يتنقّل فيه. */
+  var NAFIS = { wk: 0 };
+  ST.tab("nafis", {
+    render: function (el) {
+      var ok = guard(), N = window.NAWATIJ, gc = ST.S.gc;
+      loading(el);
+      if (!N || !N.isFalcon(gc)) { el.innerHTML = head("🦅", "صقور نافس", "") + empty("🦅", "هذا القسم لطلاب الثالث والسادس", "أنت خارج صفوف نافس هذا العام."); return; }
+      N.load().then(function (d) {
+        if (!ok()) return;
+        if (!d || !N.hasGrade(gc)) { el.innerHTML = head("🦅", "صقور نافس", "") + oopsHtml(); return; }
+        var wkNow = curWeek(), weeks = N.weeksOf(gc), wk = NAFIS.wk || wkNow;
+        if (weeks.indexOf(wk) < 0) { var past = weeks.filter(function (w) { return w <= wkNow; }); wk = past.length ? past[past.length - 1] : (weeks[0] || wkNow); }
+        NAFIS.wk = wk;
+        var g = N.grade(gc), doms = Object.keys(g.domains), first = String(ST.S.first || ST.S.name || "").split(" ")[0];
+        var hero = '<div class="card" style="background:linear-gradient(150deg,#0E2033,#16304D);color:#fff;border:none;text-align:center;padding:18px 14px">' +
+          '<div style="font-size:44px;line-height:1">🦅</div>' +
+          '<div style="font-size:21px;font-weight:900;color:#F2CC6B;margin-top:6px">' + esc(first ? first + "، أنت من صقور نافس" : "أنت من صقور نافس") + '</div>' +
+          '<div style="font-size:13.5px;color:#c9d5e3;margin-top:6px;line-height:1.7">الصف ' + (gc === 3 ? "الثالث" : "السادس") + ' من صفوف الاختبار الوطني «نافس». هنا ناتجُ كل أسبوعٍ: شاهد الفيديو، وحُلّ الاختبار، ونفّذ المهمة — وكن جاهزاً.</div>' +
+          '<div style="display:flex;gap:6px;justify-content:center;flex-wrap:wrap;margin-top:10px">' + doms.map(function (dm) { return '<span style="background:rgba(242,204,107,.16);border:1px solid rgba(242,204,107,.45);border-radius:999px;padding:4px 11px;font-size:12.5px;font-weight:800">' + esc(N.DOM_NAME[dm]) + '</span>'; }).join("") + '</div></div>';
+        var bar = '<div class="wkbar">' + weeks.map(function (w) { return '<button data-nw="' + w + '" class="' + (w === wk ? "on" : "") + '">' + (w === wkNow ? "هذا الأسبوع" : "أسبوع " + w) + '</button>'; }).join("") + '</div>';
+        el.innerHTML = head("🦅", "صقور نافس", wk === wkNow ? "نواتج هذا الأسبوع" : "نواتج الأسبوع " + wk) + hero + bar + (N.gradeHtml(gc, wk, { term: TERM() }) || empty("🌱", "لا نواتج في هذا الأسبوع", "جرّب أسبوعاً آخر."));
+        each(el, "[data-nw]", function (b) { b.onclick = function () { NAFIS.wk = +b.getAttribute("data-nw"); ST.refresh(); }; });
+      }, function () { if (ok()) oops(el); });
+    }
+  });
+  function oopsHtml() { return empty("📡", "ما قدرنا نجيب النواتج الآن", "تأكد من الإنترنت وجرّب مرة أخرى."); }
   /* ══════════════════════════ ٣) دروسي ══════════════════════════ */
   var LESSTATE = { wk: 0 };
   ST.tab("less", {

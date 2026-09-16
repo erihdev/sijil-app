@@ -69,7 +69,7 @@
     var d = g.domains[dom], list = items(gc, dom, wk, opt.term), h = "";
     var diag = wk === 1 ? (DATA.extras || []).filter(function (e) { return e.gc.indexOf(+gc) >= 0 && e.weeks.indexOf(1) >= 0; }) : [];
     if (!list.length && !diag.length && !opt.always) return "";
-    h += '<div class="nw"><div class="nwh">' + DOM_ICON[dom] + ' نواتج التعلم — ' + esc(DOM_NAME[dom]) + ' <small>' + (opt.term === "t2" ? "الفصل الثاني" : "الأسبوع " + wk) + ' · الصف ' + (gc === 3 || gc === "3" ? "الثالث" : "السادس") + '</small></div>';
+    h += '<div class="nw"><div class="nwh">🦅 صقور نافس — ' + DOM_ICON[dom] + ' ' + esc(DOM_NAME[dom]) + ' <small>ناتج التعلم · ' + (opt.term === "t2" ? "الفصل الثاني" : "الأسبوع " + wk) + ' · الصف ' + (gc === 3 || gc === "3" ? "الثالث" : "السادس") + '</small></div>';
     diag.forEach(function (e) { h += '<div class="nwi"><div class="nwn">' + esc(e.name) + '</div><div class="nwe">' + esc(e.desc) + '</div><div class="nwb">' + link(e.url, "g", "✅ افتح الاختبار التشخيصي") + '</div></div>'; });
     if (list.length) list.forEach(function (it) { h += rowHtml(it); });
     else if (!diag.length) h += '<div class="nwe">لا ناتج مستهدف لهذا الأسبوع في هذا المجال.</div>';
@@ -92,5 +92,7 @@
     (DATA.extras || []).forEach(function (e) { if (e.gc.indexOf(+gc) >= 0) e.weeks.forEach(function (w) { set[w] = 1; }); });
     return Object.keys(set).map(Number).sort(function (a, b) { return a - b; });
   }
-  window.NAWATIJ = { load: load, domainOf: domainOf, hasGrade: hasGrade, grade: grade, items: items, block: block, gradeHtml: gradeHtml, weeksOf: weeksOf, DOM_OF: DOM_OF, DOM_NAME: DOM_NAME };
+  /* صقور نافس: هل هذا الطالب/الصف من المستهدفين؟ */
+  function isFalcon(gc) { return +gc === 3 || +gc === 6; }
+  window.NAWATIJ = { isFalcon: isFalcon, load: load, domainOf: domainOf, hasGrade: hasGrade, grade: grade, items: items, block: block, gradeHtml: gradeHtml, weeksOf: weeksOf, DOM_OF: DOM_OF, DOM_NAME: DOM_NAME };
 })();
