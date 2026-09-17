@@ -27,12 +27,39 @@ name2item = {}
 for gc, g in media["grades"].items():
     for dom, d in g.items():
         for it in d["items"]: name2item[(gc, dom, it["name"].strip())] = it["k"]
+import re as _re
+ONES = {"اول": 1, "واحد": 1, "حادي": 1, "ثاني": 2, "ثالث": 3, "رابع": 4, "خامس": 5, "سادس": 6, "سابع": 7, "ثامن": 8, "تاسع": 9, "عاشر": 10}
+TENS = {"عشر": 10, "عشرون": 20, "ثلاثون": 30, "ثلاتون": 30, "اربعون": 40}
+def ordinal(name):
+    m = _re.search(r"[٠-٩0-9]+", str(name or ""))
+    if m: return int(m.group(0).translate(str.maketrans("٠١٢٣٤٥٦٧٨٩", "0123456789")))
+    ten = one = 0
+    for w in _re.sub(r"[ًٌٍَُِّْ]", "", str(name or "")).replace("أ", "ا").replace("إ", "ا").replace("آ", "ا").split():
+        w = _re.sub(r"^و", "", w); w = _re.sub(r"^ال", "", w)
+        if w in TENS: ten = TENS[w]
+        elif w in ONES: one = ONES[w]
+    if ten == 10: return 10 + (0 if one == 10 else one)
+    if ten: return ten + (0 if one == 10 else one)
+    return one or 0
+ord2item = {}
+for gc, g in media["grades"].items():
+    for dom, d in g.items():
+        for it in d["items"]:
+            n = ordinal(it["name"])
+            if n: ord2item[(gc, dom, n)] = (it["k"], it["name"])
+def by_ordinal(gc, dom, text):
+    n = ordinal(text); return ord2item.get((str(gc), dom, n)) if n else None
 
+disputed = []
 def norm_q(q, act):
     t = q.get("type") or "mcq"
     ans = q.get("ans_pdf")
     src = "pdf" if ans is not None else None
-    if ans is None and t in ("mcq", "tf") and q.get("ans_sug") is not None and float(q.get("conf") or 0) >= a.min_conf:
+    # مفتاح مطبوع يخالفه حلٌّ مؤكد (خطأ طباعي محتمل في جدول الحل): لا يُصحَّح به الطفل — يُترك بلا مفتاح ويُعرض للمراجعة
+    if ans is not None and t in ("mcq", "tf") and q.get("ans_sug") is not None and int(q["ans_sug"]) != int(ans) and float(q.get("conf") or 0) >= 0.8:
+        disputed.append({"q": (q.get("q") or "")[:80], "pdf": int(ans), "sug": int(q["ans_sug"]), "conf": q.get("conf"), "act": act})
+        ans, src = None, "disputed"
+    if ans is None and src is None and t in ("mcq", "tf") and q.get("ans_sug") is not None and float(q.get("conf") or 0) >= a.min_conf:
         ans, src = int(q["ans_sug"]), "solver"
     if t == "fill" and (q.get("ans_text") or "").strip(): src = src or "solver"
     return {"q": (q.get("q") or "").strip(), "type": t, "opts": [str(o).strip() for o in (q.get("opts") or [])],
@@ -64,6 +91,9 @@ for src in a.src:
     elif fn.startswith("form_"):
         gc, dom, name = str(d.get("gc")), d.get("dom"), (d.get("item") or "").strip()
         k = name2item.get((gc, dom, name))
+        if k is None:
+            hit = by_ordinal(gc, dom, name)
+            if hit: k, name = hit
         if k is None: stats["form_unmatched"] += 1; print("form unmatched:", fn, gc, dom, name); continue
         it = slot(gc, dom, k, name); it["sources"].append({"kind": "form", "i": d.get("i"), "title": d.get("title", "")})
         passage = (d.get("passage") or "").strip()
@@ -72,6 +102,9 @@ for src in a.src:
                 nq = norm_q(q, "اختبار تجريبي"); nq["passage"] = passage or (act.get("passage") or "").strip(); it["q"].append(nq)
     else:
         m = doc2item.get(fid)
+        if not m and d.get("gc") and d.get("dom"):   # ملفٌ لم يُربط في خريطة الوسائط: بالرقم من اسم الناتج/المؤشر المنقول
+            hit = by_ordinal(d["gc"], d["dom"], d.get("item") or d.get("outcome") or "")
+            if hit: m = (str(d["gc"]), d["dom"], hit[0], hit[1]); print("pdf matched by ordinal:", fid, "->", hit[1])
         if not m: stats["pdf_unmatched"] += 1; print("pdf unmatched:", fid, d.get("gc"), d.get("dom"), d.get("item")); continue
         gc, dom, k, name = m
         it = slot(gc, dom, k, name); it["sources"].append({"kind": "pdf", "fid": fid})
@@ -101,7 +134,7 @@ for gc in ("3", "6"):
     io.open(out, "w", encoding="utf-8", newline="\n").write(json.dumps({"built": bank["built"], "grades": {gc: bank["grades"].get(gc, {"domains": {}})}}, ensure_ascii=False) + "\n")
     sizes[gc] = os.path.getsize(out)
 meta = os.path.join(ROOT, "data", "nafis", "bank_meta.json")
-io.open(meta, "w", encoding="utf-8", newline="\n").write(json.dumps({"built": bank["built"], "stats": bank["stats"], "unkeyed": unkeyed}, ensure_ascii=False, indent=1) + "\n")
+io.open(meta, "w", encoding="utf-8", newline="\n").write(json.dumps({"built": bank["built"], "stats": bank["stats"], "unkeyed": unkeyed, "disputed": disputed}, ensure_ascii=False, indent=1) + "\n")
 old = os.path.join(ROOT, "data", "nafis", "bank.json")
 if os.path.exists(old): os.remove(old)
 print(json.dumps(dict(stats), ensure_ascii=False), "| items:", sum(len(D["items"]) for G in bank["grades"].values() for D in G["domains"].values()), "| bytes:", sizes)
