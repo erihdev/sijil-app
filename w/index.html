@@ -10,7 +10,7 @@
 <meta property="og:title" content="ورقة عمل تفاعلية — نجوم المدرسة">
 <meta property="og:description" content="افتح الرابط من جوالك، اكتب رقم هويتك، وحلّ الأسئلة. تُصحَّح آلياً وتصل نتيجتك إلى المعلم فوراً.">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='22' fill='%230E2033'/><path d='M27 43 A23 23 0 1 0 73 43' fill='none' stroke='%23F2CC6B' stroke-width='9.5' stroke-linecap='round'/><path d='M50 14 L54.2 24 L65 25 L57 32 L59.5 42.5 L50 37 L40.5 42.5 L43 32 L35 25 L45.8 24 Z' fill='%23F2CC6B'/></svg>">
-<meta property="og:image" content="https://sijli.erihdev.com/assets/og.jpg?v=77"><meta property="og:image:width" content="1200"><meta property="og:image:height" content="630">
+<meta property="og:image" content="https://sijli.erihdev.com/assets/og.jpg?v=78"><meta property="og:image:width" content="1200"><meta property="og:image:height" content="630">
 <meta name="twitter:card" content="summary_large_image">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -83,7 +83,7 @@ button{font-family:inherit;font-size:16px}
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-check-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
-<script src="../js/fb.js?v=77"></script>
+<script src="../js/fb.js?v=78"></script>
 <script>
 (function () {
   "use strict";
@@ -91,9 +91,14 @@ button{font-family:inherit;font-size:16px}
   const esc = (s) => String(s == null ? "" : s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
   const app = $("#app");
   const AID = new URLSearchParams(location.search).get("a") || "";
-  const PV = new URLSearchParams(location.search).get("pv") === "1";   // معاينة المعلم: تجربة كاملة بلا تسجيل تسليم ولا احتساب محاولة
+  /* معاينة المعلم: تجربة كاملة بلا تسجيل تسليم ولا احتساب محاولة. كانت pv=1 في الرابط تكفي — فأي طالب
+     يضيفها ويرى مفتاح الإجابات كاملاً. الآن قيمتها مفتاحٌ عشوائي يحفظه تطبيق المعلم في متصفحه (sijil.pvkey)،
+     فلا تعمل إلا على جهاز المعلم نفسه. */
+  const PV = (() => { const v = new URLSearchParams(location.search).get("pv"); if (!v || v === "1") return false; try { return v.length >= 8 && localStorage.getItem("sijil.pvkey") === v; } catch (e) { return false; } })();
   const MODE_T = { ws: "ورقة عمل", quiz: "اختبار", race: "تحدٍّ" };
   let db = null, A = null, C = null, si = -1, sname = "", answers = [], qi = 0, t0 = 0, tIv = null, left = 0;
+  let MK = "";   // مفتاح الطالب الخاص: معرّف تسليمه «الورقة_mk» فلا يخمّنه زميل (بلا مفتاح: الفهرس — الوضع التجريبي)
+  const subId = () => AID + "_" + (MK || si);
   let PREV = null;   // تسليم سابق: المحاولة الأولى هي المعتمدة
   /* مفتاح «هذا الجهاز هو صاحب التسليم»: مراجعة الأخطاء — وفيها الإجابة الصحيحة لكل سؤال —
      لا تُعرض إلا للجهاز الذي أرسل ذلك التسليم. (كانت الصفحة تعرض قائمة أسماء الفصل ليختار
@@ -184,11 +189,11 @@ button{font-family:inherit;font-size:16px}
       await acReady();
       await withTimeout(firebase.auth().signInAnonymously());
       db = (window.sijilSpaceDb ? window.sijilSpaceDb(firebase.firestore()) : firebase.firestore());   // مساحة المدرسة
-      const s = await withTimeout(db.doc("assign/" + AID).get());
+      const s = await withAC(() => withTimeout(db.doc("assign/" + AID).get()));
       if (!s.exists) { clearTimeout(slow); return fail("الورقة غير موجودة", "تأكد من الرابط، أو اسأل معلمك."); }
       A = s.data();
       if (!A || !Array.isArray(A.qs) || !A.qs.length || !A.cid) { clearTimeout(slow); return fail("الورقة غير مكتملة", "اطلب من معلمك إعادة إرسالها."); }
-      const c = await withTimeout(db.doc("classes/" + A.cid).get());
+      const c = await withAC(() => withTimeout(db.doc("classes/" + A.cid).get()));
       C = c.exists ? c.data() : { students: [] }; C.id = A.cid; C.students = C.students || [];
       // حركات النقل: بدونها تُعرض قائمة قديمة (المنقول يختار اسمه القديم ويُسلِّم بفهرسه القديم) — لذا محاولتان ثم رسالة فشل صريحة لا متابعة صامتة
       let mvOK = false;
@@ -238,7 +243,7 @@ button{font-family:inherit;font-size:16px}
      فقط، فلا يجد غيرهم اسمه ولا يُسلِّم ورقة ليست له. غياب to أو خلوّه = الفصل كله كما كان. */
   const toList = () => (Array.isArray(A.to) ? A.to.map(x => +x).filter(x => Number.isInteger(x) && x >= 0) : []);
   const toHas = (i) => { const t = toList(); return !t.length || t.indexOf(+i) >= 0; };
-  const SALT = "sijil1448", SKEY = "sijil.s.sess";
+  const SALT = "sijil1448", SKEY = "sijil.s.sess" + (window.SIJIL_SPACE ? "." + window.SIJIL_SPACE : "");   // مفتاح جلسة البوابة نفسه (بالمساحة)
   const hexOf = (b) => [...new Uint8Array(b)].map(x => x.toString(16).padStart(2, "0")).join("");
   async function sha256(msg) { return hexOf(await crypto.subtle.digest("SHA-256", new TextEncoder().encode(msg))); }
   const okStudent = (i) => { const st = C.students[i]; return !!(st && st.n && !st.moved && !st.gap); };
@@ -249,8 +254,8 @@ button{font-family:inherit;font-size:16px}
   }
   /* جلسة بوابة الطالب على هذا الجهاز — لفصل الورقة نفسه — أو هوية تحقّقنا منها هنا من قبل */
   function knownSi() {
-    try { const ss = JSON.parse(localStorage.getItem(SKEY) || "null"); if (ss && ss.cid === A.cid && Number.isInteger(+ss.si) && okStudent(+ss.si)) return +ss.si; } catch (e) { }
-    try { const v = localStorage.getItem("sijil.stu." + A.cid); if (v !== null && okStudent(+v)) return +v; } catch (e) { }
+    try { const ss = JSON.parse(localStorage.getItem(SKEY) || "null"); if (ss && ss.cid === A.cid && Number.isInteger(+ss.si) && okStudent(+ss.si) && String(ss.mk || "")) { MK = String(ss.mk); return +ss.si; } } catch (e) { }
+    try { const v = JSON.parse(localStorage.getItem("sijil.stu2." + A.cid) || "null"); if (v && Number.isInteger(+v.si) && okStudent(+v.si) && v.mk) { MK = String(v.mk); return +v.si; } } catch (e) { }
     return -1;
   }
   function headerHtml() {
@@ -277,7 +282,7 @@ button{font-family:inherit;font-size:16px}
       <p class="lbl">الطالب</p>
       <div class="note2" style="margin:0 0 8px;font-weight:800">🧒 ${esc(sname)} <button class="name" id="notme" style="margin-inline-start:8px">ليس أنا</button></div>
       <button class="go" id="start">ابدأ الحل</button></div>`;
-    $("#notme").onclick = () => { try { localStorage.removeItem("sijil.stu." + A.cid); } catch (e) { } si = -1; sname = ""; askId(""); };
+    $("#notme").onclick = () => { try { localStorage.removeItem("sijil.stu2." + A.cid); } catch (e) { } si = -1; sname = ""; MK = ""; askId(""); };
     bindStart();
   }
   function askId(msg) {
@@ -303,8 +308,14 @@ button{font-family:inherit;font-size:16px}
         const pos = doc ? posOf(String(doc.cid || ""), +doc.si) : -1;
         if (pos < 0) { btn.disabled = false; m.style.color = "#8f1d1b"; m.textContent = "الرقم غير مسجَّل في فصل هذه الورقة — تأكد من الرقم أو اسأل معلمك."; return; }
         if (!toHas(pos)) { btn.disabled = false; m.style.color = "#8f1d1b"; m.textContent = "هذه الورقة ليست لك — أرسلها معلمك إلى طلاب محدَّدين."; return; }
-        si = pos; sname = (C.students[si] || {}).n || "";
-        try { localStorage.setItem("sijil.stu." + A.cid, String(si)); } catch (e) { }
+        // الرمز السري الاختياري (كما في البوابة): c = sha256(الرمز|بصمة المستند الذي وُجد)
+        if (doc.c) {
+          const code = String(prompt("اكتب رمزك السري (الأرقام الأربعة التي اخترتها في بوابتك)") || "").replace(/[٠-٩]/g, d => "٠١٢٣٤٥٦٧٨٩".indexOf(d)).replace(/\D/g, "");
+          const hh = snap.id || snap.ref.id;
+          if (!code || (await sha256(code + "|" + hh)) !== doc.c) { btn.disabled = false; m.style.color = "#8f1d1b"; m.textContent = "الرمز السري غير صحيح."; return; }
+        }
+        si = pos; sname = (C.students[si] || {}).n || ""; MK = String(doc.mk || "");
+        try { localStorage.setItem("sijil.stu2." + A.cid, JSON.stringify({ si: si, mk: MK, ts: Date.now() })); } catch (e) { }
         showReady();
       } catch (e) { btn.disabled = false; m.style.color = "#8f1d1b"; m.textContent = "تعذّر التحقق — تحقق من اتصال الإنترنت ثم أعد المحاولة."; }
     };
@@ -315,7 +326,7 @@ button{font-family:inherit;font-size:16px}
       if (PV) { if (si < 0) { si = -1; sname = "معاينة المعلم"; } PREV = null; }
       else {
         let prev;
-        try { prev = await withTimeout(db.doc("subs/" + AID + "_" + si).get()); }
+        try { prev = await withTimeout(db.doc("subs/" + subId()).get()); }
         catch (e) { return fail("تعذّر بدء الحل", "تحقق من اتصال الإنترنت ثم أعد تحميل الصفحة."); }
         if (prev.exists) {
           PREV = prev.data();
@@ -328,14 +339,22 @@ button{font-family:inherit;font-size:16px}
     };
   }
 
+  /* المؤقّت بساعة الحائط: كان عدّاداً ينقص مع كل نبضة، فإخفاء التبويب أو قفل الشاشة يجمّده،
+     وإعادة التحميل تعيده من أوله. الآن المتبقّي = نهاية الوقت − الآن، ونهاية الوقت محفوظة لهذه الورقة على الجهاز. */
+  let tEnd = 0;
+  function tick() {
+    left = Math.max(0, Math.round((tEnd - Date.now()) / 1000));
+    const el = $("#tm");
+    if (el) { el.textContent = Math.floor(left / 60) + ":" + String(left % 60).padStart(2, "0"); el.classList.toggle("hot", left <= 30); }
+    if (left <= 0) { clearInterval(tIv); tIv = null; submit(); }
+  }
   function startTimer() {
     if (tIv) clearInterval(tIv);
-    tIv = setInterval(() => {
-      left--;
-      const el = $("#tm");
-      if (el) { el.textContent = Math.floor(left / 60) + ":" + String(left % 60).padStart(2, "0"); el.classList.toggle("hot", left <= 30); }
-      if (left <= 0) { clearInterval(tIv); tIv = null; submit(); }
-    }, 1000);
+    const k = "sijil.wtend." + AID + "." + (MK || si);
+    try { const saved = +localStorage.getItem(k); tEnd = (saved && saved > Date.now() && saved - Date.now() <= A.secs * 1000) ? saved : Date.now() + A.secs * 1000; localStorage.setItem(k, String(tEnd)); }
+    catch (e) { tEnd = Date.now() + A.secs * 1000; }
+    tick(); tIv = setInterval(tick, 1000);
+    try { document.addEventListener("visibilitychange", () => { if (!document.hidden && tIv) tick(); }); } catch (e) { }
   }
 
   function draw() {
@@ -417,8 +436,15 @@ button{font-family:inherit;font-size:16px}
     }
     if (!PV && (rec.att || 1) <= 12) {
       // فشل الكتابة كان يُبتلع فيرى الطالب «أُرسلت إلى معلمك ✓» وحلّه لم يصل إلى أحد
-      try { await withTimeout(db.doc("subs/" + AID + "_" + si).set(rec)); }
-      catch (e) { return sendFail(); }
+      try { await withTimeout(db.doc("subs/" + subId()).set(rec)); }
+      catch (e) {
+        // رفضُ القواعد لا انقطاع: تسليمٌ قائم من جهاز آخر (أو تبويب آخر) — نُكمل من عنده بدل حلقة «إعادة الإرسال»
+        const code = String((e && (e.code || e.message)) || "").toLowerCase();
+        if (code.indexOf("permission") >= 0) {
+          try { const cur = await withTimeout(db.doc("subs/" + subId()).get()); if (cur.exists) { PREV = cur.data(); markMine(si); return done(PREV, true); } } catch (e2) { }
+        }
+        return sendFail();
+      }
     }
     PREV = PV ? null : rec;
     if (!PV) markMine(si);

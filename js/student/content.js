@@ -302,8 +302,8 @@
     return any ? r1(p) : null;
   }
   function weekSeries() {
-    var dates = {};
-    Object.keys(RECS || {}).forEach(function (tid) { Object.keys(RECS[tid] || {}).forEach(function (d) { dates[d] = 1; }); });
+    var dates = {}, tf = (typeof ST.termFrom === "function") ? (ST.termFrom() || "") : "";   // ضمن الفصل الدراسي كالنقاط
+    Object.keys(RECS || {}).forEach(function (tid) { Object.keys(RECS[tid] || {}).forEach(function (d) { if (!tf || d >= tf) dates[d] = 1; }); });
     var all = Object.keys(dates).sort(), buckets = {}, order = [];
     all.forEach(function (d) {
       var p = dayPts(d); if (p === null) return;
@@ -354,7 +354,7 @@
       list.forEach(function (x) { var t = mine[x.tid]; if (t) { x.tn = t.name; x.subj = t.subject; } });
       C.tasks = list;
       return Promise.all(list.map(function (x) {
-        return safeDoc("subs/" + x.a + "_" + si).then(function (s) { if (s) C.subs[x.a] = s; });
+        return safeDoc("subs/" + x.a + "_" + (ST.S.mk || si)).then(function (s) { if (s) C.subs[x.a] = s; });
       })).then(function () { return list; });
     });
   }
@@ -1301,7 +1301,7 @@
   function nUnsubscribe() {
     var mk = (ST.S || {}).mk;
     try { if (mk && ST.CLOUD && ST.db) ST.db.doc("spush/" + mk).delete(); } catch (e) { }
-    try { nReg().then(function (r) { r.pushManager.getSubscription().then(function (sb) { if (sb) sb.unsubscribe(); }); }); } catch (e) { }
+    // لا نلغي اشتراك المتصفح: التسجيل واحد لدور المعلم والطالب على الجهاز نفسه — حذف مستند هذا الدور (spush) يكفي
   }
   // بطاقة الإشعارات — تُركَّب في «رسائلي» وفي «بطاقتي»
   function nCardHtml() {
@@ -1370,7 +1370,7 @@
     // «قرأها» للمعلم — مستندٌ منفصل لا يمسّ نصّ الرسالة، وفشلُه لا يُهمّ الطفل
     try {
       var mk = (ST.S || {}).mk;
-      if (mk && ST.CLOUD && ST.db) ST.db.doc("sack/" + mk).set({ seen: o, ts: Date.now() }, { merge: true });
+      if (mk && ST.CLOUD && ST.db) ST.db.doc("sack/" + mk).set({ seen: o, ts: Date.now() }).catch(function () { });   // بلا merge: القص المحلي يجب أن يصل وإلا رُفضت الكتابة عند ٦٠
     } catch (e) { }
     return true;
   }
@@ -1405,7 +1405,7 @@
   // غير المقروء: الرسائل وحدها (عناصر المهام لها شارة «مهامي»)
   function unreadCount(list) {
     var o = seenGet();
-    return (list || []).filter(function (m) { return !o[m.i]; }).length;
+    return (list || []).filter(function (m) { return m && m.k !== "task" && !o[m.i]; }).length;   // عناصر المهام لها شارة «مهامي»
   }
   function msgBadge() {
     return loadMsgs().then(function (list) {
@@ -1496,7 +1496,7 @@
      دقيقةً، ومؤقّتٌ يسبق جلسته يمرّ بلا شيء فلا يرى شارة إلا إن فتح التبويب بنفسه. */
   /* المهام أيضاً: شارةٌ بعدد ما لم يُحلّ، واستماعٌ حيّ لفهرس أوراق فصله — فيصل التنبيه
      لحظة إرسال المعلم لا عند فتح التبويب. والورقة الموجَّهة لغيره لا تُحسب ولا تُنبّه. */
-  var TSUB = null;
+  var TSUB = null, TIDX = null;
   function taskBadge() {
     return loadTasksSafe().then(function (list) {
       var open = (list || []).filter(function (x) { return !C.subs[x.a]; }).length;
@@ -1512,12 +1512,15 @@
       var list = (((data || {}).list) || []).map(normTask).filter(function (x) {
         return x.a && (!x.to.length || x.to.indexOf(si) >= 0);
       });
-      var before = C.tasks ? C.tasks.length : 0;
-      if (!C.tasks || list.length !== before) {
+      // مقارنة بمعرّفات آخر لقطة من الفهرس لا بطول القائمة المدمجة (فيها الأوراق الموجَّهة والمفتوحة من رابط)
+      var ids = list.map(function (x) { return x.a; }).sort().join(",");
+      if (TIDX === null || ids !== TIDX) {
+        var prev = TIDX === null ? null : TIDX.split(",").filter(Boolean);
         var mine = {}; ST.myTeachers().forEach(function (t) { mine[t.id] = t; });
         list.forEach(function (x) { var t = mine[x.tid]; if (t) { x.tn = t.name; x.subj = t.subject; } });
-        var fresh = C.tasks ? list.filter(function (x) { return !C.tasks.some(function (y) { return y.a === x.a; }); }) : list.slice();
-        C.tasks = list;
+        var fresh = prev ? list.filter(function (x) { return prev.indexOf(x.a) < 0; }) : [];
+        TIDX = ids;
+        C.tasks = null;   // يُعاد الدمج مع الأوراق الموجَّهة والمفتوحة من رابط عند أول طلب
         taskBadge();
         if (!TFIRST && fresh.length) {
           var one = fresh[0];

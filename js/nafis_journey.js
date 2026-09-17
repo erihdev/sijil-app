@@ -96,7 +96,7 @@
   /* ═══ التقدّم: مستند لكل ناتج (قناعان) + ذاكرة محلية ═══ */
   function pkey(gc, dom, k) { return F.key(gc, dom, k) + "p"; }
   function ikey(gc, dom, k, i) { return F.key(gc, dom, k) + "i" + i; }
-  function lsKey() { return "nfj." + STATE.ctx.S.cid + "." + STATE.ctx.S.si; }
+  function lsKey() { return "nfj." + (window.SIJIL_SPACE || "") + "." + STATE.ctx.S.cid + "." + STATE.ctx.S.si; }
   function loadCache() { try { var o = JSON.parse(localStorage.getItem(lsKey()) || "null"); if (o && o.prog) { STATE.prog = o.prog; STATE.cacheTs = o.ts || 0; } } catch (e) { } }
   function saveCache() { try { localStorage.setItem(lsKey(), JSON.stringify({ prog: STATE.prog, ts: STATE.cacheTs })); } catch (e) { } }
   function refresh(force) {
@@ -105,7 +105,7 @@
     var jobs = [];
     model.subjects.forEach(function (s) { s.outcomes.forEach(function (o) {
       var a = pkey(gc, s.dom, o.k);
-      jobs.push(ctx.db.doc("subs/" + a + "_" + ctx.S.si).get().then(function (d) { STATE.prog[a] = d.exists ? d.data() : null; }).catch(function () { }));
+      jobs.push(ctx.db.doc("subs/" + a + "_" + (ctx.S.mk || ctx.S.si)).get().then(function (d) { STATE.prog[a] = d.exists ? d.data() : null; }).catch(function () { }));
     }); });
     return Promise.all(jobs).then(function () { STATE.cacheTs = Date.now(); saveCache(); });
   }
@@ -114,7 +114,7 @@
   function mastered(s, o, x) { var p = STATE.prog[pkey(STATE.gc, s.dom, o.k)]; return !!(p && bit(p.best, x.i)); }
   function trained(s, o, x) { var p = STATE.prog[pkey(STATE.gc, s.dom, o.k)]; return !!(p && bit(p.lsc, x.i)); }
   function markProg(s, o, x, field) {
-    var ctx = STATE.ctx, a = pkey(STATE.gc, s.dom, o.k), ref = ctx.db.doc("subs/" + a + "_" + ctx.S.si);
+    var ctx = STATE.ctx, a = pkey(STATE.gc, s.dom, o.k), ref = ctx.db.doc("subs/" + a + "_" + (ctx.S.mk || ctx.S.si));
     return ref.get().then(function (d) {
       var prev = d.exists ? d.data() : null, rec;
       if (prev) { rec = Object.assign({}, prev, { att: (prev.att || 1) + 1, lts: Date.now() }); rec[field] = setBit(prev[field], x.i); if (rec.best < (prev.best || 0)) rec.best = prev.best; }
@@ -203,6 +203,10 @@
   /* ═══ التدريب: سؤال سؤال بتحقق فوري ═══ */
   function train(box) {
     var s = curSubj(), o = curOut(), x = o.inds[STATE.i], qs = x.qs.slice(0, TRAIN_N), qi = 0, right = 0, picked = null, checked = false;
+    // إعادة الرسم (رسالة وصلت، أو تحميل التقدّم) لا تُعيد التدريب إلى السؤال الأول
+    var tkey = s.dom + "|" + o.k + "|" + x.i, T = STATE.train || (STATE.train = {});
+    if (T.key === tkey && T.qi < qs.length) { qi = T.qi; right = T.right; } else { T.key = tkey; T.qi = 0; T.right = 0; }
+    var remember = function () { T.qi = qi; T.right = right; };
     var LETTER = ["أ", "ب", "ج", "د", "هـ", "و"];
     function draw() {
       var q = qs[qi];
@@ -219,23 +223,33 @@
     var nz = function (v) { return String(v || "").replace(/[ً-ْـ]/g, "").replace(/^ال/, "").replace(/[أإآ]/g, "ا").replace(/ة$/, "ه").replace(/\s+/g, "").trim(); };
     function check() {
       if (checked) return next();
-      var q = qs[qi], ok = q.type === "fill" ? !!(nz(picked) === nz(q.ans_text) && nz(q.ans_text)) : picked === q.ans; checked = true; if (ok) right++;
+      var q = qs[qi], ok = q.type === "fill" ? !!(nz(picked) === nz(q.ans_text) && nz(q.ans_text)) : picked === q.ans; checked = true; if (ok) right++; remember();
       box.querySelectorAll(".opt").forEach(function (z) { var i = +z.getAttribute("data-i"); if (i === q.ans) z.classList.add("ok"); else if (i === picked && !ok) z.classList.add("bad"); });
       box.querySelector("#nj-fb").innerHTML = ok ? '<div class="fb ok">✅ إجابة صحيحة! أحسنت</div>' : '<div class="fb bad">❌ إجابة غير صحيحة — الإجابة الصحيحة: ' + esc(q.type === "fill" ? q.ans_text : LETTER[q.ans] + " · " + (q.opts || [])[q.ans]) + '</div>';
       box.querySelector(".cnt span:last-child").textContent = right + " صحيحة";
       var b = box.querySelector("#nj-check"); b.textContent = qi < qs.length - 1 ? "السؤال التالي" : "إنهاء التدريب"; b.disabled = false;
     }
     function next() {
-      if (qi < qs.length - 1) { qi++; picked = null; checked = false; draw(); return; }
+      if (qi < qs.length - 1) { qi++; picked = null; checked = false; remember(); draw(); return; }
+      T.qi = qs.length; T.right = right;
       box.innerHTML = '<div class="fb ok">🎉 أكملت التدريب — أجبت ' + right + ' من ' + qs.length + ' إجابة صحيحة</div><div class="meta">يمكنك الآن دخول اختبار الإتقان.</div><button class="act" id="nj-go" disabled>جارِ الحفظ…</button>';
-      markProg(s, o, x, "lsc").then(function () { var b = box.querySelector("#nj-go"); if (!b) return; b.disabled = false; b.textContent = "انتقل إلى الاختبار"; b.onclick = function () { STATE.stage = "test"; render(); }; });
+      var saveTrain = function () {
+        var b0 = box.querySelector("#nj-go"); if (b0) { b0.disabled = true; b0.textContent = "جارِ الحفظ…"; }
+        markProg(s, o, x, "lsc").then(function (ok) {
+          var b = box.querySelector("#nj-go"); if (!b) return;
+          b.disabled = false;
+          if (ok) { b.textContent = "انتقل إلى الاختبار"; b.onclick = function () { STATE.stage = "test"; render(); }; }
+          else { b.textContent = "↻ لم يُحفظ — أعد المحاولة"; b.onclick = saveTrain; }
+        });
+      };
+      saveTrain();
     }
     draw();
   }
   function startTest() {
     var s = curSubj(), o = curOut(), x = o.inds[STATE.i], qs = x.qs.slice(0, TEST_N);
     F.quiz(Object.assign({}, STATE.ctx, { onDone: function () { render(); } }), STATE.gc, s.dom, o.k, {
-      qs: qs, a: ikey(STATE.gc, s.dom, o.k, x.i), title: (x.label || ("المؤشر " + x.code)) + " — " + s.name, tries: 99,
+      qs: qs, a: ikey(STATE.gc, s.dom, o.k, x.i), title: (x.label || ("المؤشر " + x.code)) + " — " + s.name, tries: 99, tid: "nafisi",
       onResult: function (rec, st, g) { if (g && qs.length && g.sc / qs.length >= MASTER) markProg(s, o, x, "best"); }
     });
   }
@@ -266,6 +280,7 @@
     // الفيديو وملف الناتج داخل شاشة الشرح
     var s = STATE.screen === "ind" && curSubj(), o = s && curOut(), x = o && o.inds[STATE.i];
     root.querySelectorAll("[data-act]").forEach(function (b) {
+      if (b.closest(".nf")) return;   // أزرار بطاقة التشخيصي ربطها F.bind — كانت تُستبدل هنا فيموت زر الاختبار
       b.onclick = function () {
         var act = b.getAttribute("data-act"), xb = root.querySelector(".nfx"), m = (x && x.media) || {};
         if (act === "video") xb.innerHTML = F.viewer(F.embedUrl(m.video));
@@ -278,7 +293,7 @@
   /* ═══ الواجهة العامة ═══ */
   function loadDiag() {
     var ctx = STATE.ctx, gc = STATE.gc; if (!F.graded(F.bankItem(gc, "diag", 0)).length) return Promise.resolve();
-    return ctx.db.doc("subs/" + F.key(gc, "diag", 0) + "_" + ctx.S.si).get().then(function (d) { STATE.diag = d.exists ? d.data() : null; }).catch(function () { });
+    return ctx.db.doc("subs/" + F.key(gc, "diag", 0) + "_" + (ctx.S.mk || ctx.S.si)).get().then(function (d) { STATE.diag = d.exists ? d.data() : null; }).catch(function () { });
   }
   function open(ctx, gc, root) {
     STATE.ctx = ctx; STATE.gc = gc; STATE.root = root;
@@ -292,7 +307,7 @@
     var model = buildModel(gc), tot = 0;   // مع محتوى المنصة إن كان محمّلاً (loadSpz) وإلا بنك الملفات
     allInds(model).forEach(function (r) { if (r.x.qs.length) tot++; });
     var by = {};
-    rows.forEach(function (r) { var p = String(r.a || "").match(/^nf(\d)([rms])(\d\d)p$/); if (!p || +p[1] !== gc) return; var n = 0, b = r.best || 0; while (b >= 1) { if (b % 2 >= 1) n++; b = Math.floor(b / 2); } by[r.cid + "|" + r.si] = (by[r.cid + "|" + r.si] || 0) + n; });
+    rows.forEach(function (r) { var p = String(r.a || "").match(/^nf(\d)([rms])(\d\d)p$/); if (!p || +p[1] !== gc) return; var n = 0, b = Number(r.best); if (!isFinite(b) || b < 1 || b > 9e15) b = 0; b = Math.floor(b); while (b >= 1) { if (b % 2 >= 1) n++; b = Math.floor(b / 2); } by[r.cid + "|" + r.si] = (by[r.cid + "|" + r.si] || 0) + n; });
     return { tot: tot, by: by };
   }
   function preload(gcs) { return Promise.all((gcs || [3, 6]).map(loadSpz)); }

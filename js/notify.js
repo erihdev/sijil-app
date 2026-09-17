@@ -428,7 +428,7 @@
     if (!supported()) return Promise.resolve(done());
     return navigator.serviceWorker.getRegistration().then(function (reg) {
       if (!reg || !reg.pushManager) return null;
-      return reg.pushManager.getSubscription().then(function (sub) { return sub ? sub.unsubscribe() : null; });
+      return Promise.resolve(null);   // الاشتراك مشترك مع بوابة الطالب على الجهاز نفسه: إيقاف دورٍ لا يقطع الآخر (حذف مستند الدور يكفي)
     }).catch(function () { return null; }).then(function () {
       var s = S(), te = teacher(), fdb = s && LS(function () { return s.fdb; }, null);
       if (fdb && te && te.id) { try { fdb.doc("push/" + te.id).delete().catch(function () { }); } catch (e) { } }

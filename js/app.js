@@ -54,6 +54,17 @@
      المدير. هذه الوسوم تُرفع باستبدال كامل (القواعد تسمح بالتقليص لمن له مطالبة sess). */
   const shrink = new Set();
   const dropped = {};                  // "recs:cid" → Set(تواريخ حُذفت على هذا الجهاز)
+  const replaceAll = new Set();        // وسومٌ تُرفع باستبدال كامل بلا دمج مع السحابة (استعادة نسخة احتياطية)
+  /* الوسوم المعلّقة كانت في الذاكرة وحدها: إغلاق التبويب قبل الرفع (أو انقطاع) ثم فتحه يكتب نسخة السحابة
+     فوق الرصد المحلي فيضيع بصمت. تُحفظ الآن مع DB وتُستعاد عند الإقلاع، ولا تُكتب السحابة فوق فصلٍ عليه وسم. */
+  try {
+    const pend = DB.pend || {};
+    (pend.dirty || []).forEach(t => dirty.add(t)); (pend.shrink || []).forEach(t => shrink.add(t)); (pend.replaceAll || []).forEach(t => replaceAll.add(t));
+    Object.keys(pend.dropped || {}).forEach(t => { dropped[t] = new Set(pend.dropped[t] || []); });
+  } catch (e) { }
+  function persistPend() {
+    try { DB.pend = { dirty: [...dirty], shrink: [...shrink], replaceAll: [...replaceAll], dropped: Object.fromEntries(Object.keys(dropped).map(t => [t, [...dropped[t]]])) }; localStorage.setItem(KEY, JSON.stringify(DB)); } catch (e) { }
+  }
   function markDrop(cid, date) {
     const tag = "recs:" + cid;
     shrink.add(tag);
@@ -64,13 +75,14 @@
     const c = String((e && (e.code || e.message)) || "").toLowerCase();
     return c.indexOf("permission-denied") >= 0 || c.indexOf("permission_denied") >= 0;
   };
+  const gDrop = {};                    // cid → Set("si.k") درجات يدوية مُسحت محلياً ولم تُحذف سحابياً بعد
   let saveT = null, pushT = null;
   function save(tag) {
     if (tag) dirty.add(tag);           // "recs:cid" | "grades:cid" | "comms:cid"
     // تجريبياً: DB لا تحمل معرّف المعلم — نسجّل صاحب كل مستند حتى تنسب لوحة المدير الرصد لمن رصده فعلاً
     if (tag && !CLOUD && TE) { try { DB.by = (DB.by && typeof DB.by === "object" && !Array.isArray(DB.by)) ? DB.by : {}; DB.by[tag] = TE.id; } catch (e) { } }
     clearTimeout(saveT);
-    saveT = setTimeout(() => { try { localStorage.setItem(KEY, JSON.stringify(DB)); } catch (e) { } }, 250);
+    saveT = setTimeout(persistPend, 250);
     if (CLOUD && TE) { clearTimeout(pushT); pushT = setTimeout(pushDirty, 1100); }
   }
   async function pushDirty() {
@@ -88,7 +100,8 @@
              يومٌ موجود محلياً ⇒ النسخة المحلية · يومٌ حُذف هنا عمداً ⇒ يُسقط ·
              ما عداه ⇒ نسخة السحابة بعد نزع سجلاتها الفارغة. */
           let cd = {};
-          try { const cur = await fdb.doc("recs/" + TE.id + "_" + cid).get(); if (cur.exists) cd = (cur.data() || {}).d || {}; } catch (e) { }
+          // فشل القراءة يوقف الرفع (يُعاد لاحقاً) — كان يُبتلع فتُستبدل السحابة بنسخة هذا الجهاز وحدها
+          if (!replaceAll.has(tag)) { const cur = await fdb.doc("recs/" + TE.id + "_" + cid).get(); if (cur.exists) cd = (cur.data() || {}).d || {}; }
           const loc = DB.recs[cid] || {}, drop = dropped[tag] || new Set(), out = {};
           Object.keys(cd).forEach(dt => {
             if (loc[dt] || drop.has(dt)) return;
@@ -98,8 +111,15 @@
           Object.keys(loc).forEach(dt => out[dt] = loc[dt]);
           payload.d = clone(out);
         }
-        if (kind === "grades") payload.g = clone(DB.grades[cid] || {});
-        if (kind === "comms") {                    // القائمة تُستبدل لا تُدمج بـ merge — فادمج مع النسخة السحابية أولاً حتى لا تضيع عناصر رُحِّلت من فصل آخر (نقل طالب) أو أُضيفت من جهاز آخر
+        if (kind === "grades") {
+          payload.g = clone(DB.grades[cid] || {});
+          // مفاتيح مُسحت محلياً: الدمج لا يحذف مفتاحاً — تُحذف صراحةً (FieldValue.delete) وإلا عادت الدرجة بعد إعادة التحميل
+          if (!replaceAll.has(tag) && gDrop[cid] && gDrop[cid].size && firebase.firestore.FieldValue) {
+            gDrop[cid].forEach(k2 => { const [si2, key2] = k2.split("."); if (((DB.grades[cid] || {})[si2] || {})[key2] == null) { payload.g[si2] = payload.g[si2] || {}; payload.g[si2][key2] = firebase.firestore.FieldValue.delete(); } });
+          }
+        }
+        if (kind === "comms" && replaceAll.has(tag)) payload.c = clone(DB.comms[cid] || []).slice(-500);
+        else if (kind === "comms") {               // القائمة تُستبدل لا تُدمج بـ merge — فادمج مع النسخة السحابية أولاً حتى لا تضيع عناصر رُحِّلت من فصل آخر (نقل طالب) أو أُضيفت من جهاز آخر
           let list = clone(DB.comms[cid] || []);
           try {
             const cur = await fdb.doc("comms/" + TE.id + "_" + cid).get();
@@ -109,21 +129,27 @@
           payload.c = list.slice(-500);
         }
         const ref = fdb.doc(kind + "/" + TE.id + "_" + cid);
-        if (full) {
+        if (replaceAll.has(tag)) {
+          // استعادة نسخة احتياطية: استبدالٌ كامل (بمطالبة) — وإلا عادت أيام غير موجودة في النسخة بعد أول دخول
+          if (kind === "recs") payload.d = clone(DB.recs[cid] || {});
+          try { await ref.set(payload); replaceAll.delete(tag); shrink.delete(tag); delete dropped[tag]; if (kind === "grades" && gDrop[cid]) gDrop[cid].clear(); }
+          catch (e2) { if (!isPerm(e2)) throw e2; try { claimBar(); } catch (x) { } await ref.set(payload, { merge: true }); }
+        } else if (full) {
           /* التقليص يحتاج مطالبة sess (mayShrink في القواعد). جهاز بلا مطالبة يُرفض —
              ولا يجوز أن تتوقف مزامنة الرصد كلها من أجل تنظيف: نرجع إلى الدمج فيصل كل جديد،
              ويُؤجَّل التنظيف حتى يُعتمد الجهاز برقم المعلم (وشريط التنبيه يقولها). */
           try { await ref.set(payload); shrink.delete(tag); delete dropped[tag]; }
           catch (e2) {
             if (!isPerm(e2)) throw e2;
-            shrink.delete(tag); delete dropped[tag];
+            // الوسوم تبقى: يُعاد التنظيف عند اعتماد الجهاز — كان إسقاطها يُعيد الرصد المحذوف بعد الدخول التالي
             try { claimBar(); } catch (x) { }
             await ref.set({ tn: payload.tn, ts: payload.ts, d: clone(DB.recs[cid] || {}) }, { merge: true });
           }
-        } else await ref.set(payload, { merge: true });
+        } else { await ref.set(payload, { merge: true }); if (kind === "grades" && gDrop[cid]) gDrop[cid].clear(); }
+        persistPend();
         syncBadge(true);
       } catch (e) {
-        dirty.add(tag);
+        dirty.add(tag); persistPend();
         // رفض صلاحية ≠ انقطاع إنترنت: «سيُرفع تلقائياً عند عودة الإنترنت» وعدٌ كاذب هنا
         if (isPerm(e)) { syncBadge("perm"); try { claimBar(); } catch (x) { } }
         else syncBadge(false);
@@ -607,7 +633,7 @@
     if (A("sheets")) {
       const comps = [], parts = []; const mx = A("sheets").max;
       if (t.hwY + t.hwN) { comps.push(t.hwY / (t.hwY + t.hwN)); parts.push("واجبات " + t.hwY + "/" + (t.hwY + t.hwN)); }
-      const mine = ((SUBS[cid] || {}).rows || []).filter(r => r.si === si && r.mx);
+      const mine = recsOverride ? [] : ((SUBS[cid] || {}).rows || []).filter(r => r.si === si && r.mx);   // تسليماتي لا تدخل درجات معلم آخر
       if (mine.length) { comps.push(mine.reduce((a, r) => a + Math.min(1, r.sc / r.mx), 0) / mine.length); parts.push(mine.length + " ورقة تفاعلية"); }
       if (comps.length) { v.sheets = Math.round(comps.reduce((a, b) => a + b, 0) / comps.length * mx * 10) / 10; why.sheets = parts.join(" + "); }
     }
@@ -983,11 +1009,13 @@
             fdb.doc("recs/" + t.id + "_" + cid).get(),
             fdb.doc("grades/" + t.id + "_" + cid).get(),
             fdb.doc("comms/" + t.id + "_" + cid).get()]);
-          if (r.exists) DB.recs[cid] = (r.data() || {}).d || {};
-          if (g.exists) DB.grades[cid] = (g.data() || {}).g || {};
-          if (c.exists) DB.comms[cid] = (c.data() || {}).c || [];
+          // فصلٌ عليه رصد لم يُرفع بعد (وسم معلّق من جلسة سابقة): تبقى نسخته المحلية وتُرفع أولاً
+          if (r.exists && !dirty.has("recs:" + cid)) DB.recs[cid] = (r.data() || {}).d || {};
+          if (g.exists && !dirty.has("grades:" + cid)) DB.grades[cid] = (g.data() || {}).g || {};
+          if (c.exists && !dirty.has("comms:" + cid)) DB.comms[cid] = (c.data() || {}).c || [];
         }
         save();
+        if (dirty.size) { try { await pushDirty(); } catch (e) { } }
       } catch (e) { syncBadge(false); }
     }
     // جوالات أولياء الأمور وتصحيحات الأسماء: قراءتها تشترط مطالبة معلم، ولا تُقرأ في الإقلاع المجهول
@@ -1001,7 +1029,12 @@
     switchTab(adm ? "home" : "today");
     try { claimBar(); } catch (e) { }
   }
-  $("#ab-logout").onclick = () => { DB.session = null; DB.srole = null; save(); setTimeout(() => location.reload(), 300); };
+  $("#ab-logout").onclick = async () => {
+    DB.session = null; DB.srole = null; save();
+    // مطالبة الجلسة (sess/{uid}) تُحذف عند الخروج: كانت تبقى للجهاز كله — وبوابة الطالب على المتصفح نفسه تشاركه uid
+    try { if (CLOUD && fdb && firebase.auth().currentUser) await Promise.race([fdb.doc("sess/" + firebase.auth().currentUser.uid).delete(), new Promise(r => setTimeout(r, 2500))]); } catch (e) { }
+    setTimeout(() => location.reload(), 300);
+  };
 
   /* ═══════════ أوقات الحصص وسطر التواقيع — المصدر الوحيد: لوحة المدير (js/admin/core.js) ═══════════
      BELL() تعيد محرك جدول الأجراس من SIJIL_ADMIN (أوقات مدرسة المستخدم من cfg/bell)، وإن لم تُحمَّل اللوحة
@@ -1765,8 +1798,8 @@
         // ٠١٢… و۰۱۲… أرقام يكتبها جوال المعلم افتراضياً: كانت +value تعطي NaN فتُمسح الدرجة
         const v = arNum(inp.value);
         const num = v === "" ? null : Number(v);
-        if (v === "" || num == null || !isFinite(num)) { delete DB.grades[grClass][i][k]; inp.classList.toggle("bad", v !== ""); }
-        else { DB.grades[grClass][i][k] = Math.max(0, Math.min(num, a.max)); inp.classList.remove("bad"); }
+        if (v === "" || num == null || !isFinite(num)) { delete DB.grades[grClass][i][k]; (gDrop[grClass] = gDrop[grClass] || new Set()).add(i + "." + k); inp.classList.toggle("bad", v !== ""); }
+        else { DB.grades[grClass][i][k] = Math.max(0, Math.min(num, a.max)); if (gDrop[grClass]) gDrop[grClass].delete(i + "." + k); inp.classList.remove("bad"); }
         grSync(inp, i, k);
         // وضع العمود الواحد: رقمٌ لا يقبل خانة أخرى (٣ في بند سقفه ١٥) ⇒ الطالب التالي بلا نقرة
         if (one && v !== "" && num != null && isFinite(num) && num * 10 > a.max) hop(inp, 1);
@@ -1853,7 +1886,8 @@
     const filledMax = ASSESS.filter(a => g[a.k] != null).reduce((x, a) => x + a.max, 0);
     const pct = hasG && filledMax ? gtot / filledMax * 100 : null, lv = pct != null ? levelOf(pct) : null;
     let att = null; try { att = attPct(t); } catch (e) { att = null; }
-    const behAgg = {}; Object.values(DB.recs[cid] || {}).forEach(day => { const e = day[i]; if (!e) return; (e.beh || []).forEach(bi => behAgg[bi] = (behAgg[bi] || 0) + 1); });
+    const behAgg = {}, tfB = termFrom(), cdB = DB.recs[cid] || {};   // ضمن الفصل الدراسي الحالي كالنقاط والحضور
+    Object.keys(cdB).forEach(date => { if (tfB && date < tfB) return; const e = cdB[date][i]; if (!e) return; (e.beh || []).forEach(bi => behAgg[bi] = (behAgg[bi] || 0) + 1); });
     const pos = [], neg = []; Object.keys(behAgg).forEach(bi => { const b = BEH[bi]; if (!b) return; (((+b.pts) || 0) >= 0 ? pos : neg).push(`${b.name}${behAgg[bi] > 1 ? " ×" + behAgg[bi] : ""}`); });
     const subs = ((SUBS[cid] || {}).rows || []).filter(r => r.si === i && r.mx);
     const subsAvg = subs.length ? Math.round(subs.reduce((a, r) => a + Math.min(1, r.sc / r.mx), 0) / subs.length * 100) : null;
@@ -1999,7 +2033,7 @@
           const F = FILES();
           const extra = (F && added.length) ? ("\n" + added.map(r => "📎 " + r.n + ": " + F.viewURL(r.id)).join("\n")) : "";
           DB.comms[cid] = DB.comms[cid] || [];
-          DB.comms[cid].push({ si: i, why: o.querySelector("#cm-why").value, via: o.querySelector("#cm-via").value, note: o.querySelector("#cm-note").value.trim() + extra, date: hijriLabel() });
+          DB.comms[cid].push({ si: i, why: o.querySelector("#cm-why").value, via: o.querySelector("#cm-via").value, note: o.querySelector("#cm-note").value.trim() + extra, date: hijriLabel(), ts: Date.now() });
           save("comms:" + cid); closeSheet(); studentCard(cid, i);
         };
       });
@@ -2358,7 +2392,7 @@
         const before = Object.keys(DB.recs).concat(Object.keys(DB.grades), Object.keys(DB.comms));
         DB.recs = j.recs || {}; DB.grades = (j.grades && typeof j.grades === "object") ? j.grades : {}; DB.comms = (j.comms && typeof j.comms === "object") ? j.comms : {};
         // كل فصل مسّته الاستعادة (في الملف أو في سجلك قبلها) يُعلَّم للرفع، لا فصول الملف وحدها
-        [...new Set(before.concat(Object.keys(DB.recs), Object.keys(DB.grades), Object.keys(DB.comms)))].forEach(cid => { save("recs:" + cid); save("grades:" + cid); save("comms:" + cid); });
+        [...new Set(before.concat(Object.keys(DB.recs), Object.keys(DB.grades), Object.keys(DB.comms)))].forEach(cid => { ["recs:", "grades:", "comms:"].forEach(k => replaceAll.add(k + cid)); markDrop(cid); save("recs:" + cid); save("grades:" + cid); save("comms:" + cid); });
         alert("تمت الاستعادة بنجاح ✓"); renderToday();
       };
       rd.readAsText(f);
@@ -2496,7 +2530,7 @@
   }
   function planText(t) {
     const tips = [];
-    if (t.st[1] > 1) tips.push("متابعة الغياب والتواصل مع ولي الأمر");
+    if (absCnt(t) > 1) tips.push("متابعة الغياب والتواصل مع ولي الأمر");
     if (t.hwN > 0) tips.push("متابعة إنجاز الواجبات وتقديم دعم إضافي");
     if (t.behN > 0) tips.push("تعزيز السلوك الإيجابي والتحفيز");
     if (!tips.length) tips.push("تحفيز على المشاركة وحصص دعم قصيرة");
@@ -2506,8 +2540,8 @@
     const cls = myClasses(); let cid = cls[0].id;
     function render(o) {
       const rows = classCalc(cid).filter(r => r.active);
-      const rem = rows.filter(r => r.t.pts < 0 || r.t.st[1] > 1 || r.t.hwN > 0).sort((a, b) => a.t.pts - b.t.pts);
-      const enr = rows.filter(r => r.t.pts >= 5 && r.t.st[1] === 0).sort((a, b) => b.t.pts - a.t.pts).slice(0, 8);
+      const rem = rows.filter(r => r.t.pts < 0 || absCnt(r.t) > 1 || r.t.hwN > 0).sort((a, b) => a.t.pts - b.t.pts);
+      const enr = rows.filter(r => r.t.pts >= 5 && absCnt(r.t) === 0).sort((a, b) => b.t.pts - a.t.pts).slice(0, 8);
       const body = o.querySelector("#pl-body");
       body.innerHTML = `<div style="font-weight:800;color:var(--bad);margin:10px 0 6px">🩺 خطة علاجية (${rem.length})</div>
         ${rem.length ? rem.map(r => `<div class="comm-item"><b>${esc(r.s.n)}</b> — نقاط ${r.t.pts}${r.t.st[1] ? `، غياب ${r.t.st[1]}` : ""}${r.t.hwN ? `، واجبات ناقصة ${r.t.hwN}` : ""}<div class="meta">التوصية: ${planText(r.t)}</div></div>`).join("") : '<div class="empty-note" style="padding:12px">لا طلاب بحاجة لخطة علاجية 🎉</div>'}
@@ -3185,7 +3219,7 @@
     let curScene = -1;
     function showScene(i) {
       if (i === curScene) return; curScene = i; const sc = scenes[i]; if (!sc) return;
-      if (sc.img) vEl.innerHTML = `<img class="story-img" src="${sc.img}" alt="" onerror="this.parentNode.textContent='${sc.v || "📘"}'">`;
+      if (sc.img && /^(https?:\/\/[^\s"'<>]+|data\/lessons\/[^\s"'<>]+)$/.test(String(sc.img))) { const im = document.createElement("img"); im.className = "story-img"; im.alt = ""; im.src = String(sc.img); const fb = String(sc.v || "📘"); im.onerror = () => { try { im.parentNode.textContent = fb; } catch (e) { } }; vEl.innerHTML = ""; vEl.appendChild(im); }
       else vEl.textContent = sc.v || "📘";
       vEl.style.animation = "none"; void vEl.offsetWidth; vEl.style.animation = "";
       tEl.textContent = sc.t; tEl.style.animation = "none"; void tEl.offsetWidth; tEl.style.animation = "";
@@ -4932,7 +4966,9 @@
     return res;
   }
   async function adminMoves() {
-    const cls = D.classes.slice().sort((a, b) => (a.gc - b.gc) || a.name.localeCompare(b.name)); let cur = cls[0].id, busy = false;
+    const cls = D.classes.slice().sort((a, b) => (a.gc - b.gc) || a.name.localeCompare(b.name));
+    if (!cls.length) { openSheet(`<h4>👥 نقل الطلاب بين الفصول</h4><div class="empty-note">لا فصول بعد — أضف الفصول أولاً من «الفصول».</div><div class="sheet-actions"><button class="btn-primary" onclick="window._sheetClose()">إغلاق</button></div>`); return; }
+    let cur = cls[0].id, busy = false;
     openSheet(`<h4>👥 نقل الطلاب بين الفصول</h4>
       <div style="font-size:12.5px;color:var(--muted);margin-bottom:8px;line-height:1.8">اختر الفصل ثم «نقل إلى…» أو «🚪 خروج». تنتقل كل بيانات الطالب (الرصد اليومي والدرجات وسجل التواصل) لدى كل معلم يدرّس الفصلين، ويختفي من فصله القديم في كل الشاشات وعلى كل الأجهزة عند فتح التطبيق.</div>
       <div class="class-chips" id="mv-chips">${cls.map(x => `<button class="chip ${x.id === cur ? "on" : ""}" data-c="${x.id}">${esc(x.name)}</button>`).join("")}</div>
@@ -5165,7 +5201,11 @@
   }
 
   /* ═══════════ 📤 الأوراق التفاعلية: إرسال بالرابط + نتائج حيّة + اعتماد الدرجات ═══════════ */
+  /* الرابط يحمل رمز مساحة المدرسة (&s=) — بدونه كان طالب مدرسةٍ في مساحة يفتح الرابط على جهاز جديد فيقرأ الجذر
+     ويرى «الورقة غير موجودة». ومفتاح المعاينة عشوائي يبقى في متصفح المعلم فلا تعمل pv على جهاز طالب. */
+  const SPACE_Q = (window.SIJIL_SPACE ? "&s=" + encodeURIComponent(window.SIJIL_SPACE) : "");
   const ASSIGN_BASE = location.origin + location.pathname.replace(/[^/]*$/, "") + "w/?a=";
+  const pvKey = () => { try { let k = localStorage.getItem("sijil.pvkey"); if (!k || k.length < 8) { k = shortId() + shortId(); localStorage.setItem("sijil.pvkey", k); } return k; } catch (e) { return "1"; } };
   const MODES = [
     { k: "ws", ic: "📝", n: "ورقة عمل", d: "مفتوحة حتى الموعد · محاولات متعددة · التصحيح فوراً" },
     { k: "quiz", ic: "⏱️", n: "اختبار", d: "مؤقّت · محاولة واحدة · أسئلة مخلوطة" },
@@ -5596,7 +5636,7 @@
               idxOk = await idxAssign(id, item);
             } catch (e) { idxOk = false; }
           }
-          made.push({ cid: id, cname: c.name, id: aid, url: ASSIGN_BASE + aid, n: clean.length, doc, idx: idxOk, privOk, privMiss });
+          made.push({ cid: id, cname: c.name, id: aid, url: ASSIGN_BASE + aid + SPACE_Q, n: clean.length, doc, idx: idxOk, privOk, privMiss });
         }
         if (!made.length) { btn.disabled = false; btn.textContent = "📨 أرسِل إلى حسابات الطلاب"; alert("تعذّر الإرسال — تحقق من الاتصال"); return; }
         const out = $$("#as-out"); out.dataset.pv = "";
@@ -5612,7 +5652,7 @@
             ? `<div class="as-link"><code>${esc(made[0].url)}</code><button class="btn-soft" id="as-copy-url">🔗 الرابط فقط</button></div>
                <textarea class="search-box" id="as-msg" style="margin:8px 0 6px;height:140px;font-size:13px;line-height:1.7" readonly>${esc(msg1)}</textarea>
                <button class="btn-soft" id="as-copy" style="width:100%">📋 نسخ الرسالة كاملة مع الرابط</button>
-               <a class="btn-soft" target="_blank" rel="noopener" href="${esc(made[0].url)}&pv=1" style="display:block;width:100%;box-sizing:border-box;text-align:center;margin:8px 0 0;text-decoration:none">🧪 جرّبها كطالب (معاينة لا تُسجَّل)</a>
+               <a class="btn-soft" target="_blank" rel="noopener" href="${esc(made[0].url)}&pv=${esc(pvKey())}" style="display:block;width:100%;box-sizing:border-box;text-align:center;margin:8px 0 0;text-decoration:none">🧪 جرّبها كطالب (معاينة لا تُسجَّل)</a>
                <a class="wa-btn" target="_blank" rel="noopener" href="https://wa.me/?text=${encodeURIComponent(msg1)}">💬 أرسلها في الواتساب أيضاً (اختياري)</a>`
             : `<div class="as-rows">${made.map(m => `<div class="as-row"><b>${esc(m.cname)}</b><code>${esc(m.url)}</code><button class="btn-soft as-cp" data-u="${esc(m.url)}">📋 نسخ</button><a class="btn-soft" target="_blank" rel="noopener" href="https://wa.me/?text=${encodeURIComponent(msgFor(classById(m.cid), m.url, m.n, m.doc))}">💬 واتساب</a></div>`).join("")}</div>`)
           + `<div class="empty-note" style="padding:8px 2px 0">تابع من فتح وحلّ من «المزيد ← 📤 الأوراق المرسلة»</div>`;
@@ -5643,7 +5683,7 @@
         <div style="display:flex;gap:6px;margin-top:6px;flex-wrap:wrap">
           <button class="btn-soft" data-res="${a.id}">📊 النتائج</button>
           <button class="btn-soft" data-lnk="${a.id}">🔗 الرابط</button></div></div>`).join("");
-      body.querySelectorAll("[data-lnk]").forEach(b => b.onclick = () => { const u = ASSIGN_BASE + b.dataset.lnk; try { navigator.clipboard.writeText(u); b.textContent = "✔ نُسخ"; } catch (e) { prompt("الرابط:", u); } });
+      body.querySelectorAll("[data-lnk]").forEach(b => b.onclick = () => { const u = ASSIGN_BASE + b.dataset.lnk + SPACE_Q; try { navigator.clipboard.writeText(u); b.textContent = "✔ نُسخ"; } catch (e) { prompt("الرابط:", u); } });
       body.querySelectorAll("[data-res]").forEach(b => b.onclick = () => assignResults(list.find(x => x.id === b.dataset.res)));
     });
   }

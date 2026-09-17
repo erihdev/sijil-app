@@ -130,7 +130,8 @@
       const out = { ts: Date.now(), cloud: !!(s.CLOUD && s.fdb), recs: {}, grades: {}, comms: {}, moves: [], assign: [], sedits: {}, adminlog: [], demoGuess: [] };
       if (out.cloud) {
         const fdb = s.fdb;
-        const get = async (col) => { try { return await fdb.collection(col).get(); } catch (e) { warn("schoolDocs/" + col, e && e.message); return null; } };
+        out.failed = [];
+        const get = async (col) => { try { const q = await fdb.collection(col).get(); if (q.metadata && q.metadata.fromCache && !navigator.onLine) out.failed.push(col + " (من الذاكرة)"); return q; } catch (e) { warn("schoolDocs/" + col, e && e.message); out.failed.push(col); return null; } };
         const [rs, gs, cs, as, ls] = await Promise.all([get("recs"), get("grades"), get("comms"), get("assign"), get("adminlog")]);
         if (rs) rs.forEach(d => { out.recs[d.id] = (d.data() || {}).d || {}; });
         if (gs) gs.forEach(d => { out.grades[d.id] = (d.data() || {}).g || {}; });
@@ -340,12 +341,14 @@
       try { ex = (await s.fdb.doc("classes/" + cid).get()).exists; } catch (e) { ex = false; }
       if (ex) return { ok: false, err: "المعرّف «" + cid + "» لفصلٍ أُنشئ من جهازٍ آخر — أعد تحميل الصفحة" };
     }
-    // الطلاب لا يُمسّون هنا أبداً: التسمية تُعيد كتابة المستند، وإسقاطهم يمحو فصلاً كاملاً
-    const students = (cur && Array.isArray(cur.students)) ? cur.students.map(x => ({ n: String((x || {}).n || ""), p: String((x || {}).p || "") })) : [];
+    /* الطلاب لا يُمسّون هنا أبداً: D.classes نسخةُ العرض (بعد حركات النقل وتصحيحات sedits — وفيها الجوالات)،
+       فكتابتها في مستند الفصل كانت تسرّب الجوالات إلى مستندٍ يقرؤه كل زائر وتُثبّت المنقولين بلا حركاتهم.
+       التسمية تُعدَّل بدمجٍ يترك students كما هي في السحابة، والفصل الجديد يبدأ بقائمة فارغة. */
     const doc = { name: name, grade: String(rec.grade || (s.GNAME[gc] ? "الصف " + s.GNAME[gc] : "")).slice(0, 40),
-                  gc: gc, students: students, tn: (s.TE || {}).name || "", ts: Date.now() };
+                  gc: gc, tn: (s.TE || {}).name || "", ts: Date.now() };
+    if (rec.create) doc.students = [];
     try {
-      if (s.CLOUD && s.fdb) await s.fdb.doc("classes/" + cid).set(doc);
+      if (s.CLOUD && s.fdb) await s.fdb.doc("classes/" + cid).set(doc, { merge: true });
       const D = s.D; D.classes = D.classes || [];
       const i = D.classes.findIndex(x => x.id === cid);
       const local = Object.assign({ id: cid }, doc);
@@ -376,6 +379,16 @@
         let pd = null;
         try { const pv = await s.fdb.doc("spins/" + h).get(); pd = pv.exists ? (pv.data() || {}) : {}; } catch (e) { pd = null; }
         if (pd === null) return { ok: false, err: "تعذّرت قراءة بصمة الهوية — تحقق من الاتصال ثم أعد المحاولة" };
+        // البصمة القائمة لطالبٍ آخر (رقم سُجّل بالخطأ في موضع غيره)؟ لا يرث الجديدُ صندوقَه ولا رمزه
+        let foreign = false;
+        try {
+          if (pd.cid && (String(pd.cid) !== String(cid) || +pd.si !== +i)) {
+            const st = ((s.classById(cid) || {}).students || [])[i] || {};
+            const chain = (st.fromChain && st.fromChain.length) ? st.fromChain : (st.from && st.from.cid ? [st.from] : []);
+            foreign = !chain.some(x => x && String(x.cid) === String(pd.cid) && +x.si === +pd.si);
+          }
+        } catch (e) { foreign = false; }
+        if (foreign) pd = {};
         // مستندٌ جديد لطالبٍ منقول؟ نحمل مفتاحه ورمزه من بصمة فصله السابق قبل توليد أيّ جديد
         let old = null;
         if (!isMkStr(pd.mk)) { try { old = await oldPinOf(cid, i, dg); } catch (e) { old = null; } }
@@ -439,8 +452,20 @@
       if (s.CLOUD && s.fdb) {
         const d = await s.fdb.doc("spins/" + h).get();
         if (!d.exists) return { ok: false, err: "لا بصمة لهذا الرقم في هذا الفصل" };
+        const dd = d.data() || {};
         await s.fdb.doc("spins/" + h).delete();
-        return { ok: true, si: (d.data() || {}).si };
+        // الفهرسان (من له دخول، ومفاتيح الصناديق) يُنظَّفان إن كان الموضع ما زال مربوطاً بهذا المفتاح نفسه
+        try {
+          const si2 = +dd.si;
+          const mkd = await s.fdb.doc("mkeys/" + cid).get(); const k = mkd.exists ? (((mkd.data() || {}).k) || {}) : {};
+          if (dd.mk && k[String(si2)] === dd.mk) {
+            delete k[String(si2)];
+            await s.fdb.doc("mkeys/" + cid).set({ k: k, n: Object.keys(k).length, tn: (s.TE || {}).name || "", ts: Date.now() });
+            const sd = await s.fdb.doc("sids/" + cid).get(); const list = (sd.exists ? (((sd.data() || {}).list) || []) : []).filter(v => +v !== si2);
+            await s.fdb.doc("sids/" + cid).set({ list: list, n: list.length, tn: (s.TE || {}).name || "", ts: Date.now() });
+          }
+        } catch (e) { warn("unregisterNid/idx", e && e.message); }
+        return { ok: true, si: dd.si };
       }
       const DB = s.DB || window.DB || {};
       if (!DB.spins || !DB.spins[h]) return { ok: false, err: "لا بصمة لهذا الرقم في هذا الفصل" };

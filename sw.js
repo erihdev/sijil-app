@@ -51,14 +51,19 @@ async function dataFirst(req) {
    والاحتياطي إلى صفحة التطبيق لا يصلح إلا لطلب تنقّل: إعادةُ HTML لطلب صورة أو سكربت أو
    JSON غير مخزَّن تحوّل «انقطع الاتصال» الواضح إلى خطأ تحليل غامض، فنقصره على navigate. */
 async function netFirst(req) {
-  let err;
+  let err, bad = null;
   try {
     const r = await fetch(req);
-    if (r && r.ok) cPut(req, r.clone());
-    return r;
+    if (r && r.ok) { cPut(req, r.clone()); return r; }
+    if (!r || !(r.status >= 500)) return r;   // 404 وأمثالها (والتحويلات المعتمة) تُمرَّر كما هي
+    bad = r;                                    // 5xx من الحافة: نفضّل النسخة المخزّنة إن وُجدت
   } catch (e) { err = e; }
-  const hit = (await cMatch(req)) || (await cMatch(req, { ignoreSearch: true }));
+  /* تجاهل ?v= مقصورٌ على التنقّل والملفات غير المُرقَّمة: سكربتٌ مُرقَّم يُخدَم من نسخة قديمة
+     تحت HTML أحدث يعطي تطبيقاً مختلط النسخ. */
+  const versioned = /[?&]v=/.test(req.url) && req.mode !== "navigate";
+  const hit = (await cMatch(req)) || (versioned ? null : await cMatch(req, { ignoreSearch: true }));
   if (hit) return hit;
+  if (bad) return bad;
   if (req.mode === "navigate") {
     /* الصفحات المستقلة (بوابة الطالب s/ · ورقة العمل w/ · عارض المرفق v/) لها صفحاتها الخاصة:
        إعادة index.html لها كانت تُهبط الطالب في واجهة المعلم عند أول فتح بلا إنترنت. */

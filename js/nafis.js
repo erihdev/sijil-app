@@ -20,9 +20,11 @@
   function esc(s) { return String(s == null ? "" : s).replace(/[&<>"']/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]; }); }
   function fetchJson(rel) {
     if (P[rel]) return P[rel];
-    P[rel] = fetch(BASE + rel).then(function (r) { return r.ok ? r.json() : null; }).catch(function () { return null; });
+    P[rel] = fetch(BASE + rel).then(function (r) { return r.ok ? r.json() : null; }).catch(function () { return null; })
+      .then(function (d) { if (d == null) delete P[rel]; return d; });   // الفشل لا يُخزَّن: الطلب التالي يعيد المحاولة
     return P[rel];
   }
+  var num = function (v, d) { v = +v; return isFinite(v) ? v : d; };   // حقول subs الرقمية تُقسر قبل الحقن في HTML
   /* البنك مقسوم بالصف (bank_3 / bank_6): الطالب يحمّل صفه فقط، والإدارة الصفين. الاستدعاء المتكرر لا يعيد الجلب. */
   var LOADED = {};
   function load(gcs) {
@@ -101,24 +103,24 @@
   /* بطاقة الاختبار التشخيصي للفترة الأولى (نموذج Forms المحاكي للاختبارات الوطنية) — ثابتة أعلى كتل الأسبوع */
   function diagHtml(ctx, gc, sub) {
     var bi = bankItem(gc, "diag", 0), nq = graded(bi).length; if (!nq) return "";
-    var done = sub && sub.mx, pct = done ? Math.round(sub.sc / sub.mx * 100) : null;
+    var done = sub && num(sub.mx, 0), pct = done ? Math.round(num(sub.sc, 0) / num(sub.mx, 1) * 100) : null, att = done ? num(sub.att, 1) : 0, maxed = done && att >= TRIES;
     return '<div class="nf nfd" data-nf="' + gc + '|diag|0"><div class="nfh">🧪 الاختبار التشخيصي <small>الفترة الأولى · محاكٍ للاختبارات الوطنية</small></div>' +
       '<div class="nfo">' + esc((bi && bi.outcome) || "اختبار تشخيصي في القراءة والرياضيات" + (gc === 6 ? " والعلوم" : "")) + ' — ' + nq + ' سؤالاً</div>' +
-      '<div class="nfb"><button data-act="quiz" class="' + (done ? "done" : "g") + '">✅ ' + (done ? "أعد الاختبار <small>" + pct + "٪ · " + (sub.att || 1) + (sub.att > 1 ? " محاولات" : " محاولة") + "</small>" : "ابدأ الاختبار التشخيصي") + '</button></div><div class="nfx"></div></div>';
+      '<div class="nfb">' + (maxed ? '<button class="off done">✅ انتهت المحاولات <small>' + pct + '٪ · ' + att + ' محاولات</small></button>' : '<button data-act="quiz" class="' + (done ? "done" : "g") + '">✅ ' + (done ? "أعد الاختبار <small>" + pct + "٪ · " + att + (att > 1 ? " محاولات" : " محاولة") + "</small>" : "ابدأ الاختبار التشخيصي") + '</button>') + '</div><div class="nfx"></div></div>';
   }
   function block(ctx, gc, dom, k, sub) {
     css();
     if (dom === "diag") return diagHtml(ctx, gc, sub);
     var m = mediaItems(gc, dom).filter(function (x) { return x.k === k; })[0]; if (!m) return "";
-    var bi = bankItem(gc, dom, k), nq = graded(bi).length, done = sub && sub.mx;
-    var pct = done ? Math.round(sub.sc / sub.mx * 100) : null;
+    var bi = bankItem(gc, dom, k), nq = graded(bi).length, done = sub && num(sub.mx, 0);
+    var pct = done ? Math.round(num(sub.sc, 0) / num(sub.mx, 1) * 100) : null, att = done ? num(sub.att, 1) : 0, maxed = done && att >= TRIES;
     var vid = embedUrl(m.video), ext = (m.video && m.video.type === "link") ? m.video.url : "";
     return '<div class="nf" data-nf="' + gc + "|" + dom + "|" + k + '"><div class="nfh">' + DOMI[dom] + ' ' + esc(DOMN[dom]) + ' <small>' + esc(m.name) + '</small></div>' +
       '<div class="nfo">' + esc((bi && bi.outcome) || m.name) + '</div>' +
       '<div class="nfb">' +
       (vid ? '<button data-act="video">▶️ الفيديو</button>' : ext ? '<a href="' + esc(ext) + '" target="_blank" rel="noopener">▶️ الفيديو <small>(خارجي)</small></a>' : '<button class="off">▶️ لا فيديو</button>') +
       (m.doc ? '<button data-act="doc">📖 ملف الناتج</button>' : '<button class="off">📖 لا ملف</button>') +
-      (nq ? '<button data-act="quiz" class="' + (done ? "done" : "g") + '">✅ الاختبار <small>' + (done ? pct + "٪ · " + (sub.att || 1) + (sub.att > 1 ? " محاولات" : " محاولة") : nq + " سؤالاً") + '</small></button>' : '<button class="off">✅ الاختبار <small>قيد التجهيز</small></button>') +
+      (nq ? (maxed ? '<button class="off done">✅ انتهت المحاولات <small>' + pct + '٪</small></button>' : '<button data-act="quiz" class="' + (done ? "done" : "g") + '">✅ الاختبار <small>' + (done ? pct + "٪ · " + att + (att > 1 ? " محاولات" : " محاولة") : nq + " سؤالاً") + '</small></button>') : '<button class="off">✅ الاختبار <small>قيد التجهيز</small></button>') +
       '<button data-act="task">📋 المهمة الأدائية</button>' +
       (m.enrich ? '<button data-act="enrich">🖥️ العرض</button>' : "") +
       '</div><div class="nfx"></div></div>';
@@ -172,7 +174,7 @@
   function quiz(ctx, gc, dom, k, o) {
     css(); o = o || {};
     var bi = bankItem(gc, dom, k), qs = o.qs || graded(bi); if (!qs.length) return;
-    var a = o.a || key(gc, dom, k), S = ctx.S, docId = a + "_" + S.si, title = o.title || (bi && bi.name) || "", tries = o.tries || TRIES;
+    var a = o.a || key(gc, dom, k), S = ctx.S, docId = a + "_" + (S.mk || S.si), title = o.title || (bi && bi.name) || "", tries = o.tries || TRIES;
     var wrap = document.createElement("div"); wrap.className = "nfq"; document.body.appendChild(wrap);
     var qi = 0, answers = new Array(qs.length).fill(null), PREV = null;
     function close() { try { document.body.removeChild(wrap); } catch (e) { } if (ctx.onDone) ctx.onDone(); }
@@ -209,17 +211,19 @@
     function submit() {
       var missing = answers.filter(function (x) { return x == null || x === ""; }).length;
       if (missing && !confirm("بقي " + missing + " سؤالاً بلا إجابة — تسلّم الآن؟")) return;
-      wrap.innerHTML = '<div class="res"><div class="big">⏳</div><p>جارِ التصحيح…</p></div>';
+      wrap.innerHTML = '<div class="res"><div class="big">⏳</div><p>جارِ التصحيح…</p><div class="nav"><button class="p" id="nf-abort">إغلاق</button></div></div>';
+      wrap.querySelector("#nf-abort").onclick = close;
+      var tmo = function (p) { return Promise.race([p, new Promise(function (_, rej) { setTimeout(function () { var e = new Error("timeout"); e.code = "timeout"; rej(e); }, 15000); })]); };
       var g = gradeAll(), now = Date.now();
       var ansArr = answers.map(function (x) { return x == null ? -1 : (typeof x === "string" ? x.slice(0, 60) : x); });
       var rec;
       var go = function () {
         if (PREV && (PREV.att || 1) >= tries) { rec = PREV; return Promise.resolve("max"); }
         if (PREV) { rec = Object.assign({}, PREV, { best: Math.max(PREV.best != null ? PREV.best : PREV.sc, g.sc), lsc: g.sc, att: Math.min(99, (PREV.att || 1) + 1), lts: now }); }
-        else rec = { a: a, si: S.si, n: String(S.name || "").slice(0, 80), cid: S.cid, tid: "nafis", ans: ansArr, sc: g.sc, mx: qs.length, best: g.sc, lsc: g.sc, att: 1, ts: now };
-        return ctx.db.doc("subs/" + docId).set(rec).then(function () { return "ok"; }).catch(function (e) { return "err:" + (e && e.code || e); });
+        else rec = { a: a, si: S.si, n: String(S.name || "").slice(0, 80), cid: S.cid, tid: o.tid || "nafis", ans: ansArr, sc: g.sc, mx: qs.length, best: g.sc, lsc: g.sc, att: 1, ts: now };
+        return tmo(ctx.db.doc("subs/" + docId).set(rec)).then(function () { return "ok"; }).catch(function (e) { return "err:" + (e && e.code || e); });
       };
-      ctx.db.doc("subs/" + docId).get().then(function (d) { PREV = d.exists ? (d.data() || null) : null; }).catch(function () { PREV = null; }).then(go).then(function (st) {
+      tmo(ctx.db.doc("subs/" + docId).get()).then(function (d) { PREV = d.exists ? (d.data() || null) : null; }).catch(function () { PREV = null; }).then(go).then(function (st) {
         var pct = Math.round(g.sc / qs.length * 100), face = pct >= 80 ? "🏆" : pct >= 50 ? "👍" : "💪";
         wrap.innerHTML = '<div class="res"><div class="big">' + face + '</div><h2>' + g.sc + ' من ' + qs.length + '</h2><p>' + (pct >= 80 ? "ممتاز يا صقر نافس!" : pct >= 50 ? "جيد — راجع ما أخطأت فيه وأعد المحاولة" : "شاهد الفيديو مرة أخرى ثم أعد المحاولة") + '</p>' +
           (st === "max" ? '<p>استُنفدت المحاولات الثلاث — درجتك المسجّلة ' + rec.sc + ' من ' + rec.mx + '</p>' : st === "ok" ? '<p>سُجّلت محاولتك رقم ' + (rec.att || 1) + (rec.att > 1 ? ' · درجتك المسجّلة عند معلمك ' + rec.sc + ' من ' + rec.mx + ' (المحاولة الأولى)، وأفضل نتيجة ' + rec.best : "") + '</p>' : '<p style="color:#b33">تعذّر حفظ النتيجة الآن 📡 — درجتك محسوبة لكن لم تُسجَّل: ' + esc(st) + '</p>') +
@@ -235,8 +239,9 @@
   /* ═══ تقدّم الطالب: تسليماته لكل ناتج (get لكل مستند — القائمة ممنوعة على الطالب) ═══ */
   function progress(ctx, gc, doms) {
     var jobs = [];
-    if (graded(bankItem(gc, "diag", 0)).length) { var ad = key(gc, "diag", 0); jobs.push(ctx.db.doc("subs/" + ad + "_" + ctx.S.si).get().then(function (d) { return [ad, d.exists ? d.data() : null]; }).catch(function () { return [ad, null]; })); }
-    doms.forEach(function (dom) { mediaItems(gc, dom).forEach(function (m) { var a = key(gc, dom, m.k); jobs.push(ctx.db.doc("subs/" + a + "_" + ctx.S.si).get().then(function (d) { return [a, d.exists ? d.data() : null]; }).catch(function () { return [a, null]; })); }); });
+    var sid = ctx.S.mk || ctx.S.si;   // معرّف التسليم بمفتاح الطالب الخاص
+    if (graded(bankItem(gc, "diag", 0)).length) { var ad = key(gc, "diag", 0); jobs.push(ctx.db.doc("subs/" + ad + "_" + sid).get().then(function (d) { return [ad, d.exists ? d.data() : null]; }).catch(function () { return [ad, null]; })); }
+    doms.forEach(function (dom) { mediaItems(gc, dom).forEach(function (m) { var a = key(gc, dom, m.k); jobs.push(ctx.db.doc("subs/" + a + "_" + sid).get().then(function (d) { return [a, d.exists ? d.data() : null]; }).catch(function () { return [a, null]; })); }); });
     return Promise.all(jobs).then(function (rows) { var o = {}; rows.forEach(function (r) { if (r[1]) o[r[0]] = r[1]; }); return o; });
   }
   /* ═══ الحاضنة للبوابة: كتل الأسبوع لكل مجالات الصف ═══ */
@@ -251,6 +256,7 @@
   function results(ctx, opts) {
     css();
     var db = ctx.db, classes = opts.classes || [];
+    if (!db) return Promise.resolve({ html: '<div class="empty-note">النتائج تُقرأ من السحابة — غير متاحة في الوضع التجريبي.</div>', n: 0 });
     var pre = (window.NAFIS_J && window.NAFIS_J.preload) ? window.NAFIS_J.preload([3, 6]) : Promise.resolve();   // محتوى المنصة لحساب إجمالي المؤشرات
     return pre.then(function () { return db.collection("subs").where("tid", "==", "nafis").get(); }).then(function (snap) {
       var rows = []; snap.forEach(function (d) { rows.push(d.data()); });
@@ -265,8 +271,9 @@
         doms.forEach(function (dom) { mediaItems(gc, dom).forEach(function (m) { var bi = bankItem(gc, dom, m.k); if (bi && graded(bi).length) cols.push({ a: key(gc, dom, m.k), t: DOMI[dom] + " " + (/المؤشر/.test(m.name) ? "م" : "ن") + (ordinal(m.name) || m.k + 1), full: m.name, dom: dom, k: m.k }); }); });
         var students = (c.students || []).map(function (s, i) { return { i: i, n: s && s.n, gone: !s || !s.n || s.moved || s.gap }; }).filter(function (s) { return !s.gone; });
         var bySi = {}; list.forEach(function (r) { (bySi[r.si] = bySi[r.si] || {})[r.a] = r; });
-        var tests = list.filter(function (r) { return /^nf\d[rmsd]\d\d$/.test(r.a); });
-        var solved = tests.length, avg = tests.length ? Math.round(tests.reduce(function (t, r) { return t + r.sc / r.mx; }, 0) / tests.length * 100) : null;
+        var activeSi = {}; students.forEach(function (s) { activeSi[s.i] = 1; });
+        var tests = list.filter(function (r) { return activeSi[r.si] && /^nf\d[rmsd]\d\d$/.test(String(r.a || "")) && num(r.mx, 0) > 0; });
+        var solved = tests.length, avg = tests.length ? Math.round(tests.reduce(function (t, r) { return t + num(r.sc, 0) / num(r.mx, 1); }, 0) / tests.length * 100) : null;
         var jsum = window.NAFIS_J ? window.NAFIS_J.summarize(rows, gc) : null;   // رحلة الإتقان: مؤشرات مُتقنة لكل طالب
         html += '<div class="nfr" style="margin-top:12px"><div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:6px"><b>' + esc(c.name) + '</b><span style="font-size:12.5px;color:#6b7a8f">' + students.length + ' طالباً · ' + solved + ' تسليماً' + (avg != null ? ' · متوسط <bdi>' + avg + '%</bdi>' : "") + '</span></div>' +
           '<div style="overflow:auto;max-height:60vh;margin-top:6px"><table><tr><th>الطالب</th>' + cols.map(function (x) { return '<th title="' + esc(x.full || x.t) + '">' + esc(x.t) + '</th>'; }).join("") + (jsum ? '<th title="مؤشرات مُتقنة في رحلة الإتقان">🎯 إتقان</th>' : "") + '<th>المعدل</th></tr>' +

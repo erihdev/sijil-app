@@ -842,8 +842,7 @@
   /* ═══ (6) 💾 النسخة الاحتياطية الشاملة ═══ */
   async function allSubs() {
     const s = S(); if (isDemo()) return [];
-    try { const q = await s.fdb.collection("subs").get(); const out = []; q.forEach(d => out.push(Object.assign({ id: d.id }, d.data() || {}))); return out; }
-    catch (e) { warn("subs", e && e.message); return []; }
+    const q = await s.fdb.collection("subs").get(); const out = []; q.forEach(d => out.push(Object.assign({ id: d.id }, d.data() || {}))); return out;   // الفشل يُرفع لا يُبتلع: نسخة ناقصة أخطر من لا نسخة
   }
   function download(text, name) {
     const blob = new Blob([text], { type: "application/json;charset=utf-8" });
@@ -856,6 +855,7 @@
     const s = S(), Ad = A();
     Ad.toast("⏳ جارِ تجميع بيانات المدرسة…");
     const sd = await Ad.schoolDocs(true), subs = await allSubs();
+    if (sd && Array.isArray(sd.failed) && sd.failed.length) throw new Error("تعذّرت قراءة: " + sd.failed.join("، ") + " — النسخة ناقصة، أعد المحاولة بعد التأكد من الاتصال");
     const teachers = (s.D.teachers || []).map(t => { const x = Object.assign({}, t); delete x.pinHash; return x; });
     const out = {
       v: 3, kind: "sijil-school-backup", school: s.META.school.name, by: s.TE ? s.TE.name : "", cloud: !!(s.CLOUD && s.fdb),

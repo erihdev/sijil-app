@@ -492,7 +492,7 @@
           const was = String(cur[k] || ""), now = String(next[k] || "").slice(0, (a.SED_MAX || {})[k] || 200);
           if (was === now) return;
           patch[k] = now;
-          changes.push(LBL[k] + ": " + (now ? (was ? "«" + was + "» ← «" + now + "»" : "«" + now + "»") : "حُذف"));
+          changes.push(LBL[k] + (now ? (was ? " (تعديل)" : " (إضافة)") : " (حُذف)"));   // اسم الحقل لا قيمته: السجل ليس مكاناً للجوالات والملاحظات الصحية
         });
         const idRaw = q("id") ? q("id").value.trim() : "";
         const dg = idRaw ? (a.sidDigits ? a.sidDigits(idRaw) : idRaw.replace(/\D/g, "")) : "";
