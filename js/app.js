@@ -970,7 +970,7 @@
       const hd = host.querySelector(".appbar");
       host.insertBefore(el, hd ? hd.nextSibling : host.firstChild);
     }
-    el.innerHTML = `<span>🔐 هذا الجهاز لم يُعتمد برقمك بعد تحديث التطبيق، فتُرفض عليه: <b>إرسال الأوراق إلى حسابات الطلاب</b> و<b>رسائل حساب الطالب</b> و<b>قراءة الأوراق المرسلة ونتائجها</b> والحفظ في إعدادات المدرسة والمعلمين والجدول (وليس سببه الإنترنت). أدخل رقمك مرة واحدة ويبقى الجهاز معتمداً.</span><button class="btn-gold" id="claim-go">🔓 اعتماد الجهاز الآن</button>`;
+    el.innerHTML = `<span>🔐 هذا الجهاز لم يُعتمد برقمك بعد تحديث التطبيق، فتُرفض عليه: <b>إرسال الأوراق إلى حسابات الطلاب</b> و<b>رسائل حساب الطالب</b> و<b>قراءة الأوراق المرسلة ونتائجها</b> و<b>قراءة الرصد والدرجات من السحابة</b> والحفظ في إعدادات المدرسة والمعلمين والجدول (وليس سببه الإنترنت). أدخل رقمك مرة واحدة ويبقى الجهاز معتمداً.</span><button class="btn-gold" id="claim-go">🔓 اعتماد الجهاز الآن</button>`;
     const b = $("#claim-go"); if (b) b.onclick = () => { DB.session = null; DB.srole = null; save(); setTimeout(() => location.reload(), 250); };
   }
   /* ═══ البيانات الخاصة (sedits): جوالات أولياء الأمور وتصحيحات الأسماء ═══
@@ -1003,6 +1003,8 @@
     try { if (window.SIJIL_ADMIN && typeof window.SIJIL_ADMIN.refreshHeader === "function") window.SIJIL_ADMIN.refreshHeader(); } catch (e) { }
     if (CLOUD) {
       syncBadge(true);
+      // قراءة الرصد والدرجات تشترط مطالبة الجلسة (v80): تُنتظر المطالبة التي كتبها الدخول في الخلفية حتى لا تسبقها القراءة فتُرفض
+      try { const AU = window.SIJIL_AUTH; if (AU && typeof AU.claimReady === "function") await AU.claimReady(); } catch (e) { }
       try {
         for (const cid of (t.classes || [])) {
           const [r, g, c] = await Promise.all([
@@ -1016,7 +1018,7 @@
         }
         save();
         if (dirty.size) { try { await pushDirty(); } catch (e) { } }
-      } catch (e) { syncBadge(false); }
+      } catch (e) { if (isPerm(e)) { syncBadge("perm"); try { claimBar(); } catch (x) { } } else syncBadge(false); }   // رفض القواعد ليس انقطاعاً
     }
     // جوالات أولياء الأمور وتصحيحات الأسماء: قراءتها تشترط مطالبة معلم، ولا تُقرأ في الإقلاع المجهول
     try { await loadPrivate(); } catch (e) { }
@@ -1031,6 +1033,7 @@
   }
   $("#ab-logout").onclick = async () => {
     DB.session = null; DB.srole = null; save();
+    try { localStorage.removeItem("sijil.auth.claim"); } catch (e) { }   // أثر «كُتبت مطالبة» يزول مع المطالبة
     // مطالبة الجلسة (sess/{uid}) تُحذف عند الخروج: كانت تبقى للجهاز كله — وبوابة الطالب على المتصفح نفسه تشاركه uid
     try { if (CLOUD && fdb && firebase.auth().currentUser) await Promise.race([fdb.doc("sess/" + firebase.auth().currentUser.uid).delete(), new Promise(r => setTimeout(r, 2500))]); } catch (e) { }
     setTimeout(() => location.reload(), 300);
@@ -4789,7 +4792,7 @@
         rs.forEach(x => { if (x.id.endsWith(suf)) { const tid = x.id.slice(0, -suf.length); byT[tid] = byT[tid] || {}; byT[tid].recs = (x.data() || {}).d || {}; } });
         gs.forEach(x => { if (x.id.endsWith(suf)) { const tid = x.id.slice(0, -suf.length); byT[tid] = byT[tid] || {}; byT[tid].grades = (x.data() || {}).g || {}; } });
         Object.keys(byT).forEach(tid => { const t = D.teachers.find(z => z.id === tid); out.push({ tid, subject: t ? t.subject : tid, tname: t ? t.name : "", recs: byT[tid].recs || {}, grades: byT[tid].grades || {} }); });
-      } catch (e) { failed = true; }
+      } catch (e) { failed = (isPerm(e) && !claimOK()) ? "claim" : true; }   // رفض القواعد (جهاز بلا مطالبة) لا انقطاع
     }
     if (!out.length && TE && (DB.recs[cid] || DB.grades[cid])) {
       /* صاحب الرصد لا المُطَّلِع عليه: DB.by["recs:cid"] يكتبه save() عند كل حفظ تجريبي، وهو
@@ -4828,7 +4831,9 @@
       const bars = (ser) => { const last = ser.slice(-14); const mx = Math.max(5, ...last.map(x => Math.abs(x.p))); return `<div class="pg-bars">${last.map(x => `<div class="pg-bar" title="${x.date}: ${x.p}"><div style="height:${Math.round(Math.abs(x.p) / mx * 100)}%;background:${x.p >= 0 ? "var(--ok)" : "var(--bad)"}"></div><small>${x.date.slice(5).replace("-", "/")}</small></div>`).join("")}</div>`; };
       const b = o.querySelector("#pg-body"); if (!b) return;
       if (!rows.length) {
-        b.innerHTML = docs.failed
+        b.innerHTML = docs.failed === "claim"
+          ? '<div class="empty-note">🔐 هذا الجهاز لم يُعتمد برقمك بعد التحديث — مواد الزملاء تُقرأ من السحابة بعد الاعتماد (الشريط أعلى الصفحة).</div>'
+          : docs.failed
           ? '<div class="empty-note">تعذّر جلب مواد الطالب من السحابة — تحقق من الاتصال ثم أعد فتح البطاقة.</div>'
           : '<div class="empty-note">لا رصد لهذا الطالب في أي مادة بعد.</div>';
         return;

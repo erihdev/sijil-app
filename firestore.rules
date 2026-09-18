@@ -45,6 +45,36 @@ service cloud.firestore {
       return claimTid() != '' && tHas(claimTid()) && tDoc(claimTid()).get('admin', false) == true;
     }
     function anyClaim() { return claimTid() != ''; }
+    // ── مطالبة الطالب: st = {cid, si, h, mv?} في sess/{uid} — أثبتها الجهاز ببصمة هوية الطالب (spins/h)
+    //    أو بسلسلة حركات نقله. تُقصر بها قراءة رصد الفصل ودرجاته وفهرس أوراقه على طلاب الفصل نفسه. ──
+    function stSess() {
+      return exists(/databases/$(database)/documents/sess/$(request.auth.uid))
+           ? get(/databases/$(database)/documents/sess/$(request.auth.uid)).data.get('st', {}) : {};
+    }
+    function stCid() { return stSess().get('cid', ''); }
+    function spinDoc(h) { return get(/databases/$(database)/documents/spins/$(h)).data; }
+    function spinHas(h) { return exists(/databases/$(database)/documents/spins/$(h)); }
+    function mvHas(id) { return exists(/databases/$(database)/documents/moves/$(id)); }
+    function mvDoc(id) { return get(/databases/$(database)/documents/moves/$(id)).data; }
+    function mvId(x) { return x is string && x.matches('^[a-z0-9]{4,12}$'); }
+    // الموضع المُطالَب به هو موضع البصمة نفسه، أو ما تصل إليه حركةُ نقلٍ مسجَّلة (أو حركتان متتاليتان).
+    //   لا أكثر: كل حركة إضافية تضاعف تعبيرات التقييم فيتجاوز الطلب حدّ المحرك (1000 تعبير) ويُرفض؛
+    //   البوابة تتبع الحركات المطبَّقة نفسها، وما أبعد من حركتين يُرفض عندها برسالة «أعد تسجيل رقمك في فصلك الجديد».
+    function stProof(st) {
+      return (spinDoc(st.h).cid == st.cid && spinDoc(st.h).si == st.si)
+          || ('mv' in st && st.mv is list && st.mv.size() >= 1 && st.mv.size() <= 2 && mvId(st.mv[0]) && mvHas(st.mv[0])
+              && mvDoc(st.mv[0]).from == spinDoc(st.h).cid && mvDoc(st.mv[0]).si == spinDoc(st.h).si
+              && ((st.mv.size() == 1 && mvDoc(st.mv[0]).to == st.cid && mvDoc(st.mv[0]).newSi == st.si)
+                  || (st.mv.size() == 2 && mvId(st.mv[1]) && mvHas(st.mv[1])
+                      && mvDoc(st.mv[1]).from == mvDoc(st.mv[0]).to && mvDoc(st.mv[1]).si == mvDoc(st.mv[0]).newSi
+                      && mvDoc(st.mv[1]).to == st.cid && mvDoc(st.mv[1]).newSi == st.si)));
+    }
+    function stShape(st) {
+      return st is map && st.keys().hasOnly(['cid', 'si', 'h', 'mv'])
+          && st.cid is string && st.cid.matches('^[A-Za-z0-9]{1,12}$')
+          && st.si is int && st.si >= 0 && st.si < 400
+          && isHash(st.h) && spinHas(st.h) && stProof(st);
+    }
     // صاحب مستند الرصد/الدرجات/التواصل: الجزء الأول من معرّفه «معلم_فصل»
     function ownerOf(id) { return id.split('_')[0]; }
     function mayShrink(tid) { return isClaim(tid) || isAdminClaim(); }
@@ -207,10 +237,10 @@ service cloud.firestore {
     // ── sess/{uid}: مطالبة جهاز واحد بهوية معلم — لا تُقرأ من أي عميل، ولا تُكتب إلا ببصمة رقم حيّة ──
     //    المعرّف هو uid المصادقة المجهولة نفسه، فلا يكتب جهازٌ مطالبةَ جهاز آخر. والبصمة bp تُفحص
     //    وقت الكتابة (pins/{bp}.tid == tid) ثم لا تُقرأ أبداً — وجود المستند وحده هو الإثبات لاحقاً.
-    match /sess/{uid} {
-      allow read: if false;
-      allow create, update: if signedIn() && uid == request.auth.uid
-          && request.resource.data.keys().hasOnly(['tid', 'bp', 'ts'])
+    // مطالبة المعلم (tid/bp) ومطالبة الطالب (st) قد تجتمعان في مستندٍ واحد: المتصفح نفسه يفتح
+    //   تطبيق المعلم وبوابة الطالب بـuid واحد، وكتابة الطالب بالدمج لا تمسّ tid/bp (تُثبَّت كما هي).
+    function teacherClaimWrite() {
+      return request.resource.data.keys().hasOnly(['tid', 'bp', 'ts', 'st'])
           && request.resource.data.tid is string
           && request.resource.data.tid.matches('^t[0-9]{2,3}$')
           && request.resource.data.ts is number
@@ -220,7 +250,19 @@ service cloud.firestore {
           && tHas(request.resource.data.tid)
           && tDoc(request.resource.data.tid).get('pinHash', '') != request.resource.data.bp
           && pinHas(request.resource.data.bp)
-          && pinDoc(request.resource.data.bp).tid == request.resource.data.tid;
+          && pinDoc(request.resource.data.bp).tid == request.resource.data.tid
+          && (!('st' in request.resource.data) || stShape(request.resource.data.st));
+    }
+    function studentClaimWrite() {
+      return request.resource.data.keys().hasOnly(['tid', 'bp', 'ts', 'st'])
+          && request.resource.data.ts is number
+          && stShape(request.resource.data.get('st', {}))
+          && (!('tid' in request.resource.data)
+              || (resource != null && request.resource.data.tid == resource.data.tid && request.resource.data.get('bp', '') == resource.data.get('bp', '')));
+    }
+    match /sess/{uid} {
+      allow read: if false;
+      allow create, update: if signedIn() && uid == request.auth.uid && (teacherClaimWrite() || studentClaimWrite());
       allow delete: if signedIn() && uid == request.auth.uid;
     }
 
@@ -429,7 +471,9 @@ service cloud.firestore {
     //    من زائر كان يمحو فصلاً دراسياً كاملاً بلا حاجة إلى صلاحية حذف. النزع يحتاج مطالبة
     //    صاحب الرصد أو مطالبة مدير (استعادة نسخة احتياطية).
     match /recs/{id} {
-      allow read: if signedIn();
+      // رصد الفصل: لأصحاب المطالبات، أو لطالبٍ أثبت أنه من هذا الفصل (كان مفتوحاً لأي جهاز مصادَق مجهول)
+      allow get: if signedIn() && (anyClaim() || stCid() == id.split('_')[1]);
+      allow list: if anyClaim();
       allow create: if signedIn() && isPairKey(id) && stamped()
           && request.resource.data.d is map
           && request.resource.data.keys().hasOnly(['d', 'tn', 'ts']);
@@ -446,7 +490,8 @@ service cloud.firestore {
 
     // ── الدرجات: {g: خريطة الطلاب, tn, ts} ──
     match /grades/{id} {
-      allow read: if signedIn();
+      allow get: if signedIn() && (anyClaim() || stCid() == id.split('_')[1]);
+      allow list: if anyClaim();
       allow create: if signedIn() && isPairKey(id) && stamped()
           && request.resource.data.g is map
           && request.resource.data.keys().hasOnly(['g', 'tn', 'ts']);
@@ -591,7 +636,7 @@ service cloud.firestore {
     //    فلا يُحصد فهرس المدرسة كلها من الطرفية. والكتابة لمن أثبت رقم معلم وحده.
     //    والقائمة تنمو ولا تنقص (كما في filesidx حرفاً بحرف): تفريغها يُخفي مهام فصل كامل عن طلابه.
     match /assignidx/{cid} {
-      allow get: if signedIn();
+      allow get: if signedIn() && (anyClaim() || stCid() == cid);
       allow list: if anyClaim();
       allow create: if signedIn() && cid.matches('^[A-Za-z0-9]{1,12}$') && stamped() && anyClaim()
           && request.resource.data.list is list
@@ -930,6 +975,36 @@ service cloud.firestore {
         return claimTid_sp() != '' && tHas_sp(claimTid_sp()) && tDoc_sp(claimTid_sp()).get('admin', false) == true;
       }
       function anyClaim_sp() { return claimTid_sp() != ''; }
+      // ── مطالبة الطالب: st = {cid, si, h, mv?} في sess/{uid} — أثبتها الجهاز ببصمة هوية الطالب (spins/h)
+      //    أو بسلسلة حركات نقله. تُقصر بها قراءة رصد الفصل ودرجاته وفهرس أوراقه على طلاب الفصل نفسه. ──
+      function stSess_sp() {
+        return exists(/databases/$(database)/documents/sp/$(space)/sess/$(request.auth.uid))
+             ? get(/databases/$(database)/documents/sp/$(space)/sess/$(request.auth.uid)).data.get('st', {}) : {};
+      }
+      function stCid_sp() { return stSess_sp().get('cid', ''); }
+      function spinDoc_sp(h) { return get(/databases/$(database)/documents/sp/$(space)/spins/$(h)).data; }
+      function spinHas_sp(h) { return exists(/databases/$(database)/documents/sp/$(space)/spins/$(h)); }
+      function mvHas_sp(id) { return exists(/databases/$(database)/documents/sp/$(space)/moves/$(id)); }
+      function mvDoc_sp(id) { return get(/databases/$(database)/documents/sp/$(space)/moves/$(id)).data; }
+      function mvId_sp(x) { return x is string && x.matches('^[a-z0-9]{4,12}$'); }
+      // الموضع المُطالَب به هو موضع البصمة نفسه، أو ما تصل إليه حركةُ نقلٍ مسجَّلة (أو حركتان متتاليتان).
+      //   لا أكثر: كل حركة إضافية تضاعف تعبيرات التقييم فيتجاوز الطلب حدّ المحرك (1000 تعبير) ويُرفض؛
+      //   البوابة تتبع الحركات المطبَّقة نفسها، وما أبعد من حركتين يُرفض عندها برسالة «أعد تسجيل رقمك في فصلك الجديد».
+      function stProof_sp(st) {
+        return (spinDoc_sp(st.h).cid == st.cid && spinDoc_sp(st.h).si == st.si)
+            || ('mv' in st && st.mv is list && st.mv.size() >= 1 && st.mv.size() <= 2 && mvId_sp(st.mv[0]) && mvHas_sp(st.mv[0])
+                && mvDoc_sp(st.mv[0]).from == spinDoc_sp(st.h).cid && mvDoc_sp(st.mv[0]).si == spinDoc_sp(st.h).si
+                && ((st.mv.size() == 1 && mvDoc_sp(st.mv[0]).to == st.cid && mvDoc_sp(st.mv[0]).newSi == st.si)
+                    || (st.mv.size() == 2 && mvId_sp(st.mv[1]) && mvHas_sp(st.mv[1])
+                        && mvDoc_sp(st.mv[1]).from == mvDoc_sp(st.mv[0]).to && mvDoc_sp(st.mv[1]).si == mvDoc_sp(st.mv[0]).newSi
+                        && mvDoc_sp(st.mv[1]).to == st.cid && mvDoc_sp(st.mv[1]).newSi == st.si)));
+      }
+      function stShape_sp(st) {
+        return st is map && st.keys().hasOnly(['cid', 'si', 'h', 'mv'])
+            && st.cid is string && st.cid.matches('^[A-Za-z0-9]{1,12}$')
+            && st.si is int && st.si >= 0 && st.si < 400
+            && isHash_sp(st.h) && spinHas_sp(st.h) && stProof_sp(st);
+      }
       // صاحب مستند الرصد/الدرجات/التواصل: الجزء الأول من معرّفه «معلم_فصل»
       function ownerOf_sp(id) { return id.split('_')[0]; }
       function mayShrink_sp(tid) { return isClaim_sp(tid) || isAdminClaim_sp(); }
@@ -1111,10 +1186,10 @@ service cloud.firestore {
       // ── sess/{uid}: مطالبة جهاز واحد بهوية معلم — لا تُقرأ من أي عميل، ولا تُكتب إلا ببصمة رقم حيّة ──
       //    المعرّف هو uid المصادقة المجهولة نفسه، فلا يكتب جهازٌ مطالبةَ جهاز آخر. والبصمة bp تُفحص
       //    وقت الكتابة (pins/{bp}.tid == tid) ثم لا تُقرأ أبداً — وجود المستند وحده هو الإثبات لاحقاً.
-      match /sess/{uid} {
-        allow read: if false;
-        allow create, update: if signedIn_sp() && uid == request.auth.uid
-            && request.resource.data.keys().hasOnly(['tid', 'bp', 'ts'])
+      // مطالبة المعلم (tid/bp) ومطالبة الطالب (st) قد تجتمعان في مستندٍ واحد: المتصفح نفسه يفتح
+      //   تطبيق المعلم وبوابة الطالب بـuid واحد، وكتابة الطالب بالدمج لا تمسّ tid/bp (تُثبَّت كما هي).
+      function teacherClaimWrite_sp() {
+        return request.resource.data.keys().hasOnly(['tid', 'bp', 'ts', 'st'])
             && request.resource.data.tid is string
             && request.resource.data.tid.matches('^t[0-9]{2,3}$')
             && request.resource.data.ts is number
@@ -1124,7 +1199,19 @@ service cloud.firestore {
             && tHas_sp(request.resource.data.tid)
             && tDoc_sp(request.resource.data.tid).get('pinHash', '') != request.resource.data.bp
             && pinHas_sp(request.resource.data.bp)
-            && pinDoc_sp(request.resource.data.bp).tid == request.resource.data.tid;
+            && pinDoc_sp(request.resource.data.bp).tid == request.resource.data.tid
+            && (!('st' in request.resource.data) || stShape_sp(request.resource.data.st));
+      }
+      function studentClaimWrite_sp() {
+        return request.resource.data.keys().hasOnly(['tid', 'bp', 'ts', 'st'])
+            && request.resource.data.ts is number
+            && stShape_sp(request.resource.data.get('st', {}))
+            && (!('tid' in request.resource.data)
+                || (resource != null && request.resource.data.tid == resource.data.tid && request.resource.data.get('bp', '') == resource.data.get('bp', '')));
+      }
+      match /sess/{uid} {
+        allow read: if false;
+        allow create, update: if signedIn_sp() && uid == request.auth.uid && (teacherClaimWrite_sp() || studentClaimWrite_sp());
         allow delete: if signedIn_sp() && uid == request.auth.uid;
       }
 
@@ -1345,7 +1432,9 @@ service cloud.firestore {
       //    من زائر كان يمحو فصلاً دراسياً كاملاً بلا حاجة إلى صلاحية حذف. النزع يحتاج مطالبة
       //    صاحب الرصد أو مطالبة مدير (استعادة نسخة احتياطية).
       match /recs/{id} {
-        allow read: if signedIn_sp();
+        // رصد الفصل: لأصحاب المطالبات، أو لطالبٍ أثبت أنه من هذا الفصل (كان مفتوحاً لأي جهاز مصادَق مجهول)
+        allow get: if signedIn_sp() && (anyClaim_sp() || stCid_sp() == id.split('_')[1]);
+        allow list: if anyClaim_sp();
         allow create: if signedIn_sp() && isPairKey_sp(id) && stamped_sp()
             && request.resource.data.d is map
             && request.resource.data.keys().hasOnly(['d', 'tn', 'ts']);
@@ -1362,7 +1451,8 @@ service cloud.firestore {
 
       // ── الدرجات: {g: خريطة الطلاب, tn, ts} ──
       match /grades/{id} {
-        allow read: if signedIn_sp();
+        allow get: if signedIn_sp() && (anyClaim_sp() || stCid_sp() == id.split('_')[1]);
+        allow list: if anyClaim_sp();
         allow create: if signedIn_sp() && isPairKey_sp(id) && stamped_sp()
             && request.resource.data.g is map
             && request.resource.data.keys().hasOnly(['g', 'tn', 'ts']);
@@ -1507,7 +1597,7 @@ service cloud.firestore {
       //    فلا يُحصد فهرس المدرسة كلها من الطرفية. والكتابة لمن أثبت رقم معلم وحده.
       //    والقائمة تنمو ولا تنقص (كما في filesidx حرفاً بحرف): تفريغها يُخفي مهام فصل كامل عن طلابه.
       match /assignidx/{cid} {
-        allow get: if signedIn_sp();
+        allow get: if signedIn_sp() && (anyClaim_sp() || stCid_sp() == cid);
         allow list: if anyClaim_sp();
         allow create: if signedIn_sp() && cid.matches('^[A-Za-z0-9]{1,12}$') && stamped_sp() && anyClaim_sp()
             && request.resource.data.list is list

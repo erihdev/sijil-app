@@ -7,7 +7,17 @@
 import io, os, sys, json, argparse, collections
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 ap = argparse.ArgumentParser(); ap.add_argument("--grade", type=int, required=True); ap.add_argument("--src", required=True)
+ap.add_argument("--shuffle", action="store_true", help="خلط الخيارات خلطاً ثابتاً (بذرة من نص السؤال) — الإجابة الصحيحة تتوزع على المواضع")
 a = ap.parse_args()
+import random, hashlib
+def shuffled(opts, ans, seed):
+    # ترتيب ثابت لكل سؤال (لا يتغير بين البناءات) وموزّع: البذرة من نص السؤال
+    rnd = random.Random(int(hashlib.sha256(seed.encode("utf-8")).hexdigest()[:12], 16))
+    import re
+    PIN = re.compile(r"(جميع|كل)\s*(ما|الإجابات|ماسبق|الاجابات)|لا شيء مم|لا يوجد|كل ما ذكر")   # «جميع ما سبق» ونحوها تبقى آخراً
+    free = [i for i in range(len(opts)) if not PIN.search(opts[i])]; pinned = [i for i in range(len(opts)) if PIN.search(opts[i])]
+    rnd.shuffle(free); idx = free + pinned
+    return [opts[i] for i in idx], (idx.index(ans) if ans is not None and 0 <= ans < len(opts) else ans)
 d = json.load(io.open(a.src, encoding="utf-8"))
 DOM = {"ARABIC": "read", "MATH": "math", "SCIENCE": "sci"}
 LET = ["أ", "ب", "ج", "د", "هـ", "و"]
@@ -26,6 +36,8 @@ for s in d["subjects"]:
                 letters = [str(x.get("letter") or "") for x in q.get("options", [])]
                 cl = q.get("correctLetter"); ans = letters.index(cl) if cl in letters else (LET.index(cl) if cl in LET else None)
                 if ans is None: st["unkeyed"] += 1
+                if a.shuffle and ans is not None: opts, ans = shuffled(opts, ans, (q.get("text") or "") + "|" + str(q.get("id") or ""))
+                if ans is not None: st["pos_" + "ABCD"[ans] if ans < 4 else "pos_x"] += 1
                 I["q"].append({"q": (q.get("text") or "").strip(), "type": "mcq", "opts": opts, "ans": ans}); st["q"] += 1
             if not I["explain"]: st["no_explain"] += 1
             O["inds"].append(I); st["ind"] += 1

@@ -426,7 +426,8 @@
     }
     if (demo && (!t || t.reg !== true) && pin === DEMO_PIN) return { ok: true, via: "demo", weak: weakOf(pin) };
     if (!online) {
-      if (await localOk(tid, h)) return { ok: true, via: "offline", weak: weakOf(pin) };
+      // دخولٌ دون اتصال: تُقيَّد المطالبة (تُكتب حين يعود الاتصال) — وإلا بقي الجهاز بلا مطالبة فرُفضت عليه قراءة الرصد
+      if (await localOk(tid, h)) { claimSession(tid, h).catch(() => { }); return { ok: true, via: "offline", weak: weakOf(pin) }; }
       if (t && t.reg !== true && t.pinHash === h) return { ok: true, via: "offline-legacy", weak: weakOf(pin) };
       return { ok: false, err: MSG.off };
     }
@@ -572,6 +573,7 @@
     dropStaleHash: dropStaleHash,
     // مطالبة الجلسة: يكتبها الدخول تلقائياً، وhasClaim تخبر الواجهة أن الكتابة المُتلِفة ستُقبل
     claim: claimSession,
+    claimReady: claimReady,
     hasClaim: hasClaim,
     needsClaim: needsClaim,
     explain: explain,

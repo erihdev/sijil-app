@@ -17,7 +17,7 @@
 <meta property="og:type" content="website"><meta property="og:site_name" content="نجوم المدرسة">
 <meta property="og:title" content="بوابة الطالب — نجوم المدرسة">
 <meta property="og:description" content="افتح البوابة من جوالك: نقاطك وحضورك وموادك ومهامك ودروسك وشهادتك في مكان واحد.">
-<meta property="og:image" content="https://sijli.erihdev.com/assets/og.jpg?v=79"><meta property="og:image:width" content="1200"><meta property="og:image:height" content="630">
+<meta property="og:image" content="https://sijli.erihdev.com/assets/og.jpg?v=80"><meta property="og:image:width" content="1200"><meta property="og:image:height" content="630">
 <meta name="twitter:card" content="summary_large_image">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -36,10 +36,10 @@
   if (m !== "skip") { try { D.documentElement.classList.add("intro-bar"); } catch (e) { } }
   if (m === "full") { var a = function () { if (D.body) { D.body.classList.add("has-intro"); return 1; } };
     if (!a()) { try { new MutationObserver(function (x, o) { if (a()) o.disconnect(); }).observe(D.documentElement, { childList: true }); } catch (e) { } D.addEventListener("DOMContentLoaded", a); } }
-  try { var t = D.createElement("script"); t.src = "../js/intro-boot.js?v=79"; t.async = false; D.head.appendChild(t); } catch (e) { }
+  try { var t = D.createElement("script"); t.src = "../js/intro-boot.js?v=80"; t.async = false; D.head.appendChild(t); } catch (e) { }
 })();
 </script>
-<link rel="stylesheet" href="../css/intro.css?v=79">
+<link rel="stylesheet" href="../css/intro.css?v=80">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800;900&display=swap">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='22' fill='%230E2033'/><path d='M27 43 A23 23 0 1 0 73 43' fill='none' stroke='%23F2CC6B' stroke-width='9.5' stroke-linecap='round'/><path d='M50 14 L54.2 24 L65 25 L57 32 L59.5 42.5 L50 37 L40.5 42.5 L43 32 L35 25 L45.8 24 Z' fill='%23F2CC6B'/></svg>">
 <style>
@@ -648,7 +648,7 @@ h2{font-size:19px;font-weight:800;color:var(--navy);margin:0 0 10px}
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-check-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
-<script src="../js/fb.js?v=79"></script>
+<script src="../js/fb.js?v=80"></script>
 <script>
 /* ═══════════════════════════════════════════════════════════════════════════════════════
    نجوم المدرسة — بوابة الطالب (نواة)
@@ -797,9 +797,69 @@ h2{font-size:19px;font-weight:800;color:var(--navy);margin:0 0 10px}
   }
   /* موضع الطالب اليوم: مستند البصمة يحمل فصله وفهرسه يوم سُجّل رقمه، والحركات تنقله بعدها.
      نمشي سلسلة الحركات المطبَّقة حتى نصل إلى موضعه الحالي، أو نعرف أنه غادر المدرسة. */
+  /* معرّفات حركات النقل من موضع البصمة إلى الموضع الحالي (حتى حركتين — ما تتحقق منه القواعد؛ أكثر منهما يتجاوز حدّ تعبيرات المحرك) */
+  function moveChain(cid, si, cid1, si1) {
+    const idx = {}; (D.moves || []).forEach(m => { if (m.appliedSi != null) idx[m.from + ":" + m.si] = m; });
+    const ids = [];
+    for (let hop = 0; hop < 2; hop++) {
+      if (cid === cid1 && si === si1) return ids;
+      const m = idx[cid + ":" + si]; if (!m || !m.id) return null;
+      ids.push(m.id); cid = m.to; si = m.appliedSi;
+    }
+    return (cid === cid1 && si === si1) ? ids : null;
+  }
+  /* مطالبة جلسة الطالب: sess/{uid}.st — بها تُقصر قراءة رصد الفصل ودرجاته على طلاب الفصل نفسه.
+     تُكتب بالدمج (مطالبة معلم على المتصفح نفسه تبقى)، وتُضمن قبل كل قراءة، وتُعاد إن فشلت. */
+  let CLAIM_INFO = null, CLAIM_P = null, CLAIM_UID = "";
+  function setClaimInfo(cid, si, h, dcid, dsi) { CLAIM_INFO = { cid, si, h: String(h || ""), dcid: String(dcid || ""), dsi: +dsi }; CLAIM_P = null; }
+  function ensureClaim() {
+    if (!CLOUD || !db || !CLAIM_INFO || !CLAIM_INFO.h) return Promise.resolve(false);
+    let uid = ""; try { uid = (firebase.auth().currentUser || {}).uid || ""; } catch (e) { }
+    if (!uid) return Promise.resolve(false);
+    if (CLAIM_P && CLAIM_UID === uid) return CLAIM_P;
+    CLAIM_UID = uid;
+    const st = { cid: CLAIM_INFO.cid, si: CLAIM_INFO.si, h: CLAIM_INFO.h };
+    if (CLAIM_INFO.dcid && (CLAIM_INFO.dcid !== CLAIM_INFO.cid || CLAIM_INFO.dsi !== CLAIM_INFO.si)) {
+      const mv = moveChain(CLAIM_INFO.dcid, CLAIM_INFO.dsi, CLAIM_INFO.cid, CLAIM_INFO.si);
+      if (!mv) { CLAIM_P = Promise.resolve(false); return CLAIM_P; }
+      if (mv.length) st.mv = mv;
+    }
+    CLAIM_P = withTimeout(db.doc("sess/" + uid).set({ st: st, ts: Date.now() }, { merge: true })).then(() => true).catch(() => { CLAIM_P = null; return false; });
+    return CLAIM_P;
+  }
+  /* هل تستطيع القواعد إثبات هذا الموضع لبصمةٍ سُجّلت في (dcid, dsi)؟ الموضع نفسه، أو حتى حركتين مطبَّقتين.
+     ما وراء ذلك يُرفض عند الدخول برسالة «أعد تسجيل رقمك» بدل بوابةٍ تبدو فارغة لأن كل قراءة تُرفض بصمت. */
+  function provable(dcid, dsi, cid, si) {
+    dcid = String(dcid || ""); dsi = +dsi;
+    return (dcid === cid && dsi === si) || !!moveChain(dcid, dsi, cid, si);
+  }
+  /* قراءة مقيّدة بالمطالبة: رفضُ الصلاحية يعني أن sess/{uid} زالت أو فقدت st (معلم على المتصفح نفسه —
+     الـuid المجهول واحد — كتب مطالبته بلا دمج، أو حذفها عند خروجه) — فتُعاد المطالبة ثم القراءة مرة واحدة. */
+  const isPermErr = (e) => String((e && (e.code || e.message)) || "").toLowerCase().indexOf("permission") >= 0;
+  async function cdoc(path) {
+    await ensureClaim();
+    try { return await fdoc(path); }
+    catch (e) {
+      if (!isPermErr(e) || !CLAIM_P) throw e;
+      CLAIM_P = null; await ensureClaim();
+      return await fdoc(path);
+    }
+  }
+  /* إسقاط مطالبة الطالب عند الخروج أو سقوط الجلسة: لا يبقى للجهاز حق قراءة رصد فصلٍ غادره صاحبه.
+     نزع st وحده يجوز عندما يشارك المستندَ معلمٌ (tid/bp)، وإلا يُحذف المستند كله. */
+  function dropClaim() {
+    CLAIM_INFO = null; CLAIM_P = null;
+    if (!CLOUD || !db) return Promise.resolve();
+    let uid = ""; try { uid = (firebase.auth().currentUser || {}).uid || ""; } catch (e) { }
+    if (!uid) return Promise.resolve();
+    const ref = db.doc("sess/" + uid);
+    return withTimeout(ref.update({ st: firebase.firestore.FieldValue.delete(), ts: Date.now() }))
+      .catch(() => withTimeout(ref.delete()).catch(() => { }));
+  }
   function resolvePos(cid, si) {
     const idx = {};
-    (D.moves || []).forEach(m => { if (m.appliedSi != null || m.to === "out") idx[m.from + ":" + m.si] = m; });
+    (D.moves || []).forEach(m => { if (m.to === "out") idx[m.from + ":" + m.si] = m; });
+    (D.moves || []).forEach(m => { if (m.appliedSi != null) idx[m.from + ":" + m.si] = m; });   // المطبَّقة تغلب حركة خروج قديمة للموضع نفسه
     for (let hop = 0; hop < 8; hop++) {
       const m = idx[cid + ":" + si];
       if (!m) return { cid, si };
@@ -964,7 +1024,7 @@ h2{font-size:19px;font-weight:800;color:var(--navy);margin:0 0 10px}
         if (!D.classes.length || !D.meta.states) throw new Error("data");
       } else {
         db = demoDb;
-        await loadScript("../js/demo-data.js?v=79");
+        await loadScript("../js/demo-data.js?v=80");
         const DEMO = window.DEMO || {};
         D.classes = JSON.parse(JSON.stringify(DEMO.classes || []));
         D.teachers = JSON.parse(JSON.stringify(DEMO.teachers || []));
@@ -1188,11 +1248,11 @@ h2{font-size:19px;font-weight:800;color:var(--navy);margin:0 0 10px}
     let r; NID_LAST = nid;
     try { r = await lookup(pickC, nid); }
     catch (e) { if (btn) { btn.disabled = false; btn.textContent = "دخول ←"; } return loginErr("ما قدرنا نتصل الآن 📡<br>تأكد من الإنترنت وجرّب مرة أخرى."); }
-    if (btn) { btn.disabled = false; btn.textContent = "دخول ←"; }
-    if (!r) { afterBad("ما لقينا هذا الرقم 🤔<br>تأكد منه، أو اسأل معلمك."); return; }
-    if (r.out) { loginErr("يبدو أنك انتقلت من هذه المدرسة 🌱<br>راجع معلمك."); return; }
-    if (r.doc.c) { H = r.h; return askCode(r); }
-    finish(r, true);
+    const enable = () => { if (btn) { btn.disabled = false; btn.textContent = "دخول ←"; } };
+    if (!r) { enable(); afterBad("ما لقينا هذا الرقم 🤔<br>تأكد منه، أو اسأل معلمك."); return; }
+    if (r.out) { enable(); loginErr(r.far ? "انتقلت أكثر من مرة 🌱<br>اطلب من معلمك إعادة تسجيل رقمك في فصلك الجديد." : "يبدو أنك انتقلت من هذه المدرسة 🌱<br>راجع معلمك."); return; }
+    if (r.doc.c) { enable(); H = r.h; return askCode(r); }
+    await finish(r, true);   // الزر يبقى معطلاً حتى تكتمل (كتابة المطالبة قد تستغرق لحظات): لا دخول مزدوج
   }
   function afterBad(msg) {
     const l = lockFail();
@@ -1217,6 +1277,7 @@ h2{font-size:19px;font-weight:800;color:var(--navy);margin:0 0 10px}
     const doc = snap.data() || {};
     const pos = resolvePos(String(doc.cid || ""), +doc.si);
     if (pos.out) return { out: true };
+    if (CLOUD && !provable(doc.cid, doc.si, pos.cid, pos.si)) return { out: true, far: true };
     const c = clsById(pos.cid), st = c && (c.students || [])[pos.si];
     if (!c || !st || st.gap || st.moved) return { out: true };
     return { h: used, doc, cid: pos.cid, si: pos.si };
@@ -1246,13 +1307,18 @@ h2{font-size:19px;font-weight:800;color:var(--navy);margin:0 0 10px}
         if ((await sha256(v + "|" + hv)) === r.doc.c) { okc = true; break; }
       }
       if (!okc) { inp.value = ""; return afterBad("الرمز غير صحيح 🤔"); }
-      finish(r, false);
+      const b = $("#in"); if (b) { b.disabled = true; b.textContent = "لحظة…"; }
+      await finish(r, false);
     };
     tickLock();
   }
-  function finish(r, offerCode) {
+  let FIN = false;
+  async function finish(r, offerCode) {
+    if (FIN) return; FIN = true;
     lockClear(); H = r.h; ssSet(HKEY, r.h);
     HASCODE = !!(r.doc || {}).c;
+    setClaimInfo(r.cid, r.si, r.h, (r.doc || {}).cid, (r.doc || {}).si);
+    try { await ensureClaim(); } catch (e) { }
     /* mk مفتاح صندوق رسائله: يأتي داخل بصمة هويته ولا يُعرف بغيرها، ويُحفظ مع الجلسة على جهازه
        لأن الجلسة المستأنفة لا تعيد قراءة البصمة. من لا مفتاح له = مدرسة سجّلت هوياتها قبل الميزة. */
     const sess = { cid: r.cid, si: r.si, ts: Date.now(), mk: String((r.doc || {}).mk || ""), h: r.h, hc: HASCODE };
@@ -1263,20 +1329,24 @@ h2{font-size:19px;font-weight:800;color:var(--navy);margin:0 0 10px}
     let s = null; try { s = JSON.parse(lsGet(SKEY) || "null"); } catch (e) { }
     if (!s || !s.cid || !(s.si >= 0)) return null;
     s.mk = String(s.mk || "");
-    if (!(+s.ts > 0) || Date.now() - s.ts > SMAX) { lsDel(SKEY); return null; }
+    if (!(+s.ts > 0) || Date.now() - s.ts > SMAX) { lsDel(SKEY); await dropClaim(); return null; }
     const pos = resolvePos(s.cid, s.si);
-    if (pos.out) { lsDel(SKEY); return null; }
+    if (pos.out) { lsDel(SKEY); await dropClaim(); return null; }
     const c = clsById(pos.cid), st = c && (c.students || [])[pos.si];
-    if (!c || !st || st.gap || st.moved) { lsDel(SKEY); return null; }
+    if (!c || !st || st.gap || st.moved) { lsDel(SKEY); await dropClaim(); return null; }
     /* الجلسة المحفوظة ليست إثباتاً بذاتها: تُطابَق ببصمتها في السحابة (قراءة واحدة) — فلا يفتح سجلَّ طفلٍ
        مَن كتب cid/si في تخزين المتصفح، ويُجدَّد منها مفتاح الرسائل لجلسةٍ حُفظت قبل وجوده. */
     if (CLOUD) {
-      if (!s.h || !/^[0-9a-f]{64}$/.test(String(s.h))) { lsDel(SKEY); return null; }
+      if (!s.h || !/^[0-9a-f]{64}$/.test(String(s.h))) { lsDel(SKEY); await dropClaim(); return null; }
       const d = await fdoc("spins/" + s.h);
-      if (!d.exists) { lsDel(SKEY); return null; }
+      if (!d.exists) { lsDel(SKEY); await dropClaim(); return null; }
       const dd = d.data() || {}, p2 = resolvePos(String(dd.cid || ""), +dd.si);
-      if (p2.out || p2.cid !== pos.cid || p2.si !== pos.si) { lsDel(SKEY); return null; }
+      if (p2.out || p2.cid !== pos.cid || p2.si !== pos.si) { lsDel(SKEY); await dropClaim(); return null; }
+      // ما لا تثبته القواعد (أكثر من حركتين منذ تسجيل الرقم) يعود إلى شاشة الدخول برسالتها بدل بوابة فارغة
+      if (!provable(dd.cid, dd.si, pos.cid, pos.si)) { lsDel(SKEY); await dropClaim(); return null; }
       s.mk = String(dd.mk || s.mk || "");
+      setClaimInfo(pos.cid, pos.si, s.h, dd.cid, dd.si);
+      try { await ensureClaim(); } catch (e) { }
     }
     // البصمة من الجلسة أولاً ثم من sessionStorage (لجلسةٍ حُفظت قبل هذا الإصلاح)
     H = (typeof s.h === "string" && s.h) ? s.h : ssGet(HKEY);
@@ -1358,7 +1428,7 @@ h2{font-size:19px;font-weight:800;color:var(--navy);margin:0 0 10px}
     sheet(`<h2>تخرج من بوابتك؟ 🚪</h2>
       <button class="go gold" id="so">نعم، خروج</button>
       <button class="go soft" id="sc" style="margin-top:9px">لا، أبقى</button>`, (box, close) => {
-      box.querySelector("#so").onclick = () => { lsDel(SKEY); ssDel(HKEY); H = null; S = null; RECS = null; GRADES = null; close(); location.reload(); };
+      box.querySelector("#so").onclick = async () => { lsDel(SKEY); ssDel(HKEY); H = null; S = null; RECS = null; GRADES = null; close(); try { await dropClaim(); } catch (e) { } location.reload(); };
       box.querySelector("#sc").onclick = close;
     });
   }
@@ -1666,7 +1736,7 @@ h2{font-size:19px;font-weight:800;color:var(--navy);margin:0 0 10px}
     if (!CLOUD) { RECS = demoRecs(S.cid); forgetPeers(); return RECS; }
     const out = {};
     const list = myTeachers();
-    const snaps = await Promise.all(list.map(t => fdoc("recs/" + t.id + "_" + S.cid).catch(() => null)));
+    const snaps = await Promise.all(list.map(t => cdoc("recs/" + t.id + "_" + S.cid).catch(() => null)));
     snaps.forEach((s, k) => { if (s && s.exists) out[list[k].id] = (s.data() || {}).d || {}; });
     RECS = out; forgetPeers(); return RECS;
   }
@@ -1675,7 +1745,7 @@ h2{font-size:19px;font-weight:800;color:var(--navy);margin:0 0 10px}
     const out = {};
     if (!CLOUD) { GRADES = out; return out; }
     const list = myTeachers();
-    const snaps = await Promise.all(list.map(t => fdoc("grades/" + t.id + "_" + S.cid).catch(() => null)));
+    const snaps = await Promise.all(list.map(t => cdoc("grades/" + t.id + "_" + S.cid).catch(() => null)));
     snaps.forEach((s, k) => { if (s && s.exists) out[list[k].id] = (s.data() || {}).g || {}; });
     GRADES = out;
     const si = S.si;
@@ -1762,7 +1832,8 @@ h2{font-size:19px;font-weight:800;color:var(--navy);margin:0 0 10px}
     get D() { return D; },
     get META() { return META; },
     get STATES() { return STATES; }, get BEH() { return BEH; }, get W() { return W; },
-    fdoc, fcol, withTimeout, esc, ord, arNum, sha256, applyMoves, resolvePos, clsById, secOf,
+    fdoc: cdoc,   // قراءات التبويبات (درجات/فهرس الأوراق) بعد ضمان مطالبة الطالب — وتُعاد المطالبة مرة عند رفض الصلاحية
+    fcol, withTimeout, esc, ord, arNum, sha256, applyMoves, resolvePos, clsById, secOf,
     myTeachers, loadRecs, loadGrades, calcOne, calcAll, attPct, streak, rank: rankOf, termFrom,
     board() { return (BOARD || []).map(x => ({ n: x.n, pts: x.pts, me: x.me })); },
     liveBoard() { return LIVEB ? JSON.parse(JSON.stringify(LIVEB)) : null; },
@@ -1774,17 +1845,23 @@ h2{font-size:19px;font-weight:800;color:var(--navy);margin:0 0 10px}
     watchRecs(cb) {
       if (!CLOUD || !db || !S) return null;
       const list = myTeachers(), subs = [];
-      list.forEach(t => {
+      let off = false, retried = false;
+      const stop = () => { subs.splice(0).forEach(u => { try { u(); } catch (e) { } }); };
+      const go = () => ensureClaim().then(() => { if (off) return; list.forEach(t => {
         try {
           subs.push(db.doc("recs/" + t.id + "_" + S.cid).onSnapshot((d) => {
             RECS = RECS || {};
             RECS[t.id] = (d && d.exists) ? (((d.data() || {}).d) || {}) : {};
             try { forgetPeers(); } catch (e) { }
             try { if (cb) cb(t.id); } catch (e) { }
-          }, () => { }));
+          }, (e) => {   // رفض الصلاحية: زالت المطالبة (معلم على المتصفح نفسه) — تُعاد ويُعاد الاشتراك مرة
+            if (off || retried || !isPermErr(e)) return;
+            retried = true; CLAIM_P = null; stop(); go();
+          }));
         } catch (e) { }
-      });
-      return () => subs.forEach(u => { try { u(); } catch (e) { } });
+      }); });
+      go();
+      return () => { off = true; stop(); };
     },
     // شارة تبويب: العدد فوق الأيقونة (٠ يُزيلها)
     tabCount(id, n) { const v = Math.max(0, +n || 0); if (TABN[id] === v) return; TABN[id] = v; if (S) paintTabs(); },
@@ -1792,8 +1869,13 @@ h2{font-size:19px;font-weight:800;color:var(--navy);margin:0 0 10px}
        أيضاً إشعار الطفل داخل البوابة. سحابياً فقط (الوضع التجريبي بلا onSnapshot)، ولا يرمي أبداً. */
     sub(path, cb) {
       if (!CLOUD || !db || !path || typeof cb !== "function") return null;
-      try { return db.doc(path).onSnapshot((d) => { try { cb(d && d.exists ? (d.data() || {}) : null); } catch (e) { } }, () => { }); }
-      catch (e) { return null; }
+      let un = null, off = false, retried = false;
+      const go = () => ensureClaim().then(() => { if (off) return; try {
+        un = db.doc(path).onSnapshot((d) => { try { cb(d && d.exists ? (d.data() || {}) : null); } catch (e) { } },
+          (e) => { if (off || retried || !isPermErr(e)) return; retried = true; CLAIM_P = null; un = null; go(); });
+      } catch (e) { } });
+      go();
+      return () => { off = true; if (un) { try { un(); } catch (e) { } } };
     },
     badges(fn) { BADGES = fn; if (CURTAB === "card" && S) showTab("card"); },
     today(fn) { TODAY = fn; if (CURTAB === "card" && S) showTab("card"); },
@@ -1807,9 +1889,9 @@ h2{font-size:19px;font-weight:800;color:var(--navy);margin:0 0 10px}
   boot();
 })();
 </script>
-<script src="../js/nawatij.js?v=79"></script>
-<script src="../js/nafis.js?v=79"></script>
-<script src="../js/nafis_journey.js?v=79"></script>
-<script src="../js/student/content.js?v=79"></script>
+<script src="../js/nawatij.js?v=80"></script>
+<script src="../js/nafis.js?v=80"></script>
+<script src="../js/nafis_journey.js?v=80"></script>
+<script src="../js/student/content.js?v=80"></script>
 </body>
 </html>
